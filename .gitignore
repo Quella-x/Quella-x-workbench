@@ -1,0 +1,10 @@
+# 操作系统 / 编辑器临时文件
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*~
+*.swp
+
+# 说明：APK 等构建产物不放进此源码仓库（体积大且每次重建）
+# 最新 APK 备份位置：D:\小筱工作台\ 或 GitHub Releases

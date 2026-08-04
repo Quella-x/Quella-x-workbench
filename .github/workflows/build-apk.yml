@@ -1,0 +1,99 @@
+name: Build Android APK (TWA)
+
+# 每次 push 到 main（或手动触发）都会在 GitHub 云端把 PWA 打包成「已签名」安卓 APK。
+# 工作流内用 keytool 自动生成签名密钥（自签名，可直接安装测试，无需任何 Secrets）。
+# 下载地址见 Actions 页对应运行的 Artifacts。如需上架商店，替换 keystore 即可（见文末）。
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses || true
+
+      - name: Install Android build tools
+        run: sdkmanager "build-tools;34.0.0" "platforms;android-34" "platform-tools"
+
+      - name: Install Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
+
+      # 预先生成一个签名密钥（自签名，密码固定为 android）。APK 必须签名才能安装。
+      - name: Generate signing keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore android.keystore \
+            -alias android \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Quella-x, OU=WB, O=Quella-x, L=Unknown, S=Unknown, C=CN"
+
+      - name: Initialize TWA project (non-interactive)
+        run: |
+          yes | bubblewrap init \
+            --manifest ./manifest.json \
+            --packageId com.xiaoxiao.workstation \
+            --appName "小筱工作台" \
+            --launcherName "小筱台" \
+            --themeColor "#5B9BE8" \
+            --navigationColor "#5B9BE8" \
+            --backgroundColor "#f5f8fc" \
+            --display standalone \
+            --orientation portrait \
+            --fallbackType customtabs \
+            --host quella-x.github.io \
+            --webManifestUrl "https://quella-x.github.io/Quella-x-workbench/manifest.json"
+
+      # 用我们生成的 keystore 强制签名（覆盖 init 生成的密钥）。密码通过 BUBBLEWRAP_* 环境变量传入，避免交互。
+      - name: Build signed APK
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: android
+          BUBBLEWRAP_KEY_PASSWORD: android
+        run: |
+          bubblewrap build \
+            --signingKeyPath ./android.keystore \
+            --signingKeyAlias android \
+            --skipPwaValidation
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: xiaoxiao-workstation-apk
+          path: |
+            app/build/outputs/**/*.apk
+            app-release-bundle/release/*.apk
+          if-no-files-found: warn
+
+# ---- 上架商店（可选）----
+# 上面的密钥是工作流每次临时生成的“自签名”密钥，仅适合自己安装测试，不能直接上架。
+# 若要发布到 Google Play，请改用你自己的长期密钥：
+#   1) 本地生成并妥善保存：keytool -genkeypair -v -keystore release.jks -alias xiaoxiao -keyalg RSA -keysize 2048 -validity 10000
+#   2) 把 release.jks 做 base64：base64 -w0 release.jks > release.jks.b64
+#   3) 仓库 Settings -> Secrets -> Actions 添加：UPLOAD_KEYSTORE_B64 / UPLOAD_KEYSTORE_PASSWORD / UPLOAD_KEY_ALIAS / UPLOAD_KEY_PASSWORD
+#   4) 把 “Generate signing keystore” 步骤替换为解码 secrets：
+#        echo "${{ secrets.UPLOAD_KEYSTORE_B64 }}" | base64 -d > android.keystore
+#      并相应修改 BUBBLEWRAP_KEYSTORE_PASSWORD / BUBBLEWRAP_KEY_PASSWORD 为你设置的密码。
