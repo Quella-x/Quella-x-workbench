@@ -2442,14 +2442,13 @@ function renderTimeline() {
   html += '<button class="btn btn-primary" onclick="openAddForm(\'oc-timeline\')">+ 新增事件</button>';
   html += '</div>';
 
-  // Color filter buttons (solid background, no "全部" button — click again to cancel) — centered
+  // Color filter buttons — v32 圆角胶囊单选，选中带 ✓
   html += '<div class="timeline-filter-bar">';
   Object.keys(TIMELINE_COLORS).forEach(c => {
     const tc = TIMELINE_COLORS[c];
     const active = ps.colorFilter === c;
-    const cls = active ? '' : ' inactive';
-    const bgStyle = active ? `background:${tc.color}` : '';
-    html += `<div class="timeline-color-filter${cls}" onclick="timelineColorFilter('${c}')" style="${bgStyle}"><span class="timeline-color-dot" style="background:${active ? '#fff' : tc.color}"></span><span>${tc.label}</span></div>`;
+    const cls = active ? ' active' : '';
+    html += `<div class="timeline-color-filter${cls}" data-color="${esc(c)}" onclick="timelineColorFilter('${esc(c)}')">${esc(tc.label)}</div>`;
   });
   html += '</div>';
 

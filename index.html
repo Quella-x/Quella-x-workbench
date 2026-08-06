@@ -2,6 +2,9 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
 <meta name="theme-color" content="#5B9BE8">
 <meta name="mobile-web-app-capable" content="yes">
@@ -509,12 +512,8 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyCount"]{flex:0 0 55px}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyPrice"]{flex:0 0 110px}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="note"]{flex:1 1 0;min-width:80px}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyCount"]{flex:0 0 55px;padding-left:8px}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyPrice"]{flex:0 0 110px;padding-left:8px}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="note"]{flex:1 1 0;min-width:80px;padding-left:8px}
-/* 开团记录制品列表：单价/对应厂家标题视觉偏左微调 */
-.dynamic-list-container[data-key="products"] .dynamic-list-header span[data-subkey="price"]{padding-left:8px}
-.dynamic-list-container[data-key="products"] .dynamic-list-header span[data-subkey="factory"]{padding-left:8px}
+/* O轮修正：接稿修改项目、开团制品列表标题统一走默认 8px，与所有其他列保持一致；
+   局部 padding 微调已被证明只会引入新的偏左/偏右，全部回退到 K 轮标准。 */
 /* 修改类型为下拉选择器，列宽与 header 一致 */
 .dynamic-list-container[data-key="modifications"] .combobox-wrapper[data-subkey="modifyType"]{flex:1 1 0!important;min-width:80px!important}
 .dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyType"]{flex:1 1 0;min-width:80px}
@@ -1028,7 +1027,7 @@ ul,li{list-style:none}
   padding:6px 10px;border:1px solid var(--c-border);
   border-radius:4px;font-size:13px;
 }
-.nav-icon-input{flex:0 0 80px}
+.nav-icon-input{flex:1;min-width:0}
 .nav-label-input{flex:1;min-width:0}
 
 /* ===== Mindmap Arrow Labels ===== */
@@ -1325,19 +1324,27 @@ ul,li{list-style:none}
 .sortable-actions .btn-ghost{width:32px;height:32px;padding:0;display:flex;align-items:center;justify-content:center}
 .sortable-actions .btn-ghost:disabled{opacity:.35;cursor:not-allowed}
 
-/* ===== v15: Timeline (时间轨迹) ===== */
+/* ===== v15/v32: Timeline (时间轨迹) ===== */
 .timeline-filter-bar{
   display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin-bottom:16px;
 }
 .timeline-color-filter{
   display:inline-flex;align-items:center;gap:4px;
   padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;
-  cursor:pointer;border:none;transition:all .2s;
-  color:#fff;
+  cursor:pointer;border:1px solid currentColor;transition:all .2s;
+  background:#fff;color:var(--c-text);
 }
 .timeline-color-filter:hover{opacity:.85}
-.timeline-color-filter.inactive{background:var(--c-card);color:var(--c-text-light);border:1px solid var(--c-border)}
-.timeline-color-dot{width:10px;height:10px;border-radius:50%;border:none}
+.timeline-color-filter.active{color:#fff}
+.timeline-color-filter.active::before{content:'✓ ';margin-right:2px}
+.timeline-color-filter[data-color="红"]{color:#e74c3c;border-color:#e74c3c}
+.timeline-color-filter[data-color="红"].active{background:#e74c3c}
+.timeline-color-filter[data-color="橙"]{color:#fa8c16;border-color:#fa8c16}
+.timeline-color-filter[data-color="橙"].active{background:#fa8c16}
+.timeline-color-filter[data-color="绿"]{color:#27ae60;border-color:#27ae60}
+.timeline-color-filter[data-color="绿"].active{background:#27ae60}
+.timeline-color-filter[data-color="蓝"]{color:#3498db;border-color:#3498db}
+.timeline-color-filter[data-color="蓝"].active{background:#3498db}
 .timeline-container{
   background:var(--c-card);border-radius:var(--radius);box-shadow:var(--shadow-sm);
   padding:20px;position:relative;
@@ -1440,7 +1447,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=40"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
