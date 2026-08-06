@@ -326,6 +326,12 @@ ul,li{list-style:none}
 .cal-day-event-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .cal-day-event-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--c-text-light)}
 .cal-day-event-more{font-size:9px;color:var(--c-text-muted);padding-left:10px}
+/* v29-fix2: 接稿排期日历日期同行标签（实心圆点+开稿/截稿文字） */
+.cal-day-tags{display:inline-flex;align-items:center;flex-wrap:wrap;gap:2px 6px;flex:1;min-width:0}
+.cal-day-tag{display:inline-flex;align-items:center;gap:3px;font-size:10px;color:var(--c-text-light);white-space:nowrap}
+.cal-day-tag-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.cal-day-tag-more{font-size:9px;color:var(--c-text-muted)}
+.cal-day-count{font-size:10px;color:var(--c-text-muted);margin-top:1px}
 /* Calendar period bar (开稿~截稿时间段连续显示) */
 .cal-period-bar{
   position:absolute;left:1px;right:1px;opacity:.85;font-size:8px;color:#fff;
@@ -1084,7 +1090,7 @@ ul,li{list-style:none}
   /* v29-fix: mobile 报价计算制品/加价改为横向行（对齐接稿排期） */
   .dc-product-header{display:none!important}
   .dc-extra-header{display:none!important}
-  .dc-product-row{grid-template-columns:1fr 52px 48px 44px 44px 28px!important;gap:4px!important;padding:0}
+  .dc-product-row{grid-template-columns:1fr 58px 50px 42px 42px 28px!important;gap:4px!important;padding:0}
   .dc-product-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
   .dc-product-row .dc-prod-name{font-size:12px}
   .dc-product-row .dc-prod-check{font-size:10px;gap:0;justify-content:center}
@@ -1266,18 +1272,17 @@ ul,li{list-style:none}
   display:grid;grid-template-columns:1fr 1fr;gap:12px;
 }
 
-/* ===== v15: OC Profile reorder (➕➖ buttons) ===== */
-.profile-order-controls{
-  display:flex;flex-direction:row;gap:4px;align-items:center;justify-content:flex-end;
-  width:100%;margin-top:2px;
+/* ===== v15/v29-fix2: OC Profile 排序弹窗 ===== */
+.sortable-list{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;padding-right:4px}
+.sortable-item{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;padding:10px 12px;background:var(--c-card-bg,#fff);
+  border:1px solid var(--c-border-light);border-radius:10px;
 }
-.profile-order-btn{
-  width:26px;height:26px;border:none;border-radius:5px;
-  background:transparent;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:all .15s;padding:0;font-size:13px;line-height:1;
-}
-.profile-order-btn:hover{background:var(--c-primary-bg);transform:scale(1.15)}
+.sortable-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.sortable-actions{display:flex;gap:6px}
+.sortable-actions .btn-ghost{width:32px;height:32px;padding:0;display:flex;align-items:center;justify-content:center}
+.sortable-actions .btn-ghost:disabled{opacity:.35;cursor:not-allowed}
 
 /* ===== v15: Timeline (时间轨迹) ===== */
 .timeline-filter-bar{

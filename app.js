@@ -661,19 +661,20 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     const dayPlatforms = new Set();
     dayRecords.forEach(r => { arrVal(r.platform).forEach(p => dayPlatforms.add(p)); });
     [...dayPlatforms].forEach(p => { topDots += `<span class="cal-dot" style="background:${PLATFORM_COLORS[p] || '#9DC8FF'}"></span>`; });
-    // v29-fix: 底部显示开稿/接稿/截稿记录，实心点+文字样式
-    let bottomEvents = '';
+    // v29-fix2: 恢复 v27 日期同行圆点，记录数放下一行，再接开稿/接稿/截稿标签
+    const dayCount = dayRecords.length > 0 ? `<div class="cal-day-count">${dayRecords.length}条</div>` : '';
     const dayComms = commissionRecords.filter(r => (r.startTime || '').startsWith(dateStr) || (r.acceptTime || '').startsWith(dateStr) || (r.deadline || '').startsWith(dateStr));
+    let commTags = '';
     if (dayComms.length > 0) {
-      bottomEvents = '<div class="cal-day-events home-comm-events">' + dayComms.slice(0, 2).map(r => {
+      commTags = '<div class="cal-day-tags home-comm-tags">' + dayComms.slice(0, 2).map(r => {
         let label = '', color = '#7ab5f5';
         if ((r.deadline || '').startsWith(dateStr)) { label = '截稿'; color = '#ff9a9a'; }
         else if ((r.startTime || '').startsWith(dateStr)) { label = '开稿'; color = '#7ab5f5'; }
         else { label = '接稿'; color = '#9DC8FF'; }
-        return `<div class="cal-day-event"><span class="cal-day-event-dot" style="background:${color}"></span><span class="cal-day-event-name" style="color:${color};font-weight:600">${esc(label)}</span></div>`;
-      }).join('') + (dayComms.length > 2 ? `<div class="cal-day-event-more">+${dayComms.length - 2}</div>` : '') + '</div>';
+        return `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${color}"></span>${esc(label)}</span>`;
+      }).join('') + (dayComms.length > 2 ? `<span class="cal-day-tag-more">+${dayComms.length - 2}</span>` : '') + '</div>';
     }
-    html += `<div class="cal-day${isToday ? ' today' : ''}"><div class="cal-date-row"><span class="cal-date">${d}</span><div class="cal-dots">${topDots}</div>${dayRecords.length > 0 ? `<span style="font-size:10px;color:var(--c-text-muted);flex-shrink:0">${dayRecords.length}条</span>` : ''}</div>${bottomEvents}</div>`;
+    html += `<div class="cal-day${isToday ? ' today' : ''}"><div class="cal-date-row"><span class="cal-date">${d}</span><div class="cal-dots">${topDots}</div></div>${dayCount}${commTags}</div>`;
   }
   const totalCells = startWeekday + daysInMonth;
   const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
@@ -1381,6 +1382,9 @@ function renderListPage(pageKey, mod) {
     });
   }
   html += '<div class="spacer"></div>';
+  if (pageKey === 'oc-profiles') {
+    html += `<button class="btn btn-outline" onclick="openProfileSortModal()">↕️ 调整排序</button>`;
+  }
   html += `<button class="btn btn-primary" onclick="openAddForm('${pageKey}')">+ 新增记录</button>`;
   html += '</div>';
 
@@ -1431,12 +1435,6 @@ function renderListPage(pageKey, mod) {
       html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('${pageKey}','${r.id}')">✏️</span>`;
       html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('${pageKey}','${r.id}')">🗑️</span>`;
       html += '</div>';
-      if (pageKey === 'oc-profiles') {
-        html += `<div class="profile-order-controls">`;
-        html += `<button class="profile-order-btn" onclick="event.stopPropagation();profileMove('${r.id}',-1)" title="上移">➕</button>`;
-        html += `<button class="profile-order-btn" onclick="event.stopPropagation();profileMove('${r.id}',1)" title="下移">➖</button>`;
-        html += `</div>`;
-      }
       html += '</div>';
       html += '<div class="record-card-body">';
       (mod.listFields || []).forEach(f => {
@@ -1611,18 +1609,14 @@ function renderCommissionCalendar(year, month, records) {
     const deadlineRecords = records.filter(r => r.deadline === dateStr);
     const isToday = dateStr === todayKey;
     const isSelected = ps.dateFilter === dateStr;
-    // v29-fix: 开稿恢复为仅圆点，截稿显示圆点+"截稿"文字
-    let eventLabels = '';
+    // v29-fix2: 开稿/截稿统一恢复为 v27 样式：日期同行实心圆点+文字
     const dayEvents = [];
-    startRecords.forEach(r => dayEvents.push({ r, type: 'start', label: '' }));
+    startRecords.forEach(r => dayEvents.push({ r, type: 'start', label: '开稿' }));
     deadlineRecords.forEach(r => dayEvents.push({ r, type: 'end', label: '截稿' }));
-    if (dayEvents.length > 0) {
-      eventLabels = '<div class="cal-day-events">' + dayEvents.slice(0, 3).map(e => {
-        const color = recordColorMap[e.r.id] || '#9DC8FF';
-        const text = e.label ? `<span class="cal-day-event-name" style="color:${color};font-weight:600">${esc(e.label)}</span>` : '';
-        return `<div class="cal-day-event"><span class="cal-day-event-dot" style="background:${color}"></span>${text}</div>`;
-      }).join('') + (dayEvents.length > 3 ? `<div class="cal-day-event-more">+${dayEvents.length - 3}</div>` : '') + '</div>';
-    }
+    const eventTags = dayEvents.length > 0 ? '<div class="cal-day-tags">' + dayEvents.slice(0, 2).map(e => {
+      const color = recordColorMap[e.r.id] || '#9DC8FF';
+      return `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${color}"></span>${esc(e.label)}</span>`;
+    }).join('') + (dayEvents.length > 2 ? `<span class="cal-day-tag-more">+${dayEvents.length - 2}</span>` : '') + '</div>' : '';
     let info = '';
     // Build period bars by track (max 3 visible, excess ignored)
     let bars = '';
@@ -1644,7 +1638,7 @@ function renderCommissionCalendar(year, month, records) {
       bars += `<div class="${cls}" style="background:${color};top:${topPx}px;height:${CAL_BAR_HEIGHT}px;line-height:${CAL_BAR_HEIGHT}px">${label}</div>`;
     });
     const cellMinHeight = 76; // fits 3 bars (22+3*13=61px) + padding
-    html += `<div class="cal-day${isToday ? ' today' : ''}${isSelected ? ' selected' : ''}" onclick="commissionDateClick('${dateStr}')" style="cursor:pointer;min-height:${cellMinHeight}px"><div class="cal-date-row"><span class="cal-date">${d}</span></div>${eventLabels}${info}${bars}</div>`;
+    html += `<div class="cal-day${isToday ? ' today' : ''}${isSelected ? ' selected' : ''}" onclick="commissionDateClick('${dateStr}')" style="cursor:pointer;min-height:${cellMinHeight}px"><div class="cal-date-row"><span class="cal-date">${d}</span>${eventTags}</div>${info}${bars}</div>`;
   }
   const totalCells = startWeekday + daysInMonth;
   const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
@@ -1706,6 +1700,55 @@ function profileMove(id, dir) {
   DB.save('ocCharacters', records);
   Toast.success('顺序已调整');
   renderListPage('oc-profiles', MODULES['oc-profiles']);
+}
+
+// v29-fix2: 人物档案独立排序弹窗
+function openProfileSortModal() {
+  let list = DB.list('ocCharacters').slice();
+  list.sort((a, b) => {
+    const ao = a.order != null ? a.order : 999999;
+    const bo = b.order != null ? b.order : 999999;
+    if (ao !== bo) return ao - bo;
+    return (a._ct || 0) - (b._ct || 0);
+  });
+  list.forEach((r, i) => { if (r.order == null) r.order = i; });
+  const render = () => {
+    let html = '<div class="sortable-list">';
+    list.forEach((r, i) => {
+      html += `<div class="sortable-item"><span class="sortable-name">${esc(r.name || '未命名')}</span>`;
+      html += `<div class="sortable-actions">`;
+      html += `<button class="btn btn-ghost btn-sm" ${i === 0 ? 'disabled' : ''} onclick="profileSortMove(${i},-1)">▲</button>`;
+      html += `<button class="btn btn-ghost btn-sm" ${i === list.length - 1 ? 'disabled' : ''} onclick="profileSortMove(${i},1)">▼</button>`;
+      html += '</div></div>';
+    });
+    html += '</div>';
+    $('#modalBody').innerHTML = html;
+  };
+  window._profileSortList = list;
+  window.profileSortMove = (idx, dir) => {
+    const swapIdx = idx + dir;
+    if (swapIdx < 0 || swapIdx >= list.length) return;
+    const tmp = list[idx].order;
+    list[idx].order = list[swapIdx].order;
+    list[swapIdx].order = tmp;
+    list.sort((a, b) => {
+      const ao = a.order != null ? a.order : 999999;
+      const bo = b.order != null ? b.order : 999999;
+      if (ao !== bo) return ao - bo;
+      return (a._ct || 0) - (b._ct || 0);
+    });
+    render();
+  };
+  openModal('调整人物档案排序', '', [
+    { label: '取消', class: 'btn-outline', action: () => closeModal() },
+    { label: '保存', class: 'btn-primary', action: () => {
+      DB.save('ocCharacters', list);
+      Toast.success('排序已保存');
+      closeModal();
+      renderListPage('oc-profiles', MODULES['oc-profiles']);
+    }}
+  ]);
+  render();
 }
 
 /* ===== Add/Edit Form ===== */
@@ -1959,15 +2002,13 @@ function renderHome() {
     html += `<span class="legend-item"><span class="status-dot" style="background:#fa8c16"></span>视频号</span>`;
     html += `<span class="legend-item"><span class="status-dot" style="background:#07a059"></span>公众号</span>`;
     html += '</div></div>';
-    // v29: 首页灵感速记模块（写入 inspirations，首页不展示，进入「美工·灵感记录」）
-    const inspThemes = [...new Set(DB.list('inspirations').map(r => r.theme).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), 'zh'));
+    // v29-fix2: 首页灵感速记模块（写入 inspirations，首页不展示，进入「美工·灵感记录」）
     const inspCats = getInspirationCategories();
-    const hThemeOpts = inspThemes.map(t => `<div class="combobox-option" onclick="selectComboboxOption('hInspThemeList',this)" data-value="${esc(t)}">${esc(t)}</div>`).join('');
     const hCatOpts = inspCats.map(c => `<div class="combobox-option" onclick="selectComboboxOption('hInspCatList',this)" data-value="${esc(c)}">${esc(c)}</div>`).join('');
     html += '<div class="home-insp">';
     html += '<div class="home-insp-title">💡 灵感速记 <span class="hint">随手记，保存后进入「美工·灵感记录」</span></div>';
     html += '<div class="home-insp-row">';
-    html += '<div class="combobox-wrapper home-insp-combo"><input type="text" class="form-input combobox-input" id="hInspTheme" placeholder="灵感主题" onfocus="showComboboxDropdown(\'hInspThemeList\')" onclick="showComboboxDropdown(\'hInspThemeList\')" oninput="filterComboboxDropdown(\'hInspThemeList\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'hInspThemeList\')">▼</button><div class="combobox-dropdown" id="hInspThemeList">' + hThemeOpts + '</div></div>';
+    html += '<input type="text" class="form-input" id="hInspTheme" placeholder="灵感主题">';
     html += '<div class="combobox-wrapper home-insp-combo"><input type="text" class="form-input combobox-input" id="hInspCat" placeholder="制品名称" onfocus="showComboboxDropdown(\'hInspCatList\')" onclick="showComboboxDropdown(\'hInspCatList\')" oninput="filterComboboxDropdown(\'hInspCatList\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'hInspCatList\')">▼</button><div class="combobox-dropdown" id="hInspCatList">' + hCatOpts + '</div></div>';
     html += '</div>';
     html += '<textarea class="form-input home-insp-textarea" id="hInspThoughts" placeholder="文字思路…"></textarea>';
@@ -2895,7 +2936,7 @@ function dcRenderProducts() {
     const optHTML = productNames.map(n => `<div class="combobox-option" onclick="dcSelectProduct(${i},this,'${cbId}')" data-value="${esc(n)}">${esc(n)}</div>`).join('');
     html += '<div class="dc-product-row">';
     html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-name" value="${esc(p.name)}" placeholder="制品名称" data-key="name" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateProduct(${i},'name',this.value);dcFillPrice(this,'product',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
-    html += `<input type="text" class="form-input dc-prod-pattern" value="${esc(p.patternId||'')}" placeholder="柄图标识" oninput="dcUpdateProduct(${i},'patternId',this.value)">`;
+    html += `<input type="text" class="form-input dc-prod-pattern" value="${esc(p.patternId||'')}" placeholder="柄图" oninput="dcUpdateProduct(${i},'patternId',this.value)">`;
     html += `<input type="number" class="form-input dc-prod-price" value="${p.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateProduct(${i},'price',this.value)">`;
     html += `<input type="number" class="form-input dc-prod-qty" value="${p.quantity}" placeholder="数量" min="1" oninput="dcUpdateProduct(${i},'quantity',this.value)">`;
     html += `<label class="dc-prod-check"><input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模</label>`;
