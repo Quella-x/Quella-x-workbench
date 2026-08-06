@@ -356,16 +356,16 @@ function buildForm(fields, data = {}, moduleKey = '') {
       const optHTML = allOpts.map(o => {
         const v = typeof o === 'string' ? o : o.value;
         const l = typeof o === 'string' ? o : o.label;
-        const isCustom = typeof o === 'object' && o.custom;
-        const alwaysDel = isCustom && moduleKey === 'oc-relations' && f.key === 'relationType';
-        const delBtn = (isCustom && moduleKey) ? `<span class="btn-icon danger custom-opt-del" style="width:14px;height:14px;font-size:11px;margin-left:4px${alwaysDel ? ';opacity:1' : ''}" onclick="event.stopPropagation();removeCustomOpt(this,'${esc(moduleKey)}','${esc(f.key)}','${esc(v)}')">✕</span>` : '';
-        return `<label class="checkbox-item"><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}> ${esc(l)}${delBtn}</label>`;
+        return `<label class="checkbox-item"><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}> ${esc(l)}</label>`;
       }).join('');
       let msHTML = `<div class="form-row"><label class="form-label">${esc(label)}</label><div class="checkbox-group" data-key="${f.key}"${singleAttr}>${optHTML}</div>`;
       if (f.allowCustom) {
         const customId = 'customAdd_' + f.key + '_' + Math.random().toString(36).slice(2, 7);
         const customPlaceholder = (moduleKey === 'oc-relations' && f.key === 'relationType') ? '请输入自定义关系类型' : '输入自定义类型后按添加';
-        msHTML += `<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="form-input" id="${customId}" placeholder="${esc(customPlaceholder)}" style="flex:1;font-size:13px"><button type="button" class="btn btn-outline btn-sm" onclick="addCustomMultiselectOpt('${customId}','${moduleKey || ''}','${f.key}',this)">添加</button></div>`;
+        const delBtn = (moduleKey === 'oc-relations' && f.key === 'relationType')
+          ? `<button type="button" class="btn btn-ghost btn-sm" onclick="removeCustomRelationTypeFromInput('${customId}')">删除</button>`
+          : '';
+        msHTML += `<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="form-input" id="${customId}" placeholder="${esc(customPlaceholder)}" style="flex:1;font-size:13px"><button type="button" class="btn btn-outline btn-sm" onclick="addCustomMultiselectOpt('${customId}','${moduleKey || ''}','${f.key}',this)">添加</button>${delBtn}</div>`;
       }
       msHTML += '</div>';
       html += msHTML;
@@ -664,9 +664,7 @@ function addCustomMultiselectOpt(inputId, moduleKey, fieldKey, btn) {
       const label = document.createElement('label');
       label.className = 'checkbox-item';
       const singleAttr = group.dataset.single ? ' onclick="limitSingleCheckbox(this)"' : '';
-      const alwaysDel = moduleKey === 'oc-relations' && fieldKey === 'relationType';
-      const delBtn = `<span class="btn-icon danger custom-opt-del" style="width:14px;height:14px;font-size:11px;margin-left:4px${alwaysDel ? ';opacity:1' : ''}" onclick="event.stopPropagation();removeCustomOpt(this,'${esc(moduleKey)}','${esc(fieldKey)}','${esc(val)}')">✕</span>`;
-      label.innerHTML = `<input type="checkbox" value="${esc(val)}" checked${singleAttr}> ${esc(val)}${delBtn}`;
+      label.innerHTML = `<input type="checkbox" value="${esc(val)}" checked${singleAttr}> ${esc(val)}`;
       group.appendChild(label);
       // 人物关系关系类型添加自定义后按 A-Z 重新排序
       if (moduleKey === 'oc-relations' && fieldKey === 'relationType') {
@@ -686,6 +684,24 @@ function removeCustomOpt(btn, moduleKey, fieldKey, val) {
   DB.set(dbKey, customOpts);
   const label = btn.closest('.checkbox-item');
   if (label) label.remove();
+}
+// v31: 人物关系自定义关系类型删除——按钮放在「添加」旁边，删除输入框中已存在的自定义类型
+function removeCustomRelationTypeFromInput(inputId) {
+  const input = document.getElementById(inputId);
+  if (!input || !input.value.trim()) { Toast.warning('请输入要删除的自定义关系类型'); return; }
+  const val = input.value.trim();
+  const dbKey = 'customOpts_oc-relations_relationType';
+  const customOpts = DB.get(dbKey, []);
+  if (!customOpts.includes(val)) { Toast.warning('该类型不存在或不是自定义类型'); return; }
+  DB.set(dbKey, customOpts.filter(v => v !== val));
+  // 同步移除当前表单中的该选项 checkbox
+  const group = input.closest('.form-row').querySelector('.checkbox-group');
+  if (group) {
+    const cb = group.querySelector(`input[type="checkbox"][value="${esc(val)}"]`);
+    if (cb) cb.closest('.checkbox-item').remove();
+  }
+  input.value = '';
+  Toast.success('已删除自定义关系类型');
 }
 /* ===== Calendar Component ===== */
 const PLATFORM_COLORS = { '小红书': '#ff2442', '抖音': '#161823', '视频号': '#fa8c16', '公众号': '#07a059' };
@@ -708,8 +724,8 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     const dayPlatforms = new Set();
     dayRecords.forEach(r => { arrVal(r.platform).forEach(p => dayPlatforms.add(p)); });
     [...dayPlatforms].forEach(p => { topDots += `<span class="cal-dot" style="background:${PLATFORM_COLORS[p] || '#9DC8FF'}"></span>`; });
-    // v29-fix6: 平台发布圆点紧跟日期数字（间距与接稿排期时间条一致）；开稿/截稿/同天放在日期格底部
-    const dayCount = `<div class="cal-day-count">${dayRecords.length > 0 ? dayRecords.length + '条' : '&nbsp;'}</div>`;
+    // v31: 平台发布条数挪到圆点后面（同行）；开稿/截稿/同天上调并固定位置
+    const dayCount = dayRecords.length > 0 ? `<span class="cal-day-count">${dayRecords.length}条</span>` : '';
     const dayComms = commissionRecords.filter(r => (r.startTime || '').startsWith(dateStr) || (r.deadline || '').startsWith(dateStr));
     const hasStart = dayComms.some(r => (r.startTime || '').startsWith(dateStr));
     const hasEnd = dayComms.some(r => (r.deadline || '').startsWith(dateStr));
@@ -724,8 +740,7 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     const commTags = commTag ? `<div class="cal-day-tags home-comm-tags">${commTag}</div>` : '';
     html += `<div class="cal-day${isToday ? ' today' : ''}">
       <div class="cal-date-row"><span class="cal-date">${d}</span></div>
-      <div class="cal-dots">${topDots}</div>
-      ${dayCount}
+      <div class="cal-dots">${topDots}${dayCount}</div>
       ${commTags}
     </div>`;
   }

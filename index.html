@@ -308,8 +308,8 @@ ul,li{list-style:none}
   font-size:12px;position:relative;cursor:pointer;transition:background .15s;
   display:flex;flex-direction:column;justify-content:flex-start;align-items:flex-start;
 }
-.cal-day .cal-dots{margin-top:4px;height:12px}
-.home-comm-tags{margin-top:2px;padding-bottom:0}
+.cal-day .cal-dots{margin-top:2px;height:14px;min-height:14px;overflow:hidden}
+.home-comm-tags{margin-top:1px;padding-bottom:0}
 .cal-day:hover{background:var(--c-primary-bg)}
 .cal-day.other-month{opacity:.35}
 .cal-day.today{background:var(--c-primary-bg);font-weight:700}
@@ -318,7 +318,8 @@ ul,li{list-style:none}
 .cal-date-row{display:flex;align-items:center;gap:8px;width:100%;margin-bottom:1px}
 .cal-day .cal-date{font-size:12px;flex-shrink:0;line-height:1.3}
 .cal-day .cal-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.cal-day .cal-dots{display:flex;flex-wrap:wrap;gap:2px;align-items:center;margin-top:1px}
+.cal-day .cal-dots{display:flex;flex-wrap:nowrap;gap:3px;align-items:center;margin-top:1px;height:14px;min-height:14px;overflow:hidden}
+.cal-day-count{font-size:10px;color:var(--c-text-muted);line-height:1;white-space:nowrap;flex-shrink:0}
 .cal-legend{display:flex;gap:12px;padding:8px 16px;font-size:12px;color:var(--c-text-light);border-top:1px solid var(--c-border-light)}
 .cal-divider{height:2px;background:var(--c-primary-dark);margin:24px 0 16px;border-radius:1px;opacity:.3;border:none}
 .cal-legend .legend-item{display:flex;align-items:center;gap:4px}
@@ -337,7 +338,6 @@ ul,li{list-style:none}
 .cal-day-tag-text{font-size:10px;line-height:1;font-weight:600}
 .cal-day-tag-end{margin-left:auto}
 .cal-day-tag-more{font-size:9px;color:var(--c-text-muted)}
-.cal-day-count{font-size:10px;color:var(--c-text-muted);margin-top:0;min-height:12px;line-height:12px}
 /* Calendar period bar (开稿~截稿时间段连续显示) */
 .cal-period-bar{
   position:absolute;left:1px;right:1px;opacity:.85;font-size:8px;color:#fff;
@@ -419,14 +419,15 @@ ul,li{list-style:none}
 .checkbox-item:hover .custom-opt-del{opacity:1}
 .custom-opt-del:hover{background:var(--c-danger-bg);color:var(--c-danger)}
 
-/* v30-fix: Dynamic list — 标题与内容像素级左对齐（治根+底色版）
-   关键：header 用 margin:0 -8px 把淡蓝背景延伸到容器左右边缘，同时自身 padding 归 0；
-   标题文字靠 span 的 padding-left:8px + 透明边框 1px 与 input 内容起点严格对齐。
-   这样既有淡蓝底色，又不存在 margin:-8px 导致起点偏移的问题。 */
-.dynamic-list-container{padding:8px;border:1px solid var(--c-border);border-radius:var(--radius-sm);overflow:visible;position:relative;background:var(--c-card)}
+/* v22/v29: Dynamic list — 标题与内容像素级左对齐
+   container 有 8px padding；header 用 margin:-8px 延伸到边缘，其内容区起点与 container 内容区起点对齐。
+   标题文字靠 span 的 padding-left:8px + 透明边框 1px 与 input 内容起点严格一致。 */
+.dynamic-list-container{padding:8px;border:1px solid var(--c-border);border-radius:var(--radius-sm);overflow:visible}
+/* v28: hdr 标题行 — 背景色延伸至容器顶部 border 内边缘（margin-top:-8px 抵消 container 的 padding-top:8px），
+   左右仍然 margin-left/right:-8px。padding-top:4px 保留作为文字顶部呼吸空间。 */
 .dynamic-list-header{
-  position:relative;display:flex;gap:4px;
-  margin:0 -8px 6px;padding:4px 0;
+  display:flex;gap:4px;
+  margin:-8px -8px 6px;padding:4px 8px 4px 8px;
   font-size:11px;font-weight:600;color:var(--c-text-muted);
   background:var(--c-primary-bg);
   border-bottom:1px dashed var(--c-border);
@@ -723,7 +724,7 @@ ul,li{list-style:none}
   .dynamic-list-row .combobox-wrapper{min-width:80px;flex:1 1 80px}
   .dynamic-list-row > button{flex-shrink:0;min-width:40px}
   /* v22 mobile 标题与内容列对齐 */
-  .dynamic-list-header{font-size:10px;padding:6px 0;display:flex!important;gap:4px;background:var(--c-primary-bg)}
+  .dynamic-list-header{font-size:10px;padding:6px 0;display:flex!important;gap:4px;background:transparent}
   .dynamic-list-header span{padding-left:8px;box-sizing:border-box;text-align:left}
   .dynamic-list-header span.combobox-col{padding-left:16px}
   /* v22 mobile: 全面隐藏所有 dynamic-list 标题（仅靠 placeholder 提示） */
