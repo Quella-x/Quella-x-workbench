@@ -324,7 +324,7 @@ function buildForm(fields, data = {}, moduleKey = '') {
       html += `<div class="form-row"><label class="form-label">${esc(label)}</label><textarea class="form-textarea" data-key="${f.key}" placeholder="${esc(f.placeholder || '')}">${esc(valStr)}</textarea>${f.hint ? `<span class="form-hint">${esc(f.hint)}</span>` : ''}</div>`;
     } else if (f.type === 'combobox') {
       const opts = moduleKey ? getFieldOpts(moduleKey, f.key, f.options) : (f.options || []);
-      const shouldSort = ['factory', 'product', 'category'].includes(f.key) || f.label === '厂家';
+      const shouldSort = !f.noSort && (['factory', 'product', 'category'].includes(f.key) || f.label === '厂家');
       const displayOpts = shouldSort ? opts.slice().sort((a, b) => {
         const la = typeof a === 'string' ? a : a.label;
         const lb = typeof b === 'string' ? b : b.label;
@@ -343,8 +343,10 @@ function buildForm(fields, data = {}, moduleKey = '') {
         const existingVals = opts.map(o => typeof o === 'string' ? o : o.value);
         customOpts.forEach(cv => { if (!existingVals.includes(cv)) { allOpts = allOpts.concat([{ value: cv, label: cv, custom: true }]); } });
       }
-      const optHTML = allOpts.map(o => { const v = typeof o === 'string' ? o : o.value; const l = typeof o === 'string' ? o : o.label; return `<label class="checkbox-item"><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}> ${esc(l)}</label>`; }).join('');
-      let msHTML = `<div class="form-row"><label class="form-label">${esc(label)}</label><div class="checkbox-group" data-key="${f.key}">${optHTML}</div>`;
+      const singleAttr = f.single ? ' data-single="true"' : '';
+      const onClickAttr = f.single ? ' onclick="limitSingleCheckbox(this)"' : '';
+      const optHTML = allOpts.map(o => { const v = typeof o === 'string' ? o : o.value; const l = typeof o === 'string' ? o : o.label; return `<label class="checkbox-item"><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}> ${esc(l)}</label>`; }).join('');
+      let msHTML = `<div class="form-row"><label class="form-label">${esc(label)}</label><div class="checkbox-group" data-key="${f.key}"${singleAttr}>${optHTML}</div>`;
       if (f.allowCustom) {
         const customId = 'customAdd_' + f.key + '_' + Math.random().toString(36).slice(2, 7);
         msHTML += `<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="form-input" id="${customId}" placeholder="输入自定义类型后按添加" style="flex:1;font-size:13px"><button type="button" class="btn btn-outline btn-sm" onclick="addCustomMultiselectOpt('${customId}','${moduleKey || ''}','${f.key}',this)">添加</button></div>`;
@@ -537,7 +539,9 @@ function readForm(container) {
     if (el.dataset.key) data[el.dataset.key] = el.value;
   });
   $$('.checkbox-group', container).forEach(el => {
-    if (el.dataset.key) data[el.dataset.key] = $$('input[type="checkbox"]:checked', el).map(c => c.value);
+    if (!el.dataset.key) return;
+    const vals = $$('input[type="checkbox"]:checked', el).map(c => c.value);
+    data[el.dataset.key] = el.dataset.single ? (vals[0] || '') : vals;
   });
   $$('.dynamic-list-container', container).forEach(el => {
     if (el.dataset.key) {
@@ -614,6 +618,11 @@ document.addEventListener('click', (e) => {
 });
 
 /* ===== Custom Multiselect Option Adder ===== */
+function limitSingleCheckbox(cb) {
+  const group = cb.closest('.checkbox-group');
+  if (!group || !group.dataset.single) return;
+  group.querySelectorAll('input[type="checkbox"]').forEach(c => { if (c !== cb) c.checked = false; });
+}
 function addCustomMultiselectOpt(inputId, moduleKey, fieldKey, btn) {
   const input = document.getElementById(inputId);
   if (!input || !input.value.trim()) return;
@@ -677,11 +686,9 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     }
     const commTags = commTag ? `<div class="cal-day-tags home-comm-tags">${commTag}</div>` : '';
     html += `<div class="cal-day${isToday ? ' today' : ''}">
-      <div class="cal-day-top">
-        <div class="cal-date-row"><span class="cal-date">${d}</span></div>
-        <div class="cal-dots">${topDots}</div>
-        ${dayCount}
-      </div>
+      <div class="cal-date-row"><span class="cal-date">${d}</span></div>
+      <div class="cal-dots">${topDots}</div>
+      ${dayCount}
       ${commTags}
     </div>`;
   }
@@ -697,7 +704,7 @@ function renderCalendar(year, month, records, commissionRecords = []) {
   html += `<span class="legend-item"><span class="status-dot" style="background:#07a059"></span>公众号</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>开稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>截稿</span>`;
-  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>开+截</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>同天</span>`;
   html += '</div>';
   return html;
 }
@@ -709,6 +716,7 @@ function renderAnnualChart(records, dateField, opts = {}) {
   const year = now.getFullYear();
   if (series && series.length) {
     const data = series.map(() => Array(12).fill(0));
+    const hasData = () => data.some(arr => arr.some(v => v > 0));
     records.forEach(r => {
       const d = r[dateField]; if (!d || !String(d).startsWith(String(year))) return;
       const m = parseInt(String(d).split('-')[1]) - 1;
@@ -736,7 +744,8 @@ function renderAnnualChart(records, dateField, opts = {}) {
     let labels = ''; for (let i = 0; i < 12; i++) labels += `<span>${i + 1}月</span>`;
     let legend = '';
     series.forEach(s => { legend += `<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:${s.color}"></span>${esc(s.name)}</span>`; });
-    return `<div class="annual-chart"><div class="annual-chart-title">📊 ${esc(title)} · ${year}年</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div><div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--c-text-light)">${legend}</div></div>`;
+    const emptyTip = data.some(arr => arr.some(v => v > 0)) ? '' : `<div class="annual-chart-empty" style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--c-text-muted);font-size:12px">请为记录填写${dateField === 'startTime' ? '开团时间' : '日期'}，柱图即可显示</div>`;
+    return `<div class="annual-chart"><div class="annual-chart-title">📊 ${esc(title)} · ${year}年</div><div class="annual-chart-bars">${emptyTip || bars}</div><div class="annual-chart-labels">${labels}</div><div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--c-text-light)">${legend}</div></div>`;
   }
   const months = Array(12).fill(0);
   records.forEach(r => {
@@ -839,7 +848,7 @@ MODULES['groupbuy-records'] = {
     { key: 'startTime', label: '开团时间', type: 'date' },
     { key: 'endTime', label: '截团时间', type: 'date' },
     { key: 'products', label: '制品列表', type: 'dynamic-products', columns: [
-      { subkey: 'name', label: '制品名称', type: 'text', datalistId: 'gb_product_dl' },
+      { subkey: 'name', label: '制品', type: 'text', datalistId: 'gb_product_dl' },
       { subkey: 'price', label: '单价', type: 'number' },
       { subkey: 'factory', label: '对应厂家', type: 'text', datalistId: 'gb_factory_dl' },
       { subkey: 'salesCount', label: '售卖数量', type: 'number' },
@@ -847,7 +856,7 @@ MODULES['groupbuy-records'] = {
     ]},
     { key: 'afterSales', label: '售后记录', type: 'dynamic-list', columns: [
       { subkey: 'orderNo', label: '单号', type: 'text' },
-      { subkey: 'name', label: '制品名称', type: 'text', datalistId: 'gb_product_dl' },
+      { subkey: 'name', label: '制品', type: 'text', datalistId: 'gb_product_dl' },
       { subkey: 'quantity', label: '售后数量', type: 'number' },
       { subkey: 'type', label: '补偿方式', type: 'combobox', default: '补偿', options: [
         { value: '补偿', label: '补偿' }, { value: '补发', label: '补发' }, { value: '补寄', label: '补寄' }, { value: '退款', label: '退款' }
@@ -1111,11 +1120,11 @@ MODULES['design-auth'] = {
 MODULES['design-pricelist'] = {
   store: 'priceList',
   fields: [
-    { key: 'category', label: '制品分类', type: 'combobox', options: [{ value: '纸片类', label: '纸片类' }, { value: '其他材质类', label: '其他材质类' }, { value: '线上&应援类', label: '线上&应援类' }, { value: '加价项目', label: '加价项目' }] },
+    { key: 'category', label: '制品分类', type: 'combobox', noSort: true, options: [{ value: '纸片类', label: '纸片类' }, { value: '其他材质类', label: '其他材质类' }, { value: '线上&应援类', label: '线上&应援类' }, { value: '加价项目', label: '加价项目' }] },
     { key: 'product', label: '制品', type: 'text' },
     { key: 'defaultSize', label: '默认尺寸', type: 'text', hint: '如: 10cm（选填）' },
     { key: 'price', label: '单价', type: 'number', hint: '元' },
-    { key: 'priceUnit', label: '单位', type: 'select', default: '元', options: [{ value: '元', label: '元' }, { value: '元/p', label: '元/p' }] },
+    { key: 'priceUnit', label: '单位', type: 'multiselect', single: true, default: ['元'], options: [{ value: '元', label: '元' }, { value: '元/p', label: '元/p' }] },
     { key: 'description', label: '备注', type: 'textarea' },
   ],
   listFields: [
@@ -1681,7 +1690,7 @@ function renderCommissionCalendar(year, month, records) {
   html += '<div class="cal-legend">';
   html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>开稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>截稿</span>`;
-  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>开+截</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>同天</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[0]}"></span>紧急(截稿临近)</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[1]}"></span>正常</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[2]}"></span>充裕</span>`;
@@ -2044,7 +2053,7 @@ function renderHome() {
     html += '<div class="home-insp-title">💡 灵感速记 <span class="hint">随手记，保存后收入「灵感记录」</span></div>';
     html += '<div class="home-insp-row">';
     html += '<input type="text" class="form-input" id="hInspTheme" placeholder="灵感主题">';
-    html += '<div class="combobox-wrapper home-insp-combo"><input type="text" class="form-input combobox-input" id="hInspCat" placeholder="制品名称" onfocus="showComboboxDropdown(\'hInspCatList\')" onclick="showComboboxDropdown(\'hInspCatList\')" oninput="filterComboboxDropdown(\'hInspCatList\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'hInspCatList\')">▼</button><div class="combobox-dropdown" id="hInspCatList">' + hCatOpts + '</div></div>';
+    html += '<div class="combobox-wrapper home-insp-combo"><input type="text" class="form-input combobox-input" id="hInspCat" placeholder="制品" onfocus="showComboboxDropdown(\'hInspCatList\')" onclick="showComboboxDropdown(\'hInspCatList\')" oninput="filterComboboxDropdown(\'hInspCatList\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'hInspCatList\')">▼</button><div class="combobox-dropdown" id="hInspCatList">' + hCatOpts + '</div></div>';
     html += '</div>';
     html += '<textarea class="form-input home-insp-textarea" id="hInspThoughts" placeholder="文字思路…"></textarea>';
     html += '<div class="home-insp-actions"><button class="btn btn-primary" onclick="homeAddInspiration()">保存灵感</button></div>';
@@ -2970,7 +2979,7 @@ function dcRenderProducts() {
     const cbId = 'dcp_' + i + '_' + Math.random().toString(36).slice(2,6);
     const optHTML = productNames.map(n => `<div class="combobox-option" onclick="dcSelectProduct(${i},this,'${cbId}')" data-value="${esc(n)}">${esc(n)}</div>`).join('');
     html += '<div class="dc-product-row">';
-    html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-name" value="${esc(p.name)}" placeholder="制品名称" data-key="name" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateProduct(${i},'name',this.value);dcFillPrice(this,'product',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
+    html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-name" value="${esc(p.name)}" placeholder="制品" data-key="name" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateProduct(${i},'name',this.value);dcFillPrice(this,'product',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
     html += `<input type="text" class="form-input dc-prod-pattern" value="${esc(p.patternId||'')}" placeholder="柄图标识" oninput="dcUpdateProduct(${i},'patternId',this.value)">`;
     html += `<input type="number" class="form-input dc-prod-price" value="${p.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateProduct(${i},'price',this.value)">`;
     html += `<input type="number" class="form-input dc-prod-qty" value="${p.quantity}" placeholder="数量" min="1" oninput="dcUpdateProduct(${i},'quantity',this.value)">`;
@@ -3496,7 +3505,7 @@ function renderPriceList() {
         html += '<div class="pricelist-menu-item">';
         html += `<span class="menu-name">${esc(r.product || '未命名')}${r.defaultSize ? `<sub class="menu-size-sub">(${esc(r.defaultSize)})</sub>` : ''}</span>`;
         html += `<span class="menu-dots"></span>`;
-        const priceUnit = r.priceUnit || '元';
+        const priceUnit = Array.isArray(r.priceUnit) ? (r.priceUnit[0] || '元') : (r.priceUnit || '元');
         const priceText = priceUnit === '元' ? `¥${esc(r.price || 0)}` : `¥${esc(r.price || 0)}/p`;
         html += `<span class="menu-price">${priceText}</span>`;
         html += '<span style="margin-left:8px;display:flex;gap:2px">';

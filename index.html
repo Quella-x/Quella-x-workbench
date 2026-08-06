@@ -306,11 +306,10 @@ ul,li{list-style:none}
 .cal-day{
   min-height:76px;padding:3px;border:1px solid var(--c-border-light);
   font-size:12px;position:relative;cursor:pointer;transition:background .15s;
-  display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;
+  display:flex;flex-direction:column;justify-content:flex-start;align-items:flex-start;
 }
-.cal-day-top{width:100%;min-height:28px}
-.cal-day .cal-dots{margin-top:4px}
-.home-comm-tags{margin-top:auto;padding-top:4px}
+.cal-day .cal-dots{margin-top:1px;min-height:8px}
+.home-comm-tags{padding-top:2px}
 .cal-day:hover{background:var(--c-primary-bg)}
 .cal-day.other-month{opacity:.35}
 .cal-day.today{background:var(--c-primary-bg);font-weight:700}
@@ -424,7 +423,7 @@ ul,li{list-style:none}
    左右仍然 margin-left/right:-8px。padding-top:4px 保留作为文字顶部呼吸空间。 */
 .dynamic-list-header{
   display:flex;gap:4px;
-  margin:-8px -8px 6px;padding:4px 0 4px;
+  margin:-8px -8px 6px;padding:4px 8px 4px 8px;
   font-size:11px;font-weight:600;color:var(--c-text-muted);
   background:var(--c-primary-bg);
   border-bottom:1px dashed var(--c-border);
@@ -479,10 +478,12 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="extraItems"] .dynamic-list-header span[data-subkey="quantity"]{flex:0 0 65px}
 .dynamic-list-container[data-key="extraItems"] .dynamic-list-header span[data-subkey="price"]{flex:0 0 70px}
 /* v22: 开团记录售后记录——名称列与制品名称统一为 1.5fr */
+.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="orderNo"]{flex:0 0 70px}
 .dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="name"]{flex:1.5 1 0;min-width:90px}
 .dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="quantity"]{flex:0 0 80px}
 .dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="amount"]{flex:0 0 60px}
 .dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="type"]{flex:0 0 95px}
+.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="orderNo"]{flex:0 0 70px}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="name"]{flex:1.5 1 0;min-width:90px}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="quantity"]{flex:0 0 80px}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="amount"]{flex:0 0 60px}
