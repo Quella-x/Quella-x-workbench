@@ -689,6 +689,18 @@ function removeCustomRelationType(val) {
   Toast.success('已删除自定义关系类型');
   renderRelations();
 }
+function addCustomRelTypeFromCard() {
+  const input = document.getElementById('customRelTypeInput');
+  if (!input || !input.value.trim()) { Toast.warning('请输入关系类型'); return; }
+  const val = input.value.trim();
+  const dbKey = 'customOpts_oc-relations_relationType';
+  const customOpts = DB.get(dbKey, []);
+  if (customOpts.includes(val)) { Toast.warning('该类型已存在'); return; }
+  customOpts.push(val);
+  DB.set(dbKey, customOpts);
+  Toast.success('已添加自定义关系类型');
+  renderRelations();
+}
 
 /* ===== Calendar Component ===== */
 const PLATFORM_COLORS = { '小红书': '#ff2442', '抖音': '#161823', '视频号': '#fa8c16', '公众号': '#07a059' };
@@ -2504,19 +2516,29 @@ function renderRelations() {
   let html = '<div class="fade-in">';
   html += '<div class="toolbar"><div class="spacer"></div>';
   html += '<button class="btn btn-primary" onclick="openAddForm(\'oc-relations\')">+ 新增关系</button></div>';
-  // v29: 自定义关系类型管理外置，不在表单字段内显示删除按钮
-  const customRelTypes = DB.get('customOpts_oc-relations_relationType', []);
+  // v30: 自定义关系类型管理外置为独立卡片，始终可见
+  const customRelTypes = DB.get('customOpts_oc-relations_relationType', []).slice().sort((a,b)=>a.localeCompare(b,'zh-CN'));
+  html += '<div class="card" style="margin:12px 0;padding:12px">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+  html += '<div style="font-size:13px;font-weight:600;color:var(--c-primary-dark)">🏷️ 自定义关系类型</div>';
+  html += '<div style="font-size:11px;color:var(--c-text-light)">在此添加或删除，删除后表单中不再显示</div>';
+  html += '</div>';
+  html += '<div style="display:flex;gap:8px;margin-bottom:10px">';
+  html += '<input type="text" class="form-input" id="customRelTypeInput" placeholder="输入自定义关系类型" style="flex:1;font-size:13px" onkeydown="if(event.key===\'Enter\')addCustomRelTypeFromCard()">';
+  html += '<button type="button" class="btn btn-outline btn-sm" onclick="addCustomRelTypeFromCard()">添加</button>';
+  html += '</div>';
+  html += '<div class="relation-person-grid" style="margin-bottom:0">';
   if (customRelTypes.length) {
-    html += '<div style="margin:12px 0"><div style="font-size:13px;font-weight:600;color:var(--c-primary-dark);margin-bottom:8px">🏷️ 自定义关系类型</div>';
-    html += '<div class="relation-person-grid">';
     customRelTypes.forEach(rt => {
-      html += `<div class="relation-person-btn" style="position:relative;padding-right:22px">
+      html += `<div class="relation-person-btn" style="position:relative;padding-right:26px" title="点击删除">
         <span>${esc(rt)}</span>
-        <span class="btn-icon danger" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:12px;width:18px;height:18px;display:flex;align-items:center;justify-content:center" onclick="event.stopPropagation();removeCustomRelationType('${esc(rt)}')">✕</span>
+        <span class="btn-icon danger" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:12px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:50%" onclick="event.stopPropagation();removeCustomRelationType('${esc(rt)}')">✕</span>
       </div>`;
     });
-    html += '</div></div>';
+  } else {
+    html += '<div style="font-size:12px;color:var(--c-text-muted)">暂无自定义关系类型，添加后会在「关系类型」中显示</div>';
   }
+  html += '</div></div>';
   if (chars.length === 0) {
     html += '<div class="empty-state"><div class="empty-icon">🔗</div><div class="empty-text">请先在「人物档案」中添加OC人物</div></div>';
   } else {
@@ -2785,8 +2807,8 @@ function drawMindMap(chars, relations) {
     const ctrlX = mx + dy * 0.15, ctrlY = my - dx * 0.15;
     const dashArray = conn.auto ? '4,3' : 'none';
     const opacity = conn.auto ? 0.4 : 0.6;
-    // Adjust endpoints to circle edge (radius ~20, circular node 48px)
-    const nodeR = 20;
+    // Adjust endpoints to circle edge (radius ~25, circular node 60px)
+    const nodeR = 25;
     const angA = Math.atan2(a.y - cy, a.x - cx);
     const angB = Math.atan2(b.y - cy, b.x - cx);
     // Use direction from center to node, then offset
@@ -2810,8 +2832,8 @@ function drawMindMap(chars, relations) {
   // Nodes (circular, text only — no images)
   chars.forEach(c => {
     const pos = positions[c.name];
-    const nodeHTML = `<div class="mindmap-node circular" style="left:${pos.x - 20}px;top:${pos.y - 20}px" onclick="navigate('oc-profiles')" title="${esc(c.name)}">` +
-      `<div style="width:36px;height:36px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:${(c.name||'?').length>3?'7px':(c.name||'?').length>2?'9px':'11px'};font-weight:700;color:var(--c-primary-dark);text-align:center;word-break:break-all;overflow:hidden;padding:2px">${esc(c.name || '?')}</div>` +
+    const nodeHTML = `<div class="mindmap-node circular" style="left:${pos.x - 25}px;top:${pos.y - 25}px" onclick="navigate('oc-profiles')" title="${esc(c.name)}">` +
+      `<div style="width:44px;height:44px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:${(c.name||'?').length>3?'8px':(c.name||'?').length>2?'10px':'12px'};font-weight:700;color:var(--c-primary-dark);text-align:center;word-break:break-all;overflow:hidden;padding:2px">${esc(c.name || '?')}</div>` +
       (c.alias ? `<div class="mm-node-alias">${esc(c.alias)}</div>` : '') +
       '</div>';
     inner += nodeHTML;
