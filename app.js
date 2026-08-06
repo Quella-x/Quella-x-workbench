@@ -650,7 +650,7 @@ function renderCalendar(year, month, records, commissionRecords = []) {
   const prevMonthDays = new Date(year, month, 0).getDate();
   const today = new Date();
   const todayKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
-  const START_COLOR = '#ff9a3c', END_COLOR = '#f5c518';
+  const START_COLOR = '#ff9a3c', END_COLOR = '#f5c518', BOTH_COLOR = '#712258';
   let html = '<div class="cal-grid">';
   ['日', '一', '二', '三', '四', '五', '六'].forEach(w => { html += `<div class="cal-weekday">${w}</div>`; });
   for (let i = startWeekday - 1; i >= 0; i--) { html += `<div class="cal-day other-month"><span class="cal-date">${prevMonthDays - i}</span></div>`; }
@@ -662,21 +662,42 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     const dayPlatforms = new Set();
     dayRecords.forEach(r => { arrVal(r.platform).forEach(p => dayPlatforms.add(p)); });
     [...dayPlatforms].forEach(p => { topDots += `<span class="cal-dot" style="background:${PLATFORM_COLORS[p] || '#9DC8FF'}"></span>`; });
-    // v29-fix3: 平台发布圆点移到日期下方；开稿橙/接稿蓝/截稿黄，截稿固定右侧
+    // v29-fix6: 平台发布圆点紧跟日期数字（间距与接稿排期时间条一致）；开稿/截稿/同天放在日期格底部
     const dayCount = dayRecords.length > 0 ? `<div class="cal-day-count">${dayRecords.length}条</div>` : '';
-    const dayComms = commissionRecords.filter(r => (r.startTime || '').startsWith(dateStr) || (r.acceptTime || '').startsWith(dateStr) || (r.deadline || '').startsWith(dateStr));
-    const startTag = dayComms.some(r => (r.startTime || '').startsWith(dateStr)) ? `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${START_COLOR}"></span><span class="cal-day-tag-text" style="color:${START_COLOR}">开稿</span></span>` : '';
-    const endTag = dayComms.some(r => (r.deadline || '').startsWith(dateStr)) ? `<span class="cal-day-tag cal-day-tag-end"><span class="cal-day-tag-dot" style="background:${END_COLOR}"></span><span class="cal-day-tag-text" style="color:${END_COLOR}">截稿</span></span>` : '';
-    const commTags = (startTag || endTag) ? `<div class="cal-day-tags home-comm-tags">${startTag}${endTag}</div>` : '';
-    html += `<div class="cal-day${isToday ? ' today' : ''}"><div class="cal-date-row"><span class="cal-date">${d}</span></div><div class="cal-dots">${topDots}</div>${dayCount}${commTags}</div>`;
+    const dayComms = commissionRecords.filter(r => (r.startTime || '').startsWith(dateStr) || (r.deadline || '').startsWith(dateStr));
+    const hasStart = dayComms.some(r => (r.startTime || '').startsWith(dateStr));
+    const hasEnd = dayComms.some(r => (r.deadline || '').startsWith(dateStr));
+    let commTag = '';
+    if (hasStart && hasEnd) {
+      commTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${BOTH_COLOR}"></span><span class="cal-day-tag-text" style="color:${BOTH_COLOR}">开+截</span></span>`;
+    } else if (hasStart) {
+      commTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${START_COLOR}"></span><span class="cal-day-tag-text" style="color:${START_COLOR}">开稿</span></span>`;
+    } else if (hasEnd) {
+      commTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${END_COLOR}"></span><span class="cal-day-tag-text" style="color:${END_COLOR}">截稿</span></span>`;
+    }
+    const commTags = commTag ? `<div class="cal-day-tags home-comm-tags">${commTag}</div>` : '';
+    html += `<div class="cal-day${isToday ? ' today' : ''}">
+      <div class="cal-day-top">
+        <div class="cal-date-row"><span class="cal-date">${d}</span></div>
+        <div class="cal-dots">${topDots}</div>
+        ${dayCount}
+      </div>
+      ${commTags}
+    </div>`;
   }
   const totalCells = startWeekday + daysInMonth;
   const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
   for (let i = 1; i <= remaining; i++) { html += `<div class="cal-day other-month"><span class="cal-date">${i}</span></div>`; }
   html += '</div>';
+  // v29-fix6: 底部图例 — 平台发布 + 开稿/截稿/同天，按顺序排在公众号后面
   html += '<div class="cal-legend">';
+  html += `<span class="legend-item"><span class="status-dot" style="background:#ff2442"></span>小红书</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:#161823"></span>抖音</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:#fa8c16"></span>视频号</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:#07a059"></span>公众号</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>开稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>截稿</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>开+截</span>`;
   html += '</div>';
   return html;
 }
@@ -704,6 +725,7 @@ function renderAnnualChart(records, dateField, opts = {}) {
       let total = data.reduce((s, arr) => s + arr[i], 0);
       const maxBarH = Math.max(...series.map((s, si) => (data[si][i] / max) * 100), 0);
       bars += '<div class="annual-chart-bar">';
+      if (total > 0) bars += `<span class="annual-chart-bar-value" style="bottom:calc(${maxBarH}% + 3px)">${total > 999 ? (total / 1000).toFixed(1) + 'k' : Math.round(total)}</span>`;
       bars += `<div style="display:flex;gap:1px;width:70%;height:100%;align-items:flex-end;justify-content:center">`;
       series.forEach((s, si) => {
         const v = data[si][i]; const h = (v / max) * 100;
@@ -1093,6 +1115,7 @@ MODULES['design-pricelist'] = {
     { key: 'product', label: '制品', type: 'text' },
     { key: 'defaultSize', label: '默认尺寸', type: 'text', hint: '如: 10cm（选填）' },
     { key: 'price', label: '单价', type: 'number', hint: '元' },
+    { key: 'priceUnit', label: '单位', type: 'select', default: '元', options: [{ value: '元', label: '元' }, { value: '元/p', label: '元/p' }] },
     { key: 'description', label: '备注', type: 'textarea' },
   ],
   listFields: [
@@ -1619,14 +1642,13 @@ function renderCommissionCalendar(year, month, records) {
     const isToday = dateStr === todayKey;
     const isSelected = ps.dateFilter === dateStr;
     // v29-fix2: 开稿/截稿统一恢复为 v27 样式：日期同行实心圆点+文字
-    // v29-fix3: 开稿橙色/截稿黄色实心点+文字，大小一致；截稿固定右侧
+    // v29-fix6: 日期数字靠左，截稿不再固定右侧，同天合并为"开+截"
     let startTag = '', endTag = '';
     if (startRecords.length > 0 && deadlineRecords.length > 0) {
-      // v29-fix4: 开稿+截稿同天 → 合并为"同天"实心点+字(#712258)
-      startTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${BOTH_COLOR}"></span><span class="cal-day-tag-text" style="color:${BOTH_COLOR}">同天</span></span>`;
+      startTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${BOTH_COLOR}"></span><span class="cal-day-tag-text" style="color:${BOTH_COLOR}">开+截</span></span>`;
     } else {
       if (startRecords.length > 0) startTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${START_COLOR}"></span><span class="cal-day-tag-text" style="color:${START_COLOR}">开稿</span></span>`;
-      if (deadlineRecords.length > 0) endTag = `<span class="cal-day-tag cal-day-tag-end"><span class="cal-day-tag-dot" style="background:${END_COLOR}"></span><span class="cal-day-tag-text" style="color:${END_COLOR}">截稿</span></span>`;
+      if (deadlineRecords.length > 0) endTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${END_COLOR}"></span><span class="cal-day-tag-text" style="color:${END_COLOR}">截稿</span></span>`;
     }
     let info = '';
     // Build period bars by track (max 3 visible, excess ignored)
@@ -1659,7 +1681,7 @@ function renderCommissionCalendar(year, month, records) {
   html += '<div class="cal-legend">';
   html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>开稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>截稿</span>`;
-  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>同天</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>开+截</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[0]}"></span>紧急(截稿临近)</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[1]}"></span>正常</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[2]}"></span>充裕</span>`;
@@ -2014,17 +2036,12 @@ function renderHome() {
     html += `<button class="btn btn-sm btn-ghost" onclick="homeCalNav(1)">下月 ›</button>`;
     html += '</div></div>';
     html += renderCalendar(ps.calYear, ps.calMonth, allRecords, DB.list('commissions'));
-    html += '<div class="cal-legend">';
-    html += `<span class="legend-item"><span class="status-dot" style="background:#ff2442"></span>小红书</span>`;
-    html += `<span class="legend-item"><span class="status-dot" style="background:#161823"></span>抖音</span>`;
-    html += `<span class="legend-item"><span class="status-dot" style="background:#fa8c16"></span>视频号</span>`;
-    html += `<span class="legend-item"><span class="status-dot" style="background:#07a059"></span>公众号</span>`;
-    html += '</div></div>';
+    html += '</div>';
     // v29-fix2: 首页灵感速记模块（写入 inspirations，首页不展示，进入「美工·灵感记录」）
     const inspCats = getInspirationCategories();
     const hCatOpts = inspCats.map(c => `<div class="combobox-option" onclick="selectComboboxOption('hInspCatList',this)" data-value="${esc(c)}">${esc(c)}</div>`).join('');
     html += '<div class="home-insp">';
-    html += '<div class="home-insp-title">💡 灵感速记 <span class="hint">随手记，保存后进入「美工·灵感记录」</span></div>';
+    html += '<div class="home-insp-title">💡 灵感速记 <span class="hint">随手记，保存后收入「灵感记录」</span></div>';
     html += '<div class="home-insp-row">';
     html += '<input type="text" class="form-input" id="hInspTheme" placeholder="灵感主题">';
     html += '<div class="combobox-wrapper home-insp-combo"><input type="text" class="form-input combobox-input" id="hInspCat" placeholder="制品名称" onfocus="showComboboxDropdown(\'hInspCatList\')" onclick="showComboboxDropdown(\'hInspCatList\')" oninput="filterComboboxDropdown(\'hInspCatList\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'hInspCatList\')">▼</button><div class="combobox-dropdown" id="hInspCatList">' + hCatOpts + '</div></div>';
@@ -3479,7 +3496,9 @@ function renderPriceList() {
         html += '<div class="pricelist-menu-item">';
         html += `<span class="menu-name">${esc(r.product || '未命名')}${r.defaultSize ? `<sub class="menu-size-sub">(${esc(r.defaultSize)})</sub>` : ''}</span>`;
         html += `<span class="menu-dots"></span>`;
-        html += `<span class="menu-price">¥${esc(r.price || 0)}</span>`;
+        const priceUnit = r.priceUnit || '元';
+        const priceText = priceUnit === '元' ? `¥${esc(r.price || 0)}` : `¥${esc(r.price || 0)}/p`;
+        html += `<span class="menu-price">${priceText}</span>`;
         html += '<span style="margin-left:8px;display:flex;gap:2px">';
         html += `<span class="btn-icon" style="font-size:12px;width:24px;height:24px" onclick="event.stopPropagation();openEditForm('design-pricelist','${r.id}')">✏️</span>`;
         html += `<span class="btn-icon danger" style="font-size:12px;width:24px;height:24px" onclick="event.stopPropagation();onDelete('design-pricelist','${r.id}')">🗑️</span>`;
