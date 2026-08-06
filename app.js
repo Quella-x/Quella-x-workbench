@@ -356,9 +356,7 @@ function buildForm(fields, data = {}, moduleKey = '') {
       const optHTML = allOpts.map(o => {
         const v = typeof o === 'string' ? o : o.value;
         const l = typeof o === 'string' ? o : o.label;
-        const isCustom = typeof o === 'object' && o.custom;
-        const delBtn = isCustom ? `<span class="custom-opt-del" onclick="event.stopPropagation();removeCustomOpt(this,'${moduleKey || ''}','${f.key}','${esc(v)}')">×</span>` : '';
-        return `<label class="checkbox-item"><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}> ${esc(l)}${delBtn}</label>`;
+        return `<label class="checkbox-item"><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}> ${esc(l)}</label>`;
       }).join('');
       let msHTML = `<div class="form-row"><label class="form-label">${esc(label)}</label><div class="checkbox-group" data-key="${f.key}"${singleAttr}>${optHTML}</div>`;
       if (f.allowCustom) {
@@ -429,9 +427,7 @@ function buildDynamicListHTML(field, data, moduleKey) {
   if (columns.length > 1) {
     html += `<div class="dynamic-list-header">`;
     columns.forEach(col => {
-      const isCb = col.type === 'combobox' || (col.options && col.type !== 'select') || col.datalistId;
-      const cbCls = isCb ? ' class="combobox-col"' : '';
-      html += `<span data-subkey="${esc(col.subkey)}"${cbCls}>${esc(col.label)}</span>`;
+      html += `<span data-subkey="${esc(col.subkey)}">${esc(col.label)}</span>`;
     });
     html += `<span>操作</span></div>`;
   }
@@ -664,9 +660,8 @@ function addCustomMultiselectOpt(inputId, moduleKey, fieldKey, btn) {
     if (!existing) {
       const label = document.createElement('label');
       label.className = 'checkbox-item';
-      const delBtn = `<span class="custom-opt-del" onclick="event.stopPropagation();removeCustomOpt(this,'${moduleKey || ''}','${fieldKey}','${esc(val)}')">×</span>`;
       const singleAttr = group.dataset.single ? ' onclick="limitSingleCheckbox(this)"' : '';
-      label.innerHTML = `<input type="checkbox" value="${esc(val)}" checked${singleAttr}> ${esc(val)}${delBtn}`;
+      label.innerHTML = `<input type="checkbox" value="${esc(val)}" checked${singleAttr}> ${esc(val)}`;
       group.appendChild(label);
       // 人物关系关系类型添加自定义后按 A-Z 重新排序
       if (moduleKey === 'oc-relations' && fieldKey === 'relationType') {
@@ -686,6 +681,13 @@ function removeCustomOpt(btn, moduleKey, fieldKey, val) {
   DB.set(dbKey, customOpts);
   const label = btn.closest('.checkbox-item');
   if (label) label.remove();
+}
+function removeCustomRelationType(val) {
+  const dbKey = 'customOpts_oc-relations_relationType';
+  const customOpts = DB.get(dbKey, []).filter(v => v !== val);
+  DB.set(dbKey, customOpts);
+  Toast.success('已删除自定义关系类型');
+  renderRelations();
 }
 
 /* ===== Calendar Component ===== */
@@ -1086,9 +1088,10 @@ MODULES['design-commission'] = {
     { key: 'paymentStatus', label: '支付状态', type: 'multiselect', single: true, default: '定金', options: [{ value: '未付', label: '未付' }, { value: '定金', label: '定金' }, { value: '尾款', label: '尾款' }, { value: '全款', label: '全款' }] },
     { key: 'progress', label: '稿件进度', type: 'multiselect', single: true, default: '已接稿', options: [{ value: '待接稿', label: '待接稿' }, { value: '已接稿', label: '已接稿' }, { value: '修改中', label: '修改中' }, { value: '已交付', label: '已交付' }] },
     { key: 'modifications', label: '修改项目', type: 'dynamic-list', maxRows: 2, columns: [
-      { subkey: 'modifyType', label: '修改类型', type: 'text' },
+      { subkey: 'modifyType', label: '修改类型', type: 'combobox', datalistId: 'comm_modify_dl', options: [] },
       { subkey: 'modifyCount', label: '次数', type: 'number' },
       { subkey: 'modifyPrice', label: '价格（元/次）', type: 'number' },
+      { subkey: 'note', label: '备注', type: 'text' },
     ]},
 
     { key: 'amount', label: '最终金额', type: 'number', hint: '元（手动输入）' },
@@ -1415,8 +1418,8 @@ function renderListPage(pageKey, mod) {
   // 顶部视图切换行：接稿排期「列表 / 日历」按钮挪至页面最顶部
   if (pageKey === 'design-commission') {
     html += '<div class="view-toggle-top">';
-    html += `<button class="btn btn-sm ${ps.viewMode === 'list' ? 'btn-primary' : 'btn-outline'}" onclick="commissionToggleView('list')">列表</button>`;
     html += `<button class="btn btn-sm ${ps.viewMode === 'calendar' ? 'btn-primary' : 'btn-outline'}" onclick="commissionToggleView('calendar')">日历</button>`;
+    html += `<button class="btn btn-sm ${ps.viewMode === 'list' ? 'btn-primary' : 'btn-outline'}" onclick="commissionToggleView('list')">列表</button>`;
     html += '</div>';
   }
   // Person filter buttons (for oc-stories and oc-commission) — 纯文字，不显示图片
@@ -1467,13 +1470,30 @@ function renderListPage(pageKey, mod) {
   html += `<button class="btn btn-primary" onclick="openAddForm('${pageKey}')">+ 新增记录</button>`;
   html += '</div>';
 
-  // Commission calendar view: 默认日历视图；列表在上，日历在下，因此先保存未过滤记录并应用日期筛选给列表
+  // Commission calendar view: 默认日历视图；日历在上，列表在下
   let commissionAllRecords = null;
   if (pageKey === 'design-commission' && ps.viewMode === 'calendar') {
     commissionAllRecords = records.slice();
     let calFiltered = records;
     if (ps.dateFilter) calFiltered = records.filter(r => (r.startTime || r.acceptTime || '').startsWith(ps.dateFilter));
     records = calFiltered;
+  }
+
+  // Commission calendar view rendered before records (日历在上，列表在下)
+  if (commissionAllRecords) {
+    html += '<div class="calendar" style="margin-bottom:16px">';
+    html += '<div class="calendar-header">';
+    html += `<span class="cal-title">${ps.calYear}年${ps.calMonth + 1}月</span>`;
+    html += '<div class="cal-nav">';
+    html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(-1)">‹ 上月</button>`;
+    html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(0)">本月</button>`;
+    html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(1)">下月 ›</button>`;
+    html += '</div></div>';
+    html += renderCommissionCalendar(ps.calYear, ps.calMonth, commissionAllRecords);
+    if (ps.dateFilter) {
+      html += `<div style="text-align:center;margin-top:8px"><span class="tag tag-info" style="cursor:pointer" onclick="commissionClearDate()">清除日期筛选: ${ps.dateFilter} ✕</span></div>`;
+    }
+    html += '</div>';
   }
 
   // Records
@@ -1552,24 +1572,6 @@ function renderListPage(pageKey, mod) {
       html += `<button class="btn btn-sm btn-ghost" ${pageNo >= totalPages ? 'disabled' : ''} onclick="goPage('${pageKey}',${pageNo + 1})">下一页 ›</button>`;
       html += '</div>';
     }
-  }
-
-  // Commission calendar view rendered after records (列表在上，日历在下)
-  if (commissionAllRecords) {
-    html += '<hr class="cal-divider">';
-    html += '<div class="calendar" style="margin-top:4px">';
-    html += '<div class="calendar-header">';
-    html += `<span class="cal-title">${ps.calYear}年${ps.calMonth + 1}月</span>`;
-    html += '<div class="cal-nav">';
-    html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(-1)">‹ 上月</button>`;
-    html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(0)">本月</button>`;
-    html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(1)">下月 ›</button>`;
-    html += '</div></div>';
-    html += renderCommissionCalendar(ps.calYear, ps.calMonth, commissionAllRecords);
-    if (ps.dateFilter) {
-      html += `<div style="text-align:center;margin-top:8px"><span class="tag tag-info" style="cursor:pointer" onclick="commissionClearDate()">清除日期筛选: ${ps.dateFilter} ✕</span></div>`;
-    }
-    html += '</div>';
   }
 
   // Chart + Stats (总结部分与记录隔开, 两列布局, 实色分割线)
@@ -1915,6 +1917,16 @@ function prepareFields(pageKey, fields) {
         const extraNames = priceList.filter(p => p.category === '加价项目' && p.product).map(p => p.product);
         nameCol.options = [...new Set(extraNames)].map(n => ({ value: n, label: n }));
         nameCol.datalistId = 'comm_extra_dl';
+      }
+    }
+    // v29: 修改项目类型从价目表「修改类型」分类加载
+    const modField = f.find(ff => ff.key === 'modifications');
+    if (modField) {
+      const mtCol = modField.columns.find(c => c.subkey === 'modifyType');
+      if (mtCol) {
+        const modifyTypeNames = priceList.filter(p => p.category === '修改类型' && p.product).map(p => p.product);
+        mtCol.options = [...new Set(modifyTypeNames)].map(n => ({ value: n, label: n }));
+        mtCol.datalistId = 'comm_modify_dl';
       }
     }
   }
@@ -2492,6 +2504,19 @@ function renderRelations() {
   let html = '<div class="fade-in">';
   html += '<div class="toolbar"><div class="spacer"></div>';
   html += '<button class="btn btn-primary" onclick="openAddForm(\'oc-relations\')">+ 新增关系</button></div>';
+  // v29: 自定义关系类型管理外置，不在表单字段内显示删除按钮
+  const customRelTypes = DB.get('customOpts_oc-relations_relationType', []);
+  if (customRelTypes.length) {
+    html += '<div style="margin:12px 0"><div style="font-size:13px;font-weight:600;color:var(--c-primary-dark);margin-bottom:8px">🏷️ 自定义关系类型</div>';
+    html += '<div class="relation-person-grid">';
+    customRelTypes.forEach(rt => {
+      html += `<div class="relation-person-btn" style="position:relative;padding-right:22px">
+        <span>${esc(rt)}</span>
+        <span class="btn-icon danger" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:12px;width:18px;height:18px;display:flex;align-items:center;justify-content:center" onclick="event.stopPropagation();removeCustomRelationType('${esc(rt)}')">✕</span>
+      </div>`;
+    });
+    html += '</div></div>';
+  }
   if (chars.length === 0) {
     html += '<div class="empty-state"><div class="empty-icon">🔗</div><div class="empty-text">请先在「人物档案」中添加OC人物</div></div>';
   } else {
@@ -2760,8 +2785,8 @@ function drawMindMap(chars, relations) {
     const ctrlX = mx + dy * 0.15, ctrlY = my - dx * 0.15;
     const dashArray = conn.auto ? '4,3' : 'none';
     const opacity = conn.auto ? 0.4 : 0.6;
-    // Adjust endpoints to circle edge (radius ~25, circular node 60px)
-    const nodeR = 25;
+    // Adjust endpoints to circle edge (radius ~20, circular node 48px)
+    const nodeR = 20;
     const angA = Math.atan2(a.y - cy, a.x - cx);
     const angB = Math.atan2(b.y - cy, b.x - cx);
     // Use direction from center to node, then offset
@@ -2785,8 +2810,8 @@ function drawMindMap(chars, relations) {
   // Nodes (circular, text only — no images)
   chars.forEach(c => {
     const pos = positions[c.name];
-    const nodeHTML = `<div class="mindmap-node circular" style="left:${pos.x - 25}px;top:${pos.y - 25}px" onclick="navigate('oc-profiles')" title="${esc(c.name)}">` +
-      `<div style="width:44px;height:44px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:${(c.name||'?').length>3?'8px':(c.name||'?').length>2?'10px':'12px'};font-weight:700;color:var(--c-primary-dark);text-align:center;word-break:break-all;overflow:hidden;padding:2px">${esc(c.name || '?')}</div>` +
+    const nodeHTML = `<div class="mindmap-node circular" style="left:${pos.x - 20}px;top:${pos.y - 20}px" onclick="navigate('oc-profiles')" title="${esc(c.name)}">` +
+      `<div style="width:36px;height:36px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:${(c.name||'?').length>3?'7px':(c.name||'?').length>2?'9px':'11px'};font-weight:700;color:var(--c-primary-dark);text-align:center;word-break:break-all;overflow:hidden;padding:2px">${esc(c.name || '?')}</div>` +
       (c.alias ? `<div class="mm-node-alias">${esc(c.alias)}</div>` : '') +
       '</div>';
     inner += nodeHTML;
