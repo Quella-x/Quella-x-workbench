@@ -547,8 +547,8 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="note"]{flex:1 1 0;min-width:80px;padding-left:0}
 /* O轮修正：开团记录制品列表「单价/对应厂家」标题偏左，加大左内边距；
    接稿排期制品列表「价格」标题偏右，保持默认 8px（按 data-module 区分，避免互相影响） */
-.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="price"]{padding-left:22px}
-.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="factory"]{padding-left:22px}
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="price"]{padding-left:34px}
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="factory"]{padding-left:34px}
 .dynamic-list-container[data-key="products"][data-module="schedule"] .dynamic-list-header span[data-subkey="price"]{padding-left:8px}
 /* 修改类型为下拉选择器，列宽与 header 一致 */
 .dynamic-list-container[data-key="modifications"] .combobox-wrapper[data-subkey="modifyType"]{flex:1 1 0!important;min-width:80px!important}
@@ -1365,8 +1365,11 @@ ul,li{list-style:none}
 .timeline-toolbar{margin-bottom:8px}
 .timeline-filter-bar{
   display:flex;flex-wrap:nowrap;gap:0;align-items:center;justify-content:center;
-  width:100%;max-width:200px;background:#fff;border:1px solid var(--c-border);border-radius:999px;
-  padding:3px;margin:0 auto 16px;overflow:hidden;
+  width:200px;background:#fff;border:1px solid var(--c-border);border-radius:999px;
+  padding:3px;margin:0 auto 16px;overflow:hidden;box-sizing:border-box;
+}
+@media (max-width:768px){
+  .timeline-filter-bar{width:100%}
 }
 .timeline-color-filter{
   flex:1;display:inline-flex;align-items:center;justify-content:center;gap:4px;
@@ -1491,7 +1494,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=43"></script>
+<script src="app.js?v=44"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
