@@ -324,7 +324,7 @@ function buildForm(fields, data = {}, moduleKey = '') {
       html += `<div class="form-row"><label class="form-label">${esc(label)}</label><textarea class="form-textarea" data-key="${f.key}" placeholder="${esc(f.placeholder || '')}">${esc(valStr)}</textarea>${f.hint ? `<span class="form-hint">${esc(f.hint)}</span>` : ''}</div>`;
     } else if (f.type === 'combobox') {
       const opts = moduleKey ? getFieldOpts(moduleKey, f.key, f.options) : (f.options || []);
-      const shouldSort = ['factory', 'product'].includes(f.key) || f.label === '厂家' || f.label === '制品名称';
+      const shouldSort = ['factory', 'product', 'category'].includes(f.key) || f.label === '厂家';
       const displayOpts = shouldSort ? opts.slice().sort((a, b) => {
         const la = typeof a === 'string' ? a : a.label;
         const lb = typeof b === 'string' ? b : b.label;
@@ -661,20 +661,15 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     const dayPlatforms = new Set();
     dayRecords.forEach(r => { arrVal(r.platform).forEach(p => dayPlatforms.add(p)); });
     [...dayPlatforms].forEach(p => { topDots += `<span class="cal-dot" style="background:${PLATFORM_COLORS[p] || '#9DC8FF'}"></span>`; });
-    // v29-fix2: 恢复 v27 日期同行圆点，记录数放下一行，再接开稿/接稿/截稿标签
+    // v29-fix3: 平台发布圆点移到日期下方；开稿橙/接稿蓝/截稿黄，截稿固定右侧
     const dayCount = dayRecords.length > 0 ? `<div class="cal-day-count">${dayRecords.length}条</div>` : '';
     const dayComms = commissionRecords.filter(r => (r.startTime || '').startsWith(dateStr) || (r.acceptTime || '').startsWith(dateStr) || (r.deadline || '').startsWith(dateStr));
-    let commTags = '';
-    if (dayComms.length > 0) {
-      commTags = '<div class="cal-day-tags home-comm-tags">' + dayComms.slice(0, 2).map(r => {
-        let label = '', color = '#7ab5f5';
-        if ((r.deadline || '').startsWith(dateStr)) { label = '截稿'; color = '#ff9a9a'; }
-        else if ((r.startTime || '').startsWith(dateStr)) { label = '开稿'; color = '#7ab5f5'; }
-        else { label = '接稿'; color = '#9DC8FF'; }
-        return `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${color}"></span>${esc(label)}</span>`;
-      }).join('') + (dayComms.length > 2 ? `<span class="cal-day-tag-more">+${dayComms.length - 2}</span>` : '') + '</div>';
-    }
-    html += `<div class="cal-day${isToday ? ' today' : ''}"><div class="cal-date-row"><span class="cal-date">${d}</span><div class="cal-dots">${topDots}</div></div>${dayCount}${commTags}</div>`;
+    const START_COLOR = '#ff9a3c', ACCEPT_COLOR = '#9DC8FF', END_COLOR = '#f5c518';
+    const startTag = dayComms.some(r => (r.startTime || '').startsWith(dateStr)) ? `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${START_COLOR}"></span><span class="cal-day-tag-text" style="color:${START_COLOR}">开稿</span></span>` : '';
+    const acceptTag = dayComms.some(r => (r.acceptTime || '').startsWith(dateStr)) ? `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${ACCEPT_COLOR}"></span><span class="cal-day-tag-text" style="color:${ACCEPT_COLOR}">接稿</span></span>` : '';
+    const endTag = dayComms.some(r => (r.deadline || '').startsWith(dateStr)) ? `<span class="cal-day-tag cal-day-tag-end"><span class="cal-day-tag-dot" style="background:${END_COLOR}"></span><span class="cal-day-tag-text" style="color:${END_COLOR}">截稿</span></span>` : '';
+    const commTags = (startTag || acceptTag || endTag) ? `<div class="cal-day-tags home-comm-tags">${startTag}${acceptTag}${endTag}</div>` : '';
+    html += `<div class="cal-day${isToday ? ' today' : ''}"><div class="cal-date-row"><span class="cal-date">${d}</span></div><div class="cal-dots">${topDots}</div>${dayCount}${commTags}</div>`;
   }
   const totalCells = startWeekday + daysInMonth;
   const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
@@ -917,7 +912,7 @@ MODULES['groupbuy-samples'] = {
   store: 'samples',
   fields: [
     { key: 'factory', label: '厂家', type: 'combobox', options: [], hint: '从厂家记录加载' },
-    { key: 'category', label: '打样品类', type: 'text' },
+    { key: 'category', label: '打样品类', type: 'combobox', options: [], placeholder: '选择或输入品类...' },
     { key: 'sampleTime', label: '打样时间', type: 'date', default: todayStr() },
     { key: 'cost', label: '样品费用', type: 'number', hint: '元' },
     { key: 'quantity', label: '样品数量', type: 'number', default: 1 },
@@ -950,20 +945,31 @@ MODULES['groupbuy-samples'] = {
 // --- Inspiration ---
 function getInspirationCategories() {
   const custom = DB.get('customCategories', []);
-  const defaults = ['海报', '头像', '排版', '其他'];
+  const defaults = ['封面', '明信片', '其他', '镭射票', '壁纸', '海报'];
   return [...new Set([...defaults, ...custom])].sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
 }
 function saveCustomCategory(cat) {
   if (!cat) return;
-  const defaults = ['海报', '头像', '排版', '其他'];
+  const defaults = ['封面', '明信片', '其他', '镭射票', '壁纸', '海报'];
   const custom = DB.get('customCategories', []);
   if (!custom.includes(cat) && !defaults.includes(cat)) { custom.push(cat); DB.set('customCategories', custom); }
+}
+// v29-fix3: 打样品类固定选项 + 自定义记录，A-Z 排序
+const SAMPLE_DEFAULTS = ['吧唧', '明信片', '镭射票', '大肠发圈', '发带', '小卡', '封口贴', '贴纸', '手提袋', '色纸'];
+function getSampleCategories() {
+  const custom = DB.get('customSampleCategories', []);
+  return [...new Set([...SAMPLE_DEFAULTS, ...custom])].sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
+}
+function saveCustomSampleCategory(cat) {
+  if (!cat) return;
+  const custom = DB.get('customSampleCategories', []);
+  if (!custom.includes(cat) && !SAMPLE_DEFAULTS.includes(cat)) { custom.push(cat); DB.set('customSampleCategories', custom); }
 }
 MODULES['design-inspiration'] = {
   store: 'inspirations',
   fields: [
     { key: 'theme', label: '灵感主题', type: 'text' },
-    { key: 'category', label: '制品名称', type: 'combobox', options: [], placeholder: '选择或输入制品名称...' },
+    { key: 'category', label: '制品', type: 'combobox', options: [], placeholder: '选择或输入制品...' },
     { key: 'tags', label: '标签分类', type: 'multiselect', options: [{ value: '简约', label: '简约' }, { value: '高级', label: '高级' }, { value: '复古', label: '复古' }, { value: '古风', label: '古风' }, { value: '清新', label: '清新' }, { value: '可爱', label: '可爱' }, { value: '炫酷', label: '炫酷' }, { value: '土味', label: '土味' }] },
     { key: 'thoughts', label: '文字思路', type: 'textarea' },
     { key: 'images', label: '素材图片', type: 'image' },
@@ -972,7 +978,7 @@ MODULES['design-inspiration'] = {
   ],
   filters: [{ key: 'category', label: '全部制品', options: [{ value: '', label: '全部制品' }] }],
   listFields: [
-    { label: '制品名称', key: 'category', tag: true },
+    { label: '制品', key: 'category', tag: true },
     { label: '标签', key: 'tags', tag: true },
     { label: '来源', key: 'source' },
     { label: '创建', key: 'createTime', date: true },
@@ -989,7 +995,7 @@ MODULES['design-commission'] = {
     { key: 'deadline', label: '截稿时间', type: 'date' },
     { key: 'usageType', label: '稿件用途', type: 'multiselect', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'products', label: '制品列表', type: 'dynamic-list', columns: [
-      { subkey: 'name', label: '制品名称', type: 'text', datalistId: 'comm_product_dl', priceLookup: 'product' },
+      { subkey: 'name', label: '制品', type: 'text', datalistId: 'comm_product_dl', priceLookup: 'product' },
       { subkey: 'patternId', label: '柄图标识', type: 'text' },
       { subkey: 'price', label: '价格', type: 'number' },
       { subkey: 'size', label: '尺寸', type: 'text' },
@@ -1003,7 +1009,7 @@ MODULES['design-commission'] = {
       { value: '是', label: '是' }, { value: '否', label: '否' }, { value: '部分同柄', label: '部分同柄' }
     ]},
     { key: 'extraItems', label: '加价项目', type: 'dynamic-list', columns: [
-      { subkey: 'name', label: '项目名称', type: 'text', datalistId: 'comm_extra_dl', priceLookup: 'extra' },
+      { subkey: 'name', label: '加价项目', type: 'text', datalistId: 'comm_extra_dl', priceLookup: 'extra' },
       { subkey: 'quantity', label: '数量', type: 'number' },
       { subkey: 'price', label: '价格', type: 'number' },
     ]},
@@ -1084,7 +1090,7 @@ MODULES['design-pricelist'] = {
   store: 'priceList',
   fields: [
     { key: 'category', label: '制品分类', type: 'combobox', options: [{ value: '纸片类', label: '纸片类' }, { value: '其他材质类', label: '其他材质类' }, { value: '线上&应援类', label: '线上&应援类' }, { value: '加价项目', label: '加价项目' }] },
-    { key: 'product', label: '制品名称', type: 'text' },
+    { key: 'product', label: '制品', type: 'text' },
     { key: 'defaultSize', label: '默认尺寸', type: 'text', hint: '如: 10cm（选填）' },
     { key: 'price', label: '单价', type: 'number', hint: '元' },
     { key: 'description', label: '备注', type: 'textarea' },
@@ -1383,7 +1389,7 @@ function renderListPage(pageKey, mod) {
   }
   html += '<div class="spacer"></div>';
   if (pageKey === 'oc-profiles') {
-    html += `<button class="btn btn-outline" onclick="openProfileSortModal()">↕️ 调整排序</button>`;
+    html += `<button class="btn btn-outline toolbar-eq" onclick="openProfileSortModal()">↕️ 调整排序</button>`;
   }
   html += `<button class="btn btn-primary" onclick="openAddForm('${pageKey}')">+ 新增记录</button>`;
   html += '</div>';
@@ -1462,7 +1468,8 @@ function renderListPage(pageKey, mod) {
           let tc = 'tag-info';
           if (['进行中', '全款', '长期合作', '合格', '稳定', '已完结', '尾款', '已接稿', '已交付', '交好'].includes(v)) tc = 'tag-success';
           if (['筹备中', '未付', '临时合作', '连载中', '定金', '待接稿', '中等', '变化中'].includes(v)) tc = 'tag-warning';
-          if (['已截团', '暂停合作', '不合格', '已取消', '流团'].includes(v)) tc = 'tag-gray';
+          if (['已截团', '暂停合作', '已取消', '流团'].includes(v)) tc = 'tag-gray';
+          if (['不合格'].includes(v)) tc = 'tag-danger';
           if (['买断', '敌对', '已结算'].includes(v)) tc = 'tag-purple';
           html += `<span class="field"><span class="field-label">${esc(f.label)}:</span><span class="tag ${tc}">${esc(String(v))}</span></span>`;
         } else if (f.link) {
@@ -1610,13 +1617,10 @@ function renderCommissionCalendar(year, month, records) {
     const isToday = dateStr === todayKey;
     const isSelected = ps.dateFilter === dateStr;
     // v29-fix2: 开稿/截稿统一恢复为 v27 样式：日期同行实心圆点+文字
-    const dayEvents = [];
-    startRecords.forEach(r => dayEvents.push({ r, type: 'start', label: '开稿' }));
-    deadlineRecords.forEach(r => dayEvents.push({ r, type: 'end', label: '截稿' }));
-    const eventTags = dayEvents.length > 0 ? '<div class="cal-day-tags">' + dayEvents.slice(0, 2).map(e => {
-      const color = recordColorMap[e.r.id] || '#9DC8FF';
-      return `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${color}"></span>${esc(e.label)}</span>`;
-    }).join('') + (dayEvents.length > 2 ? `<span class="cal-day-tag-more">+${dayEvents.length - 2}</span>` : '') + '</div>' : '';
+    // v29-fix3: 开稿橙色/截稿黄色实心点+文字，大小一致；截稿固定右侧
+    const START_COLOR = '#ff9a3c', END_COLOR = '#f5c518';
+    const startTag = startRecords.length > 0 ? `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${START_COLOR}"></span><span class="cal-day-tag-text" style="color:${START_COLOR}">开稿</span></span>` : '';
+    const endTag = deadlineRecords.length > 0 ? `<span class="cal-day-tag cal-day-tag-end"><span class="cal-day-tag-dot" style="background:${END_COLOR}"></span><span class="cal-day-tag-text" style="color:${END_COLOR}">截稿</span></span>` : '';
     let info = '';
     // Build period bars by track (max 3 visible, excess ignored)
     let bars = '';
@@ -1638,7 +1642,7 @@ function renderCommissionCalendar(year, month, records) {
       bars += `<div class="${cls}" style="background:${color};top:${topPx}px;height:${CAL_BAR_HEIGHT}px;line-height:${CAL_BAR_HEIGHT}px">${label}</div>`;
     });
     const cellMinHeight = 76; // fits 3 bars (22+3*13=61px) + padding
-    html += `<div class="cal-day${isToday ? ' today' : ''}${isSelected ? ' selected' : ''}" onclick="commissionDateClick('${dateStr}')" style="cursor:pointer;min-height:${cellMinHeight}px"><div class="cal-date-row"><span class="cal-date">${d}</span>${eventTags}</div>${info}${bars}</div>`;
+    html += `<div class="cal-day${isToday ? ' today' : ''}${isSelected ? ' selected' : ''}" onclick="commissionDateClick('${dateStr}')" style="cursor:pointer;min-height:${cellMinHeight}px"><div class="cal-date-row"><span class="cal-date">${d}</span>${startTag}${endTag}</div>${info}${bars}</div>`;
   }
   const totalCells = startWeekday + daysInMonth;
   const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
@@ -1780,6 +1784,10 @@ function prepareFields(pageKey, fields) {
     const cats = getInspirationCategories();
     const ff = f.find(x => x.key === 'category'); if (ff) ff.options = cats.map(c => ({ value: c, label: c }));
   }
+  if (pageKey === 'groupbuy-samples') {
+    const cats = getSampleCategories();
+    const ff = f.find(x => x.key === 'category'); if (ff) ff.options = cats.map(c => ({ value: c, label: c }));
+  }
   if (pageKey === 'groupbuy-records') {
     const facs = DB.list('factories').map(fc => fc.name);
     const priceList = DB.list('priceList');
@@ -1787,7 +1795,7 @@ function prepareFields(pageKey, fields) {
     const prodField = f.find(ff => ff.key === 'products');
     if (prodField) {
       const nameCol = prodField.columns.find(c => c.subkey === 'name');
-      if (nameCol) { nameCol.options = productNames.map(n => ({ value: n, label: n })); nameCol.datalistId = 'gb_product_dl'; }
+      if (nameCol) { nameCol.datalistId = 'gb_product_dl'; }
       const facCol = prodField.columns.find(c => c.subkey === 'factory');
       if (facCol) { facCol.options = facs.map(n => ({ value: n, label: n })); facCol.datalistId = 'gb_factory_dl'; }
       const disbandedCol = prodField.columns.find(c => c.subkey === 'isDisbanded');
@@ -1797,7 +1805,7 @@ function prepareFields(pageKey, fields) {
     const aftsField = f.find(ff => ff.key === 'afterSales');
     if (aftsField) {
       const aNameCol = aftsField.columns.find(c => c.subkey === 'name');
-      if (aNameCol) { aNameCol.options = productNames.map(n => ({ value: n, label: n })); aNameCol.datalistId = 'gb_product_dl'; }
+      if (aNameCol) { aNameCol.datalistId = 'gb_product_dl'; }
     }
   }
   if (pageKey === 'design-commission') {
@@ -1890,6 +1898,7 @@ function saveForm(pageKey, mod, id) {
   else if (id) delete data.images;
   if (pageKey === 'design-commission') calcCommissionPrice(data);
   if (pageKey === 'design-inspiration' && data.category) saveCustomCategory(data.category);
+  if (pageKey === 'groupbuy-samples' && data.category) saveCustomSampleCategory(data.category);
   if (id) { DB.update(mod.store, id, data); Toast.success('记录已更新'); }
   else { DB.add(mod.store, data); Toast.success('记录已添加'); }
   closeModal();
@@ -2771,7 +2780,7 @@ function renderDesignCalc() {
   // Product list
   html += '<div class="calc-card">';
   html += '<div class="calc-card-title">制品列表 <span class="calc-card-hint">（柄图自动分组，勾选同模启用阶梯计价）</span></div>';
-  html += '<div class="dc-product-header"><span>制品名称</span><span>柄图标识</span><span>单价</span><span>数量</span><span>同模</span><span></span></div>';
+  html += '<div class="dc-product-header"><span>制品</span><span>柄图标识</span><span>单价</span><span>数量</span><span>同模</span><span></span></div>';
   html += '<div id="dc-products"></div>';
   html += '<div style="display:flex;gap:8px;margin-top:8px">';
   html += '<button type="button" class="btn btn-outline btn-sm" onclick="dcAddProduct()">+ 添加制品</button>';
@@ -2782,7 +2791,7 @@ function renderDesignCalc() {
   // Extra items
   html += '<div class="calc-card">';
   html += '<div class="calc-card-title">加价项目 <span class="calc-card-hint">（不参与同模计价、SET折扣）</span></div>';
-  html += '<div class="dc-extra-header"><span>项目名称</span><span>数量</span><span>单价</span><span></span></div>';
+  html += '<div class="dc-extra-header"><span>加价项目</span><span>数量</span><span>单价</span><span></span></div>';
   html += '<div id="dc-extras"></div>';
   html += '<button type="button" class="btn btn-outline btn-sm" onclick="dcAddExtra()" style="margin-top:8px">+ 添加加价项目</button>';
   html += '</div>';
@@ -2936,7 +2945,7 @@ function dcRenderProducts() {
     const optHTML = productNames.map(n => `<div class="combobox-option" onclick="dcSelectProduct(${i},this,'${cbId}')" data-value="${esc(n)}">${esc(n)}</div>`).join('');
     html += '<div class="dc-product-row">';
     html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-name" value="${esc(p.name)}" placeholder="制品名称" data-key="name" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateProduct(${i},'name',this.value);dcFillPrice(this,'product',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
-    html += `<input type="text" class="form-input dc-prod-pattern" value="${esc(p.patternId||'')}" placeholder="柄图" oninput="dcUpdateProduct(${i},'patternId',this.value)">`;
+    html += `<input type="text" class="form-input dc-prod-pattern" value="${esc(p.patternId||'')}" placeholder="柄图标识" oninput="dcUpdateProduct(${i},'patternId',this.value)">`;
     html += `<input type="number" class="form-input dc-prod-price" value="${p.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateProduct(${i},'price',this.value)">`;
     html += `<input type="number" class="form-input dc-prod-qty" value="${p.quantity}" placeholder="数量" min="1" oninput="dcUpdateProduct(${i},'quantity',this.value)">`;
     html += `<label class="dc-prod-check"><input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模</label>`;
@@ -3452,7 +3461,7 @@ function renderPriceList() {
   } else {
     // Menu/receipt style layout
     html += '<div class="pricelist-menu">';
-    html += '<div class="pricelist-menu-header">价 目 表</div>';
+    html += '<div class="pricelist-menu-header">价目表</div>';
     sortedCats.forEach(cat => {
       const items = groups[cat];
       const desc = items.find(i => i.description)?.description || '';

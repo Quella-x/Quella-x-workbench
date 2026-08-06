@@ -316,7 +316,7 @@ ul,li{list-style:none}
 .cal-date-row{display:flex;align-items:center;gap:8px;width:100%;margin-bottom:1px}
 .cal-day .cal-date{font-size:12px;flex-shrink:0;line-height:1.3}
 .cal-day .cal-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
-.cal-day .cal-dots{display:inline-flex;gap:2px;align-items:center;margin:0}
+.cal-day .cal-dots{display:flex;flex-wrap:wrap;gap:2px;align-items:center;margin-top:1px}
 .cal-legend{display:flex;gap:12px;padding:8px 16px;font-size:12px;color:var(--c-text-light);border-top:1px solid var(--c-border-light)}
 .cal-divider{height:2px;background:var(--c-primary-dark);margin:24px 0 16px;border-radius:1px;opacity:.3;border:none}
 .cal-legend .legend-item{display:flex;align-items:center;gap:4px}
@@ -327,9 +327,11 @@ ul,li{list-style:none}
 .cal-day-event-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--c-text-light)}
 .cal-day-event-more{font-size:9px;color:var(--c-text-muted);padding-left:10px}
 /* v29-fix2: 接稿排期日历日期同行标签（实心圆点+开稿/截稿文字） */
-.cal-day-tags{display:inline-flex;align-items:center;flex-wrap:wrap;gap:2px 6px;flex:1;min-width:0}
-.cal-day-tag{display:inline-flex;align-items:center;gap:3px;font-size:10px;color:var(--c-text-light);white-space:nowrap}
-.cal-day-tag-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.cal-day-tags{display:inline-flex;align-items:center;flex-wrap:wrap;gap:2px 6px;min-width:0}
+.cal-day-tag{display:inline-flex;align-items:center;gap:3px;font-size:10px;white-space:nowrap}
+.cal-day-tag-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.cal-day-tag-text{font-size:10px;line-height:1;font-weight:600}
+.cal-day-tag-end{margin-left:auto}
 .cal-day-tag-more{font-size:9px;color:var(--c-text-muted)}
 .cal-day-count{font-size:10px;color:var(--c-text-muted);margin-top:1px}
 /* Calendar period bar (开稿~截稿时间段连续显示) */
@@ -933,8 +935,8 @@ ul,li{list-style:none}
   max-width:420px;margin:16px auto 0;
 }
 .pricelist-menu-header{
-  text-align:center;font-size:18px;font-weight:700;
-  letter-spacing:2px;padding-bottom:10px;margin-bottom:10px;
+  text-align:center;font-size:22px;font-weight:700;
+  letter-spacing:0;padding-bottom:6px;margin-bottom:10px;
   border-bottom:2px dashed var(--c-border);color:var(--c-primary-dark);
 }
 .pricelist-menu-item{
@@ -1090,7 +1092,7 @@ ul,li{list-style:none}
   /* v29-fix: mobile 报价计算制品/加价改为横向行（对齐接稿排期） */
   .dc-product-header{display:none!important}
   .dc-extra-header{display:none!important}
-  .dc-product-row{grid-template-columns:1fr 58px 50px 42px 42px 28px!important;gap:4px!important;padding:0}
+  .dc-product-row{grid-template-columns:1fr 76px 50px 44px 44px 28px!important;gap:4px!important;padding:0}
   .dc-product-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
   .dc-product-row .dc-prod-name{font-size:12px}
   .dc-product-row .dc-prod-check{font-size:10px;gap:0;justify-content:center}
