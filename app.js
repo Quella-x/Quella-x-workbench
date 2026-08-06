@@ -265,6 +265,7 @@ const DEFAULT_NAV_ICONS = {
 const DEFAULT_SETTINGS = {
   theme: { primary: '#9DC8FF', primaryLight: '#BDE7FF', primaryDark: '#7AB5F5', primaryBg: '#E0F2FF', sidebarStart: '#7AB5F5', sidebarEnd: '#5BA3F0' },
   navIcons: { ...DEFAULT_NAV_ICONS },
+  navLabels: {},
   fieldLabels: {},
   fieldOptions: {},
   priceListNotes: [
@@ -284,7 +285,12 @@ const PRESET_THEMES = [
   { name: '海豚蓝', primary: '#9DC8FF', primaryLight: '#BDE7FF', primaryDark: '#7AB5F5', primaryBg: '#E0F2FF', sidebarStart: '#7AB5F5', sidebarEnd: '#5BA3F0' },
   { name: '暖橙', primary: '#fa8c16', primaryLight: '#ffc068', primaryDark: '#d46b08', primaryBg: '#fff7e6', sidebarStart: '#d46b08', sidebarEnd: '#ad4e00' },
 ];
-function getSettings() { const s = DB.get('appSettings', DEFAULT_SETTINGS); if (!s.navIcons) s.navIcons = { ...DEFAULT_NAV_ICONS }; return s; }
+function getSettings() {
+  const s = DB.get('appSettings', DEFAULT_SETTINGS);
+  if (!s.navIcons) s.navIcons = { ...DEFAULT_NAV_ICONS };
+  if (!s.navLabels) s.navLabels = {};
+  return s;
+}
 function saveSettings(s) { DB.set('appSettings', s); }
 function applyTheme(theme) {
   const root = document.documentElement;
@@ -297,6 +303,7 @@ function applyTheme(theme) {
   root.style.setProperty('--c-info', theme.primary);
 }
 function getNavIcon(key) { const s = getSettings(); return (s.navIcons && s.navIcons[key]) || DEFAULT_NAV_ICONS[key] || '📌'; }
+function getNavLabel(key, defaultLabel) { const s = getSettings(); return (s.navLabels && s.navLabels[key]) || defaultLabel; }
 function getFieldLabel(moduleKey, fieldKey, defaultLabel) {
   const s = getSettings();
   return (s.fieldLabels && s.fieldLabels[moduleKey + '.' + fieldKey]) || defaultLabel;
@@ -312,92 +319,110 @@ function getFieldOpts(moduleKey, fieldKey, defaultOptions) {
 const _dynamicConfigs = {};
 
 /* ===== Form Builder ===== */
+function buildFormField(f, data, moduleKey, wrap) {
+  if (f.section) return `<div class="form-section">${esc(f.section)}</div>`;
+  if (f.type === 'custom') return f.html || '';
+  const label = moduleKey ? getFieldLabel(moduleKey, f.key, f.label) : f.label;
+  const val = data[f.key] ?? f.default ?? '';
+  const valStr = typeof val === 'string' ? val : (Array.isArray(val) ? '' : String(val ?? ''));
+  let inner = '';
+  if (f.type === 'textarea') {
+    inner = `<label class="form-label">${esc(label)}</label><textarea class="form-textarea" data-key="${f.key}" placeholder="${esc(f.placeholder || '')}">${esc(valStr)}</textarea>${f.hint ? `<span class="form-hint">${esc(f.hint)}</span>` : ''}`;
+  } else if (f.type === 'combobox') {
+    const opts = moduleKey ? getFieldOpts(moduleKey, f.key, f.options) : (f.options || []);
+    const shouldSort = !f.noSort && (['factory', 'product', 'category'].includes(f.key) || f.label === '厂家');
+    const displayOpts = shouldSort ? opts.slice().sort((a, b) => {
+      const la = typeof a === 'string' ? a : a.label;
+      const lb = typeof b === 'string' ? b : b.label;
+      return String(la).localeCompare(String(lb), 'zh');
+    }) : opts;
+    const listId = 'cb_' + f.key + '_' + Math.random().toString(36).slice(2, 7);
+    const optHTML = displayOpts.map(o => { const v = typeof o === 'string' ? o : o.value; const l = typeof o === 'string' ? o : o.label; return `<div class="combobox-option" onclick="selectComboboxOption('${listId}',this)" data-value="${esc(v)}">${esc(l)}</div>`; }).join('');
+    inner = `<label class="form-label">${esc(label)}</label><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(f.placeholder || '选择或输入...')}" onfocus="showComboboxDropdown('${listId}')" onclick="showComboboxDropdown('${listId}')" oninput="filterComboboxDropdown('${listId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${listId}')">▼</button><div class="combobox-dropdown" id="${listId}">${optHTML}</div></div>${f.hint ? `<span class="form-hint">${esc(f.hint)}</span>` : ''}`;
+  } else if (f.type === 'multiselect') {
+    const opts = moduleKey ? getFieldOpts(moduleKey, f.key, f.options) : (f.options || []);
+    const selected = Array.isArray(val) ? val : (val ? String(val).split(',') : []);
+    // Merge custom options from DB
+    let allOpts = opts;
+    if (f.allowCustom && moduleKey) {
+      const customOpts = DB.get('customOpts_' + moduleKey + '_' + f.key, []);
+      const existingVals = opts.map(o => typeof o === 'string' ? o : o.value);
+      customOpts.forEach(cv => { if (!existingVals.includes(cv)) { allOpts = allOpts.concat([{ value: cv, label: cv, custom: true }]); } });
+    }
+    // 人物关系关系类型按 A-Z 排序（含自定义）
+    if (moduleKey === 'oc-relations' && f.key === 'relationType') {
+      allOpts = allOpts.slice().sort((a, b) => {
+        const av = typeof a === 'string' ? a : (a.label || a.value);
+        const bv = typeof b === 'string' ? b : (b.label || b.value);
+        return av.localeCompare(bv, 'zh-CN');
+      });
+    }
+    const singleAttr = f.single ? ' data-single="true"' : '';
+    const onClickAttr = f.single ? ' onclick="limitSingleCheckbox(this)"' : '';
+    const optHTML = allOpts.map(o => {
+      const v = typeof o === 'string' ? o : o.value;
+      const l = typeof o === 'string' ? o : o.label;
+      return `<label class="checkbox-item"><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}> ${esc(l)}</label>`;
+    }).join('');
+    let msInner = `<label class="form-label">${esc(label)}</label><div class="checkbox-group ${f.key === 'importance' && moduleKey === 'oc-timeline' ? 'importance-pills' : ''}" data-key="${f.key}"${singleAttr}>${optHTML}</div>`;
+    if (f.allowCustom) {
+      const customId = 'customAdd_' + f.key + '_' + Math.random().toString(36).slice(2, 7);
+      const customPlaceholder = (moduleKey === 'oc-relations' && f.key === 'relationType') ? '请输入自定义关系类型' : '输入自定义类型后按添加';
+      // v32: 人物关系自定义关系类型改为勾选删除（红色删除按钮）
+      const isRelType = moduleKey === 'oc-relations' && f.key === 'relationType';
+      const delArea = isRelType ? (() => {
+        const customRelTypes = DB.get('customOpts_oc-relations_relationType', []).slice().sort((a,b)=>a.localeCompare(b,'zh-CN'));
+        const checkboxes = customRelTypes.map(rt => `<label class="checkbox-item"><input type="checkbox" value="${esc(rt)}"> ${esc(rt)}</label>`).join('');
+        return `<div style="margin-top:8px"><div style="font-size:12px;color:var(--c-text-muted);margin-bottom:4px">勾选要删除的自定义类型：</div><div class="checkbox-group custom-rel-del-group" id="${customId}_del">${checkboxes}</div><button type="button" class="btn btn-danger btn-sm" style="margin-top:6px" onclick="removeCheckedCustomRelationTypes('${customId}_del')">删除</button></div>`;
+      })() : '';
+      msInner += `<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="form-input" id="${customId}" placeholder="${esc(customPlaceholder)}" style="flex:1;font-size:13px"><button type="button" class="btn btn-outline btn-sm" onclick="addCustomMultiselectOpt('${customId}','${moduleKey || ''}','${f.key}',this)">添加</button></div>${delArea}`;
+    }
+    inner = msInner;
+  } else if (f.type === 'select') {
+    const opts = moduleKey ? getFieldOpts(moduleKey, f.key, f.options) : (f.options || []);
+    const optHTML = opts.map(o => {
+      const v = typeof o === 'string' ? o : o.value;
+      const l = typeof o === 'string' ? o : (o.label || o.value);
+      return `<option value="${esc(v)}" ${valStr === v ? 'selected' : ''}>${esc(l)}</option>`;
+    }).join('');
+    inner = `<label class="form-label">${esc(label)}</label><select class="form-input" data-key="${f.key}">${optHTML}</select>${f.hint ? `<span class="form-hint">${esc(f.hint)}</span>` : ''}`;
+  } else if (f.type === 'dynamic-list' || f.type === 'dynamic-products') {
+    return buildDynamicListHTML(f, data, moduleKey);
+  } else if (f.type === 'image') {
+    inner = `<label class="form-label">${esc(label)}</label>${makeImageUploadHTML()}`;
+  } else if (f.type === 'readonly') {
+    inner = `<label class="form-label">${esc(label)}</label><input type="text" class="form-input" data-key="${f.key}" value="${esc(valStr)}" readonly style="background:var(--c-primary-bg)">${f.hint ? `<span class="form-hint">${esc(f.hint)}</span>` : ''}`;
+  } else {
+    const type = f.type || 'text';
+    // v16: 日期字段除默认当天外，增加"请选择日期"提示词
+    let hint = f.hint || '';
+    let placeholder = f.placeholder || '';
+    if (type === 'date') {
+      const isTodayDefault = f.default === todayStr();
+      if (!isTodayDefault && !valStr) {
+        if (!hint) hint = '请选择日期';
+        placeholder = '请选择日期';
+      }
+    }
+    inner = `<label class="form-label">${esc(label)}</label><input type="${type}" class="form-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(placeholder)}">${hint ? `<span class="form-hint">${esc(hint)}</span>` : ''}`;
+  }
+  return wrap ? `<div class="form-row">${inner}</div>` : inner;
+}
 function buildForm(fields, data = {}, moduleKey = '') {
   let html = '';
-  fields.forEach(f => {
-    if (f.section) { html += `<div class="form-section">${esc(f.section)}</div>`; return; }
-    if (f.type === 'custom') { html += f.html || ''; return; }
-    const label = moduleKey ? getFieldLabel(moduleKey, f.key, f.label) : f.label;
-    const val = data[f.key] ?? f.default ?? '';
-    const valStr = typeof val === 'string' ? val : (Array.isArray(val) ? '' : String(val ?? ''));
-    if (f.type === 'textarea') {
-      html += `<div class="form-row"><label class="form-label">${esc(label)}</label><textarea class="form-textarea" data-key="${f.key}" placeholder="${esc(f.placeholder || '')}">${esc(valStr)}</textarea>${f.hint ? `<span class="form-hint">${esc(f.hint)}</span>` : ''}</div>`;
-    } else if (f.type === 'combobox') {
-      const opts = moduleKey ? getFieldOpts(moduleKey, f.key, f.options) : (f.options || []);
-      const shouldSort = !f.noSort && (['factory', 'product', 'category'].includes(f.key) || f.label === '厂家');
-      const displayOpts = shouldSort ? opts.slice().sort((a, b) => {
-        const la = typeof a === 'string' ? a : a.label;
-        const lb = typeof b === 'string' ? b : b.label;
-        return String(la).localeCompare(String(lb), 'zh');
-      }) : opts;
-      const listId = 'cb_' + f.key + '_' + Math.random().toString(36).slice(2, 7);
-      let optHTML = displayOpts.map(o => { const v = typeof o === 'string' ? o : o.value; const l = typeof o === 'string' ? o : o.label; return `<div class="combobox-option" onclick="selectComboboxOption('${listId}',this)" data-value="${esc(v)}">${esc(l)}</div>`; }).join('');
-      html += `<div class="form-row"><label class="form-label">${esc(label)}</label><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(f.placeholder || '选择或输入...')}" onfocus="showComboboxDropdown('${listId}')" onclick="showComboboxDropdown('${listId}')" oninput="filterComboboxDropdown('${listId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${listId}')">▼</button><div class="combobox-dropdown" id="${listId}">${optHTML}</div></div>${f.hint ? `<span class="form-hint">${esc(f.hint)}</span>` : ''}</div>`;
-    } else if (f.type === 'multiselect') {
-      const opts = moduleKey ? getFieldOpts(moduleKey, f.key, f.options) : (f.options || []);
-      const selected = Array.isArray(val) ? val : (val ? String(val).split(',') : []);
-      // Merge custom options from DB
-      let allOpts = opts;
-      if (f.allowCustom && moduleKey) {
-        const customOpts = DB.get('customOpts_' + moduleKey + '_' + f.key, []);
-        const existingVals = opts.map(o => typeof o === 'string' ? o : o.value);
-        customOpts.forEach(cv => { if (!existingVals.includes(cv)) { allOpts = allOpts.concat([{ value: cv, label: cv, custom: true }]); } });
-      }
-      // 人物关系关系类型按 A-Z 排序（含自定义）
-      if (moduleKey === 'oc-relations' && f.key === 'relationType') {
-        allOpts = allOpts.slice().sort((a, b) => {
-          const av = typeof a === 'string' ? a : (a.label || a.value);
-          const bv = typeof b === 'string' ? b : (b.label || b.value);
-          return av.localeCompare(bv, 'zh-CN');
-        });
-      }
-      const singleAttr = f.single ? ' data-single="true"' : '';
-      const onClickAttr = f.single ? ' onclick="limitSingleCheckbox(this)"' : '';
-      const optHTML = allOpts.map(o => {
-        const v = typeof o === 'string' ? o : o.value;
-        const l = typeof o === 'string' ? o : o.label;
-        return `<label class="checkbox-item"><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}> ${esc(l)}</label>`;
-      }).join('');
-      let msHTML = `<div class="form-row"><label class="form-label">${esc(label)}</label><div class="checkbox-group" data-key="${f.key}"${singleAttr}>${optHTML}</div>`;
-      if (f.allowCustom) {
-        const customId = 'customAdd_' + f.key + '_' + Math.random().toString(36).slice(2, 7);
-        const customPlaceholder = (moduleKey === 'oc-relations' && f.key === 'relationType') ? '请输入自定义关系类型' : '输入自定义类型后按添加';
-        const delBtn = (moduleKey === 'oc-relations' && f.key === 'relationType')
-          ? `<button type="button" class="btn btn-ghost btn-sm" onclick="removeCustomRelationTypeFromInput('${customId}')">删除</button>`
-          : '';
-        msHTML += `<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="form-input" id="${customId}" placeholder="${esc(customPlaceholder)}" style="flex:1;font-size:13px"><button type="button" class="btn btn-outline btn-sm" onclick="addCustomMultiselectOpt('${customId}','${moduleKey || ''}','${f.key}',this)">添加</button>${delBtn}</div>`;
-      }
-      msHTML += '</div>';
-      html += msHTML;
-    } else if (f.type === 'select') {
-      const opts = moduleKey ? getFieldOpts(moduleKey, f.key, f.options) : (f.options || []);
-      const optHTML = opts.map(o => {
-        const v = typeof o === 'string' ? o : o.value;
-        const l = typeof o === 'string' ? o : (o.label || o.value);
-        return `<option value="${esc(v)}" ${valStr === v ? 'selected' : ''}>${esc(l)}</option>`;
-      }).join('');
-      html += `<div class="form-row"><label class="form-label">${esc(label)}</label><select class="form-input" data-key="${f.key}">${optHTML}</select>${f.hint ? `<span class="form-hint">${esc(f.hint)}</span>` : ''}</div>`;
-    } else if (f.type === 'dynamic-list' || f.type === 'dynamic-products') {
-      html += buildDynamicListHTML(f, data, moduleKey);
-    } else if (f.type === 'image') {
-      html += `<div class="form-row"><label class="form-label">${esc(label)}</label>${makeImageUploadHTML()}</div>`;
-    } else if (f.type === 'readonly') {
-      html += `<div class="form-row"><label class="form-label">${esc(label)}</label><input type="text" class="form-input" data-key="${f.key}" value="${esc(valStr)}" readonly style="background:var(--c-primary-bg)">${f.hint ? `<span class="form-hint">${esc(f.hint)}</span>` : ''}</div>`;
-    } else {
-      const type = f.type || 'text';
-      // v16: 日期字段除默认当天外，增加"请选择日期"提示词
-      let hint = f.hint || '';
-      let placeholder = f.placeholder || '';
-      if (type === 'date') {
-        const isTodayDefault = f.default === todayStr();
-        if (!isTodayDefault && !valStr) {
-          if (!hint) hint = '请选择日期';
-          placeholder = '请选择日期';
-        }
-      }
-      html += `<div class="form-row"><label class="form-label">${esc(label)}</label><input type="${type}" class="form-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(placeholder)}">${hint ? `<span class="form-hint">${esc(hint)}</span>` : ''}</div>`;
+  for (let i = 0; i < fields.length; i++) {
+    const f = fields[i];
+    if (!f.row || f.section || f.type === 'custom') {
+      html += buildFormField(f, data, moduleKey, true);
+      continue;
     }
-  });
+    // v32: 同行字段（row 属性相同）合并为一行
+    const group = [f];
+    while (i + 1 < fields.length && fields[i + 1].row === f.row) { group.push(fields[i + 1]); i++; }
+    html += `<div class="form-row form-row-inline"><div class="form-row-label">${esc(f.rowLabel || '')}</div><div class="form-inline-fields">`;
+    group.forEach(gf => { html += `<div class="form-inline-field">${buildFormField(gf, data, moduleKey, false)}</div>`; });
+    html += '</div></div>';
+  }
   return html;
 }
 
@@ -685,23 +710,32 @@ function removeCustomOpt(btn, moduleKey, fieldKey, val) {
   const label = btn.closest('.checkbox-item');
   if (label) label.remove();
 }
-// v31: 人物关系自定义关系类型删除——按钮放在「添加」旁边，删除输入框中已存在的自定义类型
-function removeCustomRelationTypeFromInput(inputId) {
-  const input = document.getElementById(inputId);
-  if (!input || !input.value.trim()) { Toast.warning('请输入要删除的自定义关系类型'); return; }
-  const val = input.value.trim();
+// v32: 人物关系自定义关系类型——勾选删除（红色删除按钮）
+function removeCheckedCustomRelationTypes(groupId) {
+  const group = document.getElementById(groupId);
+  if (!group) return;
+  const checked = Array.from(group.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+  if (!checked.length) { Toast.warning('请勾选要删除的自定义关系类型'); return; }
   const dbKey = 'customOpts_oc-relations_relationType';
-  const customOpts = DB.get(dbKey, []);
-  if (!customOpts.includes(val)) { Toast.warning('该类型不存在或不是自定义类型'); return; }
-  DB.set(dbKey, customOpts.filter(v => v !== val));
-  // 同步移除当前表单中的该选项 checkbox
-  const group = input.closest('.form-row').querySelector('.checkbox-group');
-  if (group) {
-    const cb = group.querySelector(`input[type="checkbox"][value="${esc(val)}"]`);
-    if (cb) cb.closest('.checkbox-item').remove();
+  let customOpts = DB.get(dbKey, []);
+  customOpts = customOpts.filter(v => !checked.includes(v));
+  DB.set(dbKey, customOpts);
+  // 从删除区移除 checkbox
+  checked.forEach(val => {
+    Array.from(group.querySelectorAll('input[type="checkbox"]')).forEach(cb => {
+      if (cb.value === val && cb.checked) cb.closest('.checkbox-item').remove();
+    });
+  });
+  // 同步移除表单选项区中的对应 checkbox
+  const formGroup = group.closest('.form-row').querySelector('.checkbox-group:not(.custom-rel-del-group)');
+  if (formGroup) {
+    checked.forEach(val => {
+      Array.from(formGroup.querySelectorAll('input[type="checkbox"]')).forEach(cb => {
+        if (cb.value === val) cb.closest('.checkbox-item').remove();
+      });
+    });
   }
-  input.value = '';
-  Toast.success('已删除自定义关系类型');
+  Toast.success('已删除 ' + checked.length + ' 个自定义关系类型');
 }
 /* ===== Calendar Component ===== */
 const PLATFORM_COLORS = { '小红书': '#ff2442', '抖音': '#161823', '视频号': '#fa8c16', '公众号': '#07a059' };
@@ -869,15 +903,15 @@ MODULES['home'] = {
     { key: 'link', label: '作品链接', type: 'text', placeholder: '粘贴作品链接' },
     { key: 'contentType', label: '内容类型', type: 'multiselect', single: true, options: [{ value: '图文', label: '图文' }, { value: '短视频', label: '短视频' }, { value: '推文', label: '推文' }, { value: '直播', label: '直播' }] },
     { section: '24小时数据' },
-    { key: 'data24h_likes', label: '点赞', type: 'number' },
-    { key: 'data24h_saves', label: '收藏', type: 'number' },
-    { key: 'data24h_plays', label: '播放量', type: 'number' },
-    { key: 'data24h_reads', label: '阅读量', type: 'number' },
+    { key: 'data24h_likes', label: '点赞', type: 'number', row: 'data24h' },
+    { key: 'data24h_saves', label: '收藏', type: 'number', row: 'data24h' },
+    { key: 'data24h_plays', label: '播放量', type: 'number', row: 'data24h' },
+    { key: 'data24h_reads', label: '阅读量', type: 'number', row: 'data24h' },
     { section: '7天数据' },
-    { key: 'data7d_likes', label: '点赞', type: 'number' },
-    { key: 'data7d_saves', label: '收藏', type: 'number' },
-    { key: 'data7d_plays', label: '播放量', type: 'number' },
-    { key: 'data7d_reads', label: '阅读量', type: 'number' },
+    { key: 'data7d_likes', label: '点赞', type: 'number', row: 'data7d' },
+    { key: 'data7d_saves', label: '收藏', type: 'number', row: 'data7d' },
+    { key: 'data7d_plays', label: '播放量', type: 'number', row: 'data7d' },
+    { key: 'data7d_reads', label: '阅读量', type: 'number', row: 'data7d' },
     { key: 'notes', label: '备注', type: 'textarea' },
   ],
   listFields: [
@@ -913,10 +947,12 @@ MODULES['groupbuy-records'] = {
       ]},
       { subkey: 'amount', label: '价格', type: 'number' },
     ]},
-    { key: 'purchaseCount', label: '购买人数', type: 'number' },
-    { key: 'productTotal', label: '制品总价', type: 'number', hint: '元' },
-    { key: 'shippingTotal', label: '邮费总价', type: 'number', hint: '元' },
-    { key: 'cost', label: '总成本', type: 'number', hint: '元' },
+    { key: 'purchaseCount', label: '购买人数', type: 'number', row: 'purchaseInfo' },
+    { key: 'purchasePopularity', label: '拼团人气', type: 'number', row: 'purchaseInfo' },
+    { key: 'productTotal', label: '制品总价', type: 'number', hint: '元', row: 'totalPrice' },
+    { key: 'shippingTotal', label: '邮费总价', type: 'number', hint: '元', row: 'totalPrice' },
+    { key: 'cost', label: '制品总成本', type: 'number', hint: '元', row: 'totalCost' },
+    { key: 'shippingTotalCost', label: '邮费总成本', type: 'number', hint: '元', row: 'totalCost' },
     { key: 'status', label: '进度状态', type: 'multiselect', single: true, default: '进行中', options: [{ value: '筹备中', label: '筹备中' }, { value: '进行中', label: '进行中' }, { value: '已截团', label: '已截团' }, { value: '流团', label: '流团' }, { value: '已结算', label: '已结算' }] },
   ],
   filters: [{ key: 'status', label: '全部状态', options: [{ value: '', label: '全部状态' }, { value: '筹备中', label: '筹备中' }, { value: '进行中', label: '进行中' }, { value: '已截团', label: '已截团' }, { value: '流团', label: '流团' }, { value: '已结算', label: '已结算' }] }],
@@ -929,7 +965,7 @@ MODULES['groupbuy-records'] = {
   ],
   stats: (records) => {
     const totalRev = records.reduce((s, r) => s + (parseFloat(r.productTotal) || 0) + (parseFloat(r.shippingTotal) || 0), 0);
-    const totalCost = records.reduce((s, r) => s + (parseFloat(r.cost) || 0), 0);
+    const totalCost = records.reduce((s, r) => s + (parseFloat(r.cost) || 0) + (parseFloat(r.shippingTotalCost) || 0), 0);
     const profit = totalRev - totalCost;
     return [
       { label: '累计开团', value: records.length, sub: '个' },
@@ -943,12 +979,12 @@ MODULES['groupbuy-records'] = {
     title: '开团营收/成本/利润',
     series: [
       { name: '营收', compute: r => (parseFloat(r.productTotal) || 0) + (parseFloat(r.shippingTotal) || 0), color: '#7ec678' },
-      { name: '成本', valueField: 'cost', color: '#e8857e' },
-      { name: '利润', compute: r => (parseFloat(r.productTotal) || 0) + (parseFloat(r.shippingTotal) || 0) - (parseFloat(r.cost) || 0), color: '#9DC8FF' },
+      { name: '成本', compute: r => (parseFloat(r.cost) || 0) + (parseFloat(r.shippingTotalCost) || 0), color: '#e8857e' },
+      { name: '利润', compute: r => (parseFloat(r.productTotal) || 0) + (parseFloat(r.shippingTotal) || 0) - (parseFloat(r.cost) || 0) - (parseFloat(r.shippingTotalCost) || 0), color: '#9DC8FF' },
     ]
   }),
   detailExtra: (r) => {
-    const rev = (parseFloat(r.productTotal) || 0) + (parseFloat(r.shippingTotal) || 0), cost = parseFloat(r.cost) || 0;
+    const rev = (parseFloat(r.productTotal) || 0) + (parseFloat(r.shippingTotal) || 0), cost = (parseFloat(r.cost) || 0) + (parseFloat(r.shippingTotalCost) || 0);
     return `<div class="detail-row"><span class="detail-label">盈亏统计</span><span class="detail-value"><b style="color:${rev - cost >= 0 ? 'var(--c-green)' : 'var(--c-red)'}">${rev - cost >= 0 ? '+' : ''}¥${(rev - cost).toLocaleString()}</b></span></div>`;
   },
 };
@@ -995,8 +1031,8 @@ MODULES['groupbuy-samples'] = {
     { key: 'factory', label: '厂家', type: 'combobox', options: [], hint: '从厂家记录加载' },
     { key: 'category', label: '打样品类', type: 'combobox', options: [], placeholder: '选择或输入品类...' },
     { key: 'sampleTime', label: '打样时间', type: 'date', default: todayStr() },
-    { key: 'cost', label: '样品费用', type: 'number', hint: '元' },
-    { key: 'quantity', label: '样品数量', type: 'number', default: 1 },
+    { key: 'cost', label: '样品费用', type: 'number', hint: '元', row: 'sampleCostQty' },
+    { key: 'quantity', label: '样品数量', type: 'number', default: 1, row: 'sampleCostQty' },
     { key: 'receiveTime', label: '收货时间', type: 'date' },
     { key: 'evaluation', label: '样品评价', type: 'multiselect', single: true, options: [{ value: '合格', label: '合格' }, { value: '中等', label: '中等' }, { value: '不合格', label: '不合格' }] },
     { key: 'images', label: '样品图片', type: 'image' },
@@ -1377,11 +1413,11 @@ function navigate(page) {
 /* ===== Sidebar Rendering ===== */
 function renderSidebar() {
   const nav = $('#sidebarNav');
-  let html = `<div class="nav-item ${currentPage === 'home' ? 'active' : ''}" onclick="navigate('home')"><span class="nav-icon">${getNavIcon('home')}</span><span class="nav-label">首页</span></div>`;
+  let html = `<div class="nav-item ${currentPage === 'home' ? 'active' : ''}" onclick="navigate('home')"><span class="nav-icon">${getNavIcon('home')}</span><span class="nav-label">${esc(getNavLabel('home', '首页'))}</span></div>`;
   NAV.slice(1).forEach(group => {
     html += `<div class="nav-group"><div class="nav-group-title">${esc(group.label)}</div>`;
     group.children.forEach(child => {
-      html += `<div class="nav-item ${currentPage === child.key ? 'active' : ''}" onclick="navigate('${child.key}')"><span class="nav-icon">${getNavIcon(child.key)}</span><span class="nav-label">${esc(child.label)}</span></div>`;
+      html += `<div class="nav-item ${currentPage === child.key ? 'active' : ''}" onclick="navigate('${child.key}')"><span class="nav-icon">${getNavIcon(child.key)}</span><span class="nav-label">${esc(getNavLabel(child.key, child.label))}</span></div>`;
     });
     html += '</div>';
   });
@@ -3764,7 +3800,7 @@ function renderNavIconSettings(html) {
   const icons = s.navIcons || { ...DEFAULT_NAV_ICONS };
   html += '<div class="settings-section active">';
   html += '<h4 style="font-size:14px;margin-bottom:8px;color:var(--c-primary)">导航栏图标自定义</h4>';
-  html += '<p style="font-size:12px;color:var(--c-text-muted);margin-bottom:12px">输入emoji或文字作为导航图标，留空使用默认图标</p>';
+  html += '<p style="font-size:12px;color:var(--c-text-muted);margin-bottom:12px">可分别自定义每个导航的图标（emoji/文字，留空用默认）与显示名称（留空用默认名称）</p>';
   html += '<div class="nav-icon-edit-list">';
   // Home
   html += renderNavIconEditItem('home', '首页', icons.home);
@@ -3779,10 +3815,14 @@ function renderNavIconSettings(html) {
   return html;
 }
 function renderNavIconEditItem(key, label, currentIcon) {
+  const currentLabel = getNavLabel(key, label);
   return `<div class="nav-icon-edit-item">
     <span class="icon-preview" id="navicon_preview_${key}">${esc(currentIcon || DEFAULT_NAV_ICONS[key] || '📌')}</span>
-    <label>${esc(label)}</label>
-    <input type="text" id="navicon_${key}" value="${esc(currentIcon || '')}" placeholder="${esc(DEFAULT_NAV_ICONS[key] || '📌')}" oninput="document.getElementById('navicon_preview_${key}').textContent=this.value||'${esc(DEFAULT_NAV_ICONS[key] || '📌')}'">
+    <div class="nav-icon-edit-fields">
+      <label>${esc(label)}</label>
+      <input type="text" id="navicon_${key}" value="${esc(currentIcon || '')}" placeholder="${esc(DEFAULT_NAV_ICONS[key] || '📌')}" oninput="document.getElementById('navicon_preview_${key}').textContent=this.value||'${esc(DEFAULT_NAV_ICONS[key] || '📌')}'">
+      <input type="text" id="navlabel_${key}" value="${esc(currentLabel !== label ? currentLabel : '')}" placeholder="${esc(label)}" style="margin-top:6px">
+    </div>
   </div>`;
 }
 
@@ -3857,7 +3897,7 @@ function renderDataSettings(html) {
   html += '<h4 style="font-size:14px;margin:24px 0 16px;color:var(--c-primary)">数据备份与导入</h4>';
   html += '<p style="font-size:13px;color:var(--c-text-light);margin-bottom:16px">导出所有数据为JSON文件，或从备份文件恢复数据。</p>';
   html += '<div style="display:flex;gap:12px;flex-wrap:wrap">';
-  html += '<button class="btn btn-primary" onclick="exportData()">💾 备份数据</button>';
+  html += '<button class="btn btn-primary" onclick="exportData()">💾 导出数据</button>';
   html += '<button class="btn btn-outline" onclick="document.getElementById(\'importFile\').click()">📂 导入数据</button>';
   html += '</div>';
   html += '</div>';
@@ -3878,6 +3918,11 @@ function saveSettingsAction() {
     if (el) {
       if (el.value.trim()) s.navIcons[k] = el.value.trim();
       else delete s.navIcons[k];
+    }
+    const lblEl = $('#navlabel_' + k);
+    if (lblEl) {
+      if (lblEl.value.trim()) s.navLabels[k] = lblEl.value.trim();
+      else delete s.navLabels[k];
     }
   });
   // Field labels & options
