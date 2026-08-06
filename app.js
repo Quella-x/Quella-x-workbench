@@ -356,7 +356,10 @@ function buildForm(fields, data = {}, moduleKey = '') {
       const optHTML = allOpts.map(o => {
         const v = typeof o === 'string' ? o : o.value;
         const l = typeof o === 'string' ? o : o.label;
-        return `<label class="checkbox-item"><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}> ${esc(l)}</label>`;
+        const isCustom = typeof o === 'object' && o.custom;
+        const alwaysDel = isCustom && moduleKey === 'oc-relations' && f.key === 'relationType';
+        const delBtn = (isCustom && moduleKey) ? `<span class="btn-icon danger custom-opt-del" style="width:14px;height:14px;font-size:11px;margin-left:4px${alwaysDel ? ';opacity:1' : ''}" onclick="event.stopPropagation();removeCustomOpt(this,'${esc(moduleKey)}','${esc(f.key)}','${esc(v)}')">✕</span>` : '';
+        return `<label class="checkbox-item"><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}> ${esc(l)}${delBtn}</label>`;
       }).join('');
       let msHTML = `<div class="form-row"><label class="form-label">${esc(label)}</label><div class="checkbox-group" data-key="${f.key}"${singleAttr}>${optHTML}</div>`;
       if (f.allowCustom) {
@@ -661,7 +664,9 @@ function addCustomMultiselectOpt(inputId, moduleKey, fieldKey, btn) {
       const label = document.createElement('label');
       label.className = 'checkbox-item';
       const singleAttr = group.dataset.single ? ' onclick="limitSingleCheckbox(this)"' : '';
-      label.innerHTML = `<input type="checkbox" value="${esc(val)}" checked${singleAttr}> ${esc(val)}`;
+      const alwaysDel = moduleKey === 'oc-relations' && fieldKey === 'relationType';
+      const delBtn = `<span class="btn-icon danger custom-opt-del" style="width:14px;height:14px;font-size:11px;margin-left:4px${alwaysDel ? ';opacity:1' : ''}" onclick="event.stopPropagation();removeCustomOpt(this,'${esc(moduleKey)}','${esc(fieldKey)}','${esc(val)}')">✕</span>`;
+      label.innerHTML = `<input type="checkbox" value="${esc(val)}" checked${singleAttr}> ${esc(val)}${delBtn}`;
       group.appendChild(label);
       // 人物关系关系类型添加自定义后按 A-Z 重新排序
       if (moduleKey === 'oc-relations' && fieldKey === 'relationType') {
@@ -682,26 +687,6 @@ function removeCustomOpt(btn, moduleKey, fieldKey, val) {
   const label = btn.closest('.checkbox-item');
   if (label) label.remove();
 }
-function removeCustomRelationType(val) {
-  const dbKey = 'customOpts_oc-relations_relationType';
-  const customOpts = DB.get(dbKey, []).filter(v => v !== val);
-  DB.set(dbKey, customOpts);
-  Toast.success('已删除自定义关系类型');
-  renderRelations();
-}
-function addCustomRelTypeFromCard() {
-  const input = document.getElementById('customRelTypeInput');
-  if (!input || !input.value.trim()) { Toast.warning('请输入关系类型'); return; }
-  const val = input.value.trim();
-  const dbKey = 'customOpts_oc-relations_relationType';
-  const customOpts = DB.get(dbKey, []);
-  if (customOpts.includes(val)) { Toast.warning('该类型已存在'); return; }
-  customOpts.push(val);
-  DB.set(dbKey, customOpts);
-  Toast.success('已添加自定义关系类型');
-  renderRelations();
-}
-
 /* ===== Calendar Component ===== */
 const PLATFORM_COLORS = { '小红书': '#ff2442', '抖音': '#161823', '视频号': '#fa8c16', '公众号': '#07a059' };
 function renderCalendar(year, month, records, commissionRecords = []) {
@@ -2516,29 +2501,7 @@ function renderRelations() {
   let html = '<div class="fade-in">';
   html += '<div class="toolbar"><div class="spacer"></div>';
   html += '<button class="btn btn-primary" onclick="openAddForm(\'oc-relations\')">+ 新增关系</button></div>';
-  // v30: 自定义关系类型管理外置为独立卡片，始终可见
-  const customRelTypes = DB.get('customOpts_oc-relations_relationType', []).slice().sort((a,b)=>a.localeCompare(b,'zh-CN'));
-  html += '<div class="card" style="margin:12px 0;padding:12px">';
-  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
-  html += '<div style="font-size:13px;font-weight:600;color:var(--c-primary-dark)">🏷️ 自定义关系类型</div>';
-  html += '<div style="font-size:11px;color:var(--c-text-light)">在此添加或删除，删除后表单中不再显示</div>';
-  html += '</div>';
-  html += '<div style="display:flex;gap:8px;margin-bottom:10px">';
-  html += '<input type="text" class="form-input" id="customRelTypeInput" placeholder="输入自定义关系类型" style="flex:1;font-size:13px" onkeydown="if(event.key===\'Enter\')addCustomRelTypeFromCard()">';
-  html += '<button type="button" class="btn btn-outline btn-sm" onclick="addCustomRelTypeFromCard()">添加</button>';
-  html += '</div>';
-  html += '<div class="relation-person-grid" style="margin-bottom:0">';
-  if (customRelTypes.length) {
-    customRelTypes.forEach(rt => {
-      html += `<div class="relation-person-btn" style="position:relative;padding-right:26px" title="点击删除">
-        <span>${esc(rt)}</span>
-        <span class="btn-icon danger" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:12px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:50%" onclick="event.stopPropagation();removeCustomRelationType('${esc(rt)}')">✕</span>
-      </div>`;
-    });
-  } else {
-    html += '<div style="font-size:12px;color:var(--c-text-muted)">暂无自定义关系类型，添加后会在「关系类型」中显示</div>';
-  }
-  html += '</div></div>';
+  // v30-fix: 自定义关系类型管理放回「关系类型」字段内，不再外置独立卡片
   if (chars.length === 0) {
     html += '<div class="empty-state"><div class="empty-icon">🔗</div><div class="empty-text">请先在「人物档案」中添加OC人物</div></div>';
   } else {

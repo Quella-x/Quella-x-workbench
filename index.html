@@ -419,20 +419,17 @@ ul,li{list-style:none}
 .checkbox-item:hover .custom-opt-del{opacity:1}
 .custom-opt-del:hover{background:var(--c-danger-bg);color:var(--c-danger)}
 
-/* v30: Dynamic list — 标题与内容像素级左对齐（治根版）
-   关键：header 与 row 必须共享同一个内容区起点。container padding 8px，row 在 container 内容区内；
-   header 不再用 margin:-8px 伸出，而是靠 ::before 伪元素把背景延伸到容器边缘。
-   这样 header span 的 padding-left:8px + 透明边框 1px 与 input 的 padding-left:8px + 边框 1px 起点完全一致。 */
-.dynamic-list-container{padding:8px;border:1px solid var(--c-border);border-radius:var(--radius-sm);overflow:visible;position:relative}
+/* v30-fix: Dynamic list — 标题与内容像素级左对齐（治根+底色版）
+   关键：header 用 margin:0 -8px 把淡蓝背景延伸到容器左右边缘，同时自身 padding 归 0；
+   标题文字靠 span 的 padding-left:8px + 透明边框 1px 与 input 内容起点严格对齐。
+   这样既有淡蓝底色，又不存在 margin:-8px 导致起点偏移的问题。 */
+.dynamic-list-container{padding:8px;border:1px solid var(--c-border);border-radius:var(--radius-sm);overflow:visible;position:relative;background:var(--c-card)}
 .dynamic-list-header{
   position:relative;display:flex;gap:4px;
-  margin:0 0 6px;padding:4px 8px;
+  margin:0 -8px 6px;padding:4px 0;
   font-size:11px;font-weight:600;color:var(--c-text-muted);
+  background:var(--c-primary-bg);
   border-bottom:1px dashed var(--c-border);
-}
-.dynamic-list-header::before{
-  content:'';position:absolute;top:0;left:-8px;right:-8px;bottom:-1px;
-  background:var(--c-primary-bg);border-bottom:1px dashed var(--c-border);z-index:-1;
 }
 .dynamic-list-header span{box-sizing:border-box;text-align:left;min-width:0;border:1px solid transparent;padding-left:8px}
 .dynamic-list-header span:last-child{flex:0 0 40px;text-align:center;padding-left:0}
@@ -726,7 +723,7 @@ ul,li{list-style:none}
   .dynamic-list-row .combobox-wrapper{min-width:80px;flex:1 1 80px}
   .dynamic-list-row > button{flex-shrink:0;min-width:40px}
   /* v22 mobile 标题与内容列对齐 */
-  .dynamic-list-header{font-size:10px;padding:6px 0;display:flex!important;gap:4px;background:transparent}
+  .dynamic-list-header{font-size:10px;padding:6px 0;display:flex!important;gap:4px;background:var(--c-primary-bg)}
   .dynamic-list-header span{padding-left:8px;box-sizing:border-box;text-align:left}
   .dynamic-list-header span.combobox-col{padding-left:16px}
   /* v22 mobile: 全面隐藏所有 dynamic-list 标题（仅靠 placeholder 提示） */
