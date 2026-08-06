@@ -2436,7 +2436,7 @@ function renderTimeline() {
   });
   html += '</div>';
   // Toolbar
-  html += '<div class="toolbar">';
+  html += '<div class="toolbar timeline-toolbar">';
   html += `<div class="search-box"><input type="text" placeholder="搜索事件..." value="${esc(ps.search)}" oninput="onSearch('oc-timeline', this.value)"><span class="search-icon">🔍</span></div>`;
   html += '<div class="spacer"></div>';
   html += '<button class="btn btn-outline toolbar-eq" onclick="importStoriesToTimeline()">📥 导入故事小记</button>';

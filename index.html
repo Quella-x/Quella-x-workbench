@@ -541,12 +541,13 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyCount"]{flex:0 0 55px}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyPrice"]{flex:0 0 110px}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="note"]{flex:1 1 0;min-width:80px}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyCount"]{flex:0 0 55px}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyPrice"]{flex:0 0 120px}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="note"]{flex:1 1 0;min-width:80px}
-/* O轮最终：开团制品列表单价/对应厂家标题偏左，给 header 加一点左内边距，视觉上与输入内容左对齐 */
-.dynamic-list-container[data-key="products"] .dynamic-list-header span[data-subkey="price"]{padding-left:12px}
-.dynamic-list-container[data-key="products"] .dynamic-list-header span[data-subkey="factory"]{padding-left:12px}
+/* O轮修正：接稿修改项目「次数/价格/备注」标题偏右，减少左内边距使其与输入内容视觉对齐 */
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyCount"]{flex:0 0 55px;padding-left:3px}
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyPrice"]{flex:0 0 110px;padding-left:3px}
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="note"]{flex:1 1 0;min-width:80px;padding-left:3px}
+/* O轮修正：开团制品列表「单价/对应厂家」标题偏左，加大左内边距使其与输入内容视觉对齐 */
+.dynamic-list-container[data-key="products"] .dynamic-list-header span[data-subkey="price"]{padding-left:22px}
+.dynamic-list-container[data-key="products"] .dynamic-list-header span[data-subkey="factory"]{padding-left:22px}
 /* 修改类型为下拉选择器，列宽与 header 一致 */
 .dynamic-list-container[data-key="modifications"] .combobox-wrapper[data-subkey="modifyType"]{flex:1 1 0!important;min-width:80px!important}
 .dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyType"]{flex:1 1 0;min-width:80px}
@@ -1358,14 +1359,16 @@ ul,li{list-style:none}
 .sortable-actions .btn-ghost:disabled{opacity:.35;cursor:not-allowed}
 
 /* ===== v15/v32: Timeline (时间轨迹) ===== */
+/* v32: 时间线 toolbar 与重要性按钮间距保持一致（8px） */
+.timeline-toolbar{margin-bottom:8px}
 .timeline-filter-bar{
-  display:inline-flex;flex-wrap:nowrap;gap:0;align-items:center;justify-content:center;
-  background:#fff;border:1px solid var(--c-border);border-radius:999px;
-  padding:3px;margin-bottom:16px;overflow:hidden;
+  display:flex;flex-wrap:nowrap;gap:0;align-items:center;justify-content:center;
+  width:200px;background:#fff;border:1px solid var(--c-border);border-radius:999px;
+  padding:3px;margin:0 auto 16px;overflow:hidden;
 }
 .timeline-color-filter{
-  display:inline-flex;align-items:center;justify-content:center;gap:4px;
-  padding:6px 16px;font-size:13px;font-weight:600;white-space:nowrap;
+  flex:1;display:inline-flex;align-items:center;justify-content:center;gap:4px;
+  padding:6px 0;font-size:13px;font-weight:600;white-space:nowrap;
   cursor:pointer;border:none;transition:all .2s;background:transparent;color:var(--c-text);
 }
 .timeline-color-filter:first-child{border-radius:999px 0 0 999px}
@@ -1486,7 +1489,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=41"></script>
+<script src="app.js?v=42"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
