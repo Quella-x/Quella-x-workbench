@@ -359,23 +359,24 @@ function buildFormField(f, data, moduleKey, wrap) {
     }
     const singleAttr = f.single ? ' data-single="true"' : '';
     const onClickAttr = f.single ? ' onclick="limitSingleCheckbox(this)"' : '';
+    const isImpPills = f.key === 'importance' && moduleKey === 'oc-timeline';
+    const onChangeAttr = isImpPills ? ' onchange="updateImportancePill(this)"' : '';
     const optHTML = allOpts.map(o => {
       const v = typeof o === 'string' ? o : o.value;
       const l = typeof o === 'string' ? o : o.label;
-      return `<label class="checkbox-item"><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}> ${esc(l)}</label>`;
+      const isCustom = typeof o === 'object' && o.custom;
+      const customAttr = isCustom ? ' data-custom="true"' : '';
+      return `<label class="checkbox-item ${isImpPills && selected.includes(v) ? 'selected' : ''}"><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}${onChangeAttr}${customAttr}> ${esc(l)}</label>`;
     }).join('');
-    let msInner = `<label class="form-label">${esc(label)}</label><div class="checkbox-group ${f.key === 'importance' && moduleKey === 'oc-timeline' ? 'importance-pills' : ''}" data-key="${f.key}"${singleAttr}>${optHTML}</div>`;
+    const mainGroupId = 'ms_' + f.key + '_' + Math.random().toString(36).slice(2, 7);
+    let msInner = `<label class="form-label">${esc(label)}</label><div class="checkbox-group ${isImpPills ? 'importance-pills' : ''}" id="${mainGroupId}" data-key="${f.key}"${singleAttr}>${optHTML}</div>`;
     if (f.allowCustom) {
-      const customId = 'customAdd_' + f.key + '_' + Math.random().toString(36).slice(2, 7);
+      const customInputId = 'customAdd_' + f.key + '_' + Math.random().toString(36).slice(2, 7);
       const customPlaceholder = (moduleKey === 'oc-relations' && f.key === 'relationType') ? '请输入自定义关系类型' : '输入自定义类型后按添加';
-      // v32: 人物关系自定义关系类型改为勾选删除（红色删除按钮）
+      // v32: 人物关系自定义关系类型改为勾选删除（红色删除按钮与添加按钮并排）
       const isRelType = moduleKey === 'oc-relations' && f.key === 'relationType';
-      const delArea = isRelType ? (() => {
-        const customRelTypes = DB.get('customOpts_oc-relations_relationType', []).slice().sort((a,b)=>a.localeCompare(b,'zh-CN'));
-        const checkboxes = customRelTypes.map(rt => `<label class="checkbox-item"><input type="checkbox" value="${esc(rt)}"> ${esc(rt)}</label>`).join('');
-        return `<div style="margin-top:8px"><div style="font-size:12px;color:var(--c-text-muted);margin-bottom:4px">勾选要删除的自定义类型：</div><div class="checkbox-group custom-rel-del-group" id="${customId}_del">${checkboxes}</div><button type="button" class="btn btn-danger btn-sm" style="margin-top:6px" onclick="removeCheckedCustomRelationTypes('${customId}_del')">删除</button></div>`;
-      })() : '';
-      msInner += `<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="form-input" id="${customId}" placeholder="${esc(customPlaceholder)}" style="flex:1;font-size:13px"><button type="button" class="btn btn-outline btn-sm" onclick="addCustomMultiselectOpt('${customId}','${moduleKey || ''}','${f.key}',this)">添加</button></div>${delArea}`;
+      const delBtn = isRelType ? `<button type="button" class="btn btn-danger btn-sm" onclick="removeCheckedCustomRelationTypes('${mainGroupId}')">删除</button>` : '';
+      msInner += `<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="form-input" id="${customInputId}" placeholder="${esc(customPlaceholder)}" style="flex:1;font-size:13px"><button type="button" class="btn btn-outline btn-sm" onclick="addCustomMultiselectOpt('${customInputId}','${moduleKey || ''}','${f.key}',this)">添加</button>${delBtn}</div>`;
     }
     inner = msInner;
   } else if (f.type === 'select') {
@@ -689,7 +690,9 @@ function addCustomMultiselectOpt(inputId, moduleKey, fieldKey, btn) {
       const label = document.createElement('label');
       label.className = 'checkbox-item';
       const singleAttr = group.dataset.single ? ' onclick="limitSingleCheckbox(this)"' : '';
-      label.innerHTML = `<input type="checkbox" value="${esc(val)}" checked${singleAttr}> ${esc(val)}`;
+      const isRelType = moduleKey === 'oc-relations' && fieldKey === 'relationType';
+      const customAttr = isRelType ? ' data-custom="true"' : '';
+      label.innerHTML = `<input type="checkbox" value="${esc(val)}" checked${singleAttr}${customAttr}> ${esc(val)}`;
       group.appendChild(label);
       // 人物关系关系类型添加自定义后按 A-Z 重新排序
       if (moduleKey === 'oc-relations' && fieldKey === 'relationType') {
@@ -714,28 +717,37 @@ function removeCustomOpt(btn, moduleKey, fieldKey, val) {
 function removeCheckedCustomRelationTypes(groupId) {
   const group = document.getElementById(groupId);
   if (!group) return;
-  const checked = Array.from(group.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+  const checked = Array.from(group.querySelectorAll('input[type="checkbox"][data-custom="true"]:checked')).map(cb => cb.value);
   if (!checked.length) { Toast.warning('请勾选要删除的自定义关系类型'); return; }
   const dbKey = 'customOpts_oc-relations_relationType';
   let customOpts = DB.get(dbKey, []);
   customOpts = customOpts.filter(v => !checked.includes(v));
   DB.set(dbKey, customOpts);
-  // 从删除区移除 checkbox
-  checked.forEach(val => {
-    Array.from(group.querySelectorAll('input[type="checkbox"]')).forEach(cb => {
-      if (cb.value === val && cb.checked) cb.closest('.checkbox-item').remove();
-    });
+  // 从当前表单所有关系类型 checkbox 组中移除被删项
+  const scope = group.closest('.modal-content') || document;
+  scope.querySelectorAll('.checkbox-group[data-key="relationType"] .checkbox-item input[type="checkbox"]').forEach(cb => {
+    if (checked.includes(cb.value)) cb.closest('.checkbox-item').remove();
   });
-  // 同步移除表单选项区中的对应 checkbox
-  const formGroup = group.closest('.form-row').querySelector('.checkbox-group:not(.custom-rel-del-group)');
-  if (formGroup) {
-    checked.forEach(val => {
-      Array.from(formGroup.querySelectorAll('input[type="checkbox"]')).forEach(cb => {
-        if (cb.value === val) cb.closest('.checkbox-item').remove();
-      });
-    });
-  }
   Toast.success('已删除 ' + checked.length + ' 个自定义关系类型');
+}
+
+// v32: 时间线重要性胶囊按钮 — JS 兜底切换选中样式（兼容 :has 不支持的环境）
+function updateImportancePill(input) {
+  const group = input.closest('.checkbox-group');
+  if (!group || !group.classList.contains('importance-pills')) return;
+  group.querySelectorAll('.checkbox-item').forEach(item => item.classList.remove('selected'));
+  group.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+    const item = cb.closest('.checkbox-item');
+    if (item) item.classList.add('selected');
+  });
+}
+
+// 增强 limitSingleCheckbox：单选后同步更新重要性胶囊样式
+function limitSingleCheckbox(cb) {
+  const group = cb.closest('.checkbox-group');
+  if (!group || !group.dataset.single) return;
+  group.querySelectorAll('input[type="checkbox"]').forEach(c => { if (c !== cb) c.checked = false; });
+  if (group.classList.contains('importance-pills')) updateImportancePill(cb);
 }
 /* ===== Calendar Component ===== */
 const PLATFORM_COLORS = { '小红书': '#ff2442', '抖音': '#161823', '视频号': '#fa8c16', '公众号': '#07a059' };
@@ -3818,11 +3830,9 @@ function renderNavIconEditItem(key, label, currentIcon) {
   const currentLabel = getNavLabel(key, label);
   return `<div class="nav-icon-edit-item">
     <span class="icon-preview" id="navicon_preview_${key}">${esc(currentIcon || DEFAULT_NAV_ICONS[key] || '📌')}</span>
-    <div class="nav-icon-edit-fields">
-      <label>${esc(label)}</label>
-      <input type="text" id="navicon_${key}" value="${esc(currentIcon || '')}" placeholder="${esc(DEFAULT_NAV_ICONS[key] || '📌')}" oninput="document.getElementById('navicon_preview_${key}').textContent=this.value||'${esc(DEFAULT_NAV_ICONS[key] || '📌')}'">
-      <input type="text" id="navlabel_${key}" value="${esc(currentLabel !== label ? currentLabel : '')}" placeholder="${esc(label)}" style="margin-top:6px">
-    </div>
+    <label class="nav-icon-edit-name">${esc(label)}</label>
+    <input type="text" class="nav-icon-input" id="navicon_${key}" value="${esc(currentIcon || '')}" placeholder="${esc(DEFAULT_NAV_ICONS[key] || '📌')}" oninput="document.getElementById('navicon_preview_${key}').textContent=this.value||'${esc(DEFAULT_NAV_ICONS[key] || '📌')}'" title="图标">
+    <input type="text" class="nav-label-input" id="navlabel_${key}" value="${esc(currentLabel !== label ? currentLabel : '')}" placeholder="${esc(label)}" title="名称">
   </div>`;
 }
 

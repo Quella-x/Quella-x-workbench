@@ -412,7 +412,9 @@ ul,li{list-style:none}
 .form-inline-field .form-input,.form-inline-field .form-select,.form-inline-field .form-textarea{width:100%}
 /* v32: 时间线重要性胶囊按钮组 */
 .checkbox-group.importance-pills .checkbox-item{padding:6px 14px;border-radius:20px;background:#fff}
+.checkbox-group.importance-pills .checkbox-item.selected,
 .checkbox-group.importance-pills .checkbox-item:has(input:checked){background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.checkbox-group.importance-pills .checkbox-item.selected::before,
 .checkbox-group.importance-pills .checkbox-item:has(input:checked)::before{content:'✓ ';margin-right:2px}
 
 /* Checkbox group (multiselect) */
@@ -1019,14 +1021,15 @@ ul,li{list-style:none}
 .nav-icon-edit-item .icon-preview{
   font-size:20px;width:32px;text-align:center;flex-shrink:0;
 }
-.nav-icon-edit-fields{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.nav-icon-edit-name{
+  font-size:12px;color:var(--c-text-muted);min-width:72px;flex-shrink:0;
+}
 .nav-icon-edit-item input{
-  width:100%;padding:6px 10px;border:1px solid var(--c-border);
+  padding:6px 10px;border:1px solid var(--c-border);
   border-radius:4px;font-size:13px;
 }
-.nav-icon-edit-item label{
-  font-size:12px;color:var(--c-text-muted);
-}
+.nav-icon-input{flex:0 0 80px}
+.nav-label-input{flex:1;min-width:0}
 
 /* ===== Mindmap Arrow Labels ===== */
 .mindmap-arrow-label{
