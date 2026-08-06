@@ -664,16 +664,19 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     // v29-fix3: 平台发布圆点移到日期下方；开稿橙/接稿蓝/截稿黄，截稿固定右侧
     const dayCount = dayRecords.length > 0 ? `<div class="cal-day-count">${dayRecords.length}条</div>` : '';
     const dayComms = commissionRecords.filter(r => (r.startTime || '').startsWith(dateStr) || (r.acceptTime || '').startsWith(dateStr) || (r.deadline || '').startsWith(dateStr));
-    const START_COLOR = '#ff9a3c', ACCEPT_COLOR = '#9DC8FF', END_COLOR = '#f5c518';
+    const START_COLOR = '#ff9a3c', END_COLOR = '#f5c518';
     const startTag = dayComms.some(r => (r.startTime || '').startsWith(dateStr)) ? `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${START_COLOR}"></span><span class="cal-day-tag-text" style="color:${START_COLOR}">开稿</span></span>` : '';
-    const acceptTag = dayComms.some(r => (r.acceptTime || '').startsWith(dateStr)) ? `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${ACCEPT_COLOR}"></span><span class="cal-day-tag-text" style="color:${ACCEPT_COLOR}">接稿</span></span>` : '';
     const endTag = dayComms.some(r => (r.deadline || '').startsWith(dateStr)) ? `<span class="cal-day-tag cal-day-tag-end"><span class="cal-day-tag-dot" style="background:${END_COLOR}"></span><span class="cal-day-tag-text" style="color:${END_COLOR}">截稿</span></span>` : '';
-    const commTags = (startTag || acceptTag || endTag) ? `<div class="cal-day-tags home-comm-tags">${startTag}${acceptTag}${endTag}</div>` : '';
+    const commTags = (startTag || endTag) ? `<div class="cal-day-tags home-comm-tags">${startTag}${endTag}</div>` : '';
     html += `<div class="cal-day${isToday ? ' today' : ''}"><div class="cal-date-row"><span class="cal-date">${d}</span></div><div class="cal-dots">${topDots}</div>${dayCount}${commTags}</div>`;
   }
   const totalCells = startWeekday + daysInMonth;
   const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
   for (let i = 1; i <= remaining; i++) { html += `<div class="cal-day other-month"><span class="cal-date">${i}</span></div>`; }
+  html += '</div>';
+  html += '<div class="cal-legend">';
+  html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>开稿</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>截稿</span>`;
   html += '</div>';
   return html;
 }
@@ -701,7 +704,6 @@ function renderAnnualChart(records, dateField, opts = {}) {
       let total = data.reduce((s, arr) => s + arr[i], 0);
       const maxBarH = Math.max(...series.map((s, si) => (data[si][i] / max) * 100), 0);
       bars += '<div class="annual-chart-bar">';
-      if (total > 0) bars += `<span class="annual-chart-bar-value" style="bottom:calc(${maxBarH}% + 3px)">${total > 999 ? (total / 1000).toFixed(1) + 'k' : Math.round(total)}</span>`;
       bars += `<div style="display:flex;gap:1px;width:70%;height:100%;align-items:flex-end;justify-content:center">`;
       series.forEach((s, si) => {
         const v = data[si][i]; const h = (v / max) * 100;
@@ -813,7 +815,7 @@ MODULES['groupbuy-records'] = {
   fields: [
     { key: 'title', label: '开团名称', type: 'text' },
     { key: 'startTime', label: '开团时间', type: 'date' },
-    { key: 'endTime', label: '截止时间', type: 'date' },
+    { key: 'endTime', label: '截团时间', type: 'date' },
     { key: 'products', label: '制品列表', type: 'dynamic-products', columns: [
       { subkey: 'name', label: '制品名称', type: 'text', datalistId: 'gb_product_dl' },
       { subkey: 'price', label: '单价', type: 'number' },
@@ -822,6 +824,7 @@ MODULES['groupbuy-records'] = {
       { subkey: 'isDisbanded', label: '是否流团', type: 'text', datalistId: 'gb_disbanded_dl', default: '否' },
     ]},
     { key: 'afterSales', label: '售后记录', type: 'dynamic-list', columns: [
+      { subkey: 'orderNo', label: '单号', type: 'text' },
       { subkey: 'name', label: '制品名称', type: 'text', datalistId: 'gb_product_dl' },
       { subkey: 'quantity', label: '售后数量', type: 'number' },
       { subkey: 'type', label: '补偿方式', type: 'combobox', default: '补偿', options: [
@@ -840,11 +843,8 @@ MODULES['groupbuy-records'] = {
     { label: '状态', key: 'status', tag: true },
     { label: '制品数', key: '_productCount' },
     { label: '开团时间', key: 'startTime', date: true },
-    { label: '截止', key: 'endTime', date: true },
-    { label: '购买', key: 'purchaseCount' },
-    { label: '制品总价', key: 'productTotal', prefix: '¥' },
-    { label: '邮费', key: 'shippingTotal', prefix: '¥' },
-    { label: '成本', key: 'cost', prefix: '¥' },
+    { label: '截团时间', key: 'endTime', date: true },
+    { label: '购买人数', key: 'purchaseCount' },
   ],
   stats: (records) => {
     const totalRev = records.reduce((s, r) => s + (parseFloat(r.productTotal) || 0) + (parseFloat(r.shippingTotal) || 0), 0);
@@ -1454,7 +1454,8 @@ function renderListPage(pageKey, mod) {
             let tc = 'tag-info';
             if (['进行中', '全款', '长期合作', '合格', '稳定', '已完结', '尾款', '已接稿', '已交付', '交好'].includes(val)) tc = 'tag-success';
             if (['筹备中', '未付', '临时合作', '连载中', '定金', '待接稿', '中等', '变化中'].includes(val)) tc = 'tag-warning';
-            if (['已截团', '暂停合作', '不合格', '已取消', '流团'].includes(val)) tc = 'tag-gray';
+            if (['已截团', '暂停合作', '已取消', '流团'].includes(val)) tc = 'tag-gray';
+            if (['不合格'].includes(val)) tc = 'tag-danger';
             if (['买断', '敌对', '已结算'].includes(val)) tc = 'tag-purple';
             return `<span class="tag ${tc}">${esc(String(val))}</span>`;
           }).join(' ');
@@ -1555,6 +1556,7 @@ function renderCommissionCalendar(year, month, records) {
   const today = new Date();
   const todayKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
   const ps = pageState['design-commission'] || {};
+  const START_COLOR = '#ff9a3c', END_COLOR = '#f5c518', BOTH_COLOR = '#712258';
   // Filter records with valid periods
   const periodRecords = records.filter(r => {
     const start = r.startTime || r.acceptTime || '';
@@ -1618,9 +1620,14 @@ function renderCommissionCalendar(year, month, records) {
     const isSelected = ps.dateFilter === dateStr;
     // v29-fix2: 开稿/截稿统一恢复为 v27 样式：日期同行实心圆点+文字
     // v29-fix3: 开稿橙色/截稿黄色实心点+文字，大小一致；截稿固定右侧
-    const START_COLOR = '#ff9a3c', END_COLOR = '#f5c518';
-    const startTag = startRecords.length > 0 ? `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${START_COLOR}"></span><span class="cal-day-tag-text" style="color:${START_COLOR}">开稿</span></span>` : '';
-    const endTag = deadlineRecords.length > 0 ? `<span class="cal-day-tag cal-day-tag-end"><span class="cal-day-tag-dot" style="background:${END_COLOR}"></span><span class="cal-day-tag-text" style="color:${END_COLOR}">截稿</span></span>` : '';
+    let startTag = '', endTag = '';
+    if (startRecords.length > 0 && deadlineRecords.length > 0) {
+      // v29-fix4: 开稿+截稿同天 → 合并为"开+截"实心点+字(#712258)
+      startTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${BOTH_COLOR}"></span><span class="cal-day-tag-text" style="color:${BOTH_COLOR}">开+截</span></span>`;
+    } else {
+      if (startRecords.length > 0) startTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${START_COLOR}"></span><span class="cal-day-tag-text" style="color:${START_COLOR}">开稿</span></span>`;
+      if (deadlineRecords.length > 0) endTag = `<span class="cal-day-tag cal-day-tag-end"><span class="cal-day-tag-dot" style="background:${END_COLOR}"></span><span class="cal-day-tag-text" style="color:${END_COLOR}">截稿</span></span>`;
+    }
     let info = '';
     // Build period bars by track (max 3 visible, excess ignored)
     let bars = '';
@@ -1648,9 +1655,11 @@ function renderCommissionCalendar(year, month, records) {
   const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
   for (let i = 1; i <= remaining; i++) { html += `<div class="cal-day other-month"><span class="cal-date">${i}</span></div>`; }
   html += '</div>';
-  // Legend
+  // Legend (v29-fix4: 改回 v27 样式 — 开稿/截稿 用实际色，加同天开+截)
   html += '<div class="cal-legend">';
-  html += `<span class="legend-item"><span class="status-dot" style="background:#9DC8FF"></span>开稿/截稿</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>开稿</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>截稿</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>开+截(同天)</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[0]}"></span>紧急(截稿临近)</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[1]}"></span>正常</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[2]}"></span>充裕</span>`;
