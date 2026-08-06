@@ -366,7 +366,8 @@ function buildFormField(f, data, moduleKey, wrap) {
       const l = typeof o === 'string' ? o : o.label;
       const isCustom = typeof o === 'object' && o.custom;
       const customAttr = isCustom ? ' data-custom="true"' : '';
-      return `<label class="checkbox-item ${isImpPills && selected.includes(v) ? 'selected' : ''}"><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}${onChangeAttr}${customAttr}> ${esc(l)}</label>`;
+      const valueAttr = isImpPills ? ` data-value="${esc(v)}"` : '';
+      return `<label class="checkbox-item ${isImpPills && selected.includes(v) ? 'selected' : ''}"${valueAttr}${customAttr}><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}${onChangeAttr}${customAttr}> ${esc(l)}</label>`;
     }).join('');
     const mainGroupId = 'ms_' + f.key + '_' + Math.random().toString(36).slice(2, 7);
     let msInner = `<label class="form-label">${esc(label)}</label><div class="checkbox-group ${isImpPills ? 'importance-pills' : ''}" id="${mainGroupId}" data-key="${f.key}"${singleAttr}>${optHTML}</div>`;
@@ -1332,10 +1333,10 @@ MODULES['oc-timeline'] = {
     { key: 'title', label: '事件标题', type: 'text' },
     { key: 'description', label: '事件描述', type: 'textarea' },
     { key: 'importance', label: '重要性', type: 'multiselect', single: true, options: [
-      { value: '红', label: '红(重要)' },
-      { value: '橙', label: '橙(较重要)' },
-      { value: '绿', label: '绿(一般)' },
-      { value: '蓝', label: '蓝(次要)' },
+      { value: '红', label: '重要' },
+      { value: '橙', label: '较重要' },
+      { value: '绿', label: '一般' },
+      { value: '蓝', label: '次要' },
     ]},
     { key: 'characterIds', label: '关联人物', type: 'multiselect', options: [], hint: '从人物档案加载' },
     { key: 'source', label: '事件来源', type: 'text', hint: '手动创建或从故事小记导入' },
@@ -2394,10 +2395,10 @@ function deleteCalcTemplate(id) { DB.remove('calcTemplates', id); Toast.success(
 
 /* ===== OC Timeline — 时间轨迹 (需求4) ===== */
 const TIMELINE_COLORS = {
-  '红': { color: '#e8857e', label: '红(重要)' },
-  '橙': { color: '#fa8c16', label: '橙(较重要)' },
-  '绿': { color: '#7ec678', label: '绿(一般)' },
-  '蓝': { color: '#7ab5f5', label: '蓝(次要)' },
+  '红': { color: '#e74c3c', label: '重要' },
+  '橙': { color: '#fa8c16', label: '较重要' },
+  '绿': { color: '#27ae60', label: '一般' },
+  '蓝': { color: '#3498db', label: '次要' },
 };
 function renderTimeline() {
   const body = $('#mainBody');
