@@ -192,6 +192,37 @@ function confirmDialog(msg, title = '确认操作') {
 }
 
 /* ===== Modal ===== */
+// v29: 手机端弹窗手势返回（横向右滑 = 叉掉）
+function initModalSwipe() {
+  if (initModalSwipe._done) return;
+  initModalSwipe._done = true;
+  const modal = document.getElementById('modal');
+  if (!modal) return;
+  let sx = 0, sy = 0, tracking = false;
+  const blocked = (t) => t && t.closest && t.closest('input,textarea,select,[contenteditable="true"],button,a,.btn,.tag,.combobox-dropdown');
+  modal.addEventListener('touchstart', (e) => {
+    if (window.innerWidth > 768) return;
+    if (e.touches.length !== 1 || blocked(e.target)) { tracking = false; return; }
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; tracking = true;
+  }, { passive: true });
+  modal.addEventListener('touchmove', (e) => {
+    if (!tracking || window.innerWidth > 768) return;
+    const dx = e.touches[0].clientX - sx, dy = e.touches[0].clientY - sy;
+    if (Math.abs(dx) > Math.abs(dy) && dx > 0) {
+      modal.style.transition = 'none';
+      modal.style.transform = 'translateX(' + dx + 'px)';
+      modal.style.opacity = String(Math.max(0.4, 1 - dx / 400));
+    }
+  }, { passive: true });
+  modal.addEventListener('touchend', (e) => {
+    if (!tracking || window.innerWidth > 768) { tracking = false; return; }
+    tracking = false;
+    modal.style.transition = ''; modal.style.transform = ''; modal.style.opacity = '';
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (dx > 70 && Math.abs(dx) > Math.abs(dy) * 1.4) closeModal();
+  }, { passive: true });
+}
+
 function openModal(title, bodyHTML, footerBtns, size = '') {
   $('#modalTitle').textContent = title; $('#modalBody').innerHTML = bodyHTML;
   const fc = $('#modalFooter'); fc.innerHTML = ''; fc.style.display = '';
@@ -200,6 +231,7 @@ function openModal(title, bodyHTML, footerBtns, size = '') {
   } else { fc.style.display = 'none'; }
   $('#modal').className = 'modal' + (size ? ' ' + size : '');
   $('#modalOverlay').classList.add('show');
+  initModalSwipe();
 }
 function closeModal() { $('#modalOverlay').classList.remove('show'); $('#modalBody').innerHTML = ''; $('#modalFooter').innerHTML = ''; }
 
@@ -611,7 +643,7 @@ function addCustomMultiselectOpt(inputId, moduleKey, fieldKey, btn) {
 
 /* ===== Calendar Component ===== */
 const PLATFORM_COLORS = { '小红书': '#ff2442', '抖音': '#161823', '视频号': '#fa8c16', '公众号': '#07a059' };
-function renderCalendar(year, month, records) {
+function renderCalendar(year, month, records, commissionRecords = []) {
   const firstDay = new Date(year, month, 1);
   const startWeekday = firstDay.getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -625,11 +657,20 @@ function renderCalendar(year, month, records) {
     const dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
     const dayRecords = records.filter(r => (r.publishTime || '').startsWith(dateStr));
     const isToday = dateStr === todayKey;
-    let dots = '';
+    let topDots = '';
     const dayPlatforms = new Set();
     dayRecords.forEach(r => { arrVal(r.platform).forEach(p => dayPlatforms.add(p)); });
-    [...dayPlatforms].forEach(p => { dots += `<span class="cal-dot" style="background:${PLATFORM_COLORS[p] || '#9DC8FF'}"></span>`; });
-    html += `<div class="cal-day${isToday ? ' today' : ''}"><span class="cal-date">${d}</span><div class="cal-dots">${dots}</div>${dayRecords.length > 0 ? `<span style="font-size:10px;color:var(--c-text-muted)">${dayRecords.length}条</span>` : ''}</div>`;
+    [...dayPlatforms].forEach(p => { topDots += `<span class="cal-dot" style="background:${PLATFORM_COLORS[p] || '#9DC8FF'}"></span>`; });
+    // v29: 底部显示开稿/接稿记录
+    let bottomEvents = '';
+    const dayComms = commissionRecords.filter(r => (r.startTime || '').startsWith(dateStr) || (r.acceptTime || '').startsWith(dateStr));
+    if (dayComms.length > 0) {
+      bottomEvents = '<div class="cal-day-events home-comm-events">' + dayComms.slice(0, 2).map(r => {
+        const label = (r.clientInfo || '未命名') + (r.startTime && r.startTime.startsWith(dateStr) ? ' 开稿' : ' 接稿');
+        return `<div class="cal-day-event"><span class="cal-day-event-dot" style="background:#7ab5f5"></span><span class="cal-day-event-name">${esc(label)}</span></div>`;
+      }).join('') + (dayComms.length > 2 ? `<div class="cal-day-event-more">+${dayComms.length - 2}</div>` : '') + '</div>';
+    }
+    html += `<div class="cal-day${isToday ? ' today' : ''}"><div class="cal-date-row"><span class="cal-date">${d}</span><div class="cal-dots">${topDots}</div>${dayRecords.length > 0 ? `<span style="font-size:10px;color:var(--c-text-muted);flex-shrink:0">${dayRecords.length}条</span>` : ''}</div>${bottomEvents}</div>`;
   }
   const totalCells = startWeekday + daysInMonth;
   const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
@@ -938,7 +979,7 @@ MODULES['design-inspiration'] = {
 MODULES['design-commission'] = {
   store: 'commissions',
   fields: [
-    { key: 'clientInfo', label: '客户信息', type: 'text' },
+    { key: 'clientInfo', label: '单主', type: 'text' },
     { key: 'acceptTime', label: '接稿时间', type: 'date', default: todayStr() },
     { key: 'startTime', label: '开稿时间', type: 'date' },
     { key: 'deadline', label: '截稿时间', type: 'date' },
@@ -976,14 +1017,13 @@ MODULES['design-commission'] = {
     { key: 'paymentStatus', label: '全部支付', options: [{ value: '', label: '全部支付' }, { value: '未付', label: '未付' }, { value: '定金', label: '定金' }, { value: '尾款', label: '尾款' }, { value: '全款', label: '全款' }] },
   ],
   listFields: [
+    { label: '单主', key: 'clientInfo' },
     { label: '进度', key: 'progress', tag: true },
     { label: '支付', key: 'paymentStatus', tag: true },
-    { label: '客户', key: 'clientInfo' },
     { label: '用途', key: 'usageType' },
+    { label: '制品名称', key: '_firstProduct' },
     { label: '截稿', key: 'deadline', date: true },
     { label: '报价', key: 'quoteAmount', prefix: '¥' },
-    { label: '最终', key: 'amount', prefix: '¥' },
-    { label: '修改', key: 'modifyCount' },
   ],
   stats: (records) => {
     const isPaid = r => valIncludes(r.paymentStatus, '全款') || valIncludes(r.paymentStatus, '尾款');
@@ -1400,6 +1440,7 @@ function renderListPage(pageKey, mod) {
       (mod.listFields || []).forEach(f => {
         let v = r[f.key];
         if (f.key === '_productCount') v = calcProductQty(r) + '件';
+        if (f.key === '_firstProduct') { const fp = (r.products || [])[0]; v = fp && fp.name ? fp.name : ''; }
         if (v == null || v === '') return;
         if (f.tag && Array.isArray(v)) {
           const tags = v.map(val => {
@@ -1567,10 +1608,17 @@ function renderCommissionCalendar(year, month, records) {
     const deadlineRecords = records.filter(r => r.deadline === dateStr);
     const isToday = dateStr === todayKey;
     const isSelected = ps.dateFilter === dateStr;
-    let dots = '';
-    let deadlineDot = '';
-    if (startRecords.length > 0) dots = `<span class="cal-dot" style="background:#fa8c16"></span><span style="font-size:10px;color:#fa8c16;font-weight:600">开稿</span>`;
-    if (deadlineRecords.length > 0) deadlineDot = `<span class="cal-dot" style="background:#fadb14;margin-left:auto"></span>`;
+    // v29: 开稿/截稿统一用实心圆点+单主名显示
+    let eventLabels = '';
+    const dayEvents = [];
+    startRecords.forEach(r => dayEvents.push({ r, type: 'start', label: (r.clientInfo || '未命名') + ' 开稿' }));
+    deadlineRecords.forEach(r => dayEvents.push({ r, type: 'end', label: (r.clientInfo || '未命名') + ' 截稿' }));
+    if (dayEvents.length > 0) {
+      eventLabels = '<div class="cal-day-events">' + dayEvents.slice(0, 3).map(e => {
+        const color = recordColorMap[e.r.id] || '#9DC8FF';
+        return `<div class="cal-day-event"><span class="cal-day-event-dot" style="background:${color}"></span><span class="cal-day-event-name">${esc(e.label)}</span></div>`;
+      }).join('') + (dayEvents.length > 3 ? `<div class="cal-day-event-more">+${dayEvents.length - 3}</div>` : '') + '</div>';
+    }
     let info = '';
     // Build period bars by track (max 3 visible, excess ignored)
     let bars = '';
@@ -1592,7 +1640,7 @@ function renderCommissionCalendar(year, month, records) {
       bars += `<div class="${cls}" style="background:${color};top:${topPx}px;height:${CAL_BAR_HEIGHT}px;line-height:${CAL_BAR_HEIGHT}px">${label}</div>`;
     });
     const cellMinHeight = 76; // fits 3 bars (22+3*13=61px) + padding
-    html += `<div class="cal-day${isToday ? ' today' : ''}${isSelected ? ' selected' : ''}" onclick="commissionDateClick('${dateStr}')" style="cursor:pointer;min-height:${cellMinHeight}px"><div class="cal-date-row"><span class="cal-date">${d}</span><div class="cal-dots">${dots}</div>${deadlineDot}</div>${info}${bars}</div>`;
+    html += `<div class="cal-day${isToday ? ' today' : ''}${isSelected ? ' selected' : ''}" onclick="commissionDateClick('${dateStr}')" style="cursor:pointer;min-height:${cellMinHeight}px"><div class="cal-date-row"><span class="cal-date">${d}</span></div>${eventLabels}${info}${bars}</div>`;
   }
   const totalCells = startWeekday + daysInMonth;
   const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
@@ -1600,8 +1648,7 @@ function renderCommissionCalendar(year, month, records) {
   html += '</div>';
   // Legend
   html += '<div class="cal-legend">';
-  html += `<span class="legend-item"><span class="status-dot" style="background:#fa8c16"></span><span style="color:#fa8c16;font-weight:600">开稿日</span></span>`;
-  html += `<span class="legend-item"><span class="status-dot" style="background:#fadb14"></span><span style="color:#fadb14;font-weight:600">截稿日</span></span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:#9DC8FF"></span>开稿/截稿</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[0]}"></span>紧急(截稿临近)</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[1]}"></span>正常</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[2]}"></span>充裕</span>`;
@@ -1901,13 +1948,23 @@ function renderHome() {
     html += `<button class="btn btn-sm btn-ghost" onclick="homeCalNav(0)">本月</button>`;
     html += `<button class="btn btn-sm btn-ghost" onclick="homeCalNav(1)">下月 ›</button>`;
     html += '</div></div>';
-    html += renderCalendar(ps.calYear, ps.calMonth, allRecords);
+    html += renderCalendar(ps.calYear, ps.calMonth, allRecords, DB.list('commissions'));
     html += '<div class="cal-legend">';
     html += `<span class="legend-item"><span class="status-dot" style="background:#ff2442"></span>小红书</span>`;
     html += `<span class="legend-item"><span class="status-dot" style="background:#161823"></span>抖音</span>`;
     html += `<span class="legend-item"><span class="status-dot" style="background:#fa8c16"></span>视频号</span>`;
     html += `<span class="legend-item"><span class="status-dot" style="background:#07a059"></span>公众号</span>`;
     html += '</div></div>';
+    // v29: 首页灵感速记模块（写入 inspirations，首页不展示，进入「美工·灵感记录」）
+    html += '<div class="home-insp">';
+    html += '<div class="home-insp-title">💡 灵感速记 <span class="hint">随手记，保存后进入「美工·灵感记录」</span></div>';
+    html += '<div class="home-insp-row">';
+    html += '<input class="form-input" id="hInspTheme" placeholder="灵感主题（如：春日海报）">';
+    html += '<input class="form-input" id="hInspCat" placeholder="制品名称（如：头像）">';
+    html += '</div>';
+    html += '<textarea class="form-input" id="hInspThoughts" placeholder="文字思路…"></textarea>';
+    html += '<div class="home-insp-actions"><button class="btn btn-primary" onclick="homeAddInspiration()">保存灵感</button></div>';
+    html += '</div>';
   } else if (ps.view === 'platform') {
     // Platform view: no calendar, show records + chart + stats
     const records = allRecords.filter(r => valIncludes(r.platform, ps.tab));
@@ -2002,6 +2059,23 @@ function homeSearch(val) { pageState.home.search = val; pageState.home.homePageN
 function homeDateFilter(val) { pageState.home.dateFilter = val; pageState.home.homePageNo = 1; renderHome(); }
 function homeClearFilter() { pageState.home.search = ''; pageState.home.dateFilter = ''; pageState.home.homePageNo = 1; renderHome(); }
 function homeGoPage(pageNo) { pageState.home.homePageNo = pageNo; renderHome(); }
+
+// v29: 首页灵感速记 → 写入 inspirations（首页不展示，进入「美工·灵感记录」）
+function homeAddInspiration() {
+  const theme = (document.getElementById('hInspTheme') || {}).value || '';
+  const category = (document.getElementById('hInspCat') || {}).value || '';
+  const thoughts = (document.getElementById('hInspThoughts') || {}).value || '';
+  if (!theme.trim() && !category.trim() && !thoughts.trim()) { Toast.info('请先填写灵感内容'); return; }
+  DB.add('inspirations', {
+    theme: theme.trim(),
+    category: category.trim(),
+    thoughts: thoughts.trim(),
+    tags: [], images: [], source: '首页速记',
+    createTime: todayStr()
+  });
+  Toast.success('灵感已保存');
+  ['hInspTheme', 'hInspCat', 'hInspThoughts'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+}
 function homeCalNav(dir) {
   const ps = pageState.home;
   if (dir === 0) { const n = new Date(); ps.calYear = n.getFullYear(); ps.calMonth = n.getMonth(); }
@@ -2807,18 +2881,31 @@ function dcRenderProducts() {
   if (!c) return;
   const priceList = DB.list('priceList');
   const productNames = [...new Set(priceList.filter(p => PRODUCT_CATEGORIES.includes(p.category) && p.product).map(p => p.product))].sort((a,b)=>a.localeCompare(b,'zh'));
+  const isMobile = window.innerWidth <= 768;
   let html = '';
   _dcProducts.forEach((p, i) => {
     const cbId = 'dcp_' + i + '_' + Math.random().toString(36).slice(2,6);
     const optHTML = productNames.map(n => `<div class="combobox-option" onclick="dcSelectProduct(${i},this,'${cbId}')" data-value="${esc(n)}">${esc(n)}</div>`).join('');
-    html += '<div class="dc-product-row">';
-    html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-name" value="${esc(p.name)}" placeholder="制品名称" data-key="name" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateProduct(${i},'name',this.value);dcFillPrice(this,'product',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
-    html += `<input type="text" class="form-input dc-prod-pattern" value="${esc(p.patternId||'')}" placeholder="柄图标识" oninput="dcUpdateProduct(${i},'patternId',this.value)">`;
-    html += `<input type="number" class="form-input dc-prod-qty" value="${p.quantity}" placeholder="数量" min="1" oninput="dcUpdateProduct(${i},'quantity',this.value)">`;
-    html += `<input type="number" class="form-input dc-prod-price" value="${p.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateProduct(${i},'price',this.value)">`;
-    html += `<label class="dc-prod-check"><input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模</label>`;
-    html += `<button type="button" class="btn btn-ghost btn-sm dc-prod-del" onclick="dcRemoveProduct(${i})">✕</button>`;
-    html += '</div>';
+    if (isMobile) {
+      // v29 mobile: 卡片式制品录入，解决名称显示不全
+      html += '<div class="dc-product-row dc-product-card">';
+      html += `<div class="dcpc-header"><div class="combobox-wrapper" style="min-width:0;flex:1"><input type="text" class="form-input combobox-input dc-prod-name" value="${esc(p.name)}" placeholder="制品名称" data-key="name" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateProduct(${i},'name',this.value);dcFillPrice(this,'product',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div><button type="button" class="btn btn-ghost btn-sm dc-prod-del" onclick="dcRemoveProduct(${i})">✕</button></div>`;
+      html += '<div class="dcpc-body">';
+      html += `<div class="dcpc-field"><span class="dcpc-label">柄图标识</span><input type="text" class="form-input dc-prod-pattern" value="${esc(p.patternId||'')}" placeholder="柄图标识" oninput="dcUpdateProduct(${i},'patternId',this.value)"></div>`;
+      html += `<div class="dcpc-field"><span class="dcpc-label">数量</span><input type="number" class="form-input dc-prod-qty" value="${p.quantity}" placeholder="数量" min="1" oninput="dcUpdateProduct(${i},'quantity',this.value)"></div>`;
+      html += `<div class="dcpc-field"><span class="dcpc-label">单价</span><input type="number" class="form-input dc-prod-price" value="${p.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateProduct(${i},'price',this.value)"></div>`;
+      html += `<div class="dcpc-field dcpc-check"><label class="dc-prod-check"><input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模</label></div>`;
+      html += '</div></div>';
+    } else {
+      html += '<div class="dc-product-row">';
+      html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-name" value="${esc(p.name)}" placeholder="制品名称" data-key="name" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateProduct(${i},'name',this.value);dcFillPrice(this,'product',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
+      html += `<input type="text" class="form-input dc-prod-pattern" value="${esc(p.patternId||'')}" placeholder="柄图标识" oninput="dcUpdateProduct(${i},'patternId',this.value)">`;
+      html += `<input type="number" class="form-input dc-prod-qty" value="${p.quantity}" placeholder="数量" min="1" oninput="dcUpdateProduct(${i},'quantity',this.value)">`;
+      html += `<input type="number" class="form-input dc-prod-price" value="${p.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateProduct(${i},'price',this.value)">`;
+      html += `<label class="dc-prod-check"><input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模</label>`;
+      html += `<button type="button" class="btn btn-ghost btn-sm dc-prod-del" onclick="dcRemoveProduct(${i})">✕</button>`;
+      html += '</div>';
+    }
   });
   c.innerHTML = html;
 }
@@ -2884,16 +2971,27 @@ function dcRenderExtras() {
   if (!c) return;
   const priceList = DB.list('priceList');
   const extraNames = [...new Set(priceList.filter(p => p.category === '加价项目' && p.product).map(p => p.product))].sort((a,b)=>a.localeCompare(b,'zh'));
+  const isMobile = window.innerWidth <= 768;
   let html = '';
   _dcExtras.forEach((e, i) => {
     const cbId = 'dce_' + i + '_' + Math.random().toString(36).slice(2,6);
     const optHTML = extraNames.map(n => `<div class="combobox-option" onclick="dcSelectExtra(${i},this,'${cbId}')" data-value="${esc(n)}">${esc(n)}</div>`).join('');
-    html += '<div class="dc-extra-row">';
-    html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-extra-name" value="${esc(e.name)}" placeholder="项目名称" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateExtra(${i},'name',this.value);dcFillPrice(this,'extra',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
-    html += `<input type="number" class="form-input dc-extra-qty" value="${e.quantity}" placeholder="数量" min="1" oninput="dcUpdateExtra(${i},'quantity',this.value)">`;
-    html += `<input type="number" class="form-input dc-extra-price" value="${e.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateExtra(${i},'price',this.value)">`;
-    html += `<button type="button" class="btn btn-ghost btn-sm dc-extra-del" onclick="dcRemoveExtra(${i})">✕</button>`;
-    html += '</div>';
+    if (isMobile) {
+      // v29 mobile: 卡片式加价项目录入
+      html += '<div class="dc-extra-row dc-extra-card">';
+      html += `<div class="dcec-header"><div class="combobox-wrapper" style="min-width:0;flex:1"><input type="text" class="form-input combobox-input dc-extra-name" value="${esc(e.name)}" placeholder="项目名称" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateExtra(${i},'name',this.value);dcFillPrice(this,'extra',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div><button type="button" class="btn btn-ghost btn-sm dc-extra-del" onclick="dcRemoveExtra(${i})">✕</button></div>`;
+      html += '<div class="dcec-body">';
+      html += `<div class="dcec-field"><span class="dcec-label">数量</span><input type="number" class="form-input dc-extra-qty" value="${e.quantity}" placeholder="数量" min="1" oninput="dcUpdateExtra(${i},'quantity',this.value)"></div>`;
+      html += `<div class="dcec-field"><span class="dcec-label">单价</span><input type="number" class="form-input dc-extra-price" value="${e.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateExtra(${i},'price',this.value)"></div>`;
+      html += '</div></div>';
+    } else {
+      html += '<div class="dc-extra-row">';
+      html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-extra-name" value="${esc(e.name)}" placeholder="项目名称" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateExtra(${i},'name',this.value);dcFillPrice(this,'extra',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
+      html += `<input type="number" class="form-input dc-extra-qty" value="${e.quantity}" placeholder="数量" min="1" oninput="dcUpdateExtra(${i},'quantity',this.value)">`;
+      html += `<input type="number" class="form-input dc-extra-price" value="${e.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateExtra(${i},'price',this.value)">`;
+      html += `<button type="button" class="btn btn-ghost btn-sm dc-extra-del" onclick="dcRemoveExtra(${i})">✕</button>`;
+      html += '</div>';
+    }
   });
   c.innerHTML = html;
 }
@@ -3280,6 +3378,12 @@ function renderPriceList() {
     if (!groups[cat]) groups[cat] = [];
     groups[cat].push(r);
   });
+  // v29: 类目内置 sort 字段，支持手动排序
+  Object.keys(groups).forEach(cat => {
+    groups[cat].forEach((r, i) => { if (typeof r.sort !== 'number') r.sort = i; });
+    groups[cat].sort((a, b) => (a.sort) - (b.sort));
+  });
+  DB.save('priceList', records);
   const sortedCats = Object.keys(groups).sort((a, b) => {
     const order = ['纸片类', '其他材质类', '线上&应援类', '加价项目'];
     const ai = order.indexOf(a), bi = order.indexOf(b);
@@ -3335,6 +3439,8 @@ function renderPriceList() {
         html += '<span style="margin-left:8px;display:flex;gap:2px">';
         html += `<span class="btn-icon" style="font-size:12px;width:24px;height:24px" onclick="event.stopPropagation();openEditForm('design-pricelist','${r.id}')">✏️</span>`;
         html += `<span class="btn-icon danger" style="font-size:12px;width:24px;height:24px" onclick="event.stopPropagation();onDelete('design-pricelist','${r.id}')">🗑️</span>`;
+        html += `<span class="btn-icon" style="font-size:11px;width:22px;height:22px" title="上移" onclick="event.stopPropagation();priceItemMove('${r.id}',-1)">▲</span>`;
+        html += `<span class="btn-icon" style="font-size:11px;width:22px;height:22px" title="下移" onclick="event.stopPropagation();priceItemMove('${r.id}',1)">▼</span>`;
         html += '</span></div>';
       });
       if (desc) {
@@ -3348,8 +3454,21 @@ function renderPriceList() {
   body.innerHTML = html;
 }
 
-function togglePriceListNotes() {
-  editPriceListNotes();
+// v29: 价目表条目上下移动排序（同类目内交换 sort）
+function priceItemMove(id, dir) {
+  const list = DB.list('priceList');
+  const item = list.find(r => r.id === id);
+  if (!item) return;
+  const cat = item.category || '未分类';
+  const group = list.filter(r => (r.category || '未分类') === cat).sort((a, b) => (a.sort) - (b.sort));
+  group.forEach((r, i) => { r.sort = i; });
+  const idx = group.findIndex(r => r.id === id);
+  const swapIdx = idx + dir;
+  if (swapIdx < 0 || swapIdx >= group.length) return;
+  const a = group[idx], b = group[swapIdx];
+  const t = a.sort; a.sort = b.sort; b.sort = t;
+  DB.save('priceList', list);
+  renderPriceList();
 }
 
 function editPriceListNotes() {

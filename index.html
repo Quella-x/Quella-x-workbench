@@ -320,6 +320,12 @@ ul,li{list-style:none}
 .cal-legend{display:flex;gap:12px;padding:8px 16px;font-size:12px;color:var(--c-text-light);border-top:1px solid var(--c-border-light)}
 .cal-divider{height:2px;background:var(--c-primary-dark);margin:24px 0 16px;border-radius:1px;opacity:.3;border:none}
 .cal-legend .legend-item{display:flex;align-items:center;gap:4px}
+/* v29: 日历日期格事件标签（开稿/截稿实心圆点+名字） */
+.cal-day-events{display:flex;flex-direction:column;gap:2px;width:100%;margin-top:2px}
+.cal-day-event{display:flex;align-items:center;gap:4px;font-size:10px;line-height:1.2;min-width:0}
+.cal-day-event-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.cal-day-event-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--c-text-light)}
+.cal-day-event-more{font-size:9px;color:var(--c-text-muted);padding-left:10px}
 /* Calendar period bar (开稿~截稿时间段连续显示) */
 .cal-period-bar{
   position:absolute;left:1px;right:1px;opacity:.85;font-size:8px;color:#fff;
@@ -852,18 +858,30 @@ ul,li{list-style:none}
   display:flex;flex-wrap:nowrap;gap:10px;margin-bottom:16px;
 }
 .platform-btn{
-  flex:1;min-width:0;padding:16px 12px;
-  border-radius:14px;color:#fff;font-size:14px;font-weight:600;
+  flex:1;min-width:0;padding:9px 10px;
+  border-radius:12px;color:#fff;font-size:13px;font-weight:600;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:3px;cursor:pointer;transition:all .2s;border:none;
+  gap:2px;cursor:pointer;transition:all .2s;border:none;
   position:relative;overflow:hidden;
 }
 .platform-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
 .platform-btn .platform-count{
-  font-size:22px;font-weight:800;
+  font-size:18px;font-weight:800;
 }
-.platform-btn .platform-name{font-size:13px;opacity:.9}
-.platform-btn .platform-icon{font-size:24px;margin-bottom:2px}
+.platform-btn .platform-name{font-size:12px;opacity:.9}
+.platform-btn .platform-icon{font-size:20px;margin-bottom:1px}
+
+/* ===== Home Inspiration Quick-Input (v29) ===== */
+.home-insp{
+  margin-top:16px;background:var(--c-card-bg,#fff);border:1px solid var(--c-border-light);
+  border-radius:var(--radius);padding:14px;
+}
+.home-insp-title{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;margin-bottom:10px;color:var(--c-text)}
+.home-insp-title .hint{font-size:11px;font-weight:400;color:var(--c-text-muted)}
+.home-insp-row{display:flex;gap:8px;flex-wrap:wrap}
+.home-insp-row .form-input{flex:1;min-width:120px}
+.home-insp textarea.form-input{min-height:56px;resize:vertical}
+.home-insp-actions{display:flex;justify-content:flex-end;margin-top:10px}
 
 /* ===== Stats Section (separated, two columns) ===== */
 .stats-section{
@@ -1045,26 +1063,32 @@ ul,li{list-style:none}
 /* ===== Responsive additions ===== */
 @media(max-width:768px){
   .platform-buttons{flex-wrap:wrap}
-  .platform-btn{min-width:calc(50% - 6px);padding:14px 10px;font-size:13px}
+  .platform-btn{min-width:calc(50% - 6px);padding:8px 8px;font-size:13px}
   .platform-btn .platform-count{font-size:18px}
   .platform-btn .platform-icon{font-size:20px}
   .pricelist-menu{max-width:100%}
   .calc-page-grid{grid-template-columns:1fr !important}
   .calc-receipt-col{position:static !important}
-  /* v22: mobile dc-product —— 标题与内容左对齐终极版 */
-  .dc-product-header{grid-template-columns:1fr 72px 55px 60px 80px 40px!important;gap:4px!important;font-size:10px;padding:0;display:grid!important;text-align:left}
-  .dc-product-header > span{box-sizing:border-box;padding-left:6px}
-  .dc-product-header > span:last-child{padding-left:0}
+  /* v29: mobile dc-product 改为卡片式，header 隐藏 */
+  .dc-product-header{display:none!important}
+  .dc-extra-header{display:none!important}
   .dc-product-row{grid-template-columns:1fr 72px 55px 60px 80px 40px!important;gap:4px!important;padding:0}
   .dc-product-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
   .dc-product-row .dc-prod-name{font-size:12px}
   .dc-product-row .dc-prod-check{font-size:10px;gap:0;justify-content:center}
   .dc-product-row .dc-prod-check input{width:12px;height:12px}
   .dc-product-row .dc-prod-del{width:28px;height:28px;font-size:12px;justify-self:end}
-  /* v22: mobile 加价项目——同对齐规则 */
-  .dc-extra-header{grid-template-columns:1.2fr 50px 65px 40px!important;gap:4px!important;font-size:10px;padding:0;display:grid!important;text-align:left}
-  .dc-extra-header > span{box-sizing:border-box;padding-left:6px}
-  .dc-extra-header > span:last-child{padding-left:0}
+  /* v29: mobile 报价计算制品卡片式 */
+  .dc-product-row.dc-product-card,.dc-extra-row.dc-extra-card{display:flex;flex-direction:column;gap:8px;background:var(--c-card-bg,#fff);border:1px solid var(--c-border-light);border-radius:10px;padding:10px;margin-bottom:8px}
+  .dcpc-header,.dcec-header{display:flex;align-items:center;gap:6px}
+  .dcpc-body,.dcec-body{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .dcpc-field,.dcec-field{display:flex;flex-direction:column;gap:2px}
+  .dcpc-label,.dcec-label{font-size:10px;color:var(--c-text-muted);padding-left:2px}
+  .dcpc-field .form-input,.dcec-field .form-input{padding:6px 8px;font-size:12px;width:100%}
+  .dcpc-field.dcpc-check{justify-content:flex-end;padding-bottom:4px}
+  .dcpc-field.dcpc-check .dc-prod-check{font-size:12px}
+  .dc-product-card .dc-prod-del,.dc-extra-card .dc-extra-del{width:28px;height:28px;font-size:12px}
+  /* v29: mobile 加价项目改为卡片式，header 隐藏 */
   .dc-extra-row{grid-template-columns:1.2fr 50px 65px 40px!important;gap:4px!important;padding:0}
   .dc-extra-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
   .dc-extra-del{width:28px;height:28px;font-size:12px;justify-self:end}
