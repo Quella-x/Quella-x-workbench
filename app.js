@@ -349,7 +349,8 @@ function buildForm(fields, data = {}, moduleKey = '') {
       let msHTML = `<div class="form-row"><label class="form-label">${esc(label)}</label><div class="checkbox-group" data-key="${f.key}"${singleAttr}>${optHTML}</div>`;
       if (f.allowCustom) {
         const customId = 'customAdd_' + f.key + '_' + Math.random().toString(36).slice(2, 7);
-        msHTML += `<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="form-input" id="${customId}" placeholder="输入自定义类型后按添加" style="flex:1;font-size:13px"><button type="button" class="btn btn-outline btn-sm" onclick="addCustomMultiselectOpt('${customId}','${moduleKey || ''}','${f.key}',this)">添加</button></div>`;
+        const customPlaceholder = (moduleKey === 'oc-relations' && f.key === 'relationType') ? '请输入自定义关系类型' : '输入自定义类型后按添加';
+        msHTML += `<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="form-input" id="${customId}" placeholder="${esc(customPlaceholder)}" style="flex:1;font-size:13px"><button type="button" class="btn btn-outline btn-sm" onclick="addCustomMultiselectOpt('${customId}','${moduleKey || ''}','${f.key}',this)">添加</button></div>`;
       }
       msHTML += '</div>';
       html += msHTML;
@@ -704,7 +705,7 @@ function renderCalendar(year, month, records, commissionRecords = []) {
   html += `<span class="legend-item"><span class="status-dot" style="background:#07a059"></span>公众号</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>开稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>截稿</span>`;
-  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>同天</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>开稿+截稿同天</span>`;
   html += '</div>';
   return html;
 }
@@ -744,8 +745,7 @@ function renderAnnualChart(records, dateField, opts = {}) {
     let labels = ''; for (let i = 0; i < 12; i++) labels += `<span>${i + 1}月</span>`;
     let legend = '';
     series.forEach(s => { legend += `<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:${s.color}"></span>${esc(s.name)}</span>`; });
-    const emptyTip = data.some(arr => arr.some(v => v > 0)) ? '' : `<div class="annual-chart-empty" style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--c-text-muted);font-size:12px">请为记录填写${dateField === 'startTime' ? '开团时间' : '日期'}，柱图即可显示</div>`;
-    return `<div class="annual-chart"><div class="annual-chart-title">📊 ${esc(title)} · ${year}年</div><div class="annual-chart-bars">${emptyTip || bars}</div><div class="annual-chart-labels">${labels}</div><div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--c-text-light)">${legend}</div></div>`;
+    return `<div class="annual-chart"><div class="annual-chart-title">📊 ${esc(title)} · ${year}年</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div><div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--c-text-light)">${legend}</div></div>`;
   }
   const months = Array(12).fill(0);
   records.forEach(r => {
@@ -817,7 +817,7 @@ MODULES['home'] = {
     { key: 'publishTime', label: '发布时间', type: 'date', default: todayStr() },
     { key: 'title', label: '作品标题', type: 'text' },
     { key: 'link', label: '作品链接', type: 'text', placeholder: '粘贴作品链接' },
-    { key: 'contentType', label: '内容类型', type: 'multiselect', options: [{ value: '图文', label: '图文' }, { value: '短视频', label: '短视频' }, { value: '推文', label: '推文' }, { value: '直播', label: '直播' }] },
+    { key: 'contentType', label: '内容类型', type: 'multiselect', single: true, options: [{ value: '图文', label: '图文' }, { value: '短视频', label: '短视频' }, { value: '推文', label: '推文' }, { value: '直播', label: '直播' }] },
     { section: '24小时数据' },
     { key: 'data24h_likes', label: '点赞', type: 'number' },
     { key: 'data24h_saves', label: '收藏', type: 'number' },
@@ -848,7 +848,7 @@ MODULES['groupbuy-records'] = {
     { key: 'startTime', label: '开团时间', type: 'date' },
     { key: 'endTime', label: '截团时间', type: 'date' },
     { key: 'products', label: '制品列表', type: 'dynamic-products', columns: [
-      { subkey: 'name', label: '制品', type: 'text', datalistId: 'gb_product_dl' },
+      { subkey: 'name', label: '制品名称', type: 'text', datalistId: 'gb_product_dl' },
       { subkey: 'price', label: '单价', type: 'number' },
       { subkey: 'factory', label: '对应厂家', type: 'text', datalistId: 'gb_factory_dl' },
       { subkey: 'salesCount', label: '售卖数量', type: 'number' },
@@ -856,7 +856,7 @@ MODULES['groupbuy-records'] = {
     ]},
     { key: 'afterSales', label: '售后记录', type: 'dynamic-list', columns: [
       { subkey: 'orderNo', label: '单号', type: 'text' },
-      { subkey: 'name', label: '制品', type: 'text', datalistId: 'gb_product_dl' },
+      { subkey: 'name', label: '制品名称', type: 'text', datalistId: 'gb_product_dl' },
       { subkey: 'quantity', label: '售后数量', type: 'number' },
       { subkey: 'type', label: '补偿方式', type: 'combobox', default: '补偿', options: [
         { value: '补偿', label: '补偿' }, { value: '补发', label: '补发' }, { value: '补寄', label: '补寄' }, { value: '退款', label: '退款' }
@@ -867,7 +867,7 @@ MODULES['groupbuy-records'] = {
     { key: 'productTotal', label: '制品总价', type: 'number', hint: '元' },
     { key: 'shippingTotal', label: '邮费总价', type: 'number', hint: '元' },
     { key: 'cost', label: '总成本', type: 'number', hint: '元' },
-    { key: 'status', label: '进度状态', type: 'multiselect', default: ['进行中'], options: [{ value: '筹备中', label: '筹备中' }, { value: '进行中', label: '进行中' }, { value: '已截团', label: '已截团' }, { value: '流团', label: '流团' }, { value: '已结算', label: '已结算' }] },
+    { key: 'status', label: '进度状态', type: 'multiselect', single: true, default: '进行中', options: [{ value: '筹备中', label: '筹备中' }, { value: '进行中', label: '进行中' }, { value: '已截团', label: '已截团' }, { value: '流团', label: '流团' }, { value: '已结算', label: '已结算' }] },
   ],
   filters: [{ key: 'status', label: '全部状态', options: [{ value: '', label: '全部状态' }, { value: '筹备中', label: '筹备中' }, { value: '进行中', label: '进行中' }, { value: '已截团', label: '已截团' }, { value: '流团', label: '流团' }, { value: '已结算', label: '已结算' }] }],
   listFields: [
@@ -911,7 +911,7 @@ MODULES['groupbuy-factories'] = {
     { key: 'phone', label: '联系方式', type: 'text' },
     { key: 'category', label: '主营品类', type: 'text' },
     { key: 'platforms', label: '所在平台', type: 'multiselect', options: [{ value: '微信', label: '微信' }, { value: '1688', label: '1688' }, { value: '小红书', label: '小红书' }, { value: '淘宝', label: '淘宝' }, { value: '拼多多', label: '拼多多' }] },
-    { key: 'cooperationStatus', label: '合作状态', type: 'multiselect', default: ['临时合作'], options: [{ value: '长期合作', label: '长期合作' }, { value: '临时合作', label: '临时合作' }, { value: '暂停合作', label: '暂停合作' }] },
+    { key: 'cooperationStatus', label: '合作状态', type: 'multiselect', single: true, default: '临时合作', options: [{ value: '长期合作', label: '长期合作' }, { value: '临时合作', label: '临时合作' }, { value: '暂停合作', label: '暂停合作' }] },
     { key: 'quote', label: '报价', type: 'textarea' },
     { key: 'cooperationRecords', label: '合作记录', type: 'dynamic-list', columns: [
       { subkey: 'project', label: '项目名称', type: 'text' },
@@ -948,7 +948,7 @@ MODULES['groupbuy-samples'] = {
     { key: 'cost', label: '样品费用', type: 'number', hint: '元' },
     { key: 'quantity', label: '样品数量', type: 'number', default: 1 },
     { key: 'receiveTime', label: '收货时间', type: 'date' },
-    { key: 'evaluation', label: '样品评价', type: 'multiselect', options: [{ value: '合格', label: '合格' }, { value: '中等', label: '中等' }, { value: '不合格', label: '不合格' }] },
+    { key: 'evaluation', label: '样品评价', type: 'multiselect', single: true, options: [{ value: '合格', label: '合格' }, { value: '中等', label: '中等' }, { value: '不合格', label: '不合格' }] },
     { key: 'images', label: '样品图片', type: 'image' },
     { key: 'notes', label: '备注', type: 'textarea' },
   ],
@@ -1000,7 +1000,7 @@ MODULES['design-inspiration'] = {
   store: 'inspirations',
   fields: [
     { key: 'theme', label: '灵感主题', type: 'text' },
-    { key: 'category', label: '制品', type: 'combobox', options: [], placeholder: '选择或输入制品...' },
+    { key: 'category', label: '制品', type: 'combobox', options: [], placeholder: '请选择或输入制品' },
     { key: 'tags', label: '标签分类', type: 'multiselect', options: [{ value: '简约', label: '简约' }, { value: '高级', label: '高级' }, { value: '复古', label: '复古' }, { value: '古风', label: '古风' }, { value: '清新', label: '清新' }, { value: '可爱', label: '可爱' }, { value: '炫酷', label: '炫酷' }, { value: '土味', label: '土味' }] },
     { key: 'thoughts', label: '文字思路', type: 'textarea' },
     { key: 'images', label: '素材图片', type: 'image' },
@@ -1036,7 +1036,7 @@ MODULES['design-commission'] = {
         { value: '改色+字', label: '改色+字' }, { value: '改人+字/色', label: '改人+字/色' }, { value: '改人', label: '改人' }
       ]},
     ]},
-    { key: 'sameDesign', label: '同柄图', type: 'multiselect', options: [
+    { key: 'sameDesign', label: '同柄图', type: 'multiselect', single: true, options: [
       { value: '是', label: '是' }, { value: '否', label: '否' }, { value: '部分同柄', label: '部分同柄' }
     ]},
     { key: 'extraItems', label: '加价项目', type: 'dynamic-list', columns: [
@@ -1049,7 +1049,7 @@ MODULES['design-commission'] = {
     { key: 'balance', label: '尾款', type: 'readonly', hint: '自动计算' },
     { key: 'paymentStatus', label: '支付状态', type: 'multiselect', default: ['定金'], options: [{ value: '未付', label: '未付' }, { value: '定金', label: '定金' }, { value: '尾款', label: '尾款' }, { value: '全款', label: '全款' }] },
     { key: 'progress', label: '稿件进度', type: 'multiselect', default: ['已接稿'], options: [{ value: '待接稿', label: '待接稿' }, { value: '已接稿', label: '已接稿' }, { value: '修改中', label: '修改中' }, { value: '已交付', label: '已交付' }] },
-    { key: 'modifyCount', label: '修改次数', type: 'number' },
+    { key: 'modifyCount', label: '修改类型、次数、价格', type: 'number' },
     { key: 'amount', label: '最终金额', type: 'number', hint: '元（手动输入）' },
     { key: 'notes', label: '备注', type: 'textarea' },
   ],
@@ -1094,7 +1094,7 @@ MODULES['design-auth'] = {
   fields: [
     { key: 'artworkName', label: '稿件名称', type: 'text' },
     { key: 'clientInfo', label: '客户信息', type: 'text' },
-    { key: 'authType', label: '授权类型', type: 'multiselect', default: ['商用'], options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
+    { key: 'authType', label: '授权类型', type: 'multiselect', single: true, default: '商用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'authScope', label: '授权范围', type: 'multiselect', options: [{ value: '单次', label: '单次' }, { value: '多次', label: '多次' }, { value: '不限', label: '不限' }, { value: '单图单用', label: '单图单用' }, { value: '单图多用', label: '单图多用' }] },
     { key: 'authFee', label: '授权费用', type: 'number', hint: '元' },
     { key: 'authDate', label: '授权日期', type: 'date' },
@@ -1120,11 +1120,11 @@ MODULES['design-auth'] = {
 MODULES['design-pricelist'] = {
   store: 'priceList',
   fields: [
-    { key: 'category', label: '制品分类', type: 'combobox', noSort: true, options: [{ value: '纸片类', label: '纸片类' }, { value: '其他材质类', label: '其他材质类' }, { value: '线上&应援类', label: '线上&应援类' }, { value: '加价项目', label: '加价项目' }] },
+    { key: 'category', label: '制品分类', type: 'combobox', noSort: true, options: [{ value: '纸片类', label: '纸片类' }, { value: '其他材质类', label: '其他材质类' }, { value: '线上&应援类', label: '线上&应援类' }, { value: '加价项目', label: '加价项目' }, { value: '修改类型', label: '修改类型' }] },
     { key: 'product', label: '制品', type: 'text' },
     { key: 'defaultSize', label: '默认尺寸', type: 'text', hint: '如: 10cm（选填）' },
     { key: 'price', label: '单价', type: 'number', hint: '元' },
-    { key: 'priceUnit', label: '单位', type: 'multiselect', single: true, default: ['元'], options: [{ value: '元', label: '元' }, { value: '元/p', label: '元/p' }] },
+    { key: 'priceUnit', label: '单位', type: 'multiselect', single: true, default: '元', options: [{ value: '元', label: '元' }, { value: '元/p', label: '元/p' }, { value: '元/次', label: '元/次' }] },
     { key: 'description', label: '备注', type: 'textarea' },
   ],
   listFields: [
@@ -1147,7 +1147,7 @@ MODULES['oc-profiles'] = {
     { key: 'name', label: '姓名', type: 'text' },
     { key: 'alias', label: '道号/外号', type: 'text' },
     { key: 'age', label: '年龄', type: 'text' },
-    { key: 'gender', label: '性别', type: 'multiselect', options: [{ value: '女', label: '女' }, { value: '男', label: '男' }] },
+    { key: 'gender', label: '性别', type: 'multiselect', single: true, options: [{ value: '女', label: '女' }, { value: '男', label: '男' }] },
     { key: 'height', label: '身高', type: 'text' },
     { key: 'birthplace', label: '出生地', type: 'text' },
     { section: '种族体质' },
@@ -1187,9 +1187,9 @@ MODULES['oc-relations'] = {
   fields: [
     { key: 'charA', label: '人物1', type: 'combobox', options: [], hint: '从人物档案加载' },
     { key: 'charB', label: '人物2', type: 'combobox', options: [], hint: '从人物档案加载' },
-    { key: 'relationType', label: '关系类型', type: 'multiselect', allowCustom: true, options: [{ value: '母女', label: '母女' }, { value: '母子', label: '母子' }, { value: '父女', label: '父女' }, { value: '父子', label: '父子' }, { value: '姐妹', label: '姐妹' }, { value: '姐弟', label: '姐弟' }, { value: '兄妹', label: '兄妹' }, { value: '兄弟', label: '兄弟' }, { value: '表亲', label: '表亲' }, { value: '堂亲', label: '堂亲' }, { value: '师徒', label: '师徒' }, { value: '道侣', label: '道侣' }, { value: '好友', label: '好友' }, { value: '同门', label: '同门' }, { value: '交好', label: '交好' }, { value: '敌对', label: '敌对' }, { value: '上下级', label: '上下级' }] },
+    { key: 'relationType', label: '关系类型', type: 'multiselect', allowCustom: true, options: [{ value: '表亲', label: '表亲' }, { value: '道侣', label: '道侣' }, { value: '敌对', label: '敌对' }, { value: '父女', label: '父女' }, { value: '父子', label: '父子' }, { value: '好友', label: '好友' }, { value: '姐弟', label: '姐弟' }, { value: '交好', label: '交好' }, { value: '姐妹', label: '姐妹' }, { value: '母女', label: '母女' }, { value: '母子', label: '母子' }, { value: '师徒', label: '师徒' }, { value: '上下级', label: '上下级' }, { value: '同门', label: '同门' }, { value: '堂亲', label: '堂亲' }, { value: '兄弟', label: '兄弟' }, { value: '兄妹', label: '兄妹' }] },
     { key: 'relationDetail', label: '关系细节', type: 'textarea' },
-    { key: 'relationStatus', label: '关系状态', type: 'multiselect', options: [{ value: '稳定', label: '稳定' }, { value: '变化中', label: '变化中' }] },
+    { key: 'relationStatus', label: '关系状态', type: 'multiselect', single: true, default: '稳定', options: [{ value: '稳定', label: '稳定' }, { value: '变化中', label: '变化中' }] },
   ],
   listFields: [
     { label: '类型', key: 'relationType', tag: true },
@@ -1205,8 +1205,8 @@ MODULES['oc-stories'] = {
   fields: [
     { key: 'title', label: '剧情标题', type: 'text' },
     { key: 'characterIds', label: '关联OC', type: 'multiselect', options: [], hint: '从人物档案加载' },
-    { key: 'tags', label: '剧情标签', type: 'multiselect', default: ['灵感'], options: [{ value: '主线', label: '主线' }, { value: '支线', label: '支线' }, { value: '日常', label: '日常' }, { value: '随笔', label: '随笔' }, { value: '灵感', label: '灵感' }] },
-    { key: 'isComplete', label: '剧情状态', type: 'multiselect', default: ['连载中'], options: [{ value: '连载中', label: '连载中' }, { value: '已完结', label: '已完结' }] },
+    { key: 'tags', label: '剧情标签', type: 'multiselect', single: true, default: '灵感', options: [{ value: '主线', label: '主线' }, { value: '支线', label: '支线' }, { value: '日常', label: '日常' }, { value: '随笔', label: '随笔' }, { value: '灵感', label: '灵感' }] },
+    { key: 'isComplete', label: '剧情状态', type: 'multiselect', single: true, default: '连载中', options: [{ value: '连载中', label: '连载中' }, { value: '已完结', label: '已完结' }] },
     { key: 'content', label: '剧情内容', type: 'textarea', hint: '支持多段落写作' },
     { key: 'createTime', label: '创作时间', type: 'date', default: todayStr() },
   ],
@@ -1227,7 +1227,7 @@ MODULES['oc-timeline'] = {
     { key: 'date', label: '时间', type: 'date' },
     { key: 'title', label: '事件标题', type: 'text' },
     { key: 'description', label: '事件描述', type: 'textarea' },
-    { key: 'importance', label: '重要性', type: 'multiselect', default: ['绿'], options: [
+    { key: 'importance', label: '重要性', type: 'multiselect', single: true, options: [
       { value: '红', label: '红(重要)' },
       { value: '橙', label: '橙(较重要)' },
       { value: '绿', label: '绿(一般)' },
@@ -1251,16 +1251,16 @@ MODULES['oc-commission'] = {
     { key: 'oc', label: 'OC', type: 'combobox', options: [], hint: '从人物档案加载' },
     { key: 'artistName', label: '画师名称', type: 'text' },
     { key: 'commissionType', label: '约稿类型', type: 'multiselect', options: [{ value: '头像', label: '头像' }, { value: '半身', label: '半身' }, { value: '立绘', label: '立绘' }, { value: '插画', label: '插画' }, { value: 'Q版', label: 'Q版' }, { value: '服装', label: '服装' }, { value: '武器', label: '武器' }, { value: '小物', label: '小物' }, { value: '印象', label: '印象' }] },
-    { key: 'usageType', label: '稿件用途', type: 'multiselect', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
+    { key: 'usageType', label: '稿件用途', type: 'multiselect', single: true, default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'fee', label: '约稿费用', type: 'number', hint: '元' },
-    { key: 'platform', label: '约稿平台', type: 'multiselect', options: [{ value: '画加', label: '画加' }, { value: '米画师', label: '米画师' }, { value: '小红书', label: '小红书' }, { value: '微博', label: '微博' }, { value: '微信', label: '微信' }] },
+    { key: 'platform', label: '约稿平台', type: 'multiselect', single: true, options: [{ value: '画加', label: '画加' }, { value: '米画师', label: '米画师' }, { value: '小红书', label: '小红书' }, { value: '微博', label: '微博' }, { value: '微信', label: '微信' }] },
     { key: 'commissionTime', label: '约稿时间', type: 'date', default: todayStr() },
     { key: 'deliveryTime', label: '交付时间', type: 'date' },
-    { key: 'status', label: '交易状态', type: 'multiselect', options: [{ value: '进行中', label: '进行中' }, { value: '已完成', label: '已完成' }, { value: '已取消', label: '已取消' }] },
+    { key: 'status', label: '交易状态', type: 'multiselect', single: true, options: [{ value: '待接稿', label: '待接稿' }, { value: '进行中', label: '进行中' }, { value: '已完成', label: '已完成' }, { value: '已取消', label: '已取消' }] },
     { key: 'artwork', label: '稿件成品图', type: 'image' },
     { key: 'notes', label: '备注', type: 'textarea' },
   ],
-  filters: [{ key: 'status', label: '全部状态', options: [{ value: '', label: '全部状态' }, { value: '进行中', label: '进行中' }, { value: '已完成', label: '已完成' }, { value: '已取消', label: '已取消' }] }],
+  filters: [{ key: 'status', label: '全部状态', options: [{ value: '', label: '全部状态' }, { value: '待接稿', label: '待接稿' }, { value: '进行中', label: '进行中' }, { value: '已完成', label: '已完成' }, { value: '已取消', label: '已取消' }] }],
   listFields: [
     { label: '状态', key: 'status', tag: true },
     { label: '画师', key: 'artistName' },
@@ -1690,7 +1690,7 @@ function renderCommissionCalendar(year, month, records) {
   html += '<div class="cal-legend">';
   html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>开稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>截稿</span>`;
-  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>同天</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>开稿+截稿同天</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[0]}"></span>紧急(截稿临近)</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[1]}"></span>正常</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[2]}"></span>充裕</span>`;
@@ -2053,7 +2053,7 @@ function renderHome() {
     html += '<div class="home-insp-title">💡 灵感速记 <span class="hint">随手记，保存后收入「灵感记录」</span></div>';
     html += '<div class="home-insp-row">';
     html += '<input type="text" class="form-input" id="hInspTheme" placeholder="灵感主题">';
-    html += '<div class="combobox-wrapper home-insp-combo"><input type="text" class="form-input combobox-input" id="hInspCat" placeholder="制品" onfocus="showComboboxDropdown(\'hInspCatList\')" onclick="showComboboxDropdown(\'hInspCatList\')" oninput="filterComboboxDropdown(\'hInspCatList\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'hInspCatList\')">▼</button><div class="combobox-dropdown" id="hInspCatList">' + hCatOpts + '</div></div>';
+    html += '<div class="combobox-wrapper home-insp-combo"><input type="text" class="form-input combobox-input" id="hInspCat" placeholder="请选择或输入制品" onfocus="showComboboxDropdown(\'hInspCatList\')" onclick="showComboboxDropdown(\'hInspCatList\')" oninput="filterComboboxDropdown(\'hInspCatList\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'hInspCatList\')">▼</button><div class="combobox-dropdown" id="hInspCatList">' + hCatOpts + '</div></div>';
     html += '</div>';
     html += '<textarea class="form-input home-insp-textarea" id="hInspThoughts" placeholder="文字思路…"></textarea>';
     html += '<div class="home-insp-actions"><button class="btn btn-primary" onclick="homeAddInspiration()">保存灵感</button></div>';
