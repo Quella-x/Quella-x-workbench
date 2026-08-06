@@ -541,14 +541,17 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyCount"]{flex:0 0 55px}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyPrice"]{flex:0 0 80px}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="note"]{flex:1 1 0;min-width:80px}
-/* O轮修正：接稿修改项目「次数/价格/备注」标题偏右，左内边距归零，使其与输入内容视觉对齐 */
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyCount"]{flex:0 0 55px;padding-left:0}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyPrice"]{flex:0 0 80px;padding-left:0}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="note"]{flex:1 1 0;min-width:80px;padding-left:0}
-/* O轮修正：开团记录制品列表「单价/对应厂家」标题偏左，加大左内边距；
-   接稿排期制品列表「价格」标题偏右，保持默认 8px（按 data-module 区分，避免互相影响） */
-.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="price"]{padding-left:34px}
-.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="factory"]{padding-left:34px}
+/* P轮修正：接稿修改项目「次数/价格/备注」标题继续往左，左内边距归零并负边距左拉 */
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyCount"]{flex:0 0 55px;padding-left:0;margin-left:-6px}
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyPrice"]{flex:0 0 80px;padding-left:0;margin-left:-6px}
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="note"]{flex:1 1 0;min-width:80px;padding-left:0;margin-left:-6px}
+/* P轮修正：开团记录制品列表「单价/对应厂家」标题 padding-left 30px；
+   「售卖数量/是否流团」标题在目前 8px 基础上减 2 → 6px；
+   接稿排期制品列表「价格」标题保持默认 8px（按 data-module 区分，避免互相影响） */
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="price"]{padding-left:30px}
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="factory"]{padding-left:30px}
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="quantity"]{padding-left:6px}
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="isDisbanded"]{padding-left:6px}
 .dynamic-list-container[data-key="products"][data-module="schedule"] .dynamic-list-header span[data-subkey="price"]{padding-left:8px}
 /* 修改类型为下拉选择器，列宽与 header 一致 */
 .dynamic-list-container[data-key="modifications"] .combobox-wrapper[data-subkey="modifyType"]{flex:1 1 0!important;min-width:80px!important}
@@ -1370,16 +1373,18 @@ ul,li{list-style:none}
 }
 .timeline-color-filter{
   flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:4px;
-  padding:6px 14px;font-size:13px;font-weight:600;white-space:nowrap;
+  padding:8px 14px;font-size:13px;font-weight:600;white-space:nowrap;
   cursor:pointer;border:none;transition:all .2s;background:transparent;color:var(--c-text);
 }
+/* P轮修正：重要性按钮高度与搜索框 input 一致（8px 垂直内边距），选中后有底色段缩窄 */
+.timeline-color-filter.active{padding:8px 10px;border-radius:999px;color:#fff}
 @media (max-width:768px){
-  .timeline-color-filter{padding:6px 10px}
+  .timeline-color-filter{padding:8px 12px}
+  .timeline-color-filter.active{padding:8px 8px}
 }
 .timeline-color-filter:first-child{border-radius:999px 0 0 999px}
 .timeline-color-filter:last-child{border-radius:0 999px 999px 0}
 .timeline-color-filter:hover{opacity:.85}
-.timeline-color-filter.active{border-radius:999px;color:#fff}
 .timeline-color-filter::before{
   content:'';width:8px;height:8px;border-radius:50%;margin-right:6px;flex-shrink:0;
 }
@@ -1494,7 +1499,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=45"></script>
+<script src="app.js?v=46"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
