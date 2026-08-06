@@ -880,7 +880,9 @@ ul,li{list-style:none}
 .home-insp-title .hint{font-size:11px;font-weight:400;color:var(--c-text-muted)}
 .home-insp-row{display:flex;gap:8px;flex-wrap:wrap}
 .home-insp-row .form-input{flex:1;min-width:120px}
-.home-insp textarea.form-input{min-height:56px;resize:vertical}
+.home-insp-row .combobox-wrapper.home-insp-combo{flex:1;min-width:120px}
+.home-insp-row .combobox-wrapper.home-insp-combo .form-input{padding-right:30px}
+.home-insp textarea.form-input{min-height:56px;resize:vertical;margin-top:8px}
 .home-insp-actions{display:flex;justify-content:flex-end;margin-top:10px}
 
 /* ===== Stats Section (separated, two columns) ===== */
@@ -954,6 +956,16 @@ ul,li{list-style:none}
   border-bottom:1px solid var(--c-border);
   text-transform:uppercase;letter-spacing:1px;
 }
+/* v29-fix: 价目表独立排序弹窗 */
+.pricelist-sort-panel{max-height:60vh;overflow-y:auto;padding-right:4px}
+.pricelist-sort-category{font-size:14px;font-weight:700;color:var(--c-text);margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--c-border)}
+.pricelist-sort-category:first-child{margin-top:0}
+.pricelist-sort-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dotted var(--c-border-light);font-size:13px}
+.pricelist-sort-item:last-child{border-bottom:none}
+.pricelist-sort-item .sort-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pricelist-sort-item .sort-price{font-weight:700;color:var(--c-primary-dark);margin:0 10px;white-space:nowrap}
+.pricelist-sort-item .sort-btns{display:flex;gap:4px}
+.pricelist-sort-item .sort-btns button{padding:2px 8px;font-size:12px;min-width:0}
 
 /* ===== Nav Icon Editor ===== */
 .nav-icon-edit-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
@@ -1069,27 +1081,16 @@ ul,li{list-style:none}
   .pricelist-menu{max-width:100%}
   .calc-page-grid{grid-template-columns:1fr !important}
   .calc-receipt-col{position:static !important}
-  /* v29: mobile dc-product 改为卡片式，header 隐藏 */
+  /* v29-fix: mobile 报价计算制品/加价改为横向行（对齐接稿排期） */
   .dc-product-header{display:none!important}
   .dc-extra-header{display:none!important}
-  .dc-product-row{grid-template-columns:1fr 72px 55px 60px 80px 40px!important;gap:4px!important;padding:0}
+  .dc-product-row{grid-template-columns:1fr 52px 48px 44px 44px 28px!important;gap:4px!important;padding:0}
   .dc-product-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
   .dc-product-row .dc-prod-name{font-size:12px}
   .dc-product-row .dc-prod-check{font-size:10px;gap:0;justify-content:center}
   .dc-product-row .dc-prod-check input{width:12px;height:12px}
   .dc-product-row .dc-prod-del{width:28px;height:28px;font-size:12px;justify-self:end}
-  /* v29: mobile 报价计算制品卡片式 */
-  .dc-product-row.dc-product-card,.dc-extra-row.dc-extra-card{display:flex;flex-direction:column;gap:8px;background:var(--c-card-bg,#fff);border:1px solid var(--c-border-light);border-radius:10px;padding:10px;margin-bottom:8px}
-  .dcpc-header,.dcec-header{display:flex;align-items:center;gap:6px}
-  .dcpc-body,.dcec-body{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-  .dcpc-field,.dcec-field{display:flex;flex-direction:column;gap:2px}
-  .dcpc-label,.dcec-label{font-size:10px;color:var(--c-text-muted);padding-left:2px}
-  .dcpc-field .form-input,.dcec-field .form-input{padding:6px 8px;font-size:12px;width:100%}
-  .dcpc-field.dcpc-check{justify-content:flex-end;padding-bottom:4px}
-  .dcpc-field.dcpc-check .dc-prod-check{font-size:12px}
-  .dc-product-card .dc-prod-del,.dc-extra-card .dc-extra-del{width:28px;height:28px;font-size:12px}
-  /* v29: mobile 加价项目改为卡片式，header 隐藏 */
-  .dc-extra-row{grid-template-columns:1.2fr 50px 65px 40px!important;gap:4px!important;padding:0}
+  .dc-extra-row{grid-template-columns:1.2fr 44px 52px 28px!important;gap:4px!important;padding:0}
   .dc-extra-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
   .dc-extra-del{width:28px;height:28px;font-size:12px;justify-self:end}
   /* 下拉框箭头需 30px 右内边距，避免被 ▼ 遮挡（覆盖上面 form-input 简写的 8px） */
@@ -1112,10 +1113,10 @@ ul,li{list-style:none}
 .calc-mode-tab.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary)}
 .calc-import-select{width:100%;margin-top:4px}
 /* v22: 报价计算制品列表——header 与 row padding/box-sizing 完全统一，标题与内容像素对齐 */
-.dc-product-header{display:grid;grid-template-columns:minmax(180px,1.6fr) 90px 60px 70px 90px 40px;gap:6px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
+.dc-product-header{display:grid;grid-template-columns:minmax(180px,1.6fr) 90px 70px 60px 90px 40px;gap:6px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
 .dc-product-header > span{box-sizing:border-box;padding-left:8px}
 .dc-product-header > span:last-child{padding-left:0}
-.dc-product-row{display:grid;grid-template-columns:minmax(180px,1.6fr) 90px 60px 70px 90px 40px;gap:6px;margin-bottom:6px;align-items:center;padding:0}
+.dc-product-row{display:grid;grid-template-columns:minmax(180px,1.6fr) 90px 70px 60px 90px 40px;gap:6px;margin-bottom:6px;align-items:center;padding:0}
 .dc-product-row .form-input{padding:7px 8px;font-size:13px;box-sizing:border-box;text-align:left}
 .dc-product-row .combobox-wrapper,.dc-extra-row .combobox-wrapper{min-width:0;width:100%}
 .dc-prod-check{display:flex;align-items:center;justify-content:flex-start;gap:3px;font-size:11px;cursor:pointer;color:var(--c-text-muted);white-space:nowrap}

@@ -661,13 +661,16 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     const dayPlatforms = new Set();
     dayRecords.forEach(r => { arrVal(r.platform).forEach(p => dayPlatforms.add(p)); });
     [...dayPlatforms].forEach(p => { topDots += `<span class="cal-dot" style="background:${PLATFORM_COLORS[p] || '#9DC8FF'}"></span>`; });
-    // v29: 底部显示开稿/接稿记录
+    // v29-fix: 底部显示开稿/接稿/截稿记录，实心点+文字样式
     let bottomEvents = '';
-    const dayComms = commissionRecords.filter(r => (r.startTime || '').startsWith(dateStr) || (r.acceptTime || '').startsWith(dateStr));
+    const dayComms = commissionRecords.filter(r => (r.startTime || '').startsWith(dateStr) || (r.acceptTime || '').startsWith(dateStr) || (r.deadline || '').startsWith(dateStr));
     if (dayComms.length > 0) {
       bottomEvents = '<div class="cal-day-events home-comm-events">' + dayComms.slice(0, 2).map(r => {
-        const label = (r.clientInfo || '未命名') + (r.startTime && r.startTime.startsWith(dateStr) ? ' 开稿' : ' 接稿');
-        return `<div class="cal-day-event"><span class="cal-day-event-dot" style="background:#7ab5f5"></span><span class="cal-day-event-name">${esc(label)}</span></div>`;
+        let label = '', color = '#7ab5f5';
+        if ((r.deadline || '').startsWith(dateStr)) { label = '截稿'; color = '#ff9a9a'; }
+        else if ((r.startTime || '').startsWith(dateStr)) { label = '开稿'; color = '#7ab5f5'; }
+        else { label = '接稿'; color = '#9DC8FF'; }
+        return `<div class="cal-day-event"><span class="cal-day-event-dot" style="background:${color}"></span><span class="cal-day-event-name" style="color:${color};font-weight:600">${esc(label)}</span></div>`;
       }).join('') + (dayComms.length > 2 ? `<div class="cal-day-event-more">+${dayComms.length - 2}</div>` : '') + '</div>';
     }
     html += `<div class="cal-day${isToday ? ' today' : ''}"><div class="cal-date-row"><span class="cal-date">${d}</span><div class="cal-dots">${topDots}</div>${dayRecords.length > 0 ? `<span style="font-size:10px;color:var(--c-text-muted);flex-shrink:0">${dayRecords.length}条</span>` : ''}</div>${bottomEvents}</div>`;
@@ -1017,11 +1020,10 @@ MODULES['design-commission'] = {
     { key: 'paymentStatus', label: '全部支付', options: [{ value: '', label: '全部支付' }, { value: '未付', label: '未付' }, { value: '定金', label: '定金' }, { value: '尾款', label: '尾款' }, { value: '全款', label: '全款' }] },
   ],
   listFields: [
-    { label: '单主', key: 'clientInfo' },
     { label: '进度', key: 'progress', tag: true },
     { label: '支付', key: 'paymentStatus', tag: true },
     { label: '用途', key: 'usageType' },
-    { label: '制品名称', key: '_firstProduct' },
+    { label: '制品', key: '_firstProduct' },
     { label: '截稿', key: 'deadline', date: true },
     { label: '报价', key: 'quoteAmount', prefix: '¥' },
   ],
@@ -1440,7 +1442,8 @@ function renderListPage(pageKey, mod) {
       (mod.listFields || []).forEach(f => {
         let v = r[f.key];
         if (f.key === '_productCount') v = calcProductQty(r) + '件';
-        if (f.key === '_firstProduct') { const fp = (r.products || [])[0]; v = fp && fp.name ? fp.name : ''; }
+        if (f.key === 'clientInfo') return; // 单主已在卡片标题展示，正文不再重复
+        if (f.key === '_firstProduct') { const names = (r.products || []).map(p => p.name).filter(Boolean); v = names.join('、'); }
         if (v == null || v === '') return;
         if (f.tag && Array.isArray(v)) {
           const tags = v.map(val => {
@@ -1608,15 +1611,16 @@ function renderCommissionCalendar(year, month, records) {
     const deadlineRecords = records.filter(r => r.deadline === dateStr);
     const isToday = dateStr === todayKey;
     const isSelected = ps.dateFilter === dateStr;
-    // v29: 开稿/截稿统一用实心圆点+单主名显示
+    // v29-fix: 开稿恢复为仅圆点，截稿显示圆点+"截稿"文字
     let eventLabels = '';
     const dayEvents = [];
-    startRecords.forEach(r => dayEvents.push({ r, type: 'start', label: (r.clientInfo || '未命名') + ' 开稿' }));
-    deadlineRecords.forEach(r => dayEvents.push({ r, type: 'end', label: (r.clientInfo || '未命名') + ' 截稿' }));
+    startRecords.forEach(r => dayEvents.push({ r, type: 'start', label: '' }));
+    deadlineRecords.forEach(r => dayEvents.push({ r, type: 'end', label: '截稿' }));
     if (dayEvents.length > 0) {
       eventLabels = '<div class="cal-day-events">' + dayEvents.slice(0, 3).map(e => {
         const color = recordColorMap[e.r.id] || '#9DC8FF';
-        return `<div class="cal-day-event"><span class="cal-day-event-dot" style="background:${color}"></span><span class="cal-day-event-name">${esc(e.label)}</span></div>`;
+        const text = e.label ? `<span class="cal-day-event-name" style="color:${color};font-weight:600">${esc(e.label)}</span>` : '';
+        return `<div class="cal-day-event"><span class="cal-day-event-dot" style="background:${color}"></span>${text}</div>`;
       }).join('') + (dayEvents.length > 3 ? `<div class="cal-day-event-more">+${dayEvents.length - 3}</div>` : '') + '</div>';
     }
     let info = '';
@@ -1956,13 +1960,17 @@ function renderHome() {
     html += `<span class="legend-item"><span class="status-dot" style="background:#07a059"></span>公众号</span>`;
     html += '</div></div>';
     // v29: 首页灵感速记模块（写入 inspirations，首页不展示，进入「美工·灵感记录」）
+    const inspThemes = [...new Set(DB.list('inspirations').map(r => r.theme).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), 'zh'));
+    const inspCats = getInspirationCategories();
+    const hThemeOpts = inspThemes.map(t => `<div class="combobox-option" onclick="selectComboboxOption('hInspThemeList',this)" data-value="${esc(t)}">${esc(t)}</div>`).join('');
+    const hCatOpts = inspCats.map(c => `<div class="combobox-option" onclick="selectComboboxOption('hInspCatList',this)" data-value="${esc(c)}">${esc(c)}</div>`).join('');
     html += '<div class="home-insp">';
     html += '<div class="home-insp-title">💡 灵感速记 <span class="hint">随手记，保存后进入「美工·灵感记录」</span></div>';
     html += '<div class="home-insp-row">';
-    html += '<input class="form-input" id="hInspTheme" placeholder="灵感主题（如：春日海报）">';
-    html += '<input class="form-input" id="hInspCat" placeholder="制品名称（如：头像）">';
+    html += '<div class="combobox-wrapper home-insp-combo"><input type="text" class="form-input combobox-input" id="hInspTheme" placeholder="灵感主题" onfocus="showComboboxDropdown(\'hInspThemeList\')" onclick="showComboboxDropdown(\'hInspThemeList\')" oninput="filterComboboxDropdown(\'hInspThemeList\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'hInspThemeList\')">▼</button><div class="combobox-dropdown" id="hInspThemeList">' + hThemeOpts + '</div></div>';
+    html += '<div class="combobox-wrapper home-insp-combo"><input type="text" class="form-input combobox-input" id="hInspCat" placeholder="制品名称" onfocus="showComboboxDropdown(\'hInspCatList\')" onclick="showComboboxDropdown(\'hInspCatList\')" oninput="filterComboboxDropdown(\'hInspCatList\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'hInspCatList\')">▼</button><div class="combobox-dropdown" id="hInspCatList">' + hCatOpts + '</div></div>';
     html += '</div>';
-    html += '<textarea class="form-input" id="hInspThoughts" placeholder="文字思路…"></textarea>';
+    html += '<textarea class="form-input home-insp-textarea" id="hInspThoughts" placeholder="文字思路…"></textarea>';
     html += '<div class="home-insp-actions"><button class="btn btn-primary" onclick="homeAddInspiration()">保存灵感</button></div>';
     html += '</div>';
   } else if (ps.view === 'platform') {
@@ -2722,7 +2730,7 @@ function renderDesignCalc() {
   // Product list
   html += '<div class="calc-card">';
   html += '<div class="calc-card-title">制品列表 <span class="calc-card-hint">（柄图自动分组，勾选同模启用阶梯计价）</span></div>';
-  html += '<div class="dc-product-header"><span>制品名称</span><span>柄图标识</span><span>数量</span><span>单价</span><span>同模</span><span></span></div>';
+  html += '<div class="dc-product-header"><span>制品名称</span><span>柄图标识</span><span>单价</span><span>数量</span><span>同模</span><span></span></div>';
   html += '<div id="dc-products"></div>';
   html += '<div style="display:flex;gap:8px;margin-top:8px">';
   html += '<button type="button" class="btn btn-outline btn-sm" onclick="dcAddProduct()">+ 添加制品</button>';
@@ -2881,31 +2889,18 @@ function dcRenderProducts() {
   if (!c) return;
   const priceList = DB.list('priceList');
   const productNames = [...new Set(priceList.filter(p => PRODUCT_CATEGORIES.includes(p.category) && p.product).map(p => p.product))].sort((a,b)=>a.localeCompare(b,'zh'));
-  const isMobile = window.innerWidth <= 768;
   let html = '';
   _dcProducts.forEach((p, i) => {
     const cbId = 'dcp_' + i + '_' + Math.random().toString(36).slice(2,6);
     const optHTML = productNames.map(n => `<div class="combobox-option" onclick="dcSelectProduct(${i},this,'${cbId}')" data-value="${esc(n)}">${esc(n)}</div>`).join('');
-    if (isMobile) {
-      // v29 mobile: 卡片式制品录入，解决名称显示不全
-      html += '<div class="dc-product-row dc-product-card">';
-      html += `<div class="dcpc-header"><div class="combobox-wrapper" style="min-width:0;flex:1"><input type="text" class="form-input combobox-input dc-prod-name" value="${esc(p.name)}" placeholder="制品名称" data-key="name" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateProduct(${i},'name',this.value);dcFillPrice(this,'product',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div><button type="button" class="btn btn-ghost btn-sm dc-prod-del" onclick="dcRemoveProduct(${i})">✕</button></div>`;
-      html += '<div class="dcpc-body">';
-      html += `<div class="dcpc-field"><span class="dcpc-label">柄图标识</span><input type="text" class="form-input dc-prod-pattern" value="${esc(p.patternId||'')}" placeholder="柄图标识" oninput="dcUpdateProduct(${i},'patternId',this.value)"></div>`;
-      html += `<div class="dcpc-field"><span class="dcpc-label">数量</span><input type="number" class="form-input dc-prod-qty" value="${p.quantity}" placeholder="数量" min="1" oninput="dcUpdateProduct(${i},'quantity',this.value)"></div>`;
-      html += `<div class="dcpc-field"><span class="dcpc-label">单价</span><input type="number" class="form-input dc-prod-price" value="${p.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateProduct(${i},'price',this.value)"></div>`;
-      html += `<div class="dcpc-field dcpc-check"><label class="dc-prod-check"><input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模</label></div>`;
-      html += '</div></div>';
-    } else {
-      html += '<div class="dc-product-row">';
-      html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-name" value="${esc(p.name)}" placeholder="制品名称" data-key="name" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateProduct(${i},'name',this.value);dcFillPrice(this,'product',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
-      html += `<input type="text" class="form-input dc-prod-pattern" value="${esc(p.patternId||'')}" placeholder="柄图标识" oninput="dcUpdateProduct(${i},'patternId',this.value)">`;
-      html += `<input type="number" class="form-input dc-prod-qty" value="${p.quantity}" placeholder="数量" min="1" oninput="dcUpdateProduct(${i},'quantity',this.value)">`;
-      html += `<input type="number" class="form-input dc-prod-price" value="${p.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateProduct(${i},'price',this.value)">`;
-      html += `<label class="dc-prod-check"><input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模</label>`;
-      html += `<button type="button" class="btn btn-ghost btn-sm dc-prod-del" onclick="dcRemoveProduct(${i})">✕</button>`;
-      html += '</div>';
-    }
+    html += '<div class="dc-product-row">';
+    html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-name" value="${esc(p.name)}" placeholder="制品名称" data-key="name" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateProduct(${i},'name',this.value);dcFillPrice(this,'product',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
+    html += `<input type="text" class="form-input dc-prod-pattern" value="${esc(p.patternId||'')}" placeholder="柄图标识" oninput="dcUpdateProduct(${i},'patternId',this.value)">`;
+    html += `<input type="number" class="form-input dc-prod-price" value="${p.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateProduct(${i},'price',this.value)">`;
+    html += `<input type="number" class="form-input dc-prod-qty" value="${p.quantity}" placeholder="数量" min="1" oninput="dcUpdateProduct(${i},'quantity',this.value)">`;
+    html += `<label class="dc-prod-check"><input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模</label>`;
+    html += `<button type="button" class="btn btn-ghost btn-sm dc-prod-del" onclick="dcRemoveProduct(${i})">✕</button>`;
+    html += '</div>';
   });
   c.innerHTML = html;
 }
@@ -2971,27 +2966,16 @@ function dcRenderExtras() {
   if (!c) return;
   const priceList = DB.list('priceList');
   const extraNames = [...new Set(priceList.filter(p => p.category === '加价项目' && p.product).map(p => p.product))].sort((a,b)=>a.localeCompare(b,'zh'));
-  const isMobile = window.innerWidth <= 768;
   let html = '';
   _dcExtras.forEach((e, i) => {
     const cbId = 'dce_' + i + '_' + Math.random().toString(36).slice(2,6);
     const optHTML = extraNames.map(n => `<div class="combobox-option" onclick="dcSelectExtra(${i},this,'${cbId}')" data-value="${esc(n)}">${esc(n)}</div>`).join('');
-    if (isMobile) {
-      // v29 mobile: 卡片式加价项目录入
-      html += '<div class="dc-extra-row dc-extra-card">';
-      html += `<div class="dcec-header"><div class="combobox-wrapper" style="min-width:0;flex:1"><input type="text" class="form-input combobox-input dc-extra-name" value="${esc(e.name)}" placeholder="项目名称" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateExtra(${i},'name',this.value);dcFillPrice(this,'extra',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div><button type="button" class="btn btn-ghost btn-sm dc-extra-del" onclick="dcRemoveExtra(${i})">✕</button></div>`;
-      html += '<div class="dcec-body">';
-      html += `<div class="dcec-field"><span class="dcec-label">数量</span><input type="number" class="form-input dc-extra-qty" value="${e.quantity}" placeholder="数量" min="1" oninput="dcUpdateExtra(${i},'quantity',this.value)"></div>`;
-      html += `<div class="dcec-field"><span class="dcec-label">单价</span><input type="number" class="form-input dc-extra-price" value="${e.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateExtra(${i},'price',this.value)"></div>`;
-      html += '</div></div>';
-    } else {
-      html += '<div class="dc-extra-row">';
-      html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-extra-name" value="${esc(e.name)}" placeholder="项目名称" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateExtra(${i},'name',this.value);dcFillPrice(this,'extra',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
-      html += `<input type="number" class="form-input dc-extra-qty" value="${e.quantity}" placeholder="数量" min="1" oninput="dcUpdateExtra(${i},'quantity',this.value)">`;
-      html += `<input type="number" class="form-input dc-extra-price" value="${e.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateExtra(${i},'price',this.value)">`;
-      html += `<button type="button" class="btn btn-ghost btn-sm dc-extra-del" onclick="dcRemoveExtra(${i})">✕</button>`;
-      html += '</div>';
-    }
+    html += '<div class="dc-extra-row">';
+    html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-extra-name" value="${esc(e.name)}" placeholder="项目名称" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateExtra(${i},'name',this.value);dcFillPrice(this,'extra',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
+    html += `<input type="number" class="form-input dc-extra-qty" value="${e.quantity}" placeholder="数量" min="1" oninput="dcUpdateExtra(${i},'quantity',this.value)">`;
+    html += `<input type="number" class="form-input dc-extra-price" value="${e.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateExtra(${i},'price',this.value)">`;
+    html += `<button type="button" class="btn btn-ghost btn-sm dc-extra-del" onclick="dcRemoveExtra(${i})">✕</button>`;
+    html += '</div>';
   });
   c.innerHTML = html;
 }
@@ -3399,6 +3383,7 @@ function renderPriceList() {
   html += `<div class="search-box"><input type="text" placeholder="搜索制品/分类..." value="${esc(ps.search)}" oninput="onSearch('design-pricelist', this.value)"><span class="search-icon">🔍</span></div>`;
   html += '<div class="spacer"></div>';
   html += '<button class="btn btn-outline toolbar-eq" onclick="togglePriceListNotes()">📝 其他说明</button>';
+  html += '<button class="btn btn-outline toolbar-eq" onclick="openPriceListSort()">↕️ 调整排序</button>';
   html += '<button class="btn btn-primary" onclick="openAddForm(\'design-pricelist\')">+ 新增价目</button>';
   html += '</div>';
 
@@ -3439,8 +3424,6 @@ function renderPriceList() {
         html += '<span style="margin-left:8px;display:flex;gap:2px">';
         html += `<span class="btn-icon" style="font-size:12px;width:24px;height:24px" onclick="event.stopPropagation();openEditForm('design-pricelist','${r.id}')">✏️</span>`;
         html += `<span class="btn-icon danger" style="font-size:12px;width:24px;height:24px" onclick="event.stopPropagation();onDelete('design-pricelist','${r.id}')">🗑️</span>`;
-        html += `<span class="btn-icon" style="font-size:11px;width:22px;height:22px" title="上移" onclick="event.stopPropagation();priceItemMove('${r.id}',-1)">▲</span>`;
-        html += `<span class="btn-icon" style="font-size:11px;width:22px;height:22px" title="下移" onclick="event.stopPropagation();priceItemMove('${r.id}',1)">▼</span>`;
         html += '</span></div>';
       });
       if (desc) {
@@ -3454,7 +3437,7 @@ function renderPriceList() {
   body.innerHTML = html;
 }
 
-// v29: 价目表条目上下移动排序（同类目内交换 sort）
+// v29-fix: 价目表条目上下移动排序（同类目内交换 sort，不自动刷新页面）
 function priceItemMove(id, dir) {
   const list = DB.list('priceList');
   const item = list.find(r => r.id === id);
@@ -3468,7 +3451,42 @@ function priceItemMove(id, dir) {
   const a = group[idx], b = group[swapIdx];
   const t = a.sort; a.sort = b.sort; b.sort = t;
   DB.save('priceList', list);
-  renderPriceList();
+}
+
+// v29-fix: 独立弹窗调整价目表排序
+function openPriceListSort() {
+  const records = DB.list('priceList');
+  const groups = {};
+  records.forEach(r => { const cat = r.category || '未分类'; if (!groups[cat]) groups[cat] = []; groups[cat].push(r); });
+  Object.keys(groups).forEach(cat => {
+    groups[cat].forEach((r, i) => { if (typeof r.sort !== 'number') r.sort = i; });
+    groups[cat].sort((a, b) => (a.sort) - (b.sort));
+  });
+  DB.save('priceList', records);
+  const sortedCats = Object.keys(groups).sort((a, b) => {
+    const order = ['纸片类', '其他材质类', '线上&应援类', '加价项目'];
+    const ai = order.indexOf(a), bi = order.indexOf(b);
+    if (ai === -1 && bi === -1) return a.localeCompare(b, 'zh-CN');
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+  let html = '<div class="pricelist-sort-panel">';
+  sortedCats.forEach(cat => {
+    html += `<div class="pricelist-sort-category">${esc(cat)}</div>`;
+    groups[cat].forEach((r, i) => {
+      const isFirst = i === 0, isLast = i === groups[cat].length - 1;
+      html += '<div class="pricelist-sort-item">';
+      html += `<span class="sort-name">${esc(r.product || '未命名')}${r.defaultSize ? `<sub class="menu-size-sub">(${esc(r.defaultSize)})</sub>` : ''}</span>`;
+      html += `<span class="sort-price">¥${esc(r.price || 0)}</span>`;
+      html += `<span class="sort-btns">`;
+      html += `<button class="btn btn-ghost btn-sm" ${isFirst ? 'disabled' : ''} onclick="priceItemMove('${r.id}',-1);openPriceListSort();">▲</button>`;
+      html += `<button class="btn btn-ghost btn-sm" ${isLast ? 'disabled' : ''} onclick="priceItemMove('${r.id}',1);openPriceListSort();">▼</button>`;
+      html += '</span></div>';
+    });
+  });
+  html += '</div>';
+  openModal('调整价目排序', html, [{ label: '完成', class: 'btn-primary', action: () => { closeModal(); renderPriceList(); } }]);
 }
 
 function editPriceListNotes() {
