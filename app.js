@@ -357,7 +357,7 @@ function buildForm(fields, data = {}, moduleKey = '') {
         const v = typeof o === 'string' ? o : o.value;
         const l = typeof o === 'string' ? o : o.label;
         const isCustom = typeof o === 'object' && o.custom;
-        const delBtn = isCustom ? `<span class="btn-icon danger" style="margin-left:auto;font-size:10px;width:18px;height:18px;flex-shrink:0" onclick="event.stopPropagation();removeCustomOpt(this,'${moduleKey || ''}','${f.key}','${esc(v)}')">✕</span>` : '';
+        const delBtn = isCustom ? `<span class="custom-opt-del" onclick="event.stopPropagation();removeCustomOpt(this,'${moduleKey || ''}','${f.key}','${esc(v)}')">×</span>` : '';
         return `<label class="checkbox-item"><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}> ${esc(l)}${delBtn}</label>`;
       }).join('');
       let msHTML = `<div class="form-row"><label class="form-label">${esc(label)}</label><div class="checkbox-group" data-key="${f.key}"${singleAttr}>${optHTML}</div>`;
@@ -480,6 +480,10 @@ function addDynamicRow(key) {
   if (!field) return;
   const container = $('#' + key + '_rows');
   if (!container) return;
+  if (field.maxRows && container.children.length >= field.maxRows) {
+    Toast.info('最多' + field.maxRows + '条');
+    return;
+  }
   const row = document.createElement('div');
   row.className = 'dynamic-list-row';
   let html = '';
@@ -656,7 +660,7 @@ function addCustomMultiselectOpt(inputId, moduleKey, fieldKey, btn) {
     if (!existing) {
       const label = document.createElement('label');
       label.className = 'checkbox-item';
-      const delBtn = `<span class="btn-icon danger" style="margin-left:auto;font-size:10px;width:18px;height:18px;flex-shrink:0" onclick="event.stopPropagation();removeCustomOpt(this,'${moduleKey || ''}','${fieldKey}','${esc(val)}')">✕</span>`;
+      const delBtn = `<span class="custom-opt-del" onclick="event.stopPropagation();removeCustomOpt(this,'${moduleKey || ''}','${fieldKey}','${esc(val)}')">×</span>`;
       const singleAttr = group.dataset.single ? ' onclick="limitSingleCheckbox(this)"' : '';
       label.innerHTML = `<input type="checkbox" value="${esc(val)}" checked${singleAttr}> ${esc(val)}${delBtn}`;
       group.appendChild(label);
@@ -702,7 +706,7 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     dayRecords.forEach(r => { arrVal(r.platform).forEach(p => dayPlatforms.add(p)); });
     [...dayPlatforms].forEach(p => { topDots += `<span class="cal-dot" style="background:${PLATFORM_COLORS[p] || '#9DC8FF'}"></span>`; });
     // v29-fix6: 平台发布圆点紧跟日期数字（间距与接稿排期时间条一致）；开稿/截稿/同天放在日期格底部
-    const dayCount = dayRecords.length > 0 ? `<div class="cal-day-count">${dayRecords.length}条</div>` : '';
+    const dayCount = `<div class="cal-day-count">${dayRecords.length > 0 ? dayRecords.length + '条' : '&nbsp;'}</div>`;
     const dayComms = commissionRecords.filter(r => (r.startTime || '').startsWith(dateStr) || (r.deadline || '').startsWith(dateStr));
     const hasStart = dayComms.some(r => (r.startTime || '').startsWith(dateStr));
     const hasEnd = dayComms.some(r => (r.deadline || '').startsWith(dateStr));
@@ -1077,9 +1081,12 @@ MODULES['design-commission'] = {
     { key: 'balance', label: '尾款', type: 'readonly', hint: '自动计算' },
     { key: 'paymentStatus', label: '支付状态', type: 'multiselect', single: true, default: '定金', options: [{ value: '未付', label: '未付' }, { value: '定金', label: '定金' }, { value: '尾款', label: '尾款' }, { value: '全款', label: '全款' }] },
     { key: 'progress', label: '稿件进度', type: 'multiselect', single: true, default: '已接稿', options: [{ value: '待接稿', label: '待接稿' }, { value: '已接稿', label: '已接稿' }, { value: '修改中', label: '修改中' }, { value: '已交付', label: '已交付' }] },
-    { key: 'modifyType', label: '修改类型', type: 'text' },
-    { key: 'modifyCount', label: '修改次数', type: 'number' },
-    { key: 'modifyPrice', label: '修改价格', type: 'number', hint: '元/次' },
+    { key: 'modifications', label: '修改项目', type: 'dynamic-list', maxRows: 2, columns: [
+      { subkey: 'modifyType', label: '修改类型', type: 'text' },
+      { subkey: 'modifyCount', label: '次数', type: 'number' },
+      { subkey: 'modifyPrice', label: '价格（元/次）', type: 'number' },
+    ]},
+
     { key: 'amount', label: '最终金额', type: 'number', hint: '元（手动输入）' },
     { key: 'notes', label: '备注', type: 'textarea' },
   ],
