@@ -343,9 +343,23 @@ function buildForm(fields, data = {}, moduleKey = '') {
         const existingVals = opts.map(o => typeof o === 'string' ? o : o.value);
         customOpts.forEach(cv => { if (!existingVals.includes(cv)) { allOpts = allOpts.concat([{ value: cv, label: cv, custom: true }]); } });
       }
+      // 人物关系关系类型按 A-Z 排序（含自定义）
+      if (moduleKey === 'oc-relations' && f.key === 'relationType') {
+        allOpts = allOpts.slice().sort((a, b) => {
+          const av = typeof a === 'string' ? a : (a.label || a.value);
+          const bv = typeof b === 'string' ? b : (b.label || b.value);
+          return av.localeCompare(bv, 'zh-CN');
+        });
+      }
       const singleAttr = f.single ? ' data-single="true"' : '';
       const onClickAttr = f.single ? ' onclick="limitSingleCheckbox(this)"' : '';
-      const optHTML = allOpts.map(o => { const v = typeof o === 'string' ? o : o.value; const l = typeof o === 'string' ? o : o.label; return `<label class="checkbox-item"><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}> ${esc(l)}</label>`; }).join('');
+      const optHTML = allOpts.map(o => {
+        const v = typeof o === 'string' ? o : o.value;
+        const l = typeof o === 'string' ? o : o.label;
+        const isCustom = typeof o === 'object' && o.custom;
+        const delBtn = isCustom ? `<span class="btn-icon danger" style="margin-left:auto;font-size:10px;width:18px;height:18px;flex-shrink:0" onclick="event.stopPropagation();removeCustomOpt(this,'${moduleKey || ''}','${f.key}','${esc(v)}')">✕</span>` : '';
+        return `<label class="checkbox-item"><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}> ${esc(l)}${delBtn}</label>`;
+      }).join('');
       let msHTML = `<div class="form-row"><label class="form-label">${esc(label)}</label><div class="checkbox-group" data-key="${f.key}"${singleAttr}>${optHTML}</div>`;
       if (f.allowCustom) {
         const customId = 'customAdd_' + f.key + '_' + Math.random().toString(36).slice(2, 7);
@@ -638,17 +652,32 @@ function addCustomMultiselectOpt(inputId, moduleKey, fieldKey, btn) {
   // Add checkbox to the group
   const group = btn.closest('.form-row').querySelector('.checkbox-group');
   if (group) {
-    const existing = group.querySelector(`input[value="${val}"]`);
+    const existing = group.querySelector(`input[value="${esc(val)}"]`);
     if (!existing) {
       const label = document.createElement('label');
       label.className = 'checkbox-item';
-      label.innerHTML = `<input type="checkbox" value="${esc(val)}" checked> ${esc(val)}`;
+      const delBtn = `<span class="btn-icon danger" style="margin-left:auto;font-size:10px;width:18px;height:18px;flex-shrink:0" onclick="event.stopPropagation();removeCustomOpt(this,'${moduleKey || ''}','${fieldKey}','${esc(val)}')">✕</span>`;
+      const singleAttr = group.dataset.single ? ' onclick="limitSingleCheckbox(this)"' : '';
+      label.innerHTML = `<input type="checkbox" value="${esc(val)}" checked${singleAttr}> ${esc(val)}${delBtn}`;
       group.appendChild(label);
+      // 人物关系关系类型添加自定义后按 A-Z 重新排序
+      if (moduleKey === 'oc-relations' && fieldKey === 'relationType') {
+        const items = Array.from(group.querySelectorAll('.checkbox-item'));
+        items.sort((a, b) => (a.textContent.trim() || '').localeCompare(b.textContent.trim() || '', 'zh-CN'));
+        items.forEach(item => group.appendChild(item));
+      }
     } else {
       existing.checked = true;
     }
   }
   input.value = '';
+}
+function removeCustomOpt(btn, moduleKey, fieldKey, val) {
+  const dbKey = 'customOpts_' + moduleKey + '_' + fieldKey;
+  const customOpts = DB.get(dbKey, []).filter(v => v !== val);
+  DB.set(dbKey, customOpts);
+  const label = btn.closest('.checkbox-item');
+  if (label) label.remove();
 }
 
 /* ===== Calendar Component ===== */
@@ -734,7 +763,6 @@ function renderAnnualChart(records, dateField, opts = {}) {
       let total = data.reduce((s, arr) => s + arr[i], 0);
       const maxBarH = Math.max(...series.map((s, si) => (data[si][i] / max) * 100), 0);
       bars += '<div class="annual-chart-bar">';
-      if (total > 0) bars += `<span class="annual-chart-bar-value" style="bottom:calc(${maxBarH}% + 3px)">${total > 999 ? (total / 1000).toFixed(1) + 'k' : Math.round(total)}</span>`;
       bars += `<div style="display:flex;gap:1px;width:70%;height:100%;align-items:flex-end;justify-content:center">`;
       series.forEach((s, si) => {
         const v = data[si][i]; const h = (v / max) * 100;
@@ -1024,7 +1052,7 @@ MODULES['design-commission'] = {
     { key: 'acceptTime', label: '接稿时间', type: 'date', default: todayStr() },
     { key: 'startTime', label: '开稿时间', type: 'date' },
     { key: 'deadline', label: '截稿时间', type: 'date' },
-    { key: 'usageType', label: '稿件用途', type: 'multiselect', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
+    { key: 'usageType', label: '稿件用途', type: 'multiselect', single: true, default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'products', label: '制品列表', type: 'dynamic-list', columns: [
       { subkey: 'name', label: '制品', type: 'text', datalistId: 'comm_product_dl', priceLookup: 'product' },
       { subkey: 'patternId', label: '柄图标识', type: 'text' },
@@ -1047,9 +1075,11 @@ MODULES['design-commission'] = {
     { key: 'quoteAmount', label: '报价金额', type: 'number', hint: '元（手动输入）' },
     { key: 'deposit', label: '定金', type: 'readonly', hint: '自动计算（报价金额50%）' },
     { key: 'balance', label: '尾款', type: 'readonly', hint: '自动计算' },
-    { key: 'paymentStatus', label: '支付状态', type: 'multiselect', default: ['定金'], options: [{ value: '未付', label: '未付' }, { value: '定金', label: '定金' }, { value: '尾款', label: '尾款' }, { value: '全款', label: '全款' }] },
-    { key: 'progress', label: '稿件进度', type: 'multiselect', default: ['已接稿'], options: [{ value: '待接稿', label: '待接稿' }, { value: '已接稿', label: '已接稿' }, { value: '修改中', label: '修改中' }, { value: '已交付', label: '已交付' }] },
-    { key: 'modifyCount', label: '修改类型、次数、价格', type: 'number' },
+    { key: 'paymentStatus', label: '支付状态', type: 'multiselect', single: true, default: '定金', options: [{ value: '未付', label: '未付' }, { value: '定金', label: '定金' }, { value: '尾款', label: '尾款' }, { value: '全款', label: '全款' }] },
+    { key: 'progress', label: '稿件进度', type: 'multiselect', single: true, default: '已接稿', options: [{ value: '待接稿', label: '待接稿' }, { value: '已接稿', label: '已接稿' }, { value: '修改中', label: '修改中' }, { value: '已交付', label: '已交付' }] },
+    { key: 'modifyType', label: '修改类型', type: 'text' },
+    { key: 'modifyCount', label: '修改次数', type: 'number' },
+    { key: 'modifyPrice', label: '修改价格', type: 'number', hint: '元/次' },
     { key: 'amount', label: '最终金额', type: 'number', hint: '元（手动输入）' },
     { key: 'notes', label: '备注', type: 'textarea' },
   ],

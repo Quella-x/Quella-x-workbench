@@ -309,7 +309,7 @@ ul,li{list-style:none}
   display:flex;flex-direction:column;justify-content:flex-start;align-items:flex-start;
 }
 .cal-day .cal-dots{margin-top:4px;min-height:12px}
-.home-comm-tags{margin-top:auto;padding-bottom:2px}
+.home-comm-tags{margin-top:2px;padding-bottom:0}
 .cal-day:hover{background:var(--c-primary-bg)}
 .cal-day.other-month{opacity:.35}
 .cal-day.today{background:var(--c-primary-bg);font-weight:700}
@@ -337,7 +337,7 @@ ul,li{list-style:none}
 .cal-day-tag-text{font-size:10px;line-height:1;font-weight:600}
 .cal-day-tag-end{margin-left:auto}
 .cal-day-tag-more{font-size:9px;color:var(--c-text-muted)}
-.cal-day-count{font-size:10px;color:var(--c-text-muted);margin-top:2px}
+.cal-day-count{font-size:10px;color:var(--c-text-muted);margin-top:0}
 /* Calendar period bar (开稿~截稿时间段连续显示) */
 .cal-period-bar{
   position:absolute;left:1px;right:1px;opacity:.85;font-size:8px;color:#fff;
@@ -428,7 +428,7 @@ ul,li{list-style:none}
   background:var(--c-primary-bg);
   border-bottom:1px dashed var(--c-border);
 }
-.dynamic-list-header span{box-sizing:border-box;text-align:left;min-width:0;border:1px solid transparent;padding-left:9px}
+.dynamic-list-header span{box-sizing:border-box;text-align:left;min-width:0;border:1px solid transparent;padding-left:8px}
 .dynamic-list-header span:last-child{flex:0 0 40px;text-align:center;padding-left:0}
 /* === 标题列宽精确控制（v22 标准列宽） === */
 .dynamic-list-header span[data-subkey="name"]{flex:1.5 1 0;min-width:90px}
@@ -711,7 +711,7 @@ ul,li{list-style:none}
   .dynamic-list-row > button{flex-shrink:0;min-width:40px}
   /* v22 mobile 标题与内容列对齐 */
   .dynamic-list-header{font-size:10px;padding:6px 0;display:flex!important;gap:4px;background:transparent}
-  .dynamic-list-header span{padding-left:9px;box-sizing:border-box;text-align:left}
+  .dynamic-list-header span{padding-left:8px;box-sizing:border-box;text-align:left}
   /* v22 mobile: 全面隐藏所有 dynamic-list 标题（仅靠 placeholder 提示） */
   .dynamic-list-container[data-module] > .dynamic-list-header{display:none!important}
   /* 开团记录制品列表：mobile 下 isDisbanded/factory 须足够宽以容纳"是否流团"/"对应厂家"(下拉箭头占 26px) */
