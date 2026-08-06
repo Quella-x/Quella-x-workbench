@@ -192,7 +192,7 @@ ul,li{list-style:none}
 .toolbar .btn-primary{width:112px;justify-content:center}
 .view-toggle-top{
   display:flex;gap:8px;align-items:center;
-  margin-bottom:12px;
+  margin-bottom:12px;/* v27: nav→toolbar 12px，与价目表 toolbar→其他说明 8px 一起形成递减 */
 }
 .search-box{position:relative;display:flex;align-items:center}
 .search-box input{
@@ -341,16 +341,15 @@ ul,li{list-style:none}
 .modal-overlay{
   position:fixed;inset:0;background:rgba(0,0,0,.45);
   z-index:1000;display:flex;align-items:center;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity .2s;padding:16px;
+  opacity:0;pointer-events:none;padding:16px;
 }
-.modal-overlay.show{opacity:1;pointer-events:auto}
+.modal-overlay.show{opacity:1;pointer-events:auto;transition:opacity .15s}
 .modal{
   background:var(--c-card);border-radius:12px;
   width:600px;max-width:100%;max-height:90vh;
   display:flex;flex-direction:column;overflow:hidden;
-  box-shadow:var(--shadow-lg);transform:scale(.95);transition:transform .2s;
+  box-shadow:var(--shadow-lg);
 }
-.modal-overlay.show .modal{transform:scale(1)}
 .modal.lg{width:800px}
 .modal.xl{width:900px}
 .modal.sm{width:420px}
@@ -369,6 +368,9 @@ ul,li{list-style:none}
 
 /* ===== Forms ===== */
 .form-row{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.form-row.inline{flex-direction:row;gap:12px}
+/* v26: 动态列表容器所在的 form-row — 标签到容器的间距与普通 form-row label→input 一致 (6px) */
+.form-row:has(> .dynamic-list-container){gap:6px}
 .form-row.inline{flex-direction:row;gap:12px}
 .form-row.inline>*{flex:1}
 .form-label{font-size:13px;font-weight:500;color:var(--c-text)}
@@ -395,31 +397,113 @@ ul,li{list-style:none}
 .checkbox-item input{margin:0;cursor:pointer}
 .checkbox-item:has(input:checked){background:var(--c-primary-bg);border-color:var(--c-primary);color:var(--c-primary);font-weight:500}
 
-/* Dynamic list */
-.dynamic-list-container{border:1px solid var(--c-border);border-radius:var(--radius-sm);overflow:hidden}
+/* v22: Dynamic list — 标题与内容像素级左对齐终极方案
+   核心：container padding 全部归 0；header span 与 input 都用 padding-left:8px + box-sizing:border-box，
+   保证文字 X 坐标 = 容器起点 X + 8px，与 input 内容起点一致 */
+.dynamic-list-container{padding:8px;border:1px solid var(--c-border);border-radius:var(--radius-sm);overflow:visible}
+/* v28: hdr 标题行 — 背景色延伸至容器顶部 border 内边缘（margin-top:-8px 抵消 container 的 padding-top:8px），
+   左右仍然 margin-left/right:-8px。padding-top:4px 保留作为文字顶部呼吸空间。 */
 .dynamic-list-header{
-  display:flex;gap:4px;padding:8px;background:var(--c-primary-bg);
+  display:flex;gap:4px;
+  margin:-8px -8px 6px;padding:4px 0 4px;
   font-size:11px;font-weight:600;color:var(--c-text-muted);
+  background:var(--c-primary-bg);
+  border-bottom:1px dashed var(--c-border);
 }
-.dynamic-list-header span{flex:1;text-align:center}
-.dynamic-list-header span:last-child{flex:0 0 50px}
-.dynamic-list-rows{display:flex;flex-direction:column;gap:4px;padding:4px}
-.dynamic-list-row{
-  display:flex;gap:4px;align-items:center;
-}
-.dynamic-list-row .form-input{padding:6px 8px;font-size:12px}
-.dynamic-list-row .form-input.form-select,
-.dynamic-list-row select.form-input{
-  appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237f8c9a' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 8px center;background-size:10px 10px;
-  padding-right:24px;cursor:pointer;
-}
-.dynamic-list-row .combobox-wrapper{flex:1;min-width:0;position:relative}
+.dynamic-list-header > span{padding:0 8px;border:1px solid transparent}
+.dynamic-list-header span{box-sizing:border-box;text-align:left;min-width:0;border:1px solid transparent}
+/* === 标题列宽精确控制（v22 标准列宽） === */
+.dynamic-list-header span[data-subkey="name"]{flex:1.5 1 0;min-width:90px}
+.dynamic-list-header span[data-subkey="project"]{flex:1.5 1 0;min-width:90px}
+.dynamic-list-header span[data-subkey="patternId"]{flex:0 0 80px}
+.dynamic-list-header span[data-subkey="price"]{flex:0 0 60px}
+.dynamic-list-header span[data-subkey="size"]{flex:0 0 75px}
+.dynamic-list-header span[data-subkey="quantity"]{flex:0 0 60px}
+.dynamic-list-header span[data-subkey="salesCount"]{flex:0 0 80px}
+.dynamic-list-header span[data-subkey="isDisbanded"]{flex:0 0 90px}
+.dynamic-list-header span[data-subkey="factory"]{flex:1 1 0;min-width:80px}
+.dynamic-list-header span[data-subkey="type"],
+.dynamic-list-header span[data-subkey="amount"]{flex:0 0 70px}
+.dynamic-list-header span[data-subkey="sameModel"]{flex:0 0 110px}
+.dynamic-list-header span[data-subkey="date"]{flex:0 0 110px}
+.dynamic-list-header span[data-subkey="note"]{flex:1 1 0;min-width:80px}
+.dynamic-list-header span:last-child{flex:0 0 40px;text-align:center;padding-left:0}
+/* v22: 厂家记录合作记录——日期缩、备注 flex，操作/删除贴左对齐 */
+.dynamic-list-container[data-key="cooperationRecords"] .form-input[data-subkey="date"]{flex:0 0 120px}
+.dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-header span[data-subkey="date"]{flex:0 0 120px}
+.dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-header span[data-subkey="note"]{flex:1.2 1 0;min-width:80px}
+.dynamic-list-container[data-key="cooperationRecords"] .form-input[data-subkey="note"]{flex:1.2 1 0;min-width:80px}
+.dynamic-list-rows{display:flex;flex-direction:column;gap:4px;padding:0;margin-bottom:6px}
+.dynamic-list-row{display:flex;gap:4px;align-items:center}
+.dynamic-list-row .form-input{padding:6px 8px;font-size:12px;flex:1;min-width:0;box-sizing:border-box;text-align:left}
+.dynamic-list-container > .btn{display:flex;width:100%;vertical-align:bottom;margin:0 !important;align-self:stretch}
+/* === 内容列宽与 header 完全一致 === */
+.dynamic-list-row .form-input[data-subkey="name"]{flex:1.5 1 0;min-width:90px}
+.dynamic-list-row .form-input[data-subkey="project"]{flex:1.5 1 0;min-width:90px}
+.dynamic-list-row .form-input[data-subkey="patternId"]{flex:0 0 80px}
+.dynamic-list-row .form-input[data-subkey="price"]{flex:0 0 60px}
+.dynamic-list-row .form-input[data-subkey="size"]{flex:0 0 75px}
+.dynamic-list-row .form-input[data-subkey="quantity"]{flex:0 0 60px}
+.dynamic-list-row .form-input[data-subkey="salesCount"]{flex:0 0 80px}
+.dynamic-list-row .form-input[data-subkey="isDisbanded"]{flex:0 0 70px}
+.dynamic-list-row .form-input[data-subkey="factory"]{flex:1 1 0;min-width:80px}
+.dynamic-list-row .form-input[data-subkey="type"]{flex:0 0 70px}
+.dynamic-list-row .form-input[data-subkey="amount"]{flex:0 0 70px}
+.dynamic-list-row .form-input[data-subkey="sameModel"]{flex:0 0 110px}
+.dynamic-list-row .form-input[data-subkey="date"]{flex:0 0 110px}
+.dynamic-list-row .form-input[data-subkey="note"]{flex:1 1 0;min-width:80px}
+/* v22: 接稿排期 extraItems 加价项目——项目名称缩短、数量加宽；提示词与柄图标识同款（不加居中） */
+.dynamic-list-container[data-key="extraItems"] .form-input[data-subkey="name"]{flex:1 1 0;min-width:80px}
+.dynamic-list-container[data-key="extraItems"] .form-input[data-subkey="quantity"]{flex:0 0 65px}
+.dynamic-list-container[data-key="extraItems"] .form-input[data-subkey="price"]{flex:0 0 70px}
+.dynamic-list-container[data-key="extraItems"] .dynamic-list-header span[data-subkey="name"]{flex:1 1 0;min-width:80px}
+.dynamic-list-container[data-key="extraItems"] .dynamic-list-header span[data-subkey="quantity"]{flex:0 0 65px}
+.dynamic-list-container[data-key="extraItems"] .dynamic-list-header span[data-subkey="price"]{flex:0 0 70px}
+/* v22: 开团记录售后记录——售后数量加宽（确保 mobile 提示词完整）、制品名称缩短 */
+.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="name"]{flex:1 1 0;min-width:60px}
+.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="quantity"]{flex:0 0 80px}
+.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="amount"]{flex:0 0 60px}
+.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="type"]{flex:0 0 95px}
+.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="name"]{flex:1 1 0;min-width:60px}
+.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="quantity"]{flex:0 0 80px}
+.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="amount"]{flex:0 0 60px}
+.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="type"]{flex:0 0 95px}
+.dynamic-list-row .combobox-wrapper{flex:1.5 1 0!important;min-width:90px!important;position:relative}
+/* 同模/补偿方式 下拉框列宽必须与对应 header span 完全一致，否则整列错位 */
+.dynamic-list-row .combobox-wrapper[data-subkey="sameModel"]{flex:0 0 110px!important;min-width:90px!important}
+.dynamic-list-row .combobox-wrapper[data-subkey="type"]{flex:0 0 70px!important;min-width:60px!important}
+/* 开团记录售后「补偿方式」列宽必须与 afterSales 专属 header(95px) 一致，否则整列错位 25px */
+.dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="type"]{flex:0 0 95px!important;min-width:80px!important}
+/* 开团记录制品列表：factory/isDisbanded 为 datalist 文本(渲染成 combobox)，列宽须与对应 header 完全一致
+   factory header=1 1 0(min80)、isDisbanded header=0 0 90px(含下拉箭头 26px 后仍能显示"是否流团") */
+.dynamic-list-container[data-key="products"] .combobox-wrapper[data-subkey="factory"]{flex:1 1 0!important;min-width:80px!important}
+.dynamic-list-container[data-key="products"] .combobox-wrapper[data-subkey="isDisbanded"]{flex:0 0 90px!important;min-width:0!important}
 .dynamic-list-row .combobox-input{padding:6px 26px 6px 8px!important;font-size:12px}
 .dynamic-list-row .combobox-toggle{right:2px;width:18px;font-size:10px}
-.dynamic-list-row button{flex:0 0 50px;padding:6px;font-size:11px}
-.dynamic-list-container > .btn{margin:8px;width:calc(100% - 16px)}
+.dynamic-list-row button{
+  flex:0 0 40px;padding:0;font-size:14px;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:transparent;color:var(--c-text-light);
+  border:none;border-radius:6px;height:30px;
+  transition:background .15s;
+}
+.dynamic-list-row button:hover{background:#fff0f0;color:var(--c-danger)}
+/* v25: 旧规则 .dynamic-list-container > .btn{margin:8px;width:calc(100% - 16px)} 已合并到 line 436 统一规则 */
+/* v19: 开团记录售后记录——隐藏标题与外框，视觉更轻 */
+.form-label-hide{display:none!important}
+.dynamic-list-container.dl-minimal{border:none;background:transparent}
+.dynamic-list-container.dl-minimal > .dynamic-list-header.dlh-hide{display:none}
+.dynamic-list-container.dl-minimal > .dynamic-list-rows{padding:0}
+/* v17: dynamic-list 内 multiselect 按钮组 */
+.dynamic-multi-sel{display:flex;flex-wrap:wrap;gap:4px;flex:1;min-width:0}
+.dynamic-multi-sel .ms-item{
+  display:inline-flex;align-items:center;gap:3px;padding:4px 8px;
+  font-size:11px;background:var(--c-bg);border:1px solid var(--c-border);
+  border-radius:12px;cursor:pointer;color:var(--c-text-muted);
+  transition:all .15s;white-space:nowrap;
+}
+.dynamic-multi-sel .ms-item:has(input:checked){background:var(--c-primary-bg);border-color:var(--c-primary);color:var(--c-primary);font-weight:500}
+.dynamic-multi-sel .ms-item input{accent-color:var(--c-primary);width:11px;height:11px;margin:0;cursor:pointer}
 
 /* Image upload */
 .img-upload-area{
@@ -577,7 +661,7 @@ ul,li{list-style:none}
   .sidebar-overlay{inset:0}
   .toggle-btn{display:none}
   .main-header .mobile-toggle{display:flex}
-  .main-body{padding:12px}
+  .main-body{padding:16px}
   .calc-grid{grid-template-columns:1fr}
   .form-row.inline{flex-direction:column;gap:0}
   .search-box input{width:160px}
@@ -586,8 +670,33 @@ ul,li{list-style:none}
   .modal{width:100%;max-height:95vh;border-radius:0}
   .modal-overlay{padding:0}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
-  .dynamic-list-row{flex-wrap:wrap}
-  .dynamic-list-row .form-input{min-width:80px}
+  .dynamic-list-row{flex-wrap:wrap;gap:4px}
+  .dynamic-list-row .form-input{min-width:60px}
+  /* v22 mobile 列宽（与 header 保持一致） */
+  .dynamic-list-row .form-input[data-subkey="name"]{flex:1.5 1 90px}
+  .dynamic-list-row .form-input[data-subkey="project"]{flex:1.5 1 90px}
+  .dynamic-list-row .form-input[data-subkey="patternId"]{flex:0 0 72px}
+  .dynamic-list-row .form-input[data-subkey="price"]{flex:0 0 55px}
+  .dynamic-list-row .form-input[data-subkey="size"]{flex:0 0 70px}
+  .dynamic-list-row .form-input[data-subkey="quantity"]{flex:0 0 60px}
+  .dynamic-list-row .form-input[data-subkey="salesCount"]{flex:0 0 80px}
+  .dynamic-list-row .form-input[data-subkey="isDisbanded"]{flex:0 0 70px}
+  .dynamic-list-row .form-input[data-subkey="factory"]{flex:1 1 0;min-width:80px}
+  .dynamic-list-row .form-input[data-subkey="type"]{flex:0 0 70px}
+  .dynamic-list-row .form-input[data-subkey="amount"]{flex:0 0 60px}
+  .dynamic-list-row .form-input[data-subkey="sameModel"]{flex:0 0 110px}
+  .dynamic-list-row .form-input[data-subkey="date"]{flex:0 0 100px}
+  .dynamic-list-row .form-input[data-subkey="note"]{flex:1 1 0;min-width:60px}
+  .dynamic-list-row .combobox-wrapper{min-width:80px;flex:1 1 80px}
+  .dynamic-list-row > button{flex-shrink:0;min-width:40px}
+  /* v22 mobile 标题与内容列对齐 */
+  .dynamic-list-header{font-size:10px;padding:6px 0;display:flex!important;gap:4px;background:transparent}
+  .dynamic-list-header span{padding-left:8px;box-sizing:border-box;text-align:left}
+  /* v22 mobile: 全面隐藏所有 dynamic-list 标题（仅靠 placeholder 提示） */
+  .dynamic-list-container[data-module] > .dynamic-list-header{display:none!important}
+  /* 开团记录制品列表：mobile 下 isDisbanded/factory 须足够宽以容纳"是否流团"/"对应厂家"(下拉箭头占 26px) */
+  .dynamic-list-container[data-key="products"] .combobox-wrapper[data-subkey="isDisbanded"]{flex:0 0 105px!important;min-width:100px!important}
+  .dynamic-list-container[data-key="products"] .combobox-wrapper[data-subkey="factory"]{flex:0 0 95px!important;min-width:90px!important}
 }
 @media(max-width:480px){
   .stats-grid{grid-template-columns:1fr}
@@ -795,7 +904,7 @@ ul,li{list-style:none}
 .pricelist-menu{
   background:#fff;border:1px dashed var(--c-border);
   border-radius:4px;padding:20px;
-  max-width:420px;margin:0 auto;
+  max-width:420px;margin:16px auto 0;
 }
 .pricelist-menu-header{
   text-align:center;font-size:18px;font-weight:700;
@@ -911,7 +1020,7 @@ ul,li{list-style:none}
 .pagination .btn:disabled{opacity:.4;cursor:not-allowed}
 
 /* ===== Custom Combobox Dropdown ===== */
-.combobox-wrapper{position:relative}
+.combobox-wrapper{position:relative;display:inline-block;width:100%}
 .combobox-input{padding-right:30px!important}
 .combobox-toggle{
   position:absolute;right:8px;top:50%;transform:translateY(-50%);
@@ -923,7 +1032,7 @@ ul,li{list-style:none}
   display:none;position:absolute;top:100%;left:0;right:0;
   max-height:200px;overflow-y:auto;background:#fff;
   border:1px solid var(--c-border);border-radius:var(--radius-sm);
-  box-shadow:var(--shadow);z-index:9999;margin-top:2px;
+  box-shadow:var(--shadow);z-index:9999;min-width:140px;margin-top:2px;
 }
 .combobox-dropdown.show{display:block}
 .combobox-option{
@@ -942,6 +1051,27 @@ ul,li{list-style:none}
   .pricelist-menu{max-width:100%}
   .calc-page-grid{grid-template-columns:1fr !important}
   .calc-receipt-col{position:static !important}
+  /* v22: mobile dc-product —— 标题与内容左对齐终极版 */
+  .dc-product-header{grid-template-columns:1fr 72px 55px 60px 80px 40px!important;gap:4px!important;font-size:10px;padding:0;display:grid!important;text-align:left}
+  .dc-product-header > span{box-sizing:border-box;padding-left:6px}
+  .dc-product-header > span:last-child{padding-left:0}
+  .dc-product-row{grid-template-columns:1fr 72px 55px 60px 80px 40px!important;gap:4px!important;padding:0}
+  .dc-product-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
+  .dc-product-row .dc-prod-name{font-size:12px}
+  .dc-product-row .dc-prod-check{font-size:10px;gap:0;justify-content:center}
+  .dc-product-row .dc-prod-check input{width:12px;height:12px}
+  .dc-product-row .dc-prod-del{width:28px;height:28px;font-size:12px;justify-self:end}
+  /* v22: mobile 加价项目——同对齐规则 */
+  .dc-extra-header{grid-template-columns:1.2fr 50px 65px 40px!important;gap:4px!important;font-size:10px;padding:0;display:grid!important;text-align:left}
+  .dc-extra-header > span{box-sizing:border-box;padding-left:6px}
+  .dc-extra-header > span:last-child{padding-left:0}
+  .dc-extra-row{grid-template-columns:1.2fr 50px 65px 40px!important;gap:4px!important;padding:0}
+  .dc-extra-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
+  .dc-extra-del{width:28px;height:28px;font-size:12px;justify-self:end}
+  /* 下拉框箭头需 30px 右内边距，避免被 ▼ 遮挡（覆盖上面 form-input 简写的 8px） */
+  .dc-product-row .combobox-input,.dc-extra-row .combobox-input{padding-right:30px!important}
+  /* v16: combobox dropdown scrollable on mobile */
+  .combobox-dropdown{max-height:160px;-webkit-overflow-scrolling:touch;min-width:140px}
 }
 
 /* ===== Design Quote Calculator ===== */
@@ -957,17 +1087,25 @@ ul,li{list-style:none}
 .calc-mode-tab:last-child{border-radius:0 6px 6px 0;border-left:none}
 .calc-mode-tab.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary)}
 .calc-import-select{width:100%;margin-top:4px}
-.dc-product-header{display:grid;grid-template-columns:1fr 70px 50px 70px 44px 26px;gap:5px;font-size:11px;color:var(--c-text-muted);margin-bottom:4px;padding:0 2px}
-.dc-product-row{display:grid;grid-template-columns:1fr 70px 50px 70px 44px 26px;gap:5px;margin-bottom:6px;align-items:center}
-.dc-product-row .form-input{padding:6px 8px;font-size:13px}
+/* v22: 报价计算制品列表——header 与 row padding/box-sizing 完全统一，标题与内容像素对齐 */
+.dc-product-header{display:grid;grid-template-columns:minmax(180px,1.6fr) 90px 60px 70px 90px 40px;gap:6px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
+.dc-product-header > span{box-sizing:border-box;padding-left:8px}
+.dc-product-header > span:last-child{padding-left:0}
+.dc-product-row{display:grid;grid-template-columns:minmax(180px,1.6fr) 90px 60px 70px 90px 40px;gap:6px;margin-bottom:6px;align-items:center;padding:0}
+.dc-product-row .form-input{padding:7px 8px;font-size:13px;box-sizing:border-box;text-align:left}
 .dc-product-row .combobox-wrapper,.dc-extra-row .combobox-wrapper{min-width:0;width:100%}
-.dc-prod-check{display:flex;align-items:center;justify-content:center;gap:2px;font-size:11px;cursor:pointer;color:var(--c-text-muted)}
+.dc-prod-check{display:flex;align-items:center;justify-content:flex-start;gap:3px;font-size:11px;cursor:pointer;color:var(--c-text-muted);white-space:nowrap}
 .dc-prod-check input{accent-color:var(--c-primary);width:14px;height:14px}
-.dc-prod-del{width:26px;height:26px;padding:0;font-size:14px;display:flex;align-items:center;justify-content:center}
-.dc-extra-header{display:grid;grid-template-columns:1fr 60px 80px 28px;gap:6px;font-size:11px;color:var(--c-text-muted);margin-bottom:4px;padding:0 2px}
-.dc-extra-row{display:grid;grid-template-columns:1fr 60px 80px 28px;gap:6px;margin-bottom:6px;align-items:center}
-.dc-extra-row .form-input{padding:6px 8px;font-size:13px}
-.dc-extra-del{width:26px;height:26px;padding:0;font-size:14px;display:flex;align-items:center;justify-content:center}
+.dc-prod-del{width:32px;height:28px;padding:0;font-size:14px;display:flex;align-items:center;justify-content:center;justify-self:end;background:transparent;color:var(--c-text-light);border:none;border-radius:6px;transition:all .15s}
+.dc-prod-del:hover{background:#fff0f0;color:var(--c-danger)}
+/* v22: 加价项目——与制品列表同款对齐规则：header 与 row padding/gap 一致 */
+.dc-extra-header{display:grid;grid-template-columns:minmax(140px,1.3fr) 65px 70px 40px;gap:6px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
+.dc-extra-header > span{box-sizing:border-box;padding-left:8px}
+.dc-extra-header > span:last-child{padding-left:0}
+.dc-extra-row{display:grid;grid-template-columns:minmax(140px,1.3fr) 65px 70px 40px;gap:6px;margin-bottom:6px;align-items:center;padding:0}
+.dc-extra-row .form-input{padding:7px 8px;font-size:13px;box-sizing:border-box;text-align:left}
+.dc-extra-del{width:32px;height:28px;padding:0;font-size:14px;display:flex;align-items:center;justify-content:center;justify-self:end;background:transparent;color:var(--c-text-light);border:none;border-radius:6px;transition:all .15s}
+.dc-extra-del:hover{background:#fff0f0;color:var(--c-danger)}
 .calc-rate-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--c-border-light)}
 .calc-rate-row:last-child{border-bottom:none}
 .calc-rate-label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--c-text);cursor:pointer}
@@ -978,16 +1116,60 @@ ul,li{list-style:none}
 .calc-sub-area.disabled{opacity:.4;pointer-events:none}
 .calc-receipt-col{position:sticky;top:12px;display:flex;flex-direction:column;gap:12px}
 .calc-receipt{background:linear-gradient(135deg,var(--c-primary-bg),#f8fbff);border:1px solid var(--c-primary-light);border-radius:10px;padding:16px}
-.dc-r-title{font-size:15px;font-weight:700;color:var(--c-primary);margin-bottom:12px;text-align:center}
-.dc-r-section{margin-bottom:12px;padding-bottom:8px;border-bottom:1px dashed var(--c-border)}
-.dc-r-sub{font-size:11px;font-weight:600;color:var(--c-text-muted);margin-bottom:4px}
-.dc-rr{display:flex;justify-content:space-between;font-size:13px;padding:2px 0;color:var(--c-text)}
-.dc-rr.total{font-weight:600;border-top:1px solid var(--c-border-light);margin-top:4px;padding-top:4px}
-.dc-rr.sub{font-size:11px;color:var(--c-text-muted);padding:0 0 1px}
+.dc-r-title{font-size:18px;font-weight:700;color:var(--c-text);margin-bottom:12px;text-align:center}
+/* v26: 实时报价分隔线归一
+   - .dc-r-section 不再画 bB（避免与下方 .dc-rr.total bT 紧贴形成双线）
+   - 仅用 padding-bottom + margin-bottom 作为下间距
+   - 倍率后价格改回普通 dc-rr.total（与制品合计/基础总金额 同款，仅一条 bT 分隔线）
+*/
+.dc-r-section{margin-bottom:8px;padding-bottom:6px}
+.dc-r-section + .dc-r-section{margin-top:4px}
+/* v23: dc-r-sub（柄图：1/2、加价项目、倍率计算 等小节标题）padding-left:12px —— 与 .dc-rr 行文字左边缘对齐（总价左文字 x 一致） */
+.dc-r-sub{font-size:11px;font-weight:600;color:var(--c-text-muted);margin-bottom:4px;padding-left:12px}
+/* v22: 实时报价小计/优惠——分割线与 dc-r-section 同款虚线（统一视觉） */
+.dc-r-section .dc-r-divider{height:0;border-top:1px dashed var(--c-border);margin:8px 0 6px}
+/* v26: 实时报价小计/优惠——柄图小计和SET优惠信息改小字号 (11px)，保持 muted 灰色 */
+.dc-r-section .dc-r-subtotal{color:var(--c-text-muted);font-weight:600;font-size:11px;padding:3px 0;text-align:left}
+.dc-rr{display:flex;justify-content:space-between;font-size:13px;padding:2px 12px;color:var(--c-text)}
+/* v21: 尾部数字（右侧 ¥金额 / ×倍率）加粗 */
+.dc-rr > span:last-child{font-weight:600}
+/* v28: 默认 total 上面分割线——与折后小计等 total 行字体同色（var(--c-text)），1px 实线 */
+.dc-rr.total{font-weight:600;border-top:1px solid var(--c-text);margin-top:4px;padding-top:4px}
+/* v30: 制品序号——两字宽、与制品名间隔 8px（近一点）、字号字重与制品文字统一（继承 13px/normal、色 var(--c-text)） */
+.dc-r-no{display:inline-block;min-width:20px;margin-right:8px;color:var(--c-text);font-weight:600;font-style:normal}
+/* v31: 含序号的 span（序号+制品名）加粗，与右侧 ¥金额 字重一致 */
+.dc-rr > span:has(> .dc-r-no){font-weight:600}
+/* v37: 总价——纯色高亮条；改用 display:table + table-cell，table-cell 的 vertical-align:middle 是真正的几何中点对齐（v35 用 inline-block+vertical-align:middle 偏了 9.5px），html2canvas 完全支持 table；左右贴边用 text-align */
+.dc-rr.grand-bar{
+  background:var(--c-primary);color:#fff;
+  border-radius:8px;
+  margin:8px 0 0;border-top:none;
+  padding:0 12px;
+  height:32px;
+  display:table;width:100%;
+  box-sizing:border-box;
+  table-layout:fixed;
+  font-size:13px;font-weight:700;
+}
+.dc-rr.grand-bar > span{
+  display:table-cell;
+  vertical-align:middle;
+  font-size:13px;
+  line-height:1;
+  font-weight:700;
+  white-space:nowrap;
+}
+.dc-rr.grand-bar > span:first-child{text-align:left}
+.dc-rr.grand-bar > span:last-child{text-align:right}
+/* v22: 总价 section 与其他 section 一致间距（14px）—— 去掉之前的收紧规则 */
+/* v30: 同模明细行（改人/改色...）左对齐制品文字（12 行内边距 + 20 序号宽 + 8 间距 = 40px） */
+.dc-rr.sub{font-size:11px;color:var(--c-text-muted);padding:0 12px 1px 40px}
 .dc-r-final{background:var(--c-primary);color:#fff;border-radius:8px;padding:12px;text-align:center;margin-top:4px}
 .dc-r-final-label{font-size:12px;opacity:.9}
 .dc-r-final-val{font-size:24px;font-weight:700;margin-top:2px}
 .calc-actions{display:flex;gap:8px}
+/* v37: 实时报价收据底部署名——字号 11px（与 dc-r-sub/改人 小字同号），色与 .dc-rr 同（var(--c-text)），居中；与上下模块间距 8px 略小 */
+.dc-r-footer{text-align:center;font-size:10px;color:var(--c-text);padding:8px 12px 2px;margin-top:6px}
 
 /* ===== v15: Deposit/Balance big blocks (浅蓝/白统一底色) ===== */
 .dc-r-deposit-balance{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}

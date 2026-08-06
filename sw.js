@@ -1,5 +1,5 @@
 /* Service Worker — 小筱工作台 PWA 离线壳 */
-const CACHE = 'xiao-workbench-v2';
+const CACHE = 'xiao-workbench-v38';
 const ASSETS = [
   './',
   'index.html',
@@ -50,12 +50,12 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // 同源静态资源：缓存优先，同时后台更新
+  // 同源静态资源：网络优先，失败回退缓存（确保预览始终拿到最新版本）
   e.respondWith(
-    caches.match(req).then(r => r || fetch(req).then(res => {
+    fetch(req).then(res => {
       const copy = res.clone();
       caches.open(CACHE).then(c => c.put(req, copy));
       return res;
-    }))
+    }).catch(() => caches.match(req))
   );
 });

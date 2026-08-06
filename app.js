@@ -12,6 +12,8 @@ const arrVal = (val) => Array.isArray(val) ? val : (val ? [val] : []);
 const fmtDate = (d) => { if (!d) return ''; try { const dt = new Date(d); if (isNaN(dt)) return d; return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0'); } catch { return d; } };
 const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const thisMonthStr = () => todayStr().slice(0, 7);
+/* v32: 含时间的文件名戳（YYYY-MM-DD_HH-MM-SS），用于导出报价图避免重名 */
+const nowStamp = () => { const d = new Date(); const p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + '_' + p(d.getHours()) + '-' + p(d.getMinutes()) + '-' + p(d.getSeconds()); };
 
 /* ===== DB Layer (localStorage) ===== */
 const DB = {
@@ -333,7 +335,17 @@ function buildForm(fields, data = {}, moduleKey = '') {
       html += `<div class="form-row"><label class="form-label">${esc(label)}</label><input type="text" class="form-input" data-key="${f.key}" value="${esc(valStr)}" readonly style="background:var(--c-primary-bg)">${f.hint ? `<span class="form-hint">${esc(f.hint)}</span>` : ''}</div>`;
     } else {
       const type = f.type || 'text';
-      html += `<div class="form-row"><label class="form-label">${esc(label)}</label><input type="${type}" class="form-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(f.placeholder || '')}">${f.hint ? `<span class="form-hint">${esc(f.hint)}</span>` : ''}</div>`;
+      // v16: 日期字段除默认当天外，增加"请选择日期"提示词
+      let hint = f.hint || '';
+      let placeholder = f.placeholder || '';
+      if (type === 'date') {
+        const isTodayDefault = f.default === todayStr();
+        if (!isTodayDefault && !valStr) {
+          if (!hint) hint = '请选择日期';
+          placeholder = '请选择日期';
+        }
+      }
+      html += `<div class="form-row"><label class="form-label">${esc(label)}</label><input type="${type}" class="form-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(placeholder)}">${hint ? `<span class="form-hint">${esc(hint)}</span>` : ''}</div>`;
     }
   });
   return html;
@@ -354,7 +366,7 @@ function buildDynamicCombobox(col, value) {
   }).join('');
   const priceLookupAttr = col.priceLookup ? `fillDynamicPrice(this,'${col.priceLookup}')` : '';
   const oninputStr = `filterComboboxDropdown('${cbId}',this.value);${priceLookupAttr}`;
-  return `<div class="combobox-wrapper" style="min-width:0;flex:1"><input type="text" class="form-input combobox-input" data-subkey="${col.subkey}" value="${esc(value)}" placeholder="${esc(col.label)}" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="${oninputStr}"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
+  return `<div class="combobox-wrapper" data-subkey="${col.subkey}" style="min-width:0;flex:1"><input type="text" class="form-input combobox-input" data-subkey="${col.subkey}" value="${esc(value)}" placeholder="${esc(col.label)}" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="${oninputStr}"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
 }
 
 function buildDynamicListHTML(field, data, moduleKey) {
@@ -363,10 +375,11 @@ function buildDynamicListHTML(field, data, moduleKey) {
   const columns = field.columns || [];
   _dynamicConfigs[field.key] = field;
   let html = `<div class="form-row"><label class="form-label">${esc(label)}</label>`;
-  html += `<div class="dynamic-list-container" data-key="${field.key}">`;
+  const containerCls = 'dynamic-list-container';
+  html += `<div class="${containerCls}" data-key="${field.key}" data-module="${esc(moduleKey)}">`;
   if (columns.length > 1) {
     html += `<div class="dynamic-list-header">`;
-    columns.forEach(col => { html += `<span>${esc(col.label)}</span>`; });
+    columns.forEach(col => { html += `<span data-subkey="${esc(col.subkey)}">${esc(col.label)}</span>`; });
     html += `<span>操作</span></div>`;
   }
   html += `<div class="dynamic-list-rows" id="${field.key}_rows">`;
@@ -374,8 +387,19 @@ function buildDynamicListHTML(field, data, moduleKey) {
   rows.forEach(item => {
     html += `<div class="dynamic-list-row">`;
     columns.forEach(col => {
-      const v = item[col.subkey] || '';
-      if (col.type === 'select' && col.options) {
+      const v = item[col.subkey] !== undefined ? item[col.subkey] : (col.default !== undefined ? col.default : '');
+      if (Array.isArray(v)) v = v[0] !== undefined ? v[0] : '';
+      if (col.type === 'multiselect' && col.options) {
+        const selected = Array.isArray(v) ? v : (v ? String(v).split(',') : []);
+        const cbId = 'dymc_' + col.subkey + '_' + Math.random().toString(36).slice(2,6);
+        const optsHTML = col.options.map(o => {
+          const ov = typeof o === 'string' ? o : o.value;
+          const ol = typeof o === 'string' ? o : o.label;
+          const isSel = selected.includes(ov);
+          return `<label class="ms-item"><input type="checkbox" value="${esc(ov)}"${isSel ? ' checked' : ''} onchange="dcUpdateMultiSel('${cbId}',this)">${esc(ol)}</label>`;
+        }).join('');
+        html += `<div class="dynamic-multi-sel" id="${cbId}" data-subkey="${col.subkey}">${optsHTML}</div>`;
+      } else if (col.type === 'select' && col.options) {
         const opts = col.options.map(o => {
           const ov = typeof o === 'string' ? o : o.value;
           const ol = typeof o === 'string' ? o : (o.label || o.value);
@@ -386,7 +410,7 @@ function buildDynamicListHTML(field, data, moduleKey) {
         const hasDefault = col.options.some(o => typeof o === 'object' && o.default);
         const emptyOpt = hasDefault ? '' : `<option value="">-</option>`;
         html += `<select class="form-input" data-subkey="${col.subkey}">${emptyOpt}${opts}</select>`;
-      } else if (col.options && col.datalistId) {
+      } else if (col.type === 'combobox' || (col.options && col.type !== 'select')) {
         html += buildDynamicCombobox(col, v);
       } else {
         const inputType = col.type || 'text';
@@ -411,7 +435,18 @@ function addDynamicRow(key) {
   row.className = 'dynamic-list-row';
   let html = '';
   (field.columns || []).forEach(col => {
-    if (col.type === 'select' && col.options) {
+    if (col.type === 'multiselect' && col.options) {
+      const cbId = 'dymc_' + col.subkey + '_' + Math.random().toString(36).slice(2,6);
+      // v19: 优先用 col.default 数组（更通用），其次用 o.default 单选项默认
+      const colDef = Array.isArray(col.default) ? col.default : null;
+      const optsHTML = col.options.map(o => {
+        const ov = typeof o === 'string' ? o : o.value;
+        const ol = typeof o === 'string' ? o : o.label;
+        const isDef = (colDef && colDef.includes(ov)) || (typeof o === 'object' && o.default);
+        return `<label class="ms-item"><input type="checkbox" value="${esc(ov)}"${isDef ? ' checked' : ''} onchange="dcUpdateMultiSel('${cbId}',this)">${esc(ol)}</label>`;
+      }).join('');
+      html += `<div class="dynamic-multi-sel" id="${cbId}" data-subkey="${col.subkey}">${optsHTML}</div>`;
+    } else if (col.type === 'select' && col.options) {
       const opts = col.options.map(o => {
         const ov = typeof o === 'string' ? o : o.value;
         const ol = typeof o === 'string' ? o : (o.label || o.value);
@@ -421,17 +456,22 @@ function addDynamicRow(key) {
       const hasDefault = col.options.some(o => typeof o === 'object' && o.default);
       const emptyOpt = hasDefault ? '' : `<option value="">-</option>`;
       html += `<select class="form-input" data-subkey="${col.subkey}">${emptyOpt}${opts}</select>`;
-    } else if (col.options && col.datalistId) {
-      html += buildDynamicCombobox(col, '');
+    } else if (col.type === 'combobox' || (col.options && col.type !== 'select')) {
+      const def = col.default !== undefined ? col.default : '';
+      html += buildDynamicCombobox(col, def);
     } else {
       const inputType = col.type || 'text';
-      html += `<input type="${inputType}" class="form-input" data-subkey="${col.subkey}" value="" placeholder="${esc(col.label)}">`;
+      const defVal = col.default !== undefined ? col.default : '';
+      html += `<input type="${inputType}" class="form-input" data-subkey="${col.subkey}" value="${esc(defVal)}" placeholder="${esc(col.label)}">`;
     }
   });
   html += `<button type="button" class="btn btn-ghost btn-sm" onclick="this.parentElement.remove()">删除</button>`;
   row.innerHTML = html;
   container.appendChild(row);
 }
+
+/* v17: 多选 checkbox 同步到隐藏 input，便于 readForm 读取 */
+function dcUpdateMultiSel(cbId, el) { /* no-op，readForm 直接从 checkbox 收集 */ }
 
 /* ===== Dynamic List Price Lookup (v9: 制品/加价项目价格从价目表自动导入) ===== */
 const PRODUCT_CATEGORIES = ['纸片类', '其他材质类', '线上&应援类'];
@@ -450,9 +490,11 @@ function fillDynamicPrice(input, lookupType) {
   if (item) {
     const priceInput = row.querySelector('[data-subkey="price"]');
     if (priceInput) priceInput.value = item.price || 0;
-    if (item.defaultSize) {
+    // v19: 尺寸自动识别——不仅 defaultSize，size/specs 字段也兼容
+    const sizeVal = item.defaultSize || item.size || (item.specs && item.specs.size) || '';
+    if (sizeVal) {
       const sizeInput = row.querySelector('[data-subkey="size"]');
-      if (sizeInput) sizeInput.value = item.defaultSize;
+      if (sizeInput) sizeInput.value = sizeVal;
     }
   }
 }
@@ -470,8 +512,18 @@ function readForm(container) {
       const items = [];
       $$('.dynamic-list-row', el).forEach(row => {
         const item = {};
-        $$('[data-subkey]', row).forEach(input => { item[input.dataset.subkey] = input.value; });
-        if (Object.values(item).some(v => v && v.trim())) items.push(item);
+        // v17: multiselect checkbox → 数组
+        $$('.dynamic-multi-sel', row).forEach(ms => {
+          const sk = ms.dataset.subkey;
+          const checked = $$('input[type="checkbox"]:checked', ms).map(c => c.value);
+          item[sk] = checked;
+        });
+        $$('[data-subkey]', row).forEach(input => {
+          if (input.tagName === 'INPUT' || input.tagName === 'SELECT' || input.tagName === 'TEXTAREA') {
+            if (item[input.dataset.subkey] === undefined) item[input.dataset.subkey] = input.value;
+          }
+        });
+        if (Object.values(item).some(v => v && (Array.isArray(v) ? v.length : String(v).trim()))) items.push(item);
       });
       data[el.dataset.key] = items;
     }
@@ -689,20 +741,20 @@ MODULES['home'] = {
   fields: [
     { section: '基本信息' },
     { key: 'platform', label: '平台', type: 'multiselect', options: [{ value: '小红书', label: '小红书' }, { value: '抖音', label: '抖音' }, { value: '视频号', label: '视频号' }, { value: '公众号', label: '公众号' }] },
-    { key: 'publishTime', label: '发布时间', type: 'date' },
+    { key: 'publishTime', label: '发布时间', type: 'date', default: todayStr() },
     { key: 'title', label: '作品标题', type: 'text' },
     { key: 'link', label: '作品链接', type: 'text', placeholder: '粘贴作品链接' },
     { key: 'contentType', label: '内容类型', type: 'multiselect', options: [{ value: '图文', label: '图文' }, { value: '短视频', label: '短视频' }, { value: '推文', label: '推文' }, { value: '直播', label: '直播' }] },
     { section: '24小时数据' },
-    { key: 'data24h_likes', label: '点赞', type: 'number', default: 0 },
-    { key: 'data24h_saves', label: '收藏', type: 'number', default: 0 },
-    { key: 'data24h_plays', label: '播放量', type: 'number', default: 0 },
-    { key: 'data24h_reads', label: '阅读量', type: 'number', default: 0 },
+    { key: 'data24h_likes', label: '点赞', type: 'number' },
+    { key: 'data24h_saves', label: '收藏', type: 'number' },
+    { key: 'data24h_plays', label: '播放量', type: 'number' },
+    { key: 'data24h_reads', label: '阅读量', type: 'number' },
     { section: '7天数据' },
-    { key: 'data7d_likes', label: '点赞', type: 'number', default: 0 },
-    { key: 'data7d_saves', label: '收藏', type: 'number', default: 0 },
-    { key: 'data7d_plays', label: '播放量', type: 'number', default: 0 },
-    { key: 'data7d_reads', label: '阅读量', type: 'number', default: 0 },
+    { key: 'data7d_likes', label: '点赞', type: 'number' },
+    { key: 'data7d_saves', label: '收藏', type: 'number' },
+    { key: 'data7d_plays', label: '播放量', type: 'number' },
+    { key: 'data7d_reads', label: '阅读量', type: 'number' },
     { key: 'notes', label: '备注', type: 'textarea' },
   ],
   listFields: [
@@ -723,17 +775,24 @@ MODULES['groupbuy-records'] = {
     { key: 'startTime', label: '开团时间', type: 'date' },
     { key: 'endTime', label: '截止时间', type: 'date' },
     { key: 'products', label: '制品列表', type: 'dynamic-products', columns: [
-      { subkey: 'name', label: '制品名称', type: 'text' },
+      { subkey: 'name', label: '制品名称', type: 'text', datalistId: 'gb_product_dl' },
       { subkey: 'price', label: '单价', type: 'number' },
       { subkey: 'factory', label: '对应厂家', type: 'text', datalistId: 'gb_factory_dl' },
       { subkey: 'salesCount', label: '售卖数量', type: 'number' },
-      { subkey: 'isDisbanded', label: '是否流团', type: 'text', datalistId: 'gb_disbanded_dl' },
-      { subkey: 'afterSales', label: '售后记录', type: 'text' },
+      { subkey: 'isDisbanded', label: '是否流团', type: 'text', datalistId: 'gb_disbanded_dl', default: '否' },
     ]},
-    { key: 'purchaseCount', label: '购买人数', type: 'number', default: 0 },
-    { key: 'productTotal', label: '制品总价', type: 'number', default: 0, hint: '元' },
-    { key: 'shippingTotal', label: '邮费总价', type: 'number', default: 0, hint: '元' },
-    { key: 'cost', label: '总成本', type: 'number', default: 0, hint: '元' },
+    { key: 'afterSales', label: '售后记录', type: 'dynamic-list', columns: [
+      { subkey: 'name', label: '制品名称', type: 'text', datalistId: 'gb_product_dl' },
+      { subkey: 'quantity', label: '售后数量', type: 'number' },
+      { subkey: 'type', label: '补偿方式', type: 'combobox', default: '补偿', options: [
+        { value: '补偿', label: '补偿' }, { value: '补发', label: '补发' }, { value: '补寄', label: '补寄' }, { value: '退款', label: '退款' }
+      ]},
+      { subkey: 'amount', label: '价格', type: 'number' },
+    ]},
+    { key: 'purchaseCount', label: '购买人数', type: 'number' },
+    { key: 'productTotal', label: '制品总价', type: 'number', hint: '元' },
+    { key: 'shippingTotal', label: '邮费总价', type: 'number', hint: '元' },
+    { key: 'cost', label: '总成本', type: 'number', hint: '元' },
     { key: 'status', label: '进度状态', type: 'multiselect', default: ['进行中'], options: [{ value: '筹备中', label: '筹备中' }, { value: '进行中', label: '进行中' }, { value: '已截团', label: '已截团' }, { value: '流团', label: '流团' }, { value: '已结算', label: '已结算' }] },
   ],
   filters: [{ key: 'status', label: '全部状态', options: [{ value: '', label: '全部状态' }, { value: '筹备中', label: '筹备中' }, { value: '进行中', label: '进行中' }, { value: '已截团', label: '已截团' }, { value: '流团', label: '流团' }, { value: '已结算', label: '已结算' }] }],
@@ -814,8 +873,8 @@ MODULES['groupbuy-samples'] = {
   fields: [
     { key: 'factory', label: '厂家', type: 'combobox', options: [], hint: '从厂家记录加载' },
     { key: 'category', label: '打样品类', type: 'text' },
-    { key: 'sampleTime', label: '打样时间', type: 'date' },
-    { key: 'cost', label: '样品费用', type: 'number', default: 0, hint: '元' },
+    { key: 'sampleTime', label: '打样时间', type: 'date', default: todayStr() },
+    { key: 'cost', label: '样品费用', type: 'number', hint: '元' },
     { key: 'quantity', label: '样品数量', type: 'number', default: 1 },
     { key: 'receiveTime', label: '收货时间', type: 'date' },
     { key: 'evaluation', label: '样品评价', type: 'multiselect', options: [{ value: '合格', label: '合格' }, { value: '中等', label: '中等' }, { value: '不合格', label: '不合格' }] },
@@ -880,17 +939,18 @@ MODULES['design-commission'] = {
   store: 'commissions',
   fields: [
     { key: 'clientInfo', label: '客户信息', type: 'text' },
-    { key: 'acceptTime', label: '接稿时间', type: 'date' },
+    { key: 'acceptTime', label: '接稿时间', type: 'date', default: todayStr() },
     { key: 'startTime', label: '开稿时间', type: 'date' },
     { key: 'deadline', label: '截稿时间', type: 'date' },
     { key: 'usageType', label: '稿件用途', type: 'multiselect', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'products', label: '制品列表', type: 'dynamic-list', columns: [
       { subkey: 'name', label: '制品名称', type: 'text', datalistId: 'comm_product_dl', priceLookup: 'product' },
+      { subkey: 'patternId', label: '柄图标识', type: 'text' },
       { subkey: 'price', label: '价格', type: 'number' },
       { subkey: 'size', label: '尺寸', type: 'text' },
-      { subkey: 'quantity', label: '数量', type: 'number' },
-      { subkey: 'sameModel', label: '同模', datalistId: 'comm_sameModel_dl', options: [
-        { value: '无同模', label: '无同模', default: true },
+      { subkey: 'quantity', label: '数量', type: 'number', default: 1 },
+      { subkey: 'sameModel', label: '同模', type: 'text', datalistId: 'comm_sameModel_dl', default: '无同模', options: [
+        { value: '无同模', label: '无同模' },
         { value: '改色+字', label: '改色+字' }, { value: '改人+字/色', label: '改人+字/色' }, { value: '改人', label: '改人' }
       ]},
     ]},
@@ -899,16 +959,16 @@ MODULES['design-commission'] = {
     ]},
     { key: 'extraItems', label: '加价项目', type: 'dynamic-list', columns: [
       { subkey: 'name', label: '项目名称', type: 'text', datalistId: 'comm_extra_dl', priceLookup: 'extra' },
-      { subkey: 'quantity', label: '项目数量', type: 'number' },
+      { subkey: 'quantity', label: '数量', type: 'number' },
       { subkey: 'price', label: '价格', type: 'number' },
     ]},
-    { key: 'quoteAmount', label: '报价金额', type: 'number', default: 0, hint: '元（手动输入）' },
-    { key: 'deposit', label: '定金', type: 'readonly', default: 0, hint: '自动计算（报价金额50%）' },
-    { key: 'balance', label: '尾款', type: 'readonly', default: 0, hint: '自动计算' },
+    { key: 'quoteAmount', label: '报价金额', type: 'number', hint: '元（手动输入）' },
+    { key: 'deposit', label: '定金', type: 'readonly', hint: '自动计算（报价金额50%）' },
+    { key: 'balance', label: '尾款', type: 'readonly', hint: '自动计算' },
     { key: 'paymentStatus', label: '支付状态', type: 'multiselect', default: ['定金'], options: [{ value: '未付', label: '未付' }, { value: '定金', label: '定金' }, { value: '尾款', label: '尾款' }, { value: '全款', label: '全款' }] },
     { key: 'progress', label: '稿件进度', type: 'multiselect', default: ['已接稿'], options: [{ value: '待接稿', label: '待接稿' }, { value: '已接稿', label: '已接稿' }, { value: '修改中', label: '修改中' }, { value: '已交付', label: '已交付' }] },
-    { key: 'modifyCount', label: '修改次数', type: 'number', default: 0 },
-    { key: 'amount', label: '最终金额', type: 'number', default: 0, hint: '元（手动输入）' },
+    { key: 'modifyCount', label: '修改次数', type: 'number' },
+    { key: 'amount', label: '最终金额', type: 'number', hint: '元（手动输入）' },
     { key: 'notes', label: '备注', type: 'textarea' },
   ],
   filters: [
@@ -956,7 +1016,7 @@ MODULES['design-auth'] = {
     { key: 'clientInfo', label: '客户信息', type: 'text' },
     { key: 'authType', label: '授权类型', type: 'multiselect', default: ['商用'], options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'authScope', label: '授权范围', type: 'multiselect', options: [{ value: '单次', label: '单次' }, { value: '多次', label: '多次' }, { value: '不限', label: '不限' }, { value: '单图单用', label: '单图单用' }, { value: '单图多用', label: '单图多用' }] },
-    { key: 'authFee', label: '授权费用', type: 'number', default: 0, hint: '元' },
+    { key: 'authFee', label: '授权费用', type: 'number', hint: '元' },
     { key: 'authDate', label: '授权日期', type: 'date' },
     { key: 'notes', label: '备注', type: 'textarea' },
   ],
@@ -983,7 +1043,7 @@ MODULES['design-pricelist'] = {
     { key: 'category', label: '制品分类', type: 'combobox', options: [{ value: '纸片类', label: '纸片类' }, { value: '其他材质类', label: '其他材质类' }, { value: '线上&应援类', label: '线上&应援类' }, { value: '加价项目', label: '加价项目' }] },
     { key: 'product', label: '制品名称', type: 'text' },
     { key: 'defaultSize', label: '默认尺寸', type: 'text', hint: '如: 10cm（选填）' },
-    { key: 'price', label: '单价', type: 'number', default: 0, hint: '元' },
+    { key: 'price', label: '单价', type: 'number', hint: '元' },
     { key: 'description', label: '备注', type: 'textarea' },
   ],
   listFields: [
@@ -1111,9 +1171,9 @@ MODULES['oc-commission'] = {
     { key: 'artistName', label: '画师名称', type: 'text' },
     { key: 'commissionType', label: '约稿类型', type: 'multiselect', options: [{ value: '头像', label: '头像' }, { value: '半身', label: '半身' }, { value: '立绘', label: '立绘' }, { value: '插画', label: '插画' }, { value: 'Q版', label: 'Q版' }, { value: '服装', label: '服装' }, { value: '武器', label: '武器' }, { value: '小物', label: '小物' }, { value: '印象', label: '印象' }] },
     { key: 'usageType', label: '稿件用途', type: 'multiselect', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
-    { key: 'fee', label: '约稿费用', type: 'number', default: 0, hint: '元' },
+    { key: 'fee', label: '约稿费用', type: 'number', hint: '元' },
     { key: 'platform', label: '约稿平台', type: 'multiselect', options: [{ value: '画加', label: '画加' }, { value: '米画师', label: '米画师' }, { value: '小红书', label: '小红书' }, { value: '微博', label: '微博' }, { value: '微信', label: '微信' }] },
-    { key: 'commissionTime', label: '约稿时间', type: 'date' },
+    { key: 'commissionTime', label: '约稿时间', type: 'date', default: todayStr() },
     { key: 'deliveryTime', label: '交付时间', type: 'date' },
     { key: 'status', label: '交易状态', type: 'multiselect', options: [{ value: '进行中', label: '进行中' }, { value: '已完成', label: '已完成' }, { value: '已取消', label: '已取消' }] },
     { key: 'artwork', label: '稿件成品图', type: 'image' },
@@ -1628,12 +1688,22 @@ function prepareFields(pageKey, fields) {
   }
   if (pageKey === 'groupbuy-records') {
     const facs = DB.list('factories').map(fc => fc.name);
+    const priceList = DB.list('priceList');
+    const productNames = [...new Set(priceList.filter(p => PRODUCT_CATEGORIES.includes(p.category) && p.product).map(p => p.product))];
     const prodField = f.find(ff => ff.key === 'products');
     if (prodField) {
+      const nameCol = prodField.columns.find(c => c.subkey === 'name');
+      if (nameCol) { nameCol.options = productNames.map(n => ({ value: n, label: n })); nameCol.datalistId = 'gb_product_dl'; }
       const facCol = prodField.columns.find(c => c.subkey === 'factory');
       if (facCol) { facCol.options = facs.map(n => ({ value: n, label: n })); facCol.datalistId = 'gb_factory_dl'; }
       const disbandedCol = prodField.columns.find(c => c.subkey === 'isDisbanded');
       if (disbandedCol) { disbandedCol.options = [{ value: '是', label: '是' }, { value: '否', label: '否' }]; disbandedCol.datalistId = 'gb_disbanded_dl'; }
+    }
+    // 售后记录：制品名称也用同一份产品列表
+    const aftsField = f.find(ff => ff.key === 'afterSales');
+    if (aftsField) {
+      const aNameCol = aftsField.columns.find(c => c.subkey === 'name');
+      if (aNameCol) { aNameCol.options = productNames.map(n => ({ value: n, label: n })); aNameCol.datalistId = 'gb_product_dl'; }
     }
   }
   if (pageKey === 'design-commission') {
@@ -1646,6 +1716,9 @@ function prepareFields(pageKey, fields) {
         nameCol.options = [...new Set(productNames)].map(n => ({ value: n, label: n }));
         nameCol.datalistId = 'comm_product_dl';
       }
+      // v17: 同模下拉选项注入 combobox
+      const smCol = prodField.columns.find(c => c.subkey === 'sameModel');
+      if (smCol && smCol.options && !smCol.datalistId) smCol.datalistId = 'comm_sameModel_dl';
     }
     const extraField = f.find(ff => ff.key === 'extraItems');
     if (extraField) {
@@ -1842,7 +1915,7 @@ function renderHome() {
     // Toolbar
     html += '<div class="toolbar" style="margin-top:4px">';
     html += `<div class="search-box"><input type="text" placeholder="搜索标题..." value="${esc(ps.search)}" oninput="homeSearch(this.value)"><span class="search-icon">🔍</span></div>`;
-    html += `<input type="date" class="filter-select" value="${ps.dateFilter}" onchange="homeDateFilter(this.value)" style="padding:8px">`;
+    html += `<input type="date" class="filter-select" value="${ps.dateFilter}" onchange="homeDateFilter(this.value)" style="padding:8px" placeholder="请选择日期" title="请选择日期">`;
     html += `<button class="filter-select" onclick="homeClearFilter()" style="cursor:pointer;border:1px solid var(--c-border)">清除筛选</button>`;
     html += '<div class="spacer"></div>';
     html += '<button class="btn btn-primary" onclick="openAddForm(\'home\')">+ 新增记录</button>';
@@ -1946,13 +2019,13 @@ function renderPriceCalc() {
   // Left: Input column
   html += '<div class="calc-input-col">';
   html += '<div class="calc-card"><div class="calc-card-title">🔧 成本参数 <span class="calc-card-hint">输入各项成本自动计算</span></div>';
-  html += '<div class="form-row"><label class="form-label">单品成本（元）</label><input type="number" class="form-input" id="calc_itemCost" value="0" oninput="calcPrice()"></div>';
-  html += '<div class="form-row"><label class="form-label">样品成本（元）</label><input type="number" class="form-input" id="calc_sampleCost" value="0" oninput="calcPrice()"></div>';
-  html += '<div class="form-row"><label class="form-label">人工成本（元/件）</label><input type="number" class="form-input" id="calc_laborCost" value="0" oninput="calcPrice()"></div>';
-  html += '<div class="form-row"><label class="form-label">运费（元/件）</label><input type="number" class="form-input" id="calc_shipping" value="0" oninput="calcPrice()"></div>';
-  html += '<div class="form-row"><label class="form-label">抽成比例（%）</label><input type="number" class="form-input" id="calc_commissionRate" value="0" oninput="calcPrice()"></div>';
+  html += '<div class="form-row"><label class="form-label">单品成本（元）</label><input type="number" class="form-input" id="calc_itemCost" value="" placeholder="0" oninput="calcPrice()"></div>';
+  html += '<div class="form-row"><label class="form-label">样品成本（元）</label><input type="number" class="form-input" id="calc_sampleCost" value="" placeholder="0" oninput="calcPrice()"></div>';
+  html += '<div class="form-row"><label class="form-label">人工成本（元/件）</label><input type="number" class="form-input" id="calc_laborCost" value="" placeholder="0" oninput="calcPrice()"></div>';
+  html += '<div class="form-row"><label class="form-label">运费（元/件）</label><input type="number" class="form-input" id="calc_shipping" value="" placeholder="0" oninput="calcPrice()"></div>';
+  html += '<div class="form-row"><label class="form-label">抽成比例（%）</label><input type="number" class="form-input" id="calc_commissionRate" value="" placeholder="0" oninput="calcPrice()"></div>';
   html += '<div class="form-row"><label class="form-label">预期利润率（%）</label><input type="number" class="form-input" id="calc_profitMargin" value="30" oninput="calcPrice()"></div>';
-  html += '<div class="form-row"><label class="form-label">开团数量</label><input type="number" class="form-input" id="calc_quantity" value="50" oninput="calcPrice()"></div>';
+  html += '<div class="form-row"><label class="form-label">开团数量</label><input type="number" class="form-input" id="calc_quantity" value="100" oninput="calcPrice()"></div>';
   html += '<div class="form-row"><label class="form-label">模板名称</label><input type="text" class="form-input" id="calc_templateName" placeholder="保存为模板便于复用"></div>';
   html += '<div style="display:flex;gap:8px;margin-top:12px">';
   html += '<button class="btn btn-primary" onclick="saveCalcTemplate()">💾 保存模板</button>';
@@ -1962,7 +2035,7 @@ function renderPriceCalc() {
   // Right: Receipt column
   html += '<div class="calc-receipt-col">';
   html += '<div class="calc-receipt" id="calcResult"></div>';
-  html += '<div class="calc-card" style="margin-top:12px"><div class="calc-card-title">📋 常用模板</div>';
+  html += '<div class="calc-card"><div class="calc-card-title">📋 常用模板</div>';
   if (templates.length) {
     html += '<div class="template-list">';
     templates.forEach((t, i) => {
@@ -1971,7 +2044,7 @@ function renderPriceCalc() {
     html += '</div>';
   } else { html += '<div style="font-size:12px;color:var(--c-text-muted);padding:8px">暂无模板</div>'; }
   html += '</div>';
-  html += '<div class="calc-card" style="margin-top:12px"><div class="calc-card-title">🕐 历史计算</div>';
+  html += '<div class="calc-card"><div class="calc-card-title">🕐 历史计算</div>';
   if (history.length) {
     html += '<div class="template-list">';
     history.forEach(h => {
@@ -2030,7 +2103,7 @@ function readCalcData(name) {
 }
 function saveCalcTemplate() { DB.add('calcTemplates', readCalcData($('#calc_templateName').value || '模板' + (DB.list('calcTemplates').length + 1))); Toast.success('模板已保存'); renderPriceCalc(); }
 function saveCalcHistory() { DB.add('calcRecords', readCalcData($('#calc_templateName').value || '计算记录')); Toast.success('记录已保存'); renderPriceCalc(); }
-function loadCalcTemplate(id) { const t = DB.getById('calcTemplates', id); if (!t) return; $('#calc_itemCost').value = t.itemCost||0; $('#calc_sampleCost').value=t.sampleCost||0; $('#calc_laborCost').value=t.laborCost||0; $('#calc_shipping').value=t.shipping||0; $('#calc_commissionRate').value=t.commissionRate||0; $('#calc_profitMargin').value=t.profitMargin||30; $('#calc_quantity').value=t.quantity||50; $('#calc_templateName').value=t.name||''; calcPrice(); Toast.info('已加载模板'); }
+function loadCalcTemplate(id) { const t = DB.getById('calcTemplates', id); if (!t) return; $('#calc_itemCost').value = t.itemCost||''; $('#calc_sampleCost').value=t.sampleCost||''; $('#calc_laborCost').value=t.laborCost||''; $('#calc_shipping').value=t.shipping||''; $('#calc_commissionRate').value=t.commissionRate||''; $('#calc_profitMargin').value=t.profitMargin||30; $('#calc_quantity').value=t.quantity||100; $('#calc_templateName').value=t.name||''; calcPrice(); Toast.info('已加载模板'); }
 function loadCalcHistory(id) { loadCalcTemplate(id); Toast.info('已加载历史记录'); }
 function deleteCalcTemplate(id) { DB.remove('calcTemplates', id); Toast.success('已删除'); renderPriceCalc(); }
 
@@ -2068,15 +2141,14 @@ function renderTimeline() {
 
   let html = '<div class="fade-in">';
   // Person name buttons (text only) — at very top (like stories page)
-  if (chars.length) {
-    html += '<div class="relation-person-grid" style="margin-bottom:12px">';
-    html += `<div class="relation-person-btn ${!ps.personFilter ? 'active' : ''}" onclick="timelinePersonFilter('')"><span>📋 全部</span></div>`;
-    chars.forEach(c => {
-      const active = ps.personFilter === c.name ? 'active' : '';
-      html += `<div class="relation-person-btn ${active}" onclick="timelinePersonFilter('${esc(c.name)}')"><span>${esc(c.name)}</span></div>`;
-    });
-    html += '</div>';
-  }
+  // v16: 全部按钮常驻，即使没有人物档案也显示
+  html += '<div class="relation-person-grid" style="margin-bottom:12px">';
+  html += `<div class="relation-person-btn ${!ps.personFilter ? 'active' : ''}" onclick="timelinePersonFilter('')"><span>📋 全部</span></div>`;
+  chars.forEach(c => {
+    const active = ps.personFilter === c.name ? 'active' : '';
+    html += `<div class="relation-person-btn ${active}" onclick="timelinePersonFilter('${esc(c.name)}')"><span>${esc(c.name)}</span></div>`;
+  });
+  html += '</div>';
   // Toolbar
   html += '<div class="toolbar">';
   html += `<div class="search-box"><input type="text" placeholder="搜索事件..." value="${esc(ps.search)}" oninput="onSearch('oc-timeline', this.value)"><span class="search-icon">🔍</span></div>`;
@@ -2540,7 +2612,7 @@ const DC_SET = [
 
 let _dcMode = 'custom';
 let _dcImportId = null;
-let _dcProducts = [{ name: '', patternId: '', quantity: 1, price: 0, sameModel: false }];
+let _dcProducts = [{ name: '', patternId: '', size: '', quantity: 1, price: 0, sameModel: false }];
 let _dcExtras = [];
 let _dcCustomDiscs = DB.get('calcCustomDiscs', []); // {name, type:'rate'|'amount', value} — persisted
 let _dcFanReduce = 0; // 同担/同推随机减价金额
@@ -2575,15 +2647,18 @@ function renderDesignCalc() {
 
   // Product list
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">制品列表 <span class="calc-card-hint">（柄图分组自动SET，勾选同模启用阶梯计价）</span></div>';
-  html += '<div class="dc-product-header"><span>制品名称</span><span>柄图</span><span>数量</span><span>单价</span><span>同模</span><span></span></div>';
+  html += '<div class="calc-card-title">制品列表 <span class="calc-card-hint">（柄图自动分组，勾选同模启用阶梯计价）</span></div>';
+  html += '<div class="dc-product-header"><span>制品名称</span><span>柄图标识</span><span>数量</span><span>单价</span><span>同模</span><span></span></div>';
   html += '<div id="dc-products"></div>';
-  html += '<button type="button" class="btn btn-outline btn-sm" onclick="dcAddProduct()" style="margin-top:8px">+ 添加制品</button>';
+  html += '<div style="display:flex;gap:8px;margin-top:8px">';
+  html += '<button type="button" class="btn btn-outline btn-sm" onclick="dcAddProduct()">+ 添加制品</button>';
+  html += '<button type="button" class="btn btn-danger btn-sm" onclick="dcClearProducts()">🗑️ 一键清除</button>';
+  html += '</div>';
   html += '</div>';
 
   // Extra items
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">加价项目 <span class="calc-card-hint">（不参与同模计价、不参与同柄SET折扣）</span></div>';
+  html += '<div class="calc-card-title">加价项目 <span class="calc-card-hint">（不参与同模计价、SET折扣）</span></div>';
   html += '<div class="dc-extra-header"><span>项目名称</span><span>数量</span><span>单价</span><span></span></div>';
   html += '<div id="dc-extras"></div>';
   html += '<button type="button" class="btn btn-outline btn-sm" onclick="dcAddExtra()" style="margin-top:8px">+ 添加加价项目</button>';
@@ -2591,7 +2666,7 @@ function renderDesignCalc() {
 
   // Usage rate
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">稿件用途倍率 <span class="calc-card-hint">（单选，可改数值）</span></div>';
+  html += '<div class="calc-card-title">稿件用途倍率 <span class="calc-card-hint">（选择稿件用途，可改数值）</span></div>';
   DC_USAGE.forEach((t, i) => {
     const rate = (settings.usageRates && settings.usageRates[t.value]) ?? t.rate;
     html += '<div class="calc-rate-row">';
@@ -2603,7 +2678,7 @@ function renderDesignCalc() {
 
   // Same model rate (global multiplier, applied per-product via checkbox)
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">同模价位倍率 <span class="calc-card-hint">（选择倍率，制品行勾选启用）</span></div>';
+  html += '<div class="calc-card-title">同模阶梯价倍率 <span class="calc-card-hint">（选择同模更改项）</span></div>';
   DC_MODEL.forEach((t, i) => {
     const rate = (settings.modelRates && settings.modelRates[t.value]) ?? t.rate;
     const label = t.label || t.value;
@@ -2618,12 +2693,12 @@ function renderDesignCalc() {
 
   // Discount system (SET与折扣互斥，同担/同推独立)
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">优惠体系 <span class="calc-card-hint">（同柄SET与折扣互斥）</span></div>';
+  html += '<div class="calc-card-title">优惠体系 <span class="calc-card-hint">（SET优惠与折扣优惠互斥，可自行添加折扣优惠方案）</span></div>';
   html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" name="dcDiscMode" value="none" checked onchange="dcDiscModeChange()"> 无优惠</label></div>';
   // SET
-  html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" name="dcDiscMode" value="set" onchange="dcDiscModeChange()"> 同柄SET优惠</label></div>';
+  html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" name="dcDiscMode" value="set" onchange="dcDiscModeChange()"> SET优惠</label></div>';
   html += '<div id="dc-set-area" class="calc-sub-area disabled">';
-  html += '<div style="font-size:12px;color:var(--c-text-muted);padding:4px 0;line-height:1.5">系统根据柄图自动分组，同柄≥4种品类9折，≥9种品类8折，档位不叠加。无柄图制品不参与SET优惠。</div>';
+  html += '<div style="font-size:12px;color:var(--c-text-muted);padding:4px 0;line-height:1.5">系统根据柄图自动分组，档位不叠加。</div>';
   DC_SET.forEach(s => {
     const rate = (settings.setRates && settings.setRates[s.value]) ?? s.rate;
     html += '<div class="calc-rate-row">';
@@ -2666,7 +2741,7 @@ function renderDesignCalc() {
   html += '<div class="calc-card-title">同担/同推优惠 <span class="calc-card-hint">（独立，不与任何优惠互斥）</span></div>';
   html += '<div class="calc-rate-row">';
   html += '<label class="calc-rate-label">随机减价</label>';
-  html += `<input type="number" class="calc-rate-input" step="0.01" value="${_dcFanReduce}" data-fan="reduce" oninput="_dcFanReduce=parseFloat(this.value)||0;dcRecalc()" placeholder="0">`;
+  html += `<input type="number" class="calc-rate-input" step="0.01" value="" data-fan="reduce" oninput="_dcFanReduce=parseFloat(this.value)||0;dcRecalc()" placeholder="0">`;
   html += '</div>';
   html += '</div>';
 
@@ -2676,12 +2751,12 @@ function renderDesignCalc() {
   html += '<div class="calc-receipt-col">';
   html += '<div class="calc-receipt" id="dc-receipt"></div>';
   html += '<div class="calc-actions">';
+  html += '<button class="dc-export-btn" style="flex:1" onclick="dcExportReceipt()">📷 导出报价图</button>';
   if (_dcMode === 'import') {
     html += '<button class="btn btn-primary" style="flex:1" onclick="dcUpdateQuote()">更新报价至接稿</button>';
   } else {
     html += '<button class="btn btn-primary" style="flex:1" onclick="dcCreateCommission()">新增接稿记录</button>';
   }
-  html += '<button class="dc-export-btn" style="flex:1" onclick="dcExportReceipt()">📷 导出报价图</button>';
   html += '</div>';
   html += '</div>'; // end right col
 
@@ -2707,11 +2782,11 @@ function dcSetMode(mode) {
 
 function dcImportRecord(id) {
   _dcImportId = id;
-  if (!id) { _dcProducts = [{ name: '', patternId: '', quantity: 1, price: 0, sameModel: false }]; _dcExtras = []; dcRenderProducts(); dcRenderExtras(); dcRecalc(); return; }
+  if (!id) { _dcProducts = [{ name: '', patternId: '', size: '', quantity: 1, price: 0, sameModel: false }]; _dcExtras = []; dcRenderProducts(); dcRenderExtras(); dcRecalc(); return; }
   const rec = DB.getById('commissions', id);
   if (!rec) return;
-  _dcProducts = (rec.products || []).map(p => ({ name: p.name || '', patternId: p.patternId || '', quantity: parseInt(p.quantity) || 1, price: parseFloat(p.price) || 0, sameModel: p.sameModel && p.sameModel !== '无同模' && p.sameModel !== '' }));
-  if (!_dcProducts.length) _dcProducts = [{ name: '', patternId: '', quantity: 1, price: 0, sameModel: false }];
+  _dcProducts = (rec.products || []).map(p => ({ name: p.name || '', patternId: p.patternId || '', size: p.size || '', quantity: parseInt(p.quantity) || 1, price: parseFloat(p.price) || 0, sameModel: p.sameModel && p.sameModel !== '无同模' && p.sameModel !== '' }));
+  if (!_dcProducts.length) _dcProducts = [{ name: '', patternId: '', size: '', quantity: 1, price: 0, sameModel: false }];
   _dcExtras = (rec.extraItems || []).map(e => ({ name: e.name || '', quantity: parseInt(e.quantity) || 1, price: parseFloat(e.price) || 0 }));
   renderDesignCalc();
   setTimeout(() => {
@@ -2738,7 +2813,7 @@ function dcRenderProducts() {
     const optHTML = productNames.map(n => `<div class="combobox-option" onclick="dcSelectProduct(${i},this,'${cbId}')" data-value="${esc(n)}">${esc(n)}</div>`).join('');
     html += '<div class="dc-product-row">';
     html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-name" value="${esc(p.name)}" placeholder="制品名称" data-key="name" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateProduct(${i},'name',this.value);dcFillPrice(this,'product',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
-    html += `<input type="text" class="form-input dc-prod-pattern" value="${esc(p.patternId||'')}" placeholder="柄图" oninput="dcUpdateProduct(${i},'patternId',this.value)">`;
+    html += `<input type="text" class="form-input dc-prod-pattern" value="${esc(p.patternId||'')}" placeholder="柄图标识" oninput="dcUpdateProduct(${i},'patternId',this.value)">`;
     html += `<input type="number" class="form-input dc-prod-qty" value="${p.quantity}" placeholder="数量" min="1" oninput="dcUpdateProduct(${i},'quantity',this.value)">`;
     html += `<input type="number" class="form-input dc-prod-price" value="${p.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateProduct(${i},'price',this.value)">`;
     html += `<label class="dc-prod-check"><input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模</label>`;
@@ -2760,8 +2835,9 @@ function dcSelectProduct(idx, el, cbId) {
   document.getElementById(cbId).classList.remove('show');
 }
 
-function dcAddProduct() { _dcProducts.push({ name: '', patternId: '', quantity: 1, price: 0, sameModel: false }); dcRenderProducts(); dcRecalc(); }
-function dcRemoveProduct(idx) { _dcProducts.splice(idx, 1); if (!_dcProducts.length) _dcProducts = [{ name: '', patternId: '', quantity: 1, price: 0, sameModel: false }]; dcRenderProducts(); dcRecalc(); }
+function dcAddProduct() { _dcProducts.push({ name: '', patternId: '', size: '', quantity: 1, price: 0, sameModel: false }); dcRenderProducts(); dcRecalc(); }
+function dcClearProducts() { _dcProducts = [{ name: '', patternId: '', size: '', quantity: 1, price: 0, sameModel: false }]; dcRenderProducts(); dcRecalc(); }
+function dcRemoveProduct(idx) { _dcProducts.splice(idx, 1); if (!_dcProducts.length) _dcProducts = [{ name: '', patternId: '', size: '', quantity: 1, price: 0, sameModel: false }]; dcRenderProducts(); dcRecalc(); }
 function dcUpdateProduct(idx, field, val) {
   if (!_dcProducts[idx]) return;
   if (field === 'sameModel') { _dcProducts[idx].sameModel = !!val; }
@@ -2962,7 +3038,7 @@ function dcRecalc() {
         modelBreakdown = `首件 ¥${price.toFixed(2)} + 余${qty-1}件 ×¥${(price * mRate).toFixed(2)}`;
       } else {
         lt = price * mRate;
-        modelBreakdown = `改版 ¥${price.toFixed(2)} ×${mRate}`;
+        modelBreakdown = `${mVal} ¥${price.toFixed(2)} ×${mRate}`;
       }
       productDetails.push({ name: p.name, patternId: p.patternId || '', qty, price, lt, useModel: true, mRate, modelBreakdown });
     } else {
@@ -2990,8 +3066,8 @@ function dcRecalc() {
       const categories = new Set(items.map(d => d.name).filter(n => n));
       const catCount = categories.size;
       let setRate = 1.0, setLabel = '';
-      if (catCount >= 9) { setRate = set9Rate; setLabel = `≥9种品类×${set9Rate}`; }
-      else if (catCount >= 4) { setRate = set4Rate; setLabel = `≥4种品类×${set4Rate}`; }
+      if (catCount >= 9) { setRate = set9Rate; setLabel = `≥9种品类`; }
+      else if (catCount >= 4) { setRate = set4Rate; setLabel = `≥4种品类`; }
       const groupDiscounted = groupSubtotal * setRate;
       productsTotal += groupDiscounted;
       groupDetails.push({ patternId: pid, items, groupSubtotal, catCount, setRate, setLabel, groupDiscounted });
@@ -3062,6 +3138,7 @@ function dcRecalc() {
   const receipt = $('#dc-receipt');
   if (!receipt) return;
   let r = '<div class="dc-r-title">实时报价</div>';
+  let prodIdx = 0;
 
   if (dMode === 'set' && groupDetails.length) {
     groupDetails.forEach(g => {
@@ -3069,13 +3146,13 @@ function dcRecalc() {
       g.items.forEach(d => {
         if (!d.name && !d.price) return;
         const tag = d.useModel ? '（同模）' : '';
-        r += `<div class="dc-rr"><span>${esc(d.name || '未命名')} ×${d.qty}${tag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
+        r += `<div class="dc-rr"><span><i class="dc-r-no">${String(++prodIdx).padStart(2,'0')}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
         if (d.useModel) r += `<div class="dc-rr sub"><span>${d.modelBreakdown}</span><span></span></div>`;
       });
-      r += `<div class="dc-rr"><span>柄图小计</span><span>¥${g.groupSubtotal.toFixed(2)}</span></div>`;
+      // v20: SET优惠增加与上方制品的间距 (margin-top:6px)，并在右侧恢复 ×倍率
       if (g.setRate < 1.0) {
-        r += `<div class="dc-rr"><span>SET优惠：${g.setLabel}</span><span>×${g.setRate}</span></div>`;
-        r += `<div class="dc-rr total"><span>折后金额</span><span>¥${g.groupDiscounted.toFixed(2)}</span></div>`;
+        r += `<div class="dc-rr" style="margin-top:6px"><span>SET优惠：${esc(g.setLabel)}</span><span>×${g.setRate}</span></div>`;
+        r += `<div class="dc-rr total"><span>折后小计</span><span>¥${g.groupDiscounted.toFixed(2)}</span></div>`;
       } else {
         r += `<div class="dc-rr total"><span>金额</span><span>¥${g.groupDiscounted.toFixed(2)}</span></div>`;
       }
@@ -3087,7 +3164,7 @@ function dcRecalc() {
       noPatternItems.forEach(d => {
         if (!d.name && !d.price) return;
         const tag = d.useModel ? '（同模）' : '';
-        r += `<div class="dc-rr"><span>${esc(d.name || '未命名')} ×${d.qty}${tag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
+        r += `<div class="dc-rr"><span><i class="dc-r-no">${String(++prodIdx).padStart(2,'0')}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
         if (d.useModel) r += `<div class="dc-rr sub"><span>${d.modelBreakdown}</span><span></span></div>`;
       });
       r += '</div>';
@@ -3098,22 +3175,21 @@ function dcRecalc() {
       if (!d.name && !d.price) return;
       const tag = d.useModel ? '（同模）' : '';
       const pTag = d.patternId ? `［${esc(d.patternId)}］` : '';
-      r += `<div class="dc-rr"><span>${esc(d.name || '未命名')} ×${d.qty}${tag}${pTag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
+      r += `<div class="dc-rr"><span><i class="dc-r-no">${String(++prodIdx).padStart(2,'0')}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}${pTag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
       if (d.useModel) r += `<div class="dc-rr sub"><span>${d.modelBreakdown}</span><span></span></div>`;
     });
     r += '</div>';
   }
-  r += `<div class="dc-r-section"><div class="dc-rr total"><span>制品合计</span><span>¥${productsTotal.toFixed(2)}</span></div></div>`;
-
   if (extraDetails.length) {
     r += '<div class="dc-r-section"><div class="dc-r-sub">加价项目</div>';
     extraDetails.forEach(d => {
       if (!d.name && !d.lt) return;
-      r += `<div class="dc-rr"><span>${esc(d.name || '未命名')} ×${d.qty}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
+      r += `<div class="dc-rr"><span><i class="dc-r-no">${String(++prodIdx).padStart(2,'0')}</i>${esc(d.name || '未命名')} ×${d.qty}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
     });
     r += `<div class="dc-rr total"><span>加价合计</span><span>¥${extrasTotal.toFixed(2)}</span></div></div>`;
   }
-  r += `<div class="dc-r-section"><div class="dc-rr total"><span>基础总金额</span><span>¥${baseTotal.toFixed(2)}</span></div></div>`;
+  // v21: 制品合计 已删除；基础总金额 → 总价，并加纯色高亮条（与最终报价按钮同色）
+  r += `<div class="dc-r-section"><div class="dc-rr grand-bar"><span>总价</span><span>¥${baseTotal.toFixed(2)}</span></div></div>`;
   r += '<div class="dc-r-section"><div class="dc-r-sub">倍率计算</div>';
   r += `<div class="dc-rr"><span>稿件用途：${uType}</span><span>×${uRate}</span></div>`;
   r += `<div class="dc-rr total"><span>倍率后价格</span><span>¥${afterRates.toFixed(2)}</span></div></div>`;
@@ -3126,6 +3202,7 @@ function dcRecalc() {
   r += `<div class="dc-r-deposit"><div class="dc-r-db-label">定金(50%)</div><div class="dc-r-db-val">¥${deposit.toFixed(2)}</div></div>`;
   r += `<div class="dc-r-balance"><div class="dc-r-db-label">尾款(50%)</div><div class="dc-r-db-val">¥${balance.toFixed(2)}</div></div>`;
   r += '</div>';
+  r += '<div class="dc-r-footer">@筱小葵｜专属报价・仅供本次使用</div>';
   receipt.innerHTML = r;
 }
 
@@ -3146,7 +3223,7 @@ function dcExportReceipt() {
   Toast.info('正在生成报价图片...');
   html2canvas(receipt, { backgroundColor: '#ffffff', scale: 2, logging: false }).then(canvas => {
     const link = document.createElement('a');
-    link.download = '报价单_' + todayStr() + '.png';
+    link.download = '报价单_' + nowStamp() + '.png';
     link.href = canvas.toDataURL('image/png');
     link.click();
     Toast.success('报价图已导出');
@@ -3171,9 +3248,15 @@ function dcCreateCommission() {
   const usageType = uRadio ? [uRadio.value] : ['自用'];
   const mRadio = document.querySelector('input[name="dcModel"]:checked');
   const modelVal = (mRadio && _dcProducts.some(p => p.sameModel)) ? mRadio.value : '';
+  // v17: 从价目表自动识别制品的 defaultSize
+  const priceList = DB.list('priceList');
   DB.add('commissions', {
     clientInfo: '', acceptTime: todayStr(), deadline: '', usageType,
-    products: _dcProducts.map(p => ({ name: p.name, patternId: p.patternId || '', size: '', quantity: p.quantity, price: p.price, sameModel: p.sameModel ? modelVal : '无同模' })),
+    products: _dcProducts.map(p => {
+      const plItem = priceList.find(pp => pp.product === p.name && PRODUCT_CATEGORIES.includes(pp.category));
+      const sizeAuto = p.size || (plItem && plItem.defaultSize ? plItem.defaultSize : '');
+      return { name: p.name, patternId: p.patternId || '', size: sizeAuto, quantity: p.quantity, price: p.price, sameModel: p.sameModel ? modelVal : '无同模' };
+    }),
     sameDesign: [], extraItems: _dcExtras.map(e => ({ name: e.name, quantity: e.quantity, price: e.price })),
     quoteAmount: price, deposit: Math.round(price * 0.5 * 100) / 100, balance: Math.round(price * 0.5 * 100) / 100,
     paymentStatus: ['未付'], progress: ['待接稿'], modifyCount: 0, amount: 0, notes: '由报价计算器创建',
@@ -3207,20 +3290,21 @@ function renderPriceList() {
   });
 
   let html = '<div class="fade-in">';
-  html += '<div class="toolbar">';
+  // v27: toolbar→其他说明 8px（用 inline mb 覆盖 .toolbar 默认 mb:16，避免塌陷）
+  html += '<div class="toolbar" style="margin-bottom:8px">';
   html += `<div class="search-box"><input type="text" placeholder="搜索制品/分类..." value="${esc(ps.search)}" oninput="onSearch('design-pricelist', this.value)"><span class="search-icon">🔍</span></div>`;
   html += '<div class="spacer"></div>';
   html += '<button class="btn btn-outline toolbar-eq" onclick="togglePriceListNotes()">📝 其他说明</button>';
   html += '<button class="btn btn-primary" onclick="openAddForm(\'design-pricelist\')">+ 新增价目</button>';
   html += '</div>';
 
-  // Collapsible 其他说明
+  // Collapsible 其他说明（v26: toolbar→其他说明 12px）
   if (notes.length) {
     html += '<div style="margin-bottom:16px">';
     html += '<div class="collapsible-toggle" onclick="this.classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">';
     html += '<span>📝 其他说明</span><span class="toggle-arrow">▼</span></div>';
     html += '<div class="collapsible-content">';
-    html += '<div class="pricelist-notes-panel" style="margin-top:8px;margin-bottom:0">';
+    html += '<div class="pricelist-notes-panel" style="margin-top:0;margin-bottom:0">';
     html += '<div class="pricelist-notes-grid">';
     notes.forEach(n => {
       html += '<div class="pricelist-note-item">';
