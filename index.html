@@ -320,6 +320,8 @@ ul,li{list-style:none}
 .cal-legend{display:flex;gap:12px;padding:8px 16px;font-size:12px;color:var(--c-text-light);border-top:1px solid var(--c-border-light)}
 .cal-divider{height:2px;background:var(--c-primary-dark);margin:24px 0 16px;border-radius:1px;opacity:.3;border:none}
 .cal-legend .legend-item{display:flex;align-items:center;gap:4px}
+.commission-cal-grid .cal-date-row{justify-content:center}
+.cal-legend .legend-item .status-dot{margin-right:0}
 /* v29: 日历日期格事件标签（开稿/截稿实心圆点+名字） */
 .cal-day-events{display:flex;flex-direction:column;gap:2px;width:100%;margin-top:2px}
 .cal-day-event{display:flex;align-items:center;gap:4px;font-size:10px;line-height:1.2;min-width:0}
@@ -539,9 +541,9 @@ ul,li{list-style:none}
 
 /* Detail view */
 .detail-view{display:flex;flex-direction:column;gap:12px}
-.detail-row{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--c-border-light)}
+.detail-row{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--c-border-light)}
 .detail-row:last-child{border-bottom:none}
-.detail-label{width:100px;font-size:13px;color:var(--c-text-muted);flex-shrink:0}
+.detail-label{width:80px;font-size:13px;color:var(--c-text-muted);flex-shrink:0}
 .detail-value{font-size:13px;color:var(--c-text);flex:1;word-break:break-word}
 .detail-images{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .detail-images img{width:100px;height:100px;object-fit:cover;border-radius:6px;border:1px solid var(--c-border);cursor:pointer}

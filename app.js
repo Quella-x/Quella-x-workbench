@@ -650,6 +650,7 @@ function renderCalendar(year, month, records, commissionRecords = []) {
   const prevMonthDays = new Date(year, month, 0).getDate();
   const today = new Date();
   const todayKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+  const START_COLOR = '#ff9a3c', END_COLOR = '#f5c518';
   let html = '<div class="cal-grid">';
   ['日', '一', '二', '三', '四', '五', '六'].forEach(w => { html += `<div class="cal-weekday">${w}</div>`; });
   for (let i = startWeekday - 1; i >= 0; i--) { html += `<div class="cal-day other-month"><span class="cal-date">${prevMonthDays - i}</span></div>`; }
@@ -664,7 +665,6 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     // v29-fix3: 平台发布圆点移到日期下方；开稿橙/接稿蓝/截稿黄，截稿固定右侧
     const dayCount = dayRecords.length > 0 ? `<div class="cal-day-count">${dayRecords.length}条</div>` : '';
     const dayComms = commissionRecords.filter(r => (r.startTime || '').startsWith(dateStr) || (r.acceptTime || '').startsWith(dateStr) || (r.deadline || '').startsWith(dateStr));
-    const START_COLOR = '#ff9a3c', END_COLOR = '#f5c518';
     const startTag = dayComms.some(r => (r.startTime || '').startsWith(dateStr)) ? `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${START_COLOR}"></span><span class="cal-day-tag-text" style="color:${START_COLOR}">开稿</span></span>` : '';
     const endTag = dayComms.some(r => (r.deadline || '').startsWith(dateStr)) ? `<span class="cal-day-tag cal-day-tag-end"><span class="cal-day-tag-dot" style="background:${END_COLOR}"></span><span class="cal-day-tag-text" style="color:${END_COLOR}">截稿</span></span>` : '';
     const commTags = (startTag || endTag) ? `<div class="cal-day-tags home-comm-tags">${startTag}${endTag}</div>` : '';
@@ -707,7 +707,7 @@ function renderAnnualChart(records, dateField, opts = {}) {
       bars += `<div style="display:flex;gap:1px;width:70%;height:100%;align-items:flex-end;justify-content:center">`;
       series.forEach((s, si) => {
         const v = data[si][i]; const h = (v / max) * 100;
-        bars += `<div style="width:${100 / series.length}%;height:${Math.max(h, 0)}%;background:${s.color};min-height:${v > 0 ? '2px' : '0'};border-radius:${si === series.length - 1 ? '3px 3px 0 0' : '0'}"></div>`;
+        bars += `<div style="width:${100 / series.length}%;height:${Math.max(h, 0)}%;background:${s.color};min-height:${v > 0 ? '2px' : '0'};border-radius:0"></div>`;
       });
       bars += '</div></div>';
     }
@@ -1603,7 +1603,7 @@ function renderCommissionCalendar(year, month, records) {
     if (!assigned) { tracks.push([r]); recordTrack[r.id] = tracks.length - 1; }
   });
 
-  let html = '<div class="cal-grid">';
+  let html = '<div class="cal-grid commission-cal-grid">';
   ['日', '一', '二', '三', '四', '五', '六'].forEach(w => { html += `<div class="cal-weekday">${w}</div>`; });
   for (let i = startWeekday - 1; i >= 0; i--) { html += `<div class="cal-day other-month"><span class="cal-date">${prevMonthDays - i}</span></div>`; }
   const barAreaTop = 22; // px from top of cell where bars start (date+开稿 on one row)
@@ -1622,8 +1622,8 @@ function renderCommissionCalendar(year, month, records) {
     // v29-fix3: 开稿橙色/截稿黄色实心点+文字，大小一致；截稿固定右侧
     let startTag = '', endTag = '';
     if (startRecords.length > 0 && deadlineRecords.length > 0) {
-      // v29-fix4: 开稿+截稿同天 → 合并为"开+截"实心点+字(#712258)
-      startTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${BOTH_COLOR}"></span><span class="cal-day-tag-text" style="color:${BOTH_COLOR}">开+截</span></span>`;
+      // v29-fix4: 开稿+截稿同天 → 合并为"同天"实心点+字(#712258)
+      startTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${BOTH_COLOR}"></span><span class="cal-day-tag-text" style="color:${BOTH_COLOR}">同天</span></span>`;
     } else {
       if (startRecords.length > 0) startTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${START_COLOR}"></span><span class="cal-day-tag-text" style="color:${START_COLOR}">开稿</span></span>`;
       if (deadlineRecords.length > 0) endTag = `<span class="cal-day-tag cal-day-tag-end"><span class="cal-day-tag-dot" style="background:${END_COLOR}"></span><span class="cal-day-tag-text" style="color:${END_COLOR}">截稿</span></span>`;
@@ -1659,7 +1659,7 @@ function renderCommissionCalendar(year, month, records) {
   html += '<div class="cal-legend">';
   html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>开稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>截稿</span>`;
-  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>开+截(同天)</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>同天</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[0]}"></span>紧急(截稿临近)</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[1]}"></span>正常</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[2]}"></span>充裕</span>`;
