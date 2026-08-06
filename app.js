@@ -1151,7 +1151,7 @@ MODULES['design-commission'] = {
     { key: 'modifications', label: '修改项目', type: 'dynamic-list', maxRows: 2, columns: [
       { subkey: 'modifyType', label: '修改类型', type: 'combobox', datalistId: 'comm_modify_dl', options: [] },
       { subkey: 'modifyCount', label: '次数', type: 'number' },
-      { subkey: 'modifyPrice', label: '价格（元/次）', type: 'number' },
+      { subkey: 'modifyPrice', label: '价格（元）', type: 'number' },
       { subkey: 'note', label: '备注', type: 'text' },
     ]},
 
