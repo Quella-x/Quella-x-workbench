@@ -414,8 +414,9 @@ ul,li{list-style:none}
 .checkbox-item:hover{border-color:var(--c-primary-light)}
 .checkbox-item input{margin:0;cursor:pointer}
 .checkbox-item:has(input:checked){background:var(--c-primary-bg);border-color:var(--c-primary);color:var(--c-primary);font-weight:500}
-/* v29: 自定义选项删除按钮 — 小巧灰色，hover 变红 */
-.custom-opt-del{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;margin-left:4px;border-radius:50%;color:var(--c-text-light);font-size:11px;line-height:1;cursor:pointer;transition:all .15s}
+/* v29: 自定义选项删除按钮 — 小巧灰色，hover 才显示并变红 */
+.custom-opt-del{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;margin-left:4px;border-radius:50%;color:var(--c-text-light);font-size:11px;line-height:1;cursor:pointer;transition:all .15s;opacity:0}
+.checkbox-item:hover .custom-opt-del{opacity:1}
 .custom-opt-del:hover{background:var(--c-danger-bg);color:var(--c-danger)}
 
 /* v22/v29: Dynamic list — 标题与内容像素级左对齐
@@ -431,7 +432,8 @@ ul,li{list-style:none}
   background:var(--c-primary-bg);
   border-bottom:1px dashed var(--c-border);
 }
-.dynamic-list-header span{box-sizing:border-box;text-align:left;min-width:0;border:1px solid transparent;padding-left:16px}
+.dynamic-list-header span{box-sizing:border-box;text-align:left;min-width:0;border:1px solid transparent;padding-left:8px}
+.dynamic-list-header span.combobox-col{padding-left:16px}
 .dynamic-list-header span:last-child{flex:0 0 40px;text-align:center;padding-left:0}
 /* === 标题列宽精确控制（v22 标准列宽） === */
 .dynamic-list-header span[data-subkey="name"]{flex:1.5 1 0;min-width:90px}
@@ -492,12 +494,12 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="amount"]{flex:0 0 60px}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="type"]{flex:0 0 95px}
 /* v29: 接稿排期修改项目（修改类型/次数/价格）列宽 */
-.dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyType"]{flex:1 1 0;min-width:90px}
-.dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyCount"]{flex:0 0 60px}
-.dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyPrice"]{flex:0 0 90px}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyType"]{flex:1 1 0;min-width:90px}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyCount"]{flex:0 0 60px}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyPrice"]{flex:0 0 90px}
+.dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyType"]{flex:1 1 0;min-width:80px}
+.dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyCount"]{flex:0 0 55px}
+.dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyPrice"]{flex:0 0 110px}
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyType"]{flex:1 1 0;min-width:80px}
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyCount"]{flex:0 0 55px}
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyPrice"]{flex:0 0 110px}
 .dynamic-list-row .combobox-wrapper{flex:1.5 1 0!important;min-width:90px!important;position:relative}
 /* 同模/补偿方式 下拉框列宽必须与对应 header span 完全一致，否则整列错位 */
 .dynamic-list-row .combobox-wrapper[data-subkey="sameModel"]{flex:0 0 110px!important;min-width:90px!important}
@@ -721,7 +723,8 @@ ul,li{list-style:none}
   .dynamic-list-row > button{flex-shrink:0;min-width:40px}
   /* v22 mobile 标题与内容列对齐 */
   .dynamic-list-header{font-size:10px;padding:6px 0;display:flex!important;gap:4px;background:transparent}
-  .dynamic-list-header span{padding-left:16px;box-sizing:border-box;text-align:left}
+  .dynamic-list-header span{padding-left:8px;box-sizing:border-box;text-align:left}
+  .dynamic-list-header span.combobox-col{padding-left:16px}
   /* v22 mobile: 全面隐藏所有 dynamic-list 标题（仅靠 placeholder 提示） */
   .dynamic-list-container[data-module] > .dynamic-list-header{display:none!important}
   /* 开团记录制品列表：mobile 下 isDisbanded/factory 须足够宽以容纳"是否流团"/"对应厂家"(下拉箭头占 26px) */
@@ -1255,13 +1258,13 @@ ul,li{list-style:none}
 
 /* ===== v15: Mind map circular nodes + zoom ===== */
 .mindmap-node.circular{
-  border-radius:50%!important;width:80px!important;height:80px!important;
+  border-radius:50%!important;width:60px!important;height:60px!important;
   padding:0!important;display:flex!important;flex-direction:column!important;
   align-items:center!important;justify-content:center!important;
   text-align:center;overflow:hidden;
 }
-.mindmap-node.circular img{width:56px!important;height:56px!important;border-radius:50%!important}
-.mindmap-node.circular .mm-node-alias{font-size:9px;opacity:.7;line-height:1.1;max-width:76px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mindmap-node.circular img{width:44px!important;height:44px!important;border-radius:50%!important}
+.mindmap-node.circular .mm-node-alias{font-size:8px;opacity:.7;line-height:1.1;max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mindmap-zoom-controls{
   position:absolute;top:8px;right:8px;z-index:10;
   display:flex;flex-direction:column;gap:4px;

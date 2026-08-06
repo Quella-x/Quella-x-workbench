@@ -428,7 +428,11 @@ function buildDynamicListHTML(field, data, moduleKey) {
   html += `<div class="${containerCls}" data-key="${field.key}" data-module="${esc(moduleKey)}">`;
   if (columns.length > 1) {
     html += `<div class="dynamic-list-header">`;
-    columns.forEach(col => { html += `<span data-subkey="${esc(col.subkey)}">${esc(col.label)}</span>`; });
+    columns.forEach(col => {
+      const isCb = col.type === 'combobox' || (col.options && col.type !== 'select') || col.datalistId;
+      const cbCls = isCb ? ' class="combobox-col"' : '';
+      html += `<span data-subkey="${esc(col.subkey)}"${cbCls}>${esc(col.label)}</span>`;
+    });
     html += `<span>操作</span></div>`;
   }
   html += `<div class="dynamic-list-rows" id="${field.key}_rows">`;
@@ -1390,7 +1394,7 @@ function renderListPage(pageKey, mod) {
   const ps = pageState[pageKey];
   if (ps.pageNo == null) ps.pageNo = 1;
   if (pageKey === 'design-commission') {
-    if (!ps.viewMode) ps.viewMode = 'list';
+    if (!ps.viewMode) ps.viewMode = 'calendar';
     if (!ps.calYear) { ps.calYear = new Date().getFullYear(); ps.calMonth = new Date().getMonth(); }
     if (!ps.dateFilter) ps.dateFilter = '';
   }
@@ -1463,23 +1467,10 @@ function renderListPage(pageKey, mod) {
   html += `<button class="btn btn-primary" onclick="openAddForm('${pageKey}')">+ 新增记录</button>`;
   html += '</div>';
 
-  // Commission calendar view
+  // Commission calendar view: 默认日历视图；列表在上，日历在下，因此先保存未过滤记录并应用日期筛选给列表
+  let commissionAllRecords = null;
   if (pageKey === 'design-commission' && ps.viewMode === 'calendar') {
-    html += '<div class="calendar" style="margin-top:4px">';
-    html += '<div class="calendar-header">';
-    html += `<span class="cal-title">${ps.calYear}年${ps.calMonth + 1}月</span>`;
-    html += '<div class="cal-nav">';
-    html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(-1)">‹ 上月</button>`;
-    html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(0)">本月</button>`;
-    html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(1)">下月 ›</button>`;
-    html += '</div></div>';
-    html += renderCommissionCalendar(ps.calYear, ps.calMonth, records);
-    if (ps.dateFilter) {
-      html += `<div style="text-align:center;margin-top:8px"><span class="tag tag-info" style="cursor:pointer" onclick="commissionClearDate()">清除日期筛选: ${ps.dateFilter} ✕</span></div>`;
-    }
-    html += '</div>';
-    html += '<hr class="cal-divider">';
-    // Apply date filter
+    commissionAllRecords = records.slice();
     let calFiltered = records;
     if (ps.dateFilter) calFiltered = records.filter(r => (r.startTime || r.acceptTime || '').startsWith(ps.dateFilter));
     records = calFiltered;
@@ -1561,6 +1552,24 @@ function renderListPage(pageKey, mod) {
       html += `<button class="btn btn-sm btn-ghost" ${pageNo >= totalPages ? 'disabled' : ''} onclick="goPage('${pageKey}',${pageNo + 1})">下一页 ›</button>`;
       html += '</div>';
     }
+  }
+
+  // Commission calendar view rendered after records (列表在上，日历在下)
+  if (commissionAllRecords) {
+    html += '<hr class="cal-divider">';
+    html += '<div class="calendar" style="margin-top:4px">';
+    html += '<div class="calendar-header">';
+    html += `<span class="cal-title">${ps.calYear}年${ps.calMonth + 1}月</span>`;
+    html += '<div class="cal-nav">';
+    html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(-1)">‹ 上月</button>`;
+    html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(0)">本月</button>`;
+    html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(1)">下月 ›</button>`;
+    html += '</div></div>';
+    html += renderCommissionCalendar(ps.calYear, ps.calMonth, commissionAllRecords);
+    if (ps.dateFilter) {
+      html += `<div style="text-align:center;margin-top:8px"><span class="tag tag-info" style="cursor:pointer" onclick="commissionClearDate()">清除日期筛选: ${ps.dateFilter} ✕</span></div>`;
+    }
+    html += '</div>';
   }
 
   // Chart + Stats (总结部分与记录隔开, 两列布局, 实色分割线)
@@ -2751,8 +2760,8 @@ function drawMindMap(chars, relations) {
     const ctrlX = mx + dy * 0.15, ctrlY = my - dx * 0.15;
     const dashArray = conn.auto ? '4,3' : 'none';
     const opacity = conn.auto ? 0.4 : 0.6;
-    // Adjust endpoints to circle edge (radius ~35)
-    const nodeR = 35;
+    // Adjust endpoints to circle edge (radius ~25, circular node 60px)
+    const nodeR = 25;
     const angA = Math.atan2(a.y - cy, a.x - cx);
     const angB = Math.atan2(b.y - cy, b.x - cx);
     // Use direction from center to node, then offset
@@ -2776,8 +2785,8 @@ function drawMindMap(chars, relations) {
   // Nodes (circular, text only — no images)
   chars.forEach(c => {
     const pos = positions[c.name];
-    const nodeHTML = `<div class="mindmap-node circular" style="left:${pos.x - 35}px;top:${pos.y - 35}px" onclick="navigate('oc-profiles')" title="${esc(c.name)}">` +
-      `<div style="width:56px;height:56px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:${(c.name||'?').length>3?'9px':(c.name||'?').length>2?'11px':'13px'};font-weight:700;color:var(--c-primary-dark);text-align:center;word-break:break-all;overflow:hidden;padding:2px">${esc(c.name || '?')}</div>` +
+    const nodeHTML = `<div class="mindmap-node circular" style="left:${pos.x - 25}px;top:${pos.y - 25}px" onclick="navigate('oc-profiles')" title="${esc(c.name)}">` +
+      `<div style="width:44px;height:44px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:${(c.name||'?').length>3?'8px':(c.name||'?').length>2?'10px':'12px'};font-weight:700;color:var(--c-primary-dark);text-align:center;word-break:break-all;overflow:hidden;padding:2px">${esc(c.name || '?')}</div>` +
       (c.alias ? `<div class="mm-node-alias">${esc(c.alias)}</div>` : '') +
       '</div>';
     inner += nodeHTML;
