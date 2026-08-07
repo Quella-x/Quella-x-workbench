@@ -3301,7 +3301,11 @@ function dcRenderExtras() {
     const cbId = 'dce_' + i + '_' + Math.random().toString(36).slice(2,6);
     const optHTML = extraNames.map(n => `<div class="combobox-option" onclick="dcSelectExtra(${i},this,'${cbId}')" data-value="${esc(n)}">${esc(n)}</div>`).join('');
     const bindOpts = ['<option value="none"' + ((e.bindSeq || 'none') === 'none' ? ' selected' : '') + '>无</option>']
-      .concat(_dcProducts.map((p, j) => `<option value="${String(j + 1).padStart(2, '0')}"${(e.bindSeq || 'none') === String(j + 1).padStart(2, '0') ? ' selected' : ''}>${String(j + 1).padStart(2, '0')}</option>`));
+      .concat(_dcProducts.map((p, j) => {
+        const seq = String(j + 1).padStart(2, '0');
+        const label = p.name ? (seq + ' ' + p.name) : seq;
+        return `<option value="${seq}"${(e.bindSeq || 'none') === seq ? ' selected' : ''}>${esc(label)}</option>`;
+      }));
     html += '<div class="dc-extra-row">';
     html += `<select class="form-input dc-extra-bind" onchange="dcUpdateExtra(${i},'bindSeq',this.value)">${bindOpts}</select>`;
     html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-extra-name" value="${esc(e.name)}" placeholder="名称" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateExtra(${i},'name',this.value);dcFillPrice(this,'extra',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
