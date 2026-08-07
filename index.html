@@ -1333,11 +1333,11 @@ ul,li{list-style:none}
 .calc-rate-row:last-child{border-bottom:none}
 .calc-rate-label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--c-text);cursor:pointer}
 .calc-rate-label input[type="radio"],.calc-rate-label input[type="checkbox"]{accent-color:var(--c-primary)}
-.dc-urgent-toggle{appearance:none;-webkit-appearance:none;width:16px;height:16px;border:1.5px solid var(--c-text-light);border-radius:50%;outline:none;cursor:pointer;position:relative;flex-shrink:0;background:#fff;box-sizing:border-box}
-.dc-urgent-toggle:checked{border-color:var(--c-primary);background:var(--c-primary)}
-.dc-urgent-toggle:checked::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:6px;height:6px;border-radius:50%;background:#fff}
-.dc-urgent-toggle:disabled{opacity:.5;cursor:not-allowed}
 .calc-rate-input{width:70px;padding:4px 8px;border:1px solid var(--c-border);border-radius:6px;font-size:13px;text-align:center}
+/* Bn轮：稿件用途倍率/加急/全局同模阶梯价倍率/优惠体系/同担同推优惠的数字框取消上下步进箭头，仅可输入修改 */
+.calc-rate-input[type=number]::-webkit-outer-spin-button,
+.calc-rate-input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.calc-rate-input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .calc-rate-fixed{font-size:13px;color:var(--c-text-muted);width:70px;text-align:center}
 .calc-sub-area{padding:4px 0 4px 20px;transition:opacity .2s}
 .calc-sub-area.disabled{opacity:.4;pointer-events:none}
@@ -1628,7 +1628,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=95"></script>
+<script src="app.js?v=96"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

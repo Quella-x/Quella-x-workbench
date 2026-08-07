@@ -3012,7 +3012,7 @@ function renderDesignCalc() {
   html += '<div class="calc-card">';
   html += '<div class="calc-card-title">加急 <span class="calc-card-hint">（单个制品加急请单选，此为整单加急）</span></div>';
   html += '<div class="calc-rate-row">';
-  html += `<label class="calc-rate-label"><input type="checkbox" class="dc-urgent-toggle" ${_dcWholeOrderUrgent ? 'checked' : ''} ${anyProductUrgent ? 'disabled' : ''} onchange="dcToggleWholeOrderUrgent(this.checked)"> 加急（整单）</label>`;
+  html += `<label class="calc-rate-label"><input type="checkbox" id="dcWholeOrderUrgentChk" ${_dcWholeOrderUrgent ? 'checked' : ''} ${anyProductUrgent ? 'disabled' : ''} onchange="dcToggleWholeOrderUrgent(this.checked)"> 加急（整单）</label>`;
   html += '<input type="number" class="calc-rate-input" step="0.1" value="2" data-urgent="rate" oninput="dcRecalc()">';
   html += '</div>';
   html += '</div>';
@@ -3251,7 +3251,7 @@ function dcUpdateProduct(idx, field, val) {
   }
   else if (field === 'quantity') { p.quantity = parseInt(val) || 1; }
   else if (field === 'price') { p.price = parseFloat(val) || 0; }
-  else if (field === 'urgent') { p.urgent = !!val; }
+  else if (field === 'urgent') { p.urgent = !!val; dcSyncWholeOrderToggle(); }
   dcRecalc();
 }
 function dcFillPrice(input, lookupType, idx) {
@@ -3457,6 +3457,11 @@ function dcDiscModeChange() {
   dcRecalc();
 }
 
+function dcSyncWholeOrderToggle() {
+  // Bn轮：任一行制品勾选/取消"加急"时，同步整单加急开关的置灰状态
+  const tog = document.getElementById('dcWholeOrderUrgentChk');
+  if (tog) tog.disabled = _dcProducts.some(p => p.urgent);
+}
 function dcToggleWholeOrderUrgent(val) {
   _dcWholeOrderUrgent = !!val;
   const settings = DB.get('calcSettings', {});
@@ -3599,10 +3604,28 @@ function dcRecalc() {
     let d = finalPrice;
     const mCheck = document.getElementById('dcDiscMulti');
     if (mCheck && mCheck.checked) {
-      const mInp = document.querySelector('input[data-disc="multi"]');
-      const mR = mInp ? (parseFloat(mInp.value) || 0.9) : 0.9;
-      d = d * mR;
-      discHTML += `<div class="dc-rr"><span>多件折扣（≥8件）</span><span>×${mR}</span></div>`;
+      // Bn轮：阈值=净不同制品数量（排除加价项目、同柄、同模）；九折只作用于净制品金额
+      const patternFreq = {};
+      productDetails.forEach(x => { if (x.patternId) patternFreq[x.patternId] = (patternFreq[x.patternId] || 0) + 1; });
+      let netQty = 0, netBase = 0;
+      productDetails.forEach((x, i) => {
+        const p = _dcProducts[i];
+        if (!p) return;
+        if (p.sameModel) return;                                  // 同模排除
+        if (x.patternId && patternFreq[x.patternId] > 1) return;   // 同柄（共享柄图标识）排除
+        const gr = itemGroupRate[i] || 1.0;
+        const basePre = x.lt * gr;                                // 制品基价(含SET组折扣)，不含加价项目
+        const urg = x.urgent ? urgentRate : 1.0;
+        netBase += basePre * urg * uRate;
+        netQty += x.qty;
+      });
+      if (netQty >= 8) {
+        const mInp = document.querySelector('input[data-disc="multi"]');
+        const mR = mInp ? (parseFloat(mInp.value) || 0.9) : 0.9;
+        const after = netBase * mR;
+        d = finalPrice - netBase + after;                         // 仅净制品部分打折；加价项目/同柄/同模保持原价
+        discHTML += `<div class="dc-rr"><span>多件折扣（不同制品≥8件）</span><span>×${mR}</span></div>`;
+      }
     }
     _dcCustomDiscs.forEach((cd, ci) => {
       const cdCheck = document.querySelector(`input[data-cdisc-check="${ci}"]`);
