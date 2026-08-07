@@ -1077,10 +1077,13 @@ ul,li{list-style:none}
 }
 
 /* ===== Relation Person Buttons (collapsible) ===== */
-.relation-person-grid{
-  display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;
+.relation-person-row{
+  display:flex;align-items:flex-start;gap:8px;flex-wrap:nowrap;margin-bottom:12px;
 }
-/* 折叠态：只显示一排，超出隐藏，由「展开/收起」按钮控制 */
+.relation-person-grid{
+  display:flex;flex-wrap:wrap;gap:8px;flex:1;min-width:0;margin-bottom:0;
+}
+/* 折叠态：只显示一排，超出隐藏，由右侧「展开/收起」按钮控制 */
 .relation-person-grid.collapsed{max-height:42px;overflow:hidden}
 .relation-person-btn{
   padding:8px 16px;border-radius:20px;
@@ -1092,7 +1095,7 @@ ul,li{list-style:none}
 .relation-person-btn:hover{background:var(--c-primary);color:#fff}
 .relation-person-btn.active{background:var(--c-primary);color:#fff}
 .relation-toggle-btn{
-  margin:0 0 12px;padding:4px 14px;border-radius:20px;
+  flex:0 0 auto;margin:0;padding:8px 14px;border-radius:20px;line-height:1.4;white-space:nowrap;
   background:var(--c-card);color:var(--c-primary);border:1px solid var(--c-primary-light);
   font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;
 }
@@ -1518,7 +1521,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=66"></script>
+<script src="app.js?v=67"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
