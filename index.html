@@ -1180,16 +1180,17 @@ ul,li{list-style:none}
   .pricelist-menu{max-width:100%}
   .calc-page-grid{grid-template-columns:1fr !important}
   .calc-receipt-col{position:static !important}
-  /* AQ轮: mobile 报价计算制品两行——序号更窄、下拉更靠近序号；加急左、同模右且 inline */
+  /* AR轮: mobile 报价计算制品两行——序号与添加按钮左对齐；柄图标识完全展示；加急对齐制品框 */
   .dc-product-header{display:none!important}
   .dc-extra-header{display:none!important}
   .dc-product-row{
-    grid-template-columns:24px 1fr 64px 48px 40px 28px !important;
-    grid-template-areas:"seq name pattern price qty del" "urgent same same same same same";
-    gap:3px!important;padding:0
+    grid-template-columns:28px 1fr 72px 44px 40px 28px !important;
+    grid-template-areas:"seq name pattern price qty del" ". urgent same same same same";
+    gap:2px!important;padding:0
   }
-  .dc-product-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
-  .dc-product-row .dc-prod-seq{grid-area:seq;justify-content:flex-start;padding-left:2px;font-size:12px}
+  .dc-product-row .form-input{padding:5px 6px!important;font-size:12px;box-sizing:border-box;text-align:left}
+  .dc-product-row .combobox-input{padding-right:26px!important}
+  .dc-product-row .dc-prod-seq{grid-area:seq;justify-content:flex-start;padding-left:10px;font-size:12px}
   .dc-product-row .combobox-wrapper{grid-area:name}
   .dc-product-row .dc-prod-pattern{grid-area:pattern}
   .dc-product-row .dc-prod-price{grid-area:price}
@@ -1197,10 +1198,12 @@ ul,li{list-style:none}
   .dc-product-row .dc-prod-del{grid-area:del;width:28px;height:28px;font-size:12px;justify-self:end}
   .dc-product-row .dc-prod-urgent{grid-area:urgent;justify-content:flex-start;font-size:11px;gap:2px}
   .dc-product-row .dc-prod-same{grid-area:same;justify-content:flex-start;font-size:11px;gap:2px}
-  .dc-product-row .dc-prod-check input{width:14px;height:14px}
+  .dc-product-row .dc-prod-check input{width:14px;height:14px;flex-shrink:0}
   .dc-product-row .dc-prod-name{font-size:12px}
-  .dc-product-row .dc-prod-model-type{min-width:70px;font-size:11px;padding:3px 4px}
-  .dc-product-row .dc-prod-model-rate{width:38px;font-size:11px;padding:3px 4px}
+  .dc-product-row .dc-prod-model-type{min-width:0;flex:1;font-size:11px;padding:3px 4px;-webkit-appearance:none;-moz-appearance:none;appearance:none;background:#fff}
+  .dc-product-row .dc-prod-model-rate{width:38px;font-size:11px;padding:3px 4px;-webkit-appearance:none;-moz-appearance:textfield;appearance:none}
+  .dc-product-row .dc-prod-model-rate::-webkit-inner-spin-button,
+  .dc-product-row .dc-prod-model-rate::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
   .dc-extra-row{grid-template-columns:60px 1fr 44px 52px 28px!important;gap:4px!important;padding:0}
   .dc-extra-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
   .dc-extra-del{width:28px;height:28px;font-size:12px;justify-self:end}
@@ -1233,17 +1236,14 @@ ul,li{list-style:none}
 .dc-prod-check{display:flex;align-items:center;justify-content:flex-start;gap:3px;font-size:11px;cursor:pointer;color:var(--c-text-muted);white-space:nowrap}
 .dc-prod-check input{accent-color:var(--c-primary);width:14px;height:14px;flex-shrink:0}
 .dc-prod-same{display:flex;align-items:center;gap:4px;flex-wrap:wrap;white-space:normal}
-.dc-prod-same .dc-prod-model-type{flex:1;min-width:80px;padding:4px 5px;font-size:12px;border-radius:6px;background:#fff}
-.dc-prod-same .dc-prod-model-rate{width:46px;padding:4px 5px;font-size:12px;border-radius:6px;text-align:center}
+.dc-prod-same .dc-prod-model-type{flex:1;min-width:80px;padding:4px 5px;font-size:12px;border-radius:6px;background:#fff;-webkit-appearance:none;-moz-appearance:none;appearance:none}
+.dc-prod-same .dc-prod-model-rate{width:46px;padding:4px 5px;font-size:12px;border-radius:6px;text-align:center;-webkit-appearance:none;-moz-appearance:textfield;appearance:none}
+.dc-prod-same .dc-prod-model-rate::-webkit-inner-spin-button,
+.dc-prod-same .dc-prod-model-rate::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .dc-prod-del{width:32px;height:28px;padding:0;font-size:14px;display:flex;align-items:center;justify-content:center;justify-self:end;background:transparent;color:var(--c-text-light);border:none;border-radius:6px;transition:all .15s}
 .dc-prod-del:hover{background:#fff0f0;color:var(--c-danger)}
 /* v-NEW: 制品序号（只读，纯数字，无框） */
 .dc-prod-seq{display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--c-text);min-width:24px;height:32px;box-sizing:border-box}
-/* AQ轮: 同模规则示意表（优惠体系上方） */
-.dc-model-rule-table{display:grid;grid-template-columns:1fr 50px;gap:4px 8px;font-size:12px;color:var(--c-text)}
-.dc-model-rule-row{display:contents}
-.dc-model-rule-row span:first-child{color:var(--c-text)}
-.dc-model-rule-row span:last-child{color:var(--c-text-muted);text-align:right}
 /* v-NEW: 加价项目绑定下拉（置于最前、扩大） */
 .dc-extra-bind{flex:1;min-width:0;padding:7px 6px;font-size:12px;text-align:left}
 /* v-NEW: 实时报价中绑定的加价项目树形缩进展示（无蓝条，颜色与制品相同）
@@ -1251,7 +1251,7 @@ ul,li{list-style:none}
    制品文字起点 = .dc-rr padding-left(12) + .dc-r-no(20) + margin(8) = 40px
    所以 .dc-r-tree(22) + margin(2) = 24px，bound 左内边距 = 40 - 24 = 16px
 */
-.dc-rr.bound{margin-left:0;padding:2px 12px 2px 16px;color:var(--c-text);font-size:13px}
+.dc-rr.bound{margin-left:0;padding:2px 12px 2px 4px;color:var(--c-text);font-size:13px}
 .dc-r-tree{display:inline-block;min-width:22px;margin-right:2px;color:var(--c-text);font-style:normal;font-weight:600}
 /* v22: 加价项目——与制品列表同款对齐规则：header 与 row padding/gap 一致 */
 .dc-extra-header{display:grid;grid-template-columns:90px minmax(120px,1.1fr) 65px 70px 40px;gap:6px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
@@ -1555,7 +1555,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=73"></script>
+<script src="app.js?v=74"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

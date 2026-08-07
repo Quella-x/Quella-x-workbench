@@ -3001,14 +3001,17 @@ function renderDesignCalc() {
   html += '</div>';
   html += '</div>';
 
-  // v-AQ: 同模规则示意表（置于优惠体系上方）
+  // AR轮: 同模阶梯价倍率示意表（与稿件用途倍率同款 radio 行）
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">同模规则 <span class="calc-card-hint">（勾选同模后生效）</span></div>';
-  html += '<div class="dc-model-rule-table">';
+  html += '<div class="calc-card-title">同模阶梯价倍率 <span class="calc-card-hint">（选择同模更改项）</span></div>';
+  html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" name="dc_model_rule" disabled checked> 无同模</label><span></span></div>';
   DC_MODEL.filter(m => m.value !== 'none').forEach(m => {
-    html += `<div class="dc-model-rule-row"><span>${m.value}</span><span>×${m.rate}</span></div>`;
+    html += '<div class="calc-rate-row">';
+    html += `<label class="calc-rate-label"><input type="radio" name="dc_model_rule" disabled> ${m.value}</label>`;
+    html += `<input type="number" class="calc-rate-input" step="0.1" value="${m.rate}" readonly>`;
+    html += '</div>';
   });
-  html += '</div></div>';
+  html += '</div>';
 
   // Discount system (SET与折扣互斥，同担/同推独立)
   html += '<div class="calc-card">';
