@@ -189,7 +189,7 @@ ul,li{list-style:none}
 
 .toolbar{
   display:flex;flex-wrap:wrap;gap:8px;align-items:center;
-  margin-bottom:16px;
+  margin-bottom:10px;
 }
 .toolbar .spacer{flex:1}
 .toolbar .btn-primary{width:112px;justify-content:center}
@@ -538,11 +538,11 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="amount"]{flex:0 0 60px}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="type"]{flex:0 0 95px}
 /* v29: 接稿排期修改项目（修改类型/次数/价格/备注）列宽 */
-.dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyCount"]{flex:0 0 55px}
+.dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyCount"]{flex:0 0 70px}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyPrice"]{flex:0 0 80px}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="note"]{flex:1 1 0;min-width:80px}
 /* AE轮：接稿修改项目标题统一左对齐底下内容框（恢复默认 padding-left:8px，去掉负 margin） */
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyCount"]{flex:0 0 55px;padding-left:8px;margin-left:0}
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyCount"]{flex:0 0 70px;padding-left:8px;margin-left:0}
 .dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyPrice"]{flex:0 0 80px;padding-left:8px;margin-left:0}
 .dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="note"]{flex:1 1 0;min-width:80px;padding-left:8px;margin-left:0}
 /* P轮修正：开团记录制品列表「单价/对应厂家」标题 padding-left 30px；
@@ -1364,17 +1364,17 @@ ul,li{list-style:none}
 .sortable-actions .btn-ghost:disabled{opacity:.35;cursor:not-allowed}
 
 /* ===== v15/v32: Timeline (时间轨迹) ===== */
-/* AE轮修正：时间线重要性按钮——宽200px居中、高度自适应、与上方toolbar间距8px，选中胶囊改成截图大小 */
+/* AF轮修正：时间线重要性按钮——宽200px居中、高度自适应、与上方toolbar间距10px，选中胶囊放大 */
 .timeline-filter-bar{
   display:flex;flex-wrap:nowrap;gap:0;align-items:center;justify-content:center;
   width:200px;background:#fff;border:1px solid var(--c-border);border-radius:999px;
-  padding:3px;margin:8px auto 16px;overflow:hidden;box-sizing:border-box;
+  padding:3px;margin:0 auto 16px;overflow:hidden;box-sizing:border-box;
 }
 @media (max-width:768px){
   .timeline-filter-bar{width:100%}
 }
-/* 时间线页面toolbar与重要性按钮间距保持8px，与toolbar内部按钮gap一致 */
-.toolbar:has(+ .timeline-filter-bar){margin-bottom:8px}
+/* 时间线页面toolbar与重要性按钮间距保持10px，与全局toolbar底部间距一致 */
+.toolbar:has(+ .timeline-filter-bar){margin-bottom:10px}
 .timeline-color-filter{
   flex:0 0 25%;display:inline-flex;align-items:center;justify-content:center;gap:4px;
   padding:6px 0;font-size:13px;font-weight:600;white-space:nowrap;
@@ -1399,7 +1399,7 @@ ul,li{list-style:none}
   padding:0 4px;box-sizing:border-box;max-width:100%;
 }
 .timeline-color-filter.active .timeline-color-label{
-  padding:0 8px;border-radius:999px;color:#fff;
+  padding:0 16px;border-radius:999px;color:#fff;
 }
 .timeline-color-filter[data-color="红"].active .timeline-color-label{background:#e74c3c}
 .timeline-color-filter[data-color="橙"].active .timeline-color-label{background:#fa8c16}
@@ -1510,7 +1510,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=61"></script>
+<script src="app.js?v=62"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
