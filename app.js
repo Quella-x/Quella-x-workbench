@@ -2969,7 +2969,7 @@ function renderDesignCalc() {
   // Product list
   html += '<div class="calc-card">';
   html += '<div class="calc-card-title">制品列表 <span class="calc-card-hint">（柄图自动分组，勾选同模启用阶梯计价）</span></div>';
-  html += '<div class="dc-product-header"><span>序号</span><span>制品</span><span>柄图标识</span><span>单价</span><span>加急</span><span>同模</span><span>数量</span><span></span></div>';
+  html += '<div class="dc-product-header"><span>序号</span><span>制品</span><span>柄图标识</span><span>价格</span><span>数量</span><span>加急</span><span>同模</span><span></span></div>';
   html += '<div id="dc-products"></div>';
   html += '<div style="display:flex;gap:8px;margin-top:8px">';
   html += '<button type="button" class="btn btn-outline btn-sm" onclick="dcAddProduct()">+ 添加制品</button>';
@@ -3172,7 +3172,7 @@ function dcRenderProducts() {
     html += `<label class="dc-prod-check dc-prod-same">`;
     html += `<input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模`;
     if (p.sameModel) {
-      html += `<div class="combobox-wrapper dc-prod-model-type-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-model-type" value="${esc(modelTypeLabel)}" placeholder="类型" readonly onfocus="showComboboxDropdown('${modelCbId}')" onclick="showComboboxDropdown('${modelCbId}')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${modelCbId}')">▼</button><div class="combobox-dropdown" id="${modelCbId}">${modelOptsHTML}</div></div>`;
+      html += `<div class="combobox-wrapper dc-prod-model-type-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-model-type" value="${esc(modelTypeLabel)}" placeholder="类型" readonly onfocus="showComboboxDropdown('${modelCbId}')" onclick="showComboboxDropdown('${modelCbId}')"><div class="combobox-dropdown" id="${modelCbId}">${modelOptsHTML}</div></div>`;
       html += `<input type="number" class="form-input dc-prod-model-rate" value="${p.sameModelRate}" step="0.1" min="0" oninput="dcUpdateProduct(${i},'sameModelRate',this.value)">`;
     }
     html += `</label>`;
@@ -3717,15 +3717,16 @@ function dcRecalc() {
   r += `<div class="dc-r-deposit"><div class="dc-r-db-label">定金(50%)</div><div class="dc-r-db-val">¥${deposit.toFixed(2)}</div></div>`;
   r += `<div class="dc-r-balance"><div class="dc-r-db-label">尾款(50%)</div><div class="dc-r-db-val">¥${balance.toFixed(2)}</div></div>`;
   r += '</div>';
-  // AS轮：修改加价、需付尾款、最终总价
+  // AT轮：修改加价、最终总价、需付尾款
   const modTotal = dcCalcModTotal();
   if (modTotal > 0) {
     const balancePayable = balance + modTotal;
     const finalTotal = finalPrice + modTotal;
-    r += '<div class="dc-r-section">';
+    r += '<div class="dc-r-section" style="margin-top:12px">';
+    r += '<div class="dc-r-sub">修改项目</div>';
     r += `<div class="dc-rr"><span>修改加价</span><span>¥${modTotal.toFixed(2)}</span></div>`;
-    r += `<div class="dc-rr total"><span>需付尾款</span><span>¥${balancePayable.toFixed(2)}</span></div>`;
     r += `<div class="dc-rr total"><span>最终总价</span><span>¥${finalTotal.toFixed(2)}</span></div>`;
+    r += `<div class="dc-rr total"><span>需付尾款</span><span>¥${balancePayable.toFixed(2)}</span></div>`;
     r += '</div>';
   }
   r += '<div class="dc-r-footer">@筱小葵｜专属报价・仅供本次使用</div>';

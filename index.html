@@ -1180,12 +1180,13 @@ ul,li{list-style:none}
   .pricelist-menu{max-width:100%}
   .calc-page-grid{grid-template-columns:1fr !important}
   .calc-receipt-col{position:static !important}
-  /* AS轮: mobile 报价计算制品两行——序号与添加按钮左对齐；数量放到第二排；加急与同模靠近 */
+  /* AT轮: mobile 报价计算制品两行——列序：序号、制品、柄图标识、价格、数量；第二排：加急、同模 */
   .dc-product-header{display:none!important}
   .dc-extra-header{display:none!important}
   .dc-product-row{
-    grid-template-columns:28px 1fr 1fr 60px 32px !important;
-    grid-template-areas:"seq name name pattern del" ". urgent same same qty";
+    grid-template-columns:28px 1fr 70px 60px 48px 32px !important;
+    grid-template-areas:"seq name pattern price qty del"
+                        ". urgent same same same .";
     gap:4px!important;padding:0
   }
   .dc-product-row .form-input{padding:5px 6px!important;font-size:12px;box-sizing:border-box;text-align:left}
@@ -1194,17 +1195,18 @@ ul,li{list-style:none}
   .dc-product-row .combobox-wrapper{grid-area:name}
   .dc-product-row .dc-prod-pattern{grid-area:pattern}
   .dc-product-row .dc-prod-price{grid-area:price}
+  .dc-product-row .dc-prod-qty{grid-area:qty}
   .dc-product-row .dc-prod-urgent{grid-area:urgent;justify-content:flex-start;font-size:11px;gap:2px}
   .dc-product-row .dc-prod-same{grid-area:same;justify-content:flex-start;font-size:11px;gap:2px}
-  .dc-product-row .dc-prod-qty{grid-area:qty}
   .dc-product-row .dc-prod-del{grid-area:del;width:28px;height:28px;font-size:12px;justify-self:end}
   .dc-product-row .dc-prod-check input{width:14px;height:14px;flex-shrink:0}
   .dc-product-row .dc-prod-name{font-size:12px}
   .dc-product-row .dc-prod-model-type-wrapper{min-width:0;flex:1}
-  .dc-product-row .dc-prod-model-type{padding-right:22px!important;font-size:11px;padding:3px 4px;background:#fff}
+  .dc-product-row .dc-prod-model-type{padding-right:6px!important;font-size:11px;padding:3px 4px;background:#fff}
   .dc-product-row .dc-prod-model-rate{width:38px;font-size:11px;padding:3px 4px;-webkit-appearance:none;-moz-appearance:textfield;appearance:none}
   .dc-product-row .dc-prod-model-rate::-webkit-inner-spin-button,
   .dc-product-row .dc-prod-model-rate::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+  .dc-product-row .dc-prod-same .combobox-toggle{display:none}
   .dc-extra-row{grid-template-columns:60px 1fr 44px 52px 28px!important;gap:4px!important;padding:0}
   .dc-extra-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
   .dc-extra-del{width:28px;height:28px;font-size:12px;justify-self:end}
@@ -1234,21 +1236,38 @@ ul,li{list-style:none}
 .calc-mode-tab:last-child{border-radius:0 6px 6px 0;border-left:none}
 .calc-mode-tab.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary)}
 .calc-import-select{width:100%;margin-top:4px}
-/* AS轮: 报价计算制品列表——序号左对齐添加按钮；同模改为combobox下拉选择器；加急与同模靠近 */
-.dc-product-header{display:grid;grid-template-columns:28px minmax(150px,1.5fr) 76px 60px 48px minmax(120px,auto) 48px 32px;gap:4px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
+/* AT轮: 报价计算制品列表——列序：序号、制品、柄图标识、价格、数量、加急、同模、删除 */
+.dc-product-header{display:grid;grid-template-columns:28px minmax(140px,1.5fr) 76px 60px 48px 50px minmax(170px,auto) 32px;gap:4px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500;grid-template-areas:"seq name pattern price qty urgent same del"}
 .dc-product-header > span{box-sizing:border-box;padding-left:8px}
 .dc-product-header > span:last-child{padding-left:0}
-.dc-product-row{display:grid;grid-template-columns:28px minmax(150px,1.5fr) 76px 60px 48px minmax(120px,auto) 48px 32px;gap:4px;margin-bottom:6px;align-items:center;padding:0}
+.dc-product-header > span:nth-child(1){grid-area:seq}
+.dc-product-header > span:nth-child(2){grid-area:name}
+.dc-product-header > span:nth-child(3){grid-area:pattern}
+.dc-product-header > span:nth-child(4){grid-area:price}
+.dc-product-header > span:nth-child(5){grid-area:qty}
+.dc-product-header > span:nth-child(6){grid-area:urgent}
+.dc-product-header > span:nth-child(7){grid-area:same}
+.dc-product-header > span:nth-child(8){grid-area:del}
+.dc-product-row{display:grid;grid-template-columns:28px minmax(140px,1.5fr) 76px 60px 48px 50px minmax(170px,auto) 32px;gap:4px;margin-bottom:6px;align-items:center;padding:0;grid-template-areas:"seq name pattern price qty urgent same del"}
 .dc-product-row .form-input{padding:6px 8px;font-size:13px;box-sizing:border-box;text-align:left}
 .dc-product-row .combobox-wrapper,.dc-extra-row .combobox-wrapper{min-width:0;width:100%}
+.dc-product-row .dc-prod-seq{grid-area:seq}
+.dc-product-row .combobox-wrapper{grid-area:name}
+.dc-product-row .dc-prod-pattern{grid-area:pattern}
+.dc-product-row .dc-prod-price{grid-area:price}
+.dc-product-row .dc-prod-qty{grid-area:qty}
+.dc-product-row .dc-prod-urgent{grid-area:urgent}
+.dc-product-row .dc-prod-same{grid-area:same}
+.dc-product-row .dc-prod-del{grid-area:del}
 .dc-prod-check{display:flex;align-items:center;justify-content:flex-start;gap:3px;font-size:11px;cursor:pointer;color:var(--c-text-muted);white-space:nowrap}
 .dc-prod-check input{accent-color:var(--c-primary);width:14px;height:14px;flex-shrink:0}
 .dc-prod-same{display:flex;align-items:center;gap:4px;flex-wrap:wrap;white-space:normal}
 .dc-prod-same .dc-prod-model-type-wrapper{flex:1;min-width:70px;max-width:120px}
-.dc-prod-same .dc-prod-model-type{padding-right:24px!important;font-size:12px;cursor:pointer;background:#fff}
+.dc-prod-same .dc-prod-model-type{padding-right:8px!important;font-size:12px;cursor:pointer;background:#fff}
 .dc-prod-same .dc-prod-model-rate{width:46px;padding:4px 5px;font-size:12px;border-radius:6px;text-align:center;-webkit-appearance:none;-moz-appearance:textfield;appearance:none}
 .dc-prod-same .dc-prod-model-rate::-webkit-inner-spin-button,
 .dc-prod-same .dc-prod-model-rate::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.dc-prod-same .combobox-toggle{display:none}
 .dc-prod-del{width:32px;height:28px;padding:0;font-size:14px;display:flex;align-items:center;justify-content:center;justify-self:end;background:transparent;color:var(--c-text-light);border:none;border-radius:6px;transition:all .15s}
 .dc-prod-del:hover{background:#fff0f0;color:var(--c-danger)}
 /* v-NEW: 制品序号（只读，纯数字，无框） */
@@ -1260,8 +1279,8 @@ ul,li{list-style:none}
    制品文字起点 = .dc-rr padding-left(12) + .dc-r-no(20) + margin(8) = 40px
    所以 .dc-r-tree(22) + margin(2) = 24px，bound 左内边距 = 40 - 24 = 16px
 */
-.dc-rr.bound{margin-left:0;padding:2px 12px 2px 16px;color:var(--c-text);font-size:13px}
-.dc-r-tree{display:inline-block;min-width:22px;margin-right:2px;color:var(--c-text);font-style:normal;font-weight:600}
+.dc-rr.bound{margin-left:0;padding:2px 12px 2px 18px;color:var(--c-text);font-size:13px}
+.dc-r-tree{display:inline-block;width:22px;margin-right:0;color:var(--c-text);font-style:normal;font-weight:600;text-align:left}
 /* v22: 加价项目——与制品列表同款对齐规则：header 与 row padding/gap 一致 */
 .dc-extra-header{display:grid;grid-template-columns:90px minmax(120px,1.1fr) 65px 70px 40px;gap:6px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
 .dc-extra-header > span{box-sizing:border-box;padding-left:8px}
@@ -1307,6 +1326,7 @@ ul,li{list-style:none}
 .dc-rr > span:last-child{font-weight:600}
 /* v28: 默认 total 上面分割线——与折后小计等 total 行字体同色（var(--c-text)），1px 实线 */
 .dc-rr.total{font-weight:600;border-top:1px solid var(--c-text);margin-top:4px;padding-top:4px}
+.dc-rr.total > span:last-child{font-size:13px;font-weight:700}
 /* v30: 制品序号——两字宽、与制品名间隔 8px（近一点）、字号字重与制品文字统一（继承 13px/normal、色 var(--c-text)） */
 .dc-r-no{display:inline-block;min-width:20px;margin-right:8px;color:var(--c-text);font-weight:600;font-style:normal}
 /* v31: 含序号的 span（序号+制品名）加粗，与右侧 ¥金额 字重一致 */
@@ -1572,7 +1592,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=75"></script>
+<script src="app.js?v=76"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
