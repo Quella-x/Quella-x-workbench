@@ -554,9 +554,9 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="isDisbanded"]{padding-left:6px}
 .dynamic-list-container[data-key="products"][data-module="schedule"] .dynamic-list-header span[data-subkey="price"]{padding-left:8px}
 .dynamic-list-row .combobox-wrapper{flex:1.5 1 0!important;min-width:90px!important;position:relative}
-/* AC轮：接稿修改项目「修改类型」下拉框缩短到 75px（比 F 轮 80px 略短，但比 AA 轮 70px 长） */
-.dynamic-list-container[data-key="modifications"] .dynamic-list-row .combobox-wrapper[data-subkey="modifyType"]{flex:0 0 75px!important;min-width:75px!important}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyType"]{flex:0 0 75px}
+/* AD轮：接稿修改项目「修改类型」下拉框参考上方制品列表「制品名称」列宽（min-width:90px），定为 90px */
+.dynamic-list-container[data-key="modifications"] .dynamic-list-row .combobox-wrapper[data-subkey="modifyType"]{flex:0 0 90px!important;min-width:90px!important}
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyType"]{flex:0 0 90px}
 /* 同模/补偿方式 下拉框列宽必须与对应 header span 完全一致，否则整列错位 */
 .dynamic-list-row .combobox-wrapper[data-subkey="sameModel"]{flex:0 0 110px!important;min-width:90px!important}
 .dynamic-list-row .combobox-wrapper[data-subkey="type"]{flex:0 0 70px!important;min-width:60px!important}
@@ -1364,18 +1364,18 @@ ul,li{list-style:none}
 .sortable-actions .btn-ghost:disabled{opacity:.35;cursor:not-allowed}
 
 /* ===== v15/v32: Timeline (时间轨迹) ===== */
-/* AC轮修正：时间线重要性按钮——外框尺寸严格固定，点击选中只变内部颜色/胶囊，外框宽高不变 */
+/* AD轮修正：时间线重要性按钮——宽度与搜索框一致(200px)、居中、外框高度自适应(与之前一致不加宽)，点击选中只变内部胶囊 */
 .timeline-filter-bar{
   display:flex;flex-wrap:nowrap;gap:0;align-items:center;justify-content:center;
-  width:440px;height:46px;background:#fff;border:1px solid var(--c-border);border-radius:999px;
+  width:200px;background:#fff;border:1px solid var(--c-border);border-radius:999px;
   padding:3px;margin:0 auto 16px;overflow:hidden;box-sizing:border-box;
 }
 @media (max-width:768px){
-  .timeline-filter-bar{width:100%;height:44px}
+  .timeline-filter-bar{width:100%}
 }
 .timeline-color-filter{
-  flex:0 0 25%;height:40px;display:inline-flex;align-items:center;justify-content:center;gap:4px;
-  padding:0;font-size:13px;font-weight:600;white-space:nowrap;
+  flex:0 0 25%;display:inline-flex;align-items:center;justify-content:center;gap:4px;
+  padding:6px 0;font-size:13px;font-weight:600;white-space:nowrap;
   cursor:pointer;border:none;transition:all .2s;background:transparent;color:var(--c-text);
   box-sizing:border-box;min-width:0;overflow:hidden;
 }
@@ -1394,7 +1394,7 @@ ul,li{list-style:none}
 .timeline-color-filter.active::before{display:none}
 .timeline-color-filter .timeline-color-label{
   display:inline-flex;align-items:center;justify-content:center;gap:4px;
-  height:32px;line-height:32px;padding:0 4px;box-sizing:border-box;max-width:100%;
+  padding:0 4px;box-sizing:border-box;max-width:100%;
 }
 .timeline-color-filter.active .timeline-color-label{
   padding:0 14px;border-radius:999px;color:#fff;
@@ -1508,7 +1508,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=59"></script>
+<script src="app.js?v=60"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
