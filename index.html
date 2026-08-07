@@ -541,10 +541,10 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyCount"]{flex:0 0 55px}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyPrice"]{flex:0 0 80px}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="note"]{flex:1 1 0;min-width:80px}
-/* R轮修正：接稿修改项目「次数/价格/备注」标题在 v45 基础上再左移 4px */
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyCount"]{flex:0 0 55px;padding-left:0;margin-left:-4px}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyPrice"]{flex:0 0 80px;padding-left:0;margin-left:-4px}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="note"]{flex:1 1 0;min-width:80px;padding-left:0;margin-left:-4px}
+/* S轮修正：接稿修改项目「次数/价格/备注」标题继续左移，与输入内容严格对齐 */
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyCount"]{flex:0 0 55px;padding-left:0;margin-left:-8px}
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyPrice"]{flex:0 0 80px;padding-left:0;margin-left:-8px}
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="note"]{flex:1 1 0;min-width:80px;padding-left:0;margin-left:-8px}
 /* P轮修正：开团记录制品列表「单价/对应厂家」标题 padding-left 30px；
    「售卖数量/是否流团」标题在目前 8px 基础上减 2 → 6px；
    接稿排期制品列表「价格」标题保持默认 8px（按 data-module 区分，避免互相影响） */
@@ -1366,10 +1366,10 @@ ul,li{list-style:none}
 /* ===== v15/v32: Timeline (时间轨迹) ===== */
 /* v32: 时间线 toolbar 与重要性按钮间距保持一致（8px） */
 .timeline-toolbar{margin-bottom:8px}
-/* R轮修正：时间线重要性按钮完全回到 v44，电脑版宽度加大到 240px */
+/* S轮修正：时间线重要性按钮电脑端容器加长；选中项变成自适应宽度胶囊，左右保持半圆 */
 .timeline-filter-bar{
   display:flex;flex-wrap:nowrap;gap:0;align-items:center;justify-content:center;
-  width:240px;background:#fff;border:1px solid var(--c-border);border-radius:999px;
+  width:300px;background:#fff;border:1px solid var(--c-border);border-radius:999px;
   padding:3px;margin:0 auto 16px;overflow:hidden;box-sizing:border-box;
 }
 @media (max-width:768px){
@@ -1380,9 +1380,11 @@ ul,li{list-style:none}
   padding:6px 0;font-size:13px;font-weight:600;white-space:nowrap;
   cursor:pointer;border:none;transition:all .2s;background:transparent;color:var(--c-text);
 }
-.timeline-color-filter.active{border-radius:999px;color:#fff}
-.timeline-color-filter:first-child{border-radius:999px 0 0 999px}
-.timeline-color-filter:last-child{border-radius:0 999px 999px 0}
+/* 选中项：自适应宽度、两侧半圆、带底色；未选中项保持 flex:1 等分剩余空间 */
+.timeline-color-filter.active{flex:0 0 auto;padding:6px 14px;border-radius:999px;color:#fff}
+/* 未选中时首尾保持容器两端半圆，但不影响选中项 */
+.timeline-color-filter:not(.active):first-child{border-radius:999px 0 0 999px}
+.timeline-color-filter:not(.active):last-child{border-radius:0 999px 999px 0}
 .timeline-color-filter:hover{opacity:.85}
 .timeline-color-filter::before{
   content:'';width:8px;height:8px;border-radius:50%;margin-right:6px;flex-shrink:0;
@@ -1498,7 +1500,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=48"></script>
+<script src="app.js?v=49"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
