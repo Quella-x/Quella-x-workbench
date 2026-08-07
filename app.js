@@ -2919,7 +2919,7 @@ const DC_SET = [
 
 // v-NEW: 制品行工厂（含行内同模类型/倍率字段）
 function newProduct() {
-  return { name: '', patternId: '', size: '', quantity: 1, price: 0, sameModel: false, sameModelType: '改人', sameModelRate: 0.5, urgent: false };
+  return { name: '', patternId: '', size: '', quantity: 1, price: 0, sameModel: false, sameModelType: '', sameModelRate: 1.0, urgent: false };
 }
 // v-NEW: 加价项目工厂（含绑定制品序号字段）
 function newExtra() {
@@ -2937,10 +2937,12 @@ let _dcExtras = [];
 let _dcModifications = [];
 let _dcCustomDiscs = DB.get('calcCustomDiscs', []); // {name, type:'rate'|'amount', value} — persisted
 let _dcFanReduce = 0; // 同担/同推随机减价金额
+let _dcWholeOrderUrgent = false; // 整单加急（默认关闭）
 
 function renderDesignCalc() {
   const body = $('#mainBody');
   const settings = DB.get('calcSettings', {});
+  _dcWholeOrderUrgent = !!(settings && settings.wholeOrderUrgent);
   const commissions = DB.list('commissions');
 
   let html = '<div class="fade-in calc-page"><div class="calc-page-grid">';
@@ -3005,9 +3007,12 @@ function renderDesignCalc() {
   });
   html += '</div>';
 
-  // v-NEW: 加急功能（制品单独勾选，倍率仅作用于勾选制品）
+  // Bk轮：加急功能 — 整单加急（默认关闭，开启后全部制品与加价×倍率）+ 制品单独勾选
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">加急 <span class="calc-card-hint">（勾选制品单独加急，倍率仅作用于勾选制品）</span></div>';
+  html += '<div class="calc-card-title">加急 <span class="calc-card-hint">（整单加急默认关闭；开启后全部制品与加价项目执行加急）</span></div>';
+  html += '<div class="calc-rate-row">';
+  html += `<label class="calc-rate-label"><input type="checkbox" ${_dcWholeOrderUrgent ? 'checked' : ''} onchange="dcToggleWholeOrderUrgent(this.checked)"> 整单加急（全部制品与加价项目）</label>`;
+  html += '</div>';
   html += '<div class="calc-rate-row">';
   html += '<label class="calc-rate-label">加急倍率</label>';
   html += '<input type="number" class="calc-rate-input" step="0.1" value="2" data-urgent="rate" oninput="dcRecalc()">';
@@ -3016,7 +3021,7 @@ function renderDesignCalc() {
 
   // AR轮: 同模阶梯价倍率示意表（与稿件用途倍率同款 radio 行）
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">同模阶梯价倍率 <span class="calc-card-hint">（选择同模更改项）</span></div>';
+  html += '<div class="calc-card-title">全局同模阶梯价倍率 <span class="calc-card-hint">（行内选同模类型即读取，可自行维护）</span></div>';
   html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" name="dc_model_rule" disabled checked> 无同模</label><span></span></div>';
   DC_MODEL.filter(m => m.value !== 'none').forEach(m => {
     html += '<div class="calc-rate-row">';
@@ -3130,7 +3135,7 @@ function dcImportRecord(id) {
       if (m) { sameModel = true; sameModelType = m.value; sameModelRate = (p.sameModelRate != null ? parseFloat(p.sameModelRate) : m.rate); }
       else { sameModel = true; sameModelType = '改人'; sameModelRate = (p.sameModelRate != null ? parseFloat(p.sameModelRate) : 0.5); }
     } else if (sm === true) {
-      sameModel = true; sameModelType = '改人'; sameModelRate = (p.sameModelRate != null ? parseFloat(p.sameModelRate) : 0.5);
+      sameModel = true; sameModelType = ''; sameModelRate = 1.0; // 无默认类型，提示用户选择
     }
     // AS轮：加急仅由 per-product urgent 字段决定，不再用旧版整单 urgentEnabled 覆盖
     const urgent = p.urgent === true;
@@ -3170,10 +3175,11 @@ function dcRenderProducts() {
     html += `<input type="number" class="form-input dc-prod-price" value="${p.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateProduct(${i},'price',this.value)">`;
     html += `<input type="number" class="form-input dc-prod-qty" value="${p.quantity}" placeholder="数量" min="1" oninput="dcUpdateProduct(${i},'quantity',this.value)">`;
     html += `<div class="dc-prod-row2">`;
-    html += `<label class="dc-prod-check dc-prod-urgent"><input type="checkbox" ${p.urgent ? 'checked' : ''} onchange="dcUpdateProduct(${i},'urgent',this.checked)">加急</label>`;
+    const urgChk = p.urgent || _dcWholeOrderUrgent;
+    html += `<label class="dc-prod-check dc-prod-urgent"><input type="checkbox" ${urgChk ? 'checked' : ''} ${_dcWholeOrderUrgent ? 'disabled' : ''} onchange="dcUpdateProduct(${i},'urgent',this.checked)">加急</label>`;
     html += `<label class="dc-prod-check dc-prod-same"><input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模</label>`;
     if (p.sameModel) {
-      html += `<div class="combobox-wrapper dc-prod-model-type-wrapper"><input type="text" class="form-input combobox-input dc-prod-model-type" value="${esc(modelTypeLabel)}" placeholder="类型" readonly onfocus="showComboboxDropdown('${modelCbId}')" onclick="showComboboxDropdown('${modelCbId}')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${modelCbId}')">▼</button><div class="combobox-dropdown" id="${modelCbId}">${modelOptsHTML}</div></div>`;
+      html += `<div class="combobox-wrapper dc-prod-model-type-wrapper"><input type="text" class="form-input combobox-input dc-prod-model-type" value="${esc(modelTypeLabel)}" placeholder="请选择同模类型" readonly onfocus="showComboboxDropdown('${modelCbId}')" onclick="showComboboxDropdown('${modelCbId}')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${modelCbId}')">▼</button><div class="combobox-dropdown" id="${modelCbId}">${modelOptsHTML}</div></div>`;
     }
     html += `<button type="button" class="btn btn-ghost btn-sm dc-prod-del" onclick="dcRemoveProduct(${i})">✕</button>`;
     html += `</div>`;
@@ -3215,14 +3221,12 @@ function dcUpdateProduct(idx, field, val) {
   const p = _dcProducts[idx];
   if (field === 'sameModel') {
     p.sameModel = !!val;
-    if (p.sameModel && !p.sameModelType) { p.sameModelType = '改人'; p.sameModelRate = 0.5; }
-    // v-NEW: 勾选同模后，同柄图标识的其他行自动继承同模类型（仅初始赋值）
+    // Bk轮：勾选同模不再默认类型，等待用户选择（提示"请选择同模类型"）
+    if (p.sameModel) { p.sameModelType = ''; p.sameModelRate = 1.0; }
+    // 同柄图标识的其他行自动继承同模勾选（不预设类型）
     if (p.sameModel && p.patternId) {
       _dcProducts.forEach((q, j) => {
-        if (j !== idx && q.patternId === p.patternId) {
-          q.sameModel = true;
-          if (!q.sameModelType) { q.sameModelType = p.sameModelType; q.sameModelRate = p.sameModelRate; }
-        }
+        if (j !== idx && q.patternId === p.patternId) { q.sameModel = true; }
       });
     }
     dcRenderProducts(); dcRecalc(); return;
@@ -3238,16 +3242,11 @@ function dcUpdateProduct(idx, field, val) {
   else if (field === 'patternId') {
     p.patternId = val;
     const pVal = parseFloat(val);
-    // 柄图标识 > 1 自动勾选本行同模（仅自动勾选，不强制取消，允许手动关闭）
+    // 柄图标识 > 1 自动勾选本行同模（Bk轮：仅自动勾选，不预设类型，等待用户选择）
     if (!isNaN(pVal) && pVal > 1) {
       p.sameModel = true;
-      if (!p.sameModelType) { p.sameModelType = '改人'; p.sameModelRate = 0.5; }
-      // 同柄图标识的其他行自动继承同模类型
       _dcProducts.forEach((q, j) => {
-        if (j !== idx && q.patternId === p.patternId) {
-          q.sameModel = true;
-          if (!q.sameModelType) { q.sameModelType = p.sameModelType; q.sameModelRate = p.sameModelRate; }
-        }
+        if (j !== idx && q.patternId === p.patternId) { q.sameModel = true; }
       });
     }
     dcRenderProducts(); dcRecalc(); return;
@@ -3460,6 +3459,14 @@ function dcDiscModeChange() {
   dcRecalc();
 }
 
+function dcToggleWholeOrderUrgent(val) {
+  _dcWholeOrderUrgent = !!val;
+  const settings = DB.get('calcSettings', {});
+  settings.wholeOrderUrgent = _dcWholeOrderUrgent;
+  DB.set('calcSettings', settings);
+  dcRenderProducts(); dcRecalc();
+}
+
 function dcRecalc() {
   const uRadio = document.querySelector('input[name="dcUsage"]:checked');
   const uType = uRadio ? uRadio.value : '自用';
@@ -3478,13 +3485,14 @@ function dcRecalc() {
   const set4Rate = set4Inp ? (parseFloat(set4Inp.value) || 0.9) : 0.9;
   const set9Rate = set9Inp ? (parseFloat(set9Inp.value) || 0.8) : 0.8;
 
-  // Step 1: Per-item subtotal (same-model is per-row, uses row's own rate)
+  // Step 1: Per-item subtotal (same-model per-row; 选类型才启用阶梯价，否则全额)
   const productDetails = [];
   _dcProducts.forEach((p, idx) => {
     const price = parseFloat(p.price) || 0;
     const qty = parseInt(p.quantity) || 0;
-    const useModel = !!p.sameModel;
-    const mRate = (useModel && p.sameModelRate) ? (parseFloat(p.sameModelRate) || 1.0) : 1.0;
+    const needType = !!p.sameModel && !p.sameModelType; // 勾选同模但未选类型
+    const useModel = !!p.sameModel && !!p.sameModelType;
+    const mRate = useModel ? (parseFloat(p.sameModelRate) || 1.0) : 1.0;
     let lt, modelBreakdown = '';
     if (useModel) {
       if (qty > 1) {
@@ -3494,11 +3502,11 @@ function dcRecalc() {
         lt = price * mRate;
         modelBreakdown = `${p.sameModelType || '同模'} ¥${price.toFixed(2)} ×${mRate}`;
       }
-      productDetails.push({ idx, name: p.name, patternId: p.patternId || '', qty, price, lt, useModel: true, mRate, modelBreakdown, urgent: !!p.urgent });
     } else {
       lt = price * qty;
-      productDetails.push({ idx, name: p.name, patternId: p.patternId || '', qty, price, lt, useModel: false, urgent: !!p.urgent });
     }
+    const effectiveUrgent = !!p.urgent || _dcWholeOrderUrgent;
+    productDetails.push({ idx, name: p.name, patternId: p.patternId || '', qty, price, lt, useModel, mRate, modelBreakdown, urgent: effectiveUrgent, needType });
   });
 
   // Step 2: Group by patternId for SET discount (only in SET mode)
@@ -3573,7 +3581,11 @@ function dcRecalc() {
     if (d.urgent) urgentBase += discountedLt + boundLt;
     else nonUrgentBase += discountedLt + boundLt;
   });
-  nonUrgentBase += unboundExtras.reduce((s, ex) => s + ex.lt * ex.groupRate, 0);
+  // 未绑定加价：整单加急时计入加急基数，否则计入非加急
+  unboundExtras.forEach(ex => {
+    const lt = ex.lt * ex.groupRate;
+    if (_dcWholeOrderUrgent) urgentBase += lt; else nonUrgentBase += lt;
+  });
 
   const urgentEnabled = urgentBase > 0;
   // Step 5: Apply usage rate（加急仅作用于勾选部分）
@@ -3644,13 +3656,17 @@ function dcRecalc() {
   };
 
   if (dMode === 'set' && groupDetails.length) {
+    const displayNoByIdx = {};
     groupDetails.forEach(g => {
       r += `<div class="dc-r-section"><div class="dc-r-sub">柄图：${esc(g.patternId)}（${g.catCount}种品类）</div>`;
       g.items.forEach(d => {
         if (!d.name && !d.price) return;
         const tag = d.useModel ? '（同模）' : '';
-        r += `<div class="dc-rr"><span><i class="dc-r-no">${String(++prodIdx).padStart(2,'0')}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
+        prodIdx++;
+        displayNoByIdx[d.idx] = prodIdx;
+        r += `<div class="dc-rr"><span><i class="dc-r-no">${String(prodIdx).padStart(2,'0')}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
         if (d.useModel) r += `<div class="dc-rr sub"><span>${d.modelBreakdown}</span><span></span></div>`;
+        if (d.needType) r += `<div class="dc-rr sub"><span>⚠ 请选择同模类型</span><span></span></div>`;
         r += renderBoundExtras(d.idx);
       });
       // v20: SET优惠增加与上方制品的间距 (margin-top:6px)，并在右侧恢复 ×倍率
@@ -3659,6 +3675,16 @@ function dcRecalc() {
         r += `<div class="dc-rr total"><span>折后小计</span><span>¥${g.groupDiscounted.toFixed(2)}</span></div>`;
       } else {
         r += `<div class="dc-rr total"><span>金额</span><span>¥${g.groupDiscounted.toFixed(2)}</span></div>`;
+      }
+      // Bk轮：本组加急信息（整单加急时不在此处显示，统一在末尾"整单加急"块）
+      if (!_dcWholeOrderUrgent) {
+        const urgentItems = g.items.filter(d => d.urgent);
+        if (urgentItems.length === g.items.length && g.items.length > 0) {
+          r += `<div class="dc-rr" style="margin-top:6px"><span>SET加急（本组全加急）</span><span>×${urgentRate}</span></div>`;
+        } else if (urgentItems.length > 0) {
+          const nos = urgentItems.map(d => displayNoByIdx[d.idx]).map(n => String(n).padStart(2, '0')).join('、');
+          r += `<div class="dc-rr" style="margin-top:6px"><span>本组加急制品：序号 ${nos}</span><span></span></div>`;
+        }
       }
       r += '</div>';
     });
@@ -3670,6 +3696,7 @@ function dcRecalc() {
         const tag = d.useModel ? '（同模）' : '';
         r += `<div class="dc-rr"><span><i class="dc-r-no">${String(++prodIdx).padStart(2,'0')}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
         if (d.useModel) r += `<div class="dc-rr sub"><span>${d.modelBreakdown}</span><span></span></div>`;
+        if (d.needType) r += `<div class="dc-rr sub"><span>⚠ 请选择同模类型</span><span></span></div>`;
         r += renderBoundExtras(d.idx);
       });
       r += '</div>';
@@ -3682,6 +3709,7 @@ function dcRecalc() {
       const pTag = d.patternId ? `［${esc(d.patternId)}］` : '';
       r += `<div class="dc-rr"><span><i class="dc-r-no">${String(++prodIdx).padStart(2,'0')}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}${pTag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
       if (d.useModel) r += `<div class="dc-rr sub"><span>${d.modelBreakdown}</span><span></span></div>`;
+      if (d.needType) r += `<div class="dc-rr sub"><span>⚠ 请选择同模类型</span><span></span></div>`;
       r += renderBoundExtras(d.idx);
     });
     r += '</div>';
@@ -3698,15 +3726,17 @@ function dcRecalc() {
   r += `<div class="dc-r-section"><div class="dc-rr grand-bar"><span>总价</span><span>¥${baseTotal.toFixed(2)}</span></div></div>`;
   r += '<div class="dc-r-section"><div class="dc-r-sub">倍率计算</div>';
   r += `<div class="dc-rr"><span>稿件用途：${uType}</span><span>×${uRate}</span></div>`;
-  r += `<div class="dc-rr total"><span>倍率后价格</span><span>¥${afterRatesBeforeUrgent.toFixed(2)}</span></div></div>`;
+  r += `<div class="dc-rr total"><span>倍率小计</span><span>¥${afterRatesBeforeUrgent.toFixed(2)}</span></div></div>`;
   if (discHTML) { r += '<div class="dc-r-section"><div class="dc-r-sub">优惠</div>' + discHTML + '</div>'; }
   // 加急（仅已勾选制品，展示方式与倍率计算一致）
   if (urgentEnabled) {
     const urgentBaseAfter = urgentBase * uRate;
-    r += '<div class="dc-r-section"><div class="dc-r-sub">加急（仅已勾选制品）</div>';
-    r += `<div class="dc-rr"><span>加急基数</span><span>¥${urgentBaseAfter.toFixed(2)}</span></div>`;
+    const urgentTitle = _dcWholeOrderUrgent ? '整单加急（全部制品与加价项目）' : '加急（仅已勾选制品）';
+    const urgentBaseLabel = _dcWholeOrderUrgent ? '整单加急-总价格' : '加急基数';
+    r += `<div class="dc-r-section"><div class="dc-r-sub">${urgentTitle}</div>`;
+    r += `<div class="dc-rr"><span>${urgentBaseLabel}</span><span>¥${urgentBaseAfter.toFixed(2)}</span></div>`;
     r += `<div class="dc-rr"><span>加急倍率</span><span>×${urgentRate}</span></div>`;
-    r += `<div class="dc-rr total"><span>加急后价格</span><span>¥${urgentAfter.toFixed(2)}</span></div></div>`;
+    r += `<div class="dc-rr total"><span>加急小计</span><span>¥${urgentAfter.toFixed(2)}</span></div></div>`;
   }
   r += '<div class="dc-r-final"><div class="dc-r-final-label">最终报价</div>';
   r += `<div class="dc-r-final-val">¥${finalPrice.toFixed(2)}</div></div>`;
