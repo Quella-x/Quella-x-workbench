@@ -1085,8 +1085,9 @@ ul,li{list-style:none}
 }
 /* 折叠态：只显示一排，超出隐藏，由右侧「展开/收起」按钮控制 */
 .relation-person-grid.collapsed{max-height:42px;overflow:hidden}
-/* 快捷查看：全部(头) 与 角色(中) 均匀分布，展开(尾) 固定在行外右侧 */
-.relation-person-grid.distribute{justify-content:space-between}
+/* 中间角色按钮在剩余空间内均匀分布，全部(头) 与 展开(尾) 固定 */
+.relation-person-grid.distribute{justify-content:space-evenly}
+.relation-person-row>.relation-person-btn,.relation-person-row>.relation-toggle-btn{flex:0 0 auto}
 .relation-person-btn{
   padding:8px 16px;border-radius:20px;
   background:var(--c-primary-bg);color:var(--c-primary-dark);
@@ -1523,7 +1524,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=67"></script>
+<script src="app.js?v=69"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

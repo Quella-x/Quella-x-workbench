@@ -1488,8 +1488,8 @@ function renderListPage(pageKey, mod) {
     const chars = DB.list('ocCharacters');
     if (!ps.personFilter) ps.personFilter = null;
     html += '<div class="relation-person-row">';
-    html += '<div class="relation-person-grid collapsed">';
     html += `<div class="relation-person-btn ${!ps.personFilter ? 'active' : ''}" onclick="setPersonFilter('${pageKey}','')"><span>📋 全部</span></div>`;
+    html += '<div class="relation-person-grid collapsed distribute">';
     chars.forEach(c => {
       const active = ps.personFilter === c.name ? 'active' : '';
       html += `<div class="relation-person-btn ${active}" onclick="setPersonFilter('${pageKey}','${esc(c.name)}')"><span>${esc(c.name)}</span></div>`;
@@ -2432,8 +2432,8 @@ function renderTimeline() {
   // Person name buttons (text only) — at very top (like stories page)
   // v16: 全部按钮常驻，即使没有人物档案也显示
   html += '<div class="relation-person-row">';
-  html += '<div class="relation-person-grid collapsed">';
   html += `<div class="relation-person-btn ${!ps.personFilter ? 'active' : ''}" onclick="timelinePersonFilter('')"><span>📋 全部</span></div>`;
+  html += '<div class="relation-person-grid collapsed distribute">';
   chars.forEach(c => {
     const active = ps.personFilter === c.name ? 'active' : '';
     html += `<div class="relation-person-btn ${active}" onclick="timelinePersonFilter('${esc(c.name)}')"><span>${esc(c.name)}</span></div>`;
@@ -2588,8 +2588,8 @@ function renderRelations() {
     if (chars.length) {
       html += '<div style="margin-top:16px"><div style="font-size:13px;font-weight:600;color:var(--c-primary-dark);margin-bottom:8px">👥 人物关系快捷查看</div>';
       html += '<div class="relation-person-row">';
-      html += '<div class="relation-person-grid distribute collapsed">';
-      html += `<div class="relation-person-btn" onclick="clearPersonRelations()"><span>📋 全部</span></div>`;
+      html += '<div class="relation-person-btn active" onclick="clearPersonRelations()"><span>📋 全部</span></div>';
+      html += '<div class="relation-person-grid collapsed distribute">';
       chars.forEach(c => {
         html += `<div class="relation-person-btn" onclick="togglePersonRelations('${esc(c.name)}', this)"><span>${esc(c.name)}</span></div>`;
       });
