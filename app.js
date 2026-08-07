@@ -3020,7 +3020,7 @@ function renderDesignCalc() {
 
   // Bu轮: 全局同模阶梯价倍率单选（可空，去掉无同模；制品行未选类型时读取此项）
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">同模阶梯价倍率 <span class="calc-card-hint">选择同模更改项</span></div>';
+  html += '<div class="calc-card-title">同模阶梯价倍率 <span class="calc-card-hint">（选择同模更改项，制品行勾选启用，可单独选择同模类型）</span></div>';
   DC_MODEL.filter(m => m.value !== 'none').forEach(m => {
     html += '<div class="calc-rate-row">';
     html += `<label class="calc-rate-label"><input type="checkbox" class="calc-circle" name="dc_model_rule" value="${m.value}" ${_dcGlobalModelType === m.value ? 'checked' : ''} onchange="dcSelectGlobalModel('${m.value}', this.checked)"> ${m.value}</label>`;
@@ -3178,10 +3178,6 @@ function dcRenderProducts() {
     html += `<label class="dc-prod-check dc-prod-same"><input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模</label>`;
     if (p.sameModel) {
       html += `<div class="combobox-wrapper dc-prod-model-type-wrapper"><input type="text" class="form-input combobox-input dc-prod-model-type" value="${esc(modelTypeLabel)}" placeholder="请选择同模类型" readonly onfocus="showComboboxDropdown('${modelCbId}')" onclick="showComboboxDropdown('${modelCbId}')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${modelCbId}')">▼</button><div class="combobox-dropdown" id="${modelCbId}">${modelOptsHTML}</div></div>`;
-      // Bu轮：本行与全局都未选同模类型 → 校验提示
-      if (!p.sameModelType && !_dcGlobalModelType) {
-        html += `<span class="dc-prod-model-warn">⚠ 请选择同模类型</span>`;
-      }
     }
     html += `<button type="button" class="btn btn-ghost btn-sm dc-prod-del" onclick="dcRemoveProduct(${i})">✕</button>`;
     html += `</div>`;
@@ -3511,15 +3507,13 @@ function dcRecalc() {
     const price = parseFloat(p.price) || 0;
     const qty = parseInt(p.quantity) || 0;
     // Bu轮：同模类型优先级 = 本行下拉 > 全局单选 > 皆空则提示且不计算同模报价
-    let useModel = false, modelType = '', mRate = 1.0, needType = false;
+    let useModel = false, modelType = '', mRate = 1.0;
     if (p.sameModel) {
       if (p.sameModelType) {
         useModel = true; modelType = p.sameModelType; mRate = parseFloat(p.sameModelRate) || 1.0;
       } else if (_dcGlobalModelType) {
         const gm = DC_MODEL.find(m => m.value === _dcGlobalModelType);
         useModel = true; modelType = _dcGlobalModelType; mRate = gm ? (parseFloat(gm.rate) || 1.0) : 1.0;
-      } else {
-        needType = true; // 本行与全局都未选同模类型 → 不计算同模报价，仅提示
       }
     }
     let lt, modelBreakdown = '';
@@ -3535,7 +3529,7 @@ function dcRecalc() {
       lt = price * qty;
     }
     const effectiveUrgent = !!p.urgent || _dcWholeOrderUrgent;
-    productDetails.push({ idx, name: p.name, patternId: p.patternId || '', qty, price, lt, useModel, mRate, modelBreakdown, urgent: effectiveUrgent, needType });
+    productDetails.push({ idx, name: p.name, patternId: p.patternId || '', qty, price, lt, useModel, mRate, modelBreakdown, urgent: effectiveUrgent });
   });
 
   // Step 2: Group by patternId for SET discount (only in SET mode)
@@ -3713,7 +3707,6 @@ function dcRecalc() {
         displayNoByIdx[d.idx] = prodIdx;
         r += `<div class="dc-rr"><span><i class="dc-r-no">${String(prodIdx).padStart(2,'0')}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
         if (d.useModel) r += `<div class="dc-rr sub"><span>${d.modelBreakdown}</span><span></span></div>`;
-        if (d.needType) r += `<div class="dc-rr sub"><span>⚠ 请选择同模类型</span><span></span></div>`;
         r += renderBoundExtras(d.idx);
       });
       // v20: SET优惠增加与上方制品的间距 (margin-top:6px)，并在右侧恢复 ×倍率
@@ -3743,7 +3736,6 @@ function dcRecalc() {
         const tag = d.useModel ? '（同模）' : '';
         r += `<div class="dc-rr"><span><i class="dc-r-no">${String(++prodIdx).padStart(2,'0')}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
         if (d.useModel) r += `<div class="dc-rr sub"><span>${d.modelBreakdown}</span><span></span></div>`;
-        if (d.needType) r += `<div class="dc-rr sub"><span>⚠ 请选择同模类型</span><span></span></div>`;
         r += renderBoundExtras(d.idx);
       });
       r += '</div>';
@@ -3756,7 +3748,6 @@ function dcRecalc() {
       const pTag = d.patternId ? `［${esc(d.patternId)}］` : '';
       r += `<div class="dc-rr"><span><i class="dc-r-no">${String(++prodIdx).padStart(2,'0')}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}${pTag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
       if (d.useModel) r += `<div class="dc-rr sub"><span>${d.modelBreakdown}</span><span></span></div>`;
-      if (d.needType) r += `<div class="dc-rr sub"><span>⚠ 请选择同模类型</span><span></span></div>`;
       r += renderBoundExtras(d.idx);
     });
     r += '</div>';
@@ -3864,8 +3855,12 @@ function dcCreateCommission() {
     products: _dcProducts.map(p => {
       const plItem = priceList.find(pp => pp.product === p.name && PRODUCT_CATEGORIES.includes(pp.category));
       const sizeAuto = p.size || (plItem && plItem.defaultSize ? plItem.defaultSize : '');
-      const sm = p.sameModel ? (p.sameModelType || '改人') : '无同模';
-      return { name: p.name, patternId: p.patternId || '', size: sizeAuto, quantity: p.quantity, price: p.price, sameModel: sm, sameModelRate: p.sameModelRate, urgent: !!p.urgent };
+      let sm = '无同模', smRate = undefined;
+      if (p.sameModel) {
+        if (p.sameModelType) { sm = p.sameModelType; smRate = p.sameModelRate; }
+        else if (_dcGlobalModelType) { sm = _dcGlobalModelType; const gm = DC_MODEL.find(m => m.value === _dcGlobalModelType); smRate = gm ? gm.rate : undefined; }
+      }
+      return { name: p.name, patternId: p.patternId || '', size: sizeAuto, quantity: p.quantity, price: p.price, sameModel: sm, sameModelRate: smRate, urgent: !!p.urgent };
     }),
     sameDesign: [], extraItems: _dcExtras.map(e => ({ name: e.name, quantity: e.quantity, price: e.price, bindSeq: e.bindSeq || 'none' })),
     modifications: _dcModifications.map(m => ({ modifyType: m.modifyType, modifyCount: m.modifyCount, modifyPrice: m.modifyPrice, note: m.note })),
