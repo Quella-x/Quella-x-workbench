@@ -189,7 +189,7 @@ ul,li{list-style:none}
 
 .toolbar{
   display:flex;flex-wrap:wrap;gap:8px;align-items:center;
-  margin-bottom:10px;
+  margin-bottom:16px;
 }
 .toolbar .spacer{flex:1}
 .toolbar .btn-primary{width:112px;justify-content:center}
@@ -1364,11 +1364,11 @@ ul,li{list-style:none}
 .sortable-actions .btn-ghost:disabled{opacity:.35;cursor:not-allowed}
 
 /* ===== v15/v32: Timeline (时间轨迹) ===== */
-/* AG轮修正：时间线重要性按钮——宽200px居中、高度自适应、与上方toolbar间距回退8px，选中胶囊再放大 */
+/* AH轮修正：时间线选中胶囊加高(垂直padding)、外框内边距取消；全局toolbar间距回16px */
 .timeline-filter-bar{
   display:flex;flex-wrap:nowrap;gap:0;align-items:center;justify-content:center;
   width:200px;background:#fff;border:1px solid var(--c-border);border-radius:999px;
-  padding:3px;margin:8px auto 16px;overflow:hidden;box-sizing:border-box;
+  padding:0;margin:8px auto 16px;overflow:hidden;box-sizing:border-box;
 }
 @media (max-width:768px){
   .timeline-filter-bar{width:100%}
@@ -1392,14 +1392,14 @@ ul,li{list-style:none}
 .timeline-color-filter[data-color="橙"]::before{background:#fa8c16}
 .timeline-color-filter[data-color="绿"]::before{background:#27ae60}
 .timeline-color-filter[data-color="蓝"]::before{background:#3498db}
-/* 选中态：外层 dot 隐藏，label 变成彩色胶囊，内部带白点白字；胶囊尺寸限制在 segment 内，不撑大外框 */
+/* 选中态：外层 dot 隐藏，label 变成彩色胶囊，内部带白点白字；加垂直 padding 让胶囊更高，外框 padding 已取消使胶囊贴近边框 */
 .timeline-color-filter.active::before{display:none}
 .timeline-color-filter .timeline-color-label{
   display:inline-flex;align-items:center;justify-content:center;gap:4px;
-  padding:0 4px;box-sizing:border-box;max-width:100%;
+  padding:5px 4px;box-sizing:border-box;max-width:100%;
 }
 .timeline-color-filter.active .timeline-color-label{
-  padding:0 22px;border-radius:999px;color:#fff;
+  padding:5px 22px;border-radius:999px;color:#fff;
 }
 .timeline-color-filter[data-color="红"].active .timeline-color-label{background:#e74c3c}
 .timeline-color-filter[data-color="橙"].active .timeline-color-label{background:#fa8c16}
@@ -1510,7 +1510,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=63"></script>
+<script src="app.js?v=64"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
