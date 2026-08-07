@@ -541,10 +541,10 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyCount"]{flex:0 0 55px}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyPrice"]{flex:0 0 80px}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="note"]{flex:1 1 0;min-width:80px}
-/* AA轮修正：接稿修改项目「次数」标题继续往左；修改类型下拉框缩短 */
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyCount"]{flex:0 0 55px;padding-left:0;margin-left:-16px}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyPrice"]{flex:0 0 80px;padding-left:0;margin-left:-2px}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="note"]{flex:1 1 0;min-width:80px;padding-left:0;margin-left:-4px}
+/* AE轮：接稿修改项目标题统一左对齐底下内容框（恢复默认 padding-left:8px，去掉负 margin） */
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyCount"]{flex:0 0 55px;padding-left:8px;margin-left:0}
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyPrice"]{flex:0 0 80px;padding-left:8px;margin-left:0}
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="note"]{flex:1 1 0;min-width:80px;padding-left:8px;margin-left:0}
 /* P轮修正：开团记录制品列表「单价/对应厂家」标题 padding-left 30px；
    「售卖数量/是否流团」标题在目前 8px 基础上减 2 → 6px；
    接稿排期制品列表「价格」标题保持默认 8px（按 data-module 区分，避免互相影响） */
@@ -554,9 +554,9 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="isDisbanded"]{padding-left:6px}
 .dynamic-list-container[data-key="products"][data-module="schedule"] .dynamic-list-header span[data-subkey="price"]{padding-left:8px}
 .dynamic-list-row .combobox-wrapper{flex:1.5 1 0!important;min-width:90px!important;position:relative}
-/* AD轮：接稿修改项目「修改类型」下拉框参考上方制品列表「制品名称」列宽（min-width:90px），定为 90px */
-.dynamic-list-container[data-key="modifications"] .dynamic-list-row .combobox-wrapper[data-subkey="modifyType"]{flex:0 0 90px!important;min-width:90px!important}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyType"]{flex:0 0 90px}
+/* AE轮：接稿修改项目「修改类型」下拉框改为 130px */
+.dynamic-list-container[data-key="modifications"] .dynamic-list-row .combobox-wrapper[data-subkey="modifyType"]{flex:0 0 130px!important;min-width:130px!important}
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyType"]{flex:0 0 130px;padding-left:8px}
 /* 同模/补偿方式 下拉框列宽必须与对应 header span 完全一致，否则整列错位 */
 .dynamic-list-row .combobox-wrapper[data-subkey="sameModel"]{flex:0 0 110px!important;min-width:90px!important}
 .dynamic-list-row .combobox-wrapper[data-subkey="type"]{flex:0 0 70px!important;min-width:60px!important}
@@ -1364,15 +1364,17 @@ ul,li{list-style:none}
 .sortable-actions .btn-ghost:disabled{opacity:.35;cursor:not-allowed}
 
 /* ===== v15/v32: Timeline (时间轨迹) ===== */
-/* AD轮修正：时间线重要性按钮——宽度与搜索框一致(200px)、居中、外框高度自适应(与之前一致不加宽)，点击选中只变内部胶囊 */
+/* AE轮修正：时间线重要性按钮——宽200px居中、高度自适应、与上方toolbar间距8px，选中胶囊改成截图大小 */
 .timeline-filter-bar{
   display:flex;flex-wrap:nowrap;gap:0;align-items:center;justify-content:center;
   width:200px;background:#fff;border:1px solid var(--c-border);border-radius:999px;
-  padding:3px;margin:0 auto 16px;overflow:hidden;box-sizing:border-box;
+  padding:3px;margin:8px auto 16px;overflow:hidden;box-sizing:border-box;
 }
 @media (max-width:768px){
   .timeline-filter-bar{width:100%}
 }
+/* 时间线页面toolbar与重要性按钮间距保持8px，与toolbar内部按钮gap一致 */
+.toolbar:has(+ .timeline-filter-bar){margin-bottom:8px}
 .timeline-color-filter{
   flex:0 0 25%;display:inline-flex;align-items:center;justify-content:center;gap:4px;
   padding:6px 0;font-size:13px;font-weight:600;white-space:nowrap;
@@ -1397,7 +1399,7 @@ ul,li{list-style:none}
   padding:0 4px;box-sizing:border-box;max-width:100%;
 }
 .timeline-color-filter.active .timeline-color-label{
-  padding:0 14px;border-radius:999px;color:#fff;
+  padding:0 8px;border-radius:999px;color:#fff;
 }
 .timeline-color-filter[data-color="红"].active .timeline-color-label{background:#e74c3c}
 .timeline-color-filter[data-color="橙"].active .timeline-color-label{background:#fa8c16}
@@ -1508,7 +1510,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=60"></script>
+<script src="app.js?v=61"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
