@@ -553,9 +553,9 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="quantity"]{padding-left:6px}
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="isDisbanded"]{padding-left:6px}
 .dynamic-list-container[data-key="products"][data-module="schedule"] .dynamic-list-header span[data-subkey="price"]{padding-left:8px}
-/* AA轮：修改类型下拉框缩短为固定 70px */
-.dynamic-list-container[data-key="modifications"] .combobox-wrapper[data-subkey="modifyType"]{flex:0 0 70px!important;min-width:70px!important}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyType"]{flex:0 0 70px}
+/* AB轮：修改类型下拉框还原为 F 轮原始宽度（flex:1 1 0; min-width:80px） */
+.dynamic-list-container[data-key="modifications"] .combobox-wrapper[data-subkey="modifyType"]{flex:1 1 0!important;min-width:80px!important}
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyType"]{flex:1 1 0;min-width:80px}
 .dynamic-list-row .combobox-wrapper{flex:1.5 1 0!important;min-width:90px!important;position:relative}
 /* 同模/补偿方式 下拉框列宽必须与对应 header span 完全一致，否则整列错位 */
 .dynamic-list-row .combobox-wrapper[data-subkey="sameModel"]{flex:0 0 110px!important;min-width:90px!important}
@@ -1504,7 +1504,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=57"></script>
+<script src="app.js?v=58"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
