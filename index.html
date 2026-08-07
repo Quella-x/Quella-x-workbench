@@ -541,8 +541,8 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyCount"]{flex:0 0 55px}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyPrice"]{flex:0 0 80px}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="note"]{flex:1 1 0;min-width:80px}
-/* Z轮修正：接稿修改项目「次数」标题继续往左 */
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyCount"]{flex:0 0 55px;padding-left:0;margin-left:-10px}
+/* AA轮修正：接稿修改项目「次数」标题继续往左；修改类型下拉框缩短 */
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyCount"]{flex:0 0 55px;padding-left:0;margin-left:-16px}
 .dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyPrice"]{flex:0 0 80px;padding-left:0;margin-left:-2px}
 .dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="note"]{flex:1 1 0;min-width:80px;padding-left:0;margin-left:-4px}
 /* P轮修正：开团记录制品列表「单价/对应厂家」标题 padding-left 30px；
@@ -553,9 +553,9 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="quantity"]{padding-left:6px}
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="isDisbanded"]{padding-left:6px}
 .dynamic-list-container[data-key="products"][data-module="schedule"] .dynamic-list-header span[data-subkey="price"]{padding-left:8px}
-/* 修改类型为下拉选择器，列宽与 header 一致 */
-.dynamic-list-container[data-key="modifications"] .combobox-wrapper[data-subkey="modifyType"]{flex:1 1 0!important;min-width:80px!important}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyType"]{flex:1 1 0;min-width:80px}
+/* AA轮：修改类型下拉框缩短为固定 70px */
+.dynamic-list-container[data-key="modifications"] .combobox-wrapper[data-subkey="modifyType"]{flex:0 0 70px!important;min-width:70px!important}
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyType"]{flex:0 0 70px}
 .dynamic-list-row .combobox-wrapper{flex:1.5 1 0!important;min-width:90px!important;position:relative}
 /* 同模/补偿方式 下拉框列宽必须与对应 header span 完全一致，否则整列错位 */
 .dynamic-list-row .combobox-wrapper[data-subkey="sameModel"]{flex:0 0 110px!important;min-width:90px!important}
@@ -1504,7 +1504,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=56"></script>
+<script src="app.js?v=57"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
