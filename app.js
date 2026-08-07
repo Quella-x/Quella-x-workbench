@@ -2964,7 +2964,7 @@ function renderDesignCalc() {
   // Product list
   html += '<div class="calc-card">';
   html += '<div class="calc-card-title">制品列表 <span class="calc-card-hint">（柄图自动分组，勾选同模启用阶梯计价）</span></div>';
-  html += '<div class="dc-product-header"><span>序号</span><span>制品</span><span>柄图标识</span><span>单价</span><span>数量</span><span>同模</span><span>加急</span><span></span></div>';
+  html += '<div class="dc-product-header"><span>序号</span><span>制品</span><span>柄图标识</span><span>单价</span><span>数量</span><span>加急</span><span>同模</span><span></span></div>';
   html += '<div id="dc-products"></div>';
   html += '<div style="display:flex;gap:8px;margin-top:8px">';
   html += '<button type="button" class="btn btn-outline btn-sm" onclick="dcAddProduct()">+ 添加制品</button>';
