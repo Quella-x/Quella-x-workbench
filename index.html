@@ -1180,26 +1180,27 @@ ul,li{list-style:none}
   .pricelist-menu{max-width:100%}
   .calc-page-grid{grid-template-columns:1fr !important}
   .calc-receipt-col{position:static !important}
-  /* AP轮: mobile 报价计算制品改为两行（像接稿排期制品列表） */
+  /* AQ轮: mobile 报价计算制品两行——序号更窄、下拉更靠近序号；加急左、同模右且 inline */
   .dc-product-header{display:none!important}
   .dc-extra-header{display:none!important}
   .dc-product-row{
-    grid-template-columns:32px 1fr 70px 52px 44px 32px !important;
-    grid-template-areas:"seq name pattern price qty del" "same same same urgent urgent urgent";
-    gap:4px!important;padding:0
+    grid-template-columns:24px 1fr 64px 48px 40px 28px !important;
+    grid-template-areas:"seq name pattern price qty del" "urgent same same same same same";
+    gap:3px!important;padding:0
   }
   .dc-product-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
-  .dc-product-row .dc-prod-seq{grid-area:seq;justify-content:flex-start;padding-left:4px}
+  .dc-product-row .dc-prod-seq{grid-area:seq;justify-content:flex-start;padding-left:2px;font-size:12px}
   .dc-product-row .combobox-wrapper{grid-area:name}
   .dc-product-row .dc-prod-pattern{grid-area:pattern}
   .dc-product-row .dc-prod-price{grid-area:price}
   .dc-product-row .dc-prod-qty{grid-area:qty}
   .dc-product-row .dc-prod-del{grid-area:del;width:28px;height:28px;font-size:12px;justify-self:end}
-  .dc-product-row .dc-prod-check:first-of-type{grid-area:same;justify-content:flex-start;font-size:11px;gap:2px}
-  .dc-product-row .dc-prod-check:last-of-type{grid-area:urgent;justify-content:flex-start;font-size:11px;gap:2px}
+  .dc-product-row .dc-prod-urgent{grid-area:urgent;justify-content:flex-start;font-size:11px;gap:2px}
+  .dc-product-row .dc-prod-same{grid-area:same;justify-content:flex-start;font-size:11px;gap:2px}
   .dc-product-row .dc-prod-check input{width:14px;height:14px}
   .dc-product-row .dc-prod-name{font-size:12px}
-  .dc-product-row .dc-prod-model-inline{grid-column:1/-1}
+  .dc-product-row .dc-prod-model-type{min-width:70px;font-size:11px;padding:3px 4px}
+  .dc-product-row .dc-prod-model-rate{width:38px;font-size:11px;padding:3px 4px}
   .dc-extra-row{grid-template-columns:60px 1fr 44px 52px 28px!important;gap:4px!important;padding:0}
   .dc-extra-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
   .dc-extra-del{width:28px;height:28px;font-size:12px;justify-self:end}
@@ -1222,24 +1223,27 @@ ul,li{list-style:none}
 .calc-mode-tab:last-child{border-radius:0 6px 6px 0;border-left:none}
 .calc-mode-tab.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary)}
 .calc-import-select{width:100%;margin-top:4px}
-/* v22: 报价计算制品列表——header 与 row padding/box-sizing 完全统一，标题与内容像素对齐 */
-.dc-product-header{display:grid;grid-template-columns:44px minmax(170px,1.5fr) 84px 64px 52px 56px 56px 32px;gap:6px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
+/* AQ轮: 报价计算制品列表——序号列收窄、间距收紧，让制品下拉框更靠近序号；同模改为勾选+下拉 inline */
+.dc-product-header{display:grid;grid-template-columns:28px minmax(150px,1.5fr) 76px 60px 48px 48px minmax(100px,auto) 32px;gap:4px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
 .dc-product-header > span{box-sizing:border-box;padding-left:8px}
 .dc-product-header > span:last-child{padding-left:0}
-.dc-product-row{display:grid;grid-template-columns:44px minmax(170px,1.5fr) 84px 64px 52px 56px 56px 32px;gap:6px;margin-bottom:6px;align-items:center;padding:0}
-.dc-product-row .form-input{padding:7px 8px;font-size:13px;box-sizing:border-box;text-align:left}
+.dc-product-row{display:grid;grid-template-columns:28px minmax(150px,1.5fr) 76px 60px 48px 48px minmax(100px,auto) 32px;gap:4px;margin-bottom:6px;align-items:center;padding:0}
+.dc-product-row .form-input{padding:6px 8px;font-size:13px;box-sizing:border-box;text-align:left}
 .dc-product-row .combobox-wrapper,.dc-extra-row .combobox-wrapper{min-width:0;width:100%}
 .dc-prod-check{display:flex;align-items:center;justify-content:flex-start;gap:3px;font-size:11px;cursor:pointer;color:var(--c-text-muted);white-space:nowrap}
-.dc-prod-check input{accent-color:var(--c-primary);width:14px;height:14px}
+.dc-prod-check input{accent-color:var(--c-primary);width:14px;height:14px;flex-shrink:0}
+.dc-prod-same{display:flex;align-items:center;gap:4px;flex-wrap:wrap;white-space:normal}
+.dc-prod-same .dc-prod-model-type{flex:1;min-width:80px;padding:4px 5px;font-size:12px;border-radius:6px;background:#fff}
+.dc-prod-same .dc-prod-model-rate{width:46px;padding:4px 5px;font-size:12px;border-radius:6px;text-align:center}
 .dc-prod-del{width:32px;height:28px;padding:0;font-size:14px;display:flex;align-items:center;justify-content:center;justify-self:end;background:transparent;color:var(--c-text-light);border:none;border-radius:6px;transition:all .15s}
 .dc-prod-del:hover{background:#fff0f0;color:var(--c-danger)}
 /* v-NEW: 制品序号（只读，纯数字，无框） */
 .dc-prod-seq{display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--c-text);min-width:24px;height:32px;box-sizing:border-box}
-/* v-NEW: 行内同模类型/倍率（勾选同模后显示在下一行） */
-.dc-prod-model-inline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 8px;background:var(--c-primary-bg);border-radius:6px;margin-top:2px}
-.dc-prod-model-label{font-size:12px;color:var(--c-text-muted)}
-.dc-prod-model-type{flex:1;min-width:120px;padding:5px 6px;font-size:12px}
-.dc-prod-model-rate{width:64px;padding:5px 6px;font-size:12px}
+/* AQ轮: 同模规则示意表（优惠体系上方） */
+.dc-model-rule-table{display:grid;grid-template-columns:1fr 50px;gap:4px 8px;font-size:12px;color:var(--c-text)}
+.dc-model-rule-row{display:contents}
+.dc-model-rule-row span:first-child{color:var(--c-text)}
+.dc-model-rule-row span:last-child{color:var(--c-text-muted);text-align:right}
 /* v-NEW: 加价项目绑定下拉（置于最前、扩大） */
 .dc-extra-bind{flex:1;min-width:0;padding:7px 6px;font-size:12px;text-align:left}
 /* v-NEW: 实时报价中绑定的加价项目树形缩进展示（无蓝条，颜色与制品相同）
@@ -1551,7 +1555,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=72"></script>
+<script src="app.js?v=73"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

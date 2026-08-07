@@ -3001,6 +3001,15 @@ function renderDesignCalc() {
   html += '</div>';
   html += '</div>';
 
+  // v-AQ: 同模规则示意表（置于优惠体系上方）
+  html += '<div class="calc-card">';
+  html += '<div class="calc-card-title">同模规则 <span class="calc-card-hint">（勾选同模后生效）</span></div>';
+  html += '<div class="dc-model-rule-table">';
+  DC_MODEL.filter(m => m.value !== 'none').forEach(m => {
+    html += `<div class="dc-model-rule-row"><span>${m.value}</span><span>×${m.rate}</span></div>`;
+  });
+  html += '</div></div>';
+
   // Discount system (SET与折扣互斥，同担/同推独立)
   html += '<div class="calc-card">';
   html += '<div class="calc-card-title">优惠体系 <span class="calc-card-hint">（SET优惠与折扣优惠互斥，可自行添加折扣优惠方案）</span></div>';
@@ -3137,17 +3146,15 @@ function dcRenderProducts() {
     html += `<input type="text" class="form-input dc-prod-pattern" value="${esc(p.patternId||'')}" placeholder="柄图标识" oninput="dcUpdateProduct(${i},'patternId',this.value)">`;
     html += `<input type="number" class="form-input dc-prod-price" value="${p.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateProduct(${i},'price',this.value)">`;
     html += `<input type="number" class="form-input dc-prod-qty" value="${p.quantity}" placeholder="数量" min="1" oninput="dcUpdateProduct(${i},'quantity',this.value)">`;
-    html += `<label class="dc-prod-check"><input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模</label>`;
-    html += `<label class="dc-prod-check"><input type="checkbox" ${p.urgent ? 'checked' : ''} onchange="dcUpdateProduct(${i},'urgent',this.checked)">加急</label>`;
-    html += `<button type="button" class="btn btn-ghost btn-sm dc-prod-del" onclick="dcRemoveProduct(${i})">✕</button>`;
+    html += `<label class="dc-prod-check dc-prod-urgent"><input type="checkbox" ${p.urgent ? 'checked' : ''} onchange="dcUpdateProduct(${i},'urgent',this.checked)">加急</label>`;
+    html += `<label class="dc-prod-check dc-prod-same">`;
+    html += `<input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模`;
     if (p.sameModel) {
-      html += `<div class="dc-prod-model-inline" style="grid-column:1/-1">`;
-      html += `<span class="dc-prod-model-label">同模类型</span>`;
       html += `<select class="form-input dc-prod-model-type" onchange="dcUpdateProduct(${i},'sameModelType',this.value)">${modelOpts}</select>`;
-      html += `<span class="dc-prod-model-label">倍率</span>`;
       html += `<input type="number" class="form-input dc-prod-model-rate" value="${p.sameModelRate}" step="0.1" min="0" oninput="dcUpdateProduct(${i},'sameModelRate',this.value)">`;
-      html += `</div>`;
     }
+    html += `</label>`;
+    html += `<button type="button" class="btn btn-ghost btn-sm dc-prod-del" onclick="dcRemoveProduct(${i})">✕</button>`;
     html += '</div>';
   });
   c.innerHTML = html;
@@ -3399,10 +3406,10 @@ function dcRecalc() {
     if (useModel) {
       if (qty > 1) {
         lt = price + price * (qty - 1) * mRate;
-        modelBreakdown = `首件 ¥${price.toFixed(2)} + 余${qty-1}件 ×¥${(price * mRate).toFixed(2)}`;
+        modelBreakdown = `${p.sameModelType || '同模'} 首件 ¥${price.toFixed(2)} + 余${qty-1}件 ×¥${(price * mRate).toFixed(2)}`;
       } else {
         lt = price * mRate;
-        modelBreakdown = `同模 ¥${price.toFixed(2)} ×${mRate}`;
+        modelBreakdown = `${p.sameModelType || '同模'} ¥${price.toFixed(2)} ×${mRate}`;
       }
       productDetails.push({ idx, name: p.name, patternId: p.patternId || '', qty, price, lt, useModel: true, mRate, modelBreakdown, urgent: !!p.urgent });
     } else {
@@ -3487,9 +3494,10 @@ function dcRecalc() {
 
   const urgentEnabled = urgentBase > 0;
   // Step 5: Apply usage rate（加急仅作用于勾选部分）
+  const urgentAfter = urgentBase * uRate * urgentRate;
+  const nonUrgentAfter = nonUrgentBase * uRate;
   const afterRatesBeforeUrgent = (urgentBase + nonUrgentBase) * uRate;
-  const priceAfterUrgent = urgentBase * uRate * urgentRate + nonUrgentBase * uRate;
-  let finalPrice = priceAfterUrgent;
+  let finalPrice = urgentAfter + nonUrgentAfter;
   let discHTML = '';
 
   // Step 6: Global discount (only in discount mode, SET already applied to products)
@@ -3609,11 +3617,13 @@ function dcRecalc() {
   r += `<div class="dc-rr"><span>稿件用途：${uType}</span><span>×${uRate}</span></div>`;
   r += `<div class="dc-rr total"><span>倍率后价格</span><span>¥${afterRatesBeforeUrgent.toFixed(2)}</span></div></div>`;
   if (discHTML) { r += '<div class="dc-r-section"><div class="dc-r-sub">优惠</div>' + discHTML + '</div>'; }
-  // 加急（与倍率计算同款展示：倍率 ×rate / 加急后价格）
+  // 加急（仅已勾选制品，展示方式与倍率计算一致）
   if (urgentEnabled) {
-    r += '<div class="dc-r-section"><div class="dc-r-sub">加急</div>';
-    r += `<div class="dc-rr"><span>加急倍率 ×${urgentRate}</span><span></span></div>`;
-    r += `<div class="dc-rr total"><span>加急后价格</span><span>¥${priceAfterUrgent.toFixed(2)}</span></div></div>`;
+    const urgentBaseAfter = urgentBase * uRate;
+    r += '<div class="dc-r-section"><div class="dc-r-sub">加急（仅已勾选制品）</div>';
+    r += `<div class="dc-rr"><span>加急基数</span><span>¥${urgentBaseAfter.toFixed(2)}</span></div>`;
+    r += `<div class="dc-rr"><span>加急倍率</span><span>×${urgentRate}</span></div>`;
+    r += `<div class="dc-rr total"><span>加急后价格</span><span>¥${urgentAfter.toFixed(2)}</span></div></div>`;
   }
   r += '<div class="dc-r-final"><div class="dc-r-final-label">最终报价</div>';
   r += `<div class="dc-r-final-val">¥${finalPrice.toFixed(2)}</div></div>`;
