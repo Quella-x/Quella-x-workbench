@@ -1186,7 +1186,7 @@ ul,li{list-style:none}
   .dc-product-row{
     grid-template-columns:28px minmax(130px,1fr) 70px 60px 48px 32px !important;
     grid-template-areas:"seq name pattern price qty del"
-                        "row2 row2 row2 row2 row2 ."!important;
+                        ". row2 row2 row2 row2 ."!important;
     gap:4px!important;padding:0
   }
   .dc-product-row .form-input{padding:5px 6px!important;font-size:12px;box-sizing:border-box;text-align:left}
@@ -1227,7 +1227,7 @@ ul,li{list-style:none}
   .dc-product-row{
     grid-template-columns:28px minmax(130px,1fr) 70px 60px 48px 32px !important;
     grid-template-areas:"seq name pattern price qty del"
-                        "row2 row2 row2 row2 row2 ."!important;
+                        ". row2 row2 row2 row2 ."!important;
     gap:4px!important;padding:0
   }
   .dc-product-row .form-input{padding:5px 6px!important;font-size:12px;box-sizing:border-box;text-align:left}
@@ -1283,7 +1283,7 @@ ul,li{list-style:none}
 .dc-product-header > span:nth-child(6){grid-area:urgent}
 .dc-product-header > span:nth-child(7){grid-area:same}
 .dc-product-header > span:nth-child(8){grid-area:del}
-.dc-product-row{display:grid;grid-template-columns:28px minmax(130px,1fr) 70px 60px 48px 32px;gap:4px;margin-bottom:6px;align-items:center;padding:0;grid-template-areas:"seq name pattern price qty del" "row2 row2 row2 row2 row2 ."}
+.dc-product-row{display:grid;grid-template-columns:28px minmax(130px,1fr) 70px 60px 48px 32px;gap:4px;margin-bottom:6px;align-items:center;padding:0;grid-template-areas:"seq name pattern price qty del" ". row2 row2 row2 row2 ."}
 .dc-product-row .form-input{padding:6px 8px;font-size:13px;box-sizing:border-box;text-align:left}
 .dc-product-row .dc-prod-name-wrapper,.dc-extra-row .combobox-wrapper{min-width:0;width:100%}
 .dc-product-row .dc-prod-seq{min-width:24px}
@@ -1624,7 +1624,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=89"></script>
+<script src="app.js?v=87"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
