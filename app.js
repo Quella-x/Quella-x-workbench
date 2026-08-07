@@ -3700,6 +3700,7 @@ function dcRecalc() {
     const displayNoByIdx = {};
     groupDetails.forEach(g => {
       r += `<div class="dc-r-section"><div class="dc-r-sub">柄图：${esc(g.patternId)}（${g.catCount}种品类）</div>`;
+      const allUrgent = g.items.length > 0 && g.items.every(d => d.urgent);
       g.items.forEach(d => {
         if (!d.name && !d.price) return;
         const tag = d.useModel ? '（同模）' : '';
@@ -3708,6 +3709,10 @@ function dcRecalc() {
         r += `<div class="dc-rr"><span><i class="dc-r-no">${String(prodIdx).padStart(2,'0')}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
         if (d.useModel) r += `<div class="dc-rr sub"><span>${d.modelBreakdown}</span><span></span></div>`;
         r += renderBoundExtras(d.idx);
+        // By轮：单项加急和加价项目一样树状图显示在制品下面
+        if (!_dcWholeOrderUrgent && !allUrgent && d.urgent) {
+          r += `<div class="dc-rr bound"><span><i class="dc-r-tree">└─</i>加急 ×${urgentRate}</span><span></span></div>`;
+        }
       });
       // v20: SET优惠增加与上方制品的间距 (margin-top:6px)，并在右侧恢复 ×倍率
       if (g.setRate < 1.0) {
@@ -3716,15 +3721,9 @@ function dcRecalc() {
       } else {
         r += `<div class="dc-rr total"><span>金额</span><span>¥${g.groupDiscounted.toFixed(2)}</span></div>`;
       }
-      // Bk轮：本组加急信息（整单加急时不在此处显示，统一在末尾"整单加急"块）
-      if (!_dcWholeOrderUrgent) {
-        const urgentItems = g.items.filter(d => d.urgent);
-        if (urgentItems.length === g.items.length && g.items.length > 0) {
-          r += `<div class="dc-rr" style="margin-top:6px"><span>SET加急（本组全加急）</span><span>×${urgentRate}</span></div>`;
-        } else if (urgentItems.length > 0) {
-          const nos = urgentItems.map(d => displayNoByIdx[d.idx]).map(n => String(n).padStart(2, '0')).join('、');
-          r += `<div class="dc-rr" style="margin-top:6px"><span>本组加急制品：序号 ${nos}</span><span></span></div>`;
-        }
+      // Bk轮→By轮：全组加急仍保留组级提示；单项加急改树状线展示
+      if (!_dcWholeOrderUrgent && allUrgent) {
+        r += `<div class="dc-rr" style="margin-top:6px"><span>SET加急（本组全加急）</span><span>×${urgentRate}</span></div>`;
       }
       r += '</div>';
     });
@@ -3737,6 +3736,10 @@ function dcRecalc() {
         r += `<div class="dc-rr"><span><i class="dc-r-no">${String(++prodIdx).padStart(2,'0')}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
         if (d.useModel) r += `<div class="dc-rr sub"><span>${d.modelBreakdown}</span><span></span></div>`;
         r += renderBoundExtras(d.idx);
+        // By轮：无柄图制品的单项加急同样树状展示
+        if (!_dcWholeOrderUrgent && d.urgent) {
+          r += `<div class="dc-rr bound"><span><i class="dc-r-tree">└─</i>加急 ×${urgentRate}</span><span></span></div>`;
+        }
       });
       r += '</div>';
     }
@@ -3749,6 +3752,10 @@ function dcRecalc() {
       r += `<div class="dc-rr"><span><i class="dc-r-no">${String(++prodIdx).padStart(2,'0')}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}${pTag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
       if (d.useModel) r += `<div class="dc-rr sub"><span>${d.modelBreakdown}</span><span></span></div>`;
       r += renderBoundExtras(d.idx);
+      // By轮：非SET模式下单项加急也树状展示
+      if (!_dcWholeOrderUrgent && d.urgent) {
+        r += `<div class="dc-rr bound"><span><i class="dc-r-tree">└─</i>加急 ×${urgentRate}</span><span></span></div>`;
+      }
     });
     r += '</div>';
   }
