@@ -3009,13 +3009,10 @@ function renderDesignCalc() {
 
   // Bk轮：加急功能 — 整单加急（默认关闭，开启后全部制品与加价×倍率）+ 制品单独勾选
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">加急 <span class="calc-card-hint">（整单加急默认关闭；开启后全部制品与加价项目执行加急）</span></div>';
+  html += '<div class="calc-card-title">加急 <span class="calc-card-hint">（勾选整单加急则全部制品与加价项目执行加急；不勾选为原价）</span></div>';
   html += '<div class="calc-rate-row">';
-  html += `<label class="calc-rate-label"><input type="checkbox" ${_dcWholeOrderUrgent ? 'checked' : ''} onchange="dcToggleWholeOrderUrgent(this.checked)"> 整单加急（全部制品与加价项目）</label>`;
-  html += '</div>';
-  html += '<div class="calc-rate-row">';
-  html += '<label class="calc-rate-label">加急倍率</label>';
-  html += '<input type="number" class="calc-rate-input" step="0.1" value="2" data-urgent="rate" oninput="dcRecalc()">';
+  html += `<label class="calc-rate-label"><input type="checkbox" ${_dcWholeOrderUrgent ? 'checked' : ''} onchange="dcToggleWholeOrderUrgent(this.checked)"> 整单加急</label>`;
+  html += '<span style="display:flex;align-items:center;gap:8px"><span class="calc-rate-label">加急</span><input type="number" class="calc-rate-input" step="0.1" value="2" data-urgent="rate" oninput="dcRecalc()"></span>';
   html += '</div>';
   html += '</div>';
 
