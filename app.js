@@ -3593,8 +3593,7 @@ function dcRecalc() {
     } else { unboundExtras.push(ex); }
   });
 
-  // Step 4: Base total & AP轮：按制品是否勾选加急拆分（已含 SET 组折扣）
-  const baseTotal = productsTotal + extrasTotal;
+  // Step 4: AP轮：按制品是否勾选加急拆分（已含 SET 组折扣）
   let urgentBase = 0;
   let nonUrgentBase = 0;
   productDetails.forEach(d => {
@@ -3767,13 +3766,11 @@ function dcRecalc() {
     });
     r += `<div class="dc-rr total"><span>加价合计</span><span>¥${extrasTotal.toFixed(2)}</span></div></div>`;
   }
-  // v21: 制品合计 已删除；基础总金额 → 总价，并加纯色高亮条（与最终报价按钮同色）
-  r += `<div class="dc-r-section"><div class="dc-rr grand-bar"><span>总价</span><span>¥${baseTotal.toFixed(2)}</span></div></div>`;
+  // 倍率计算（稿件用途倍率）
   r += '<div class="dc-r-section"><div class="dc-r-sub">倍率计算</div>';
   r += `<div class="dc-rr"><span>稿件用途：${uType}</span><span>×${uRate}</span></div>`;
   r += `<div class="dc-rr total"><span>倍率小计</span><span>¥${afterRatesBeforeUrgent.toFixed(2)}</span></div></div>`;
-  if (discHTML) { r += '<div class="dc-r-section"><div class="dc-r-sub">优惠</div>' + discHTML + '</div>'; }
-  // 加急（仅已勾选制品，展示方式与倍率计算一致）
+  // 加急（仅已勾选制品，展示方式与倍率计算一致）——移至总价前
   if (urgentEnabled) {
     const urgentBaseAfter = urgentBase * uRate;
     const urgentTitle = _dcWholeOrderUrgent ? '整单加急（全部制品与加价项目）' : '加急（仅已勾选制品）';
@@ -3783,6 +3780,10 @@ function dcRecalc() {
     r += `<div class="dc-rr"><span>加急倍率</span><span>×${urgentRate}</span></div>`;
     r += `<div class="dc-rr total"><span>加急小计</span><span>¥${urgentAfter.toFixed(2)}</span></div></div>`;
   }
+  // 总价：包含加急后结果（已含稿件用途倍率与加急倍率，未含后续优惠）
+  const grandTotal = urgentAfter + nonUrgentAfter;
+  r += `<div class="dc-r-section"><div class="dc-rr grand-bar"><span>总价</span><span>¥${grandTotal.toFixed(2)}</span></div></div>`;
+  if (discHTML) { r += '<div class="dc-r-section"><div class="dc-r-sub">优惠</div>' + discHTML + '</div>'; }
   r += '<div class="dc-r-final"><div class="dc-r-final-label">最终报价</div>';
   r += `<div class="dc-r-final-val">¥${finalPrice.toFixed(2)}</div></div>`;
   const deposit = Math.round(finalPrice * 0.5 * 100) / 100;
