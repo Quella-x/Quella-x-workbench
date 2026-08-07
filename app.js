@@ -3020,7 +3020,7 @@ function renderDesignCalc() {
 
   // Bu轮: 全局同模阶梯价倍率单选（可空，去掉无同模；制品行未选类型时读取此项）
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">同模阶梯价倍率 <span class="calc-card-hint">选择同模更改项（默认不选择，制品行未选时读取此项）</span></div>';
+  html += '<div class="calc-card-title">同模阶梯价倍率 <span class="calc-card-hint">选择同模更改项</span></div>';
   DC_MODEL.filter(m => m.value !== 'none').forEach(m => {
     html += '<div class="calc-rate-row">';
     html += `<label class="calc-rate-label"><input type="checkbox" class="calc-circle" name="dc_model_rule" value="${m.value}" ${_dcGlobalModelType === m.value ? 'checked' : ''} onchange="dcSelectGlobalModel('${m.value}', this.checked)"> ${m.value}</label>`;
