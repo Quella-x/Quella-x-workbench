@@ -1183,13 +1183,13 @@ ul,li{list-style:none}
   /* v29-fix: mobile 报价计算制品/加价改为横向行（对齐接稿排期） */
   .dc-product-header{display:none!important}
   .dc-extra-header{display:none!important}
-  .dc-product-row{grid-template-columns:28px 1fr 76px 50px 44px 44px 28px!important;gap:4px!important;padding:0}
+  .dc-product-row{grid-template-columns:28px 1fr 70px 48px 42px 40px 40px 28px!important;gap:4px!important;padding:0}
   .dc-product-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
   .dc-product-row .dc-prod-name{font-size:12px}
   .dc-product-row .dc-prod-check{font-size:10px;gap:0;justify-content:center}
   .dc-product-row .dc-prod-check input{width:12px;height:12px}
   .dc-product-row .dc-prod-del{width:28px;height:28px;font-size:12px;justify-self:end}
-  .dc-extra-row{grid-template-columns:1.2fr 44px 52px 60px 28px!important;gap:4px!important;padding:0}
+  .dc-extra-row{grid-template-columns:60px 1fr 44px 52px 28px!important;gap:4px!important;padding:0}
   .dc-extra-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
   .dc-extra-del{width:28px;height:28px;font-size:12px;justify-self:end}
   /* 下拉框箭头需 30px 右内边距，避免被 ▼ 遮挡（覆盖上面 form-input 简写的 8px） */
@@ -1212,32 +1212,33 @@ ul,li{list-style:none}
 .calc-mode-tab.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary)}
 .calc-import-select{width:100%;margin-top:4px}
 /* v22: 报价计算制品列表——header 与 row padding/box-sizing 完全统一，标题与内容像素对齐 */
-.dc-product-header{display:grid;grid-template-columns:44px minmax(180px,1.6fr) 90px 70px 60px 90px 40px;gap:6px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
+.dc-product-header{display:grid;grid-template-columns:44px minmax(170px,1.5fr) 84px 64px 52px 56px 56px 32px;gap:6px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
 .dc-product-header > span{box-sizing:border-box;padding-left:8px}
 .dc-product-header > span:last-child{padding-left:0}
-.dc-product-row{display:grid;grid-template-columns:44px minmax(180px,1.6fr) 90px 70px 60px 90px 40px;gap:6px;margin-bottom:6px;align-items:center;padding:0}
+.dc-product-row{display:grid;grid-template-columns:44px minmax(170px,1.5fr) 84px 64px 52px 56px 56px 32px;gap:6px;margin-bottom:6px;align-items:center;padding:0}
 .dc-product-row .form-input{padding:7px 8px;font-size:13px;box-sizing:border-box;text-align:left}
 .dc-product-row .combobox-wrapper,.dc-extra-row .combobox-wrapper{min-width:0;width:100%}
 .dc-prod-check{display:flex;align-items:center;justify-content:flex-start;gap:3px;font-size:11px;cursor:pointer;color:var(--c-text-muted);white-space:nowrap}
 .dc-prod-check input{accent-color:var(--c-primary);width:14px;height:14px}
 .dc-prod-del{width:32px;height:28px;padding:0;font-size:14px;display:flex;align-items:center;justify-content:center;justify-self:end;background:transparent;color:var(--c-text-light);border:none;border-radius:6px;transition:all .15s}
 .dc-prod-del:hover{background:#fff0f0;color:var(--c-danger)}
-/* v-NEW: 制品序号（只读，显示在制品名称左侧） */
-.dc-prod-seq{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--c-text-muted);background:var(--c-primary-bg);border-radius:6px;min-width:36px;height:32px;box-sizing:border-box}
+/* v-NEW: 制品序号（只读，纯数字，无框） */
+.dc-prod-seq{display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--c-text);min-width:24px;height:32px;box-sizing:border-box}
 /* v-NEW: 行内同模类型/倍率（勾选同模后显示在下一行） */
 .dc-prod-model-inline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 8px;background:var(--c-primary-bg);border-radius:6px;margin-top:2px}
 .dc-prod-model-label{font-size:12px;color:var(--c-text-muted)}
 .dc-prod-model-type{flex:1;min-width:120px;padding:5px 6px;font-size:12px}
 .dc-prod-model-rate{width:64px;padding:5px 6px;font-size:12px}
-/* v-NEW: 加价项目绑定下拉 */
+/* v-NEW: 加价项目绑定下拉（置于最前、扩大） */
 .dc-extra-bind{flex:1;min-width:0;padding:7px 6px;font-size:12px;text-align:left}
-/* v-NEW: 实时报价中绑定的加价项目缩进展示 */
-.dc-rr.bound{margin-left:20px;padding-left:8px;border-left:2px solid var(--c-primary-light);color:var(--c-text-muted);font-size:12px}
+/* v-NEW: 实时报价中绑定的加价项目树形缩进展示（无蓝条，颜色与制品相同） */
+.dc-rr.bound{margin-left:0;padding-left:28px;color:var(--c-text);font-size:13px}
+.dc-r-tree{display:inline-block;min-width:22px;margin-right:2px;color:var(--c-text);font-style:normal;font-weight:600}
 /* v22: 加价项目——与制品列表同款对齐规则：header 与 row padding/gap 一致 */
-.dc-extra-header{display:grid;grid-template-columns:minmax(140px,1.3fr) 65px 70px 90px 40px;gap:6px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
+.dc-extra-header{display:grid;grid-template-columns:90px minmax(120px,1.1fr) 65px 70px 40px;gap:6px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
 .dc-extra-header > span{box-sizing:border-box;padding-left:8px}
 .dc-extra-header > span:last-child{padding-left:0}
-.dc-extra-row{display:grid;grid-template-columns:minmax(140px,1.3fr) 65px 70px 90px 40px;gap:6px;margin-bottom:6px;align-items:center;padding:0}
+.dc-extra-row{display:grid;grid-template-columns:90px minmax(120px,1.1fr) 65px 70px 40px;gap:6px;margin-bottom:6px;align-items:center;padding:0}
 .dc-extra-row .form-input{padding:7px 8px;font-size:13px;box-sizing:border-box;text-align:left}
 .dc-extra-del{width:32px;height:28px;padding:0;font-size:14px;display:flex;align-items:center;justify-content:center;justify-self:end;background:transparent;color:var(--c-text-light);border:none;border-radius:6px;transition:all .15s}
 .dc-extra-del:hover{background:#fff0f0;color:var(--c-danger)}
@@ -1535,7 +1536,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=70"></script>
+<script src="app.js?v=71"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
