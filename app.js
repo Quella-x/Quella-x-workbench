@@ -3671,8 +3671,11 @@ function dcRecalc() {
     grandTotal = urgentPart * urgentRate + nonUrgentPart;
   }
 
-  // Step 8: 用途（稿件用途倍率）最后施加——符合 原价-同模-加价-折扣-加急-用途
-  const finalPrice = grandTotal * uRate;
+  // Step 8: 废弃「整体汇总后再×稿件用途倍率」；改用统一公式 finalPrice = 总价 + 总基数×(uRate−1)
+  // 逐项等价于 A_i × (urgentRate_i + uRate − 1)：
+  //   自用(uRate=1) → A×urgentRate；倍率>1 → A×(urgentRate+uRate−1)；不加急(urgentRate=1) → A×uRate 与旧逻辑一致
+  // grandTotal=折扣后含加急溢价未含用途；afterDiscount=折扣后未含加急/用途的合计（含加价项目）
+  const finalPrice = grandTotal + afterDiscount * (uRate - 1);
 
   // Save rates
   const settings = DB.get('calcSettings', {});
@@ -3784,10 +3787,10 @@ function dcRecalc() {
   }
   // 总价 =（制品+加价）×加急（已含折扣与加急倍率，未含用途倍率）
   r += `<div class="dc-r-section"><div class="dc-rr grand-bar"><span>总价</span><span>¥${grandTotal.toFixed(2)}</span></div></div>`;
-  // 倍率计算（稿件用途倍率）——置于原位置（总价之后）
+  // 倍率计算（稿件用途倍率）——置于原位置（总价之后）；小计采用新公式 grandTotal + afterDiscount×(uRate−1)
   r += '<div class="dc-r-section"><div class="dc-r-sub">倍率计算</div>';
   r += `<div class="dc-rr"><span>稿件用途：${uType}</span><span>×${uRate}</span></div>`;
-  r += `<div class="dc-rr total"><span>倍率小计</span><span>¥${(grandTotal * uRate).toFixed(2)}</span></div></div>`;
+  r += `<div class="dc-rr total"><span>倍率小计</span><span>¥${finalPrice.toFixed(2)}</span></div></div>`;
   // 优惠（折扣明细，已计入总价）
   if (discHTML) { r += '<div class="dc-r-section"><div class="dc-r-sub">优惠</div>' + discHTML + '</div>'; }
   r += '<div class="dc-r-final"><div class="dc-r-final-label">最终报价</div>';
