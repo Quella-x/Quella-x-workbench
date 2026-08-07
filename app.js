@@ -2436,7 +2436,7 @@ function renderTimeline() {
   });
   html += '</div>';
   // Toolbar
-  html += '<div class="toolbar timeline-toolbar">';
+  html += '<div class="toolbar">';
   html += `<div class="search-box"><input type="text" placeholder="搜索事件..." value="${esc(ps.search)}" oninput="onSearch('oc-timeline', this.value)"><span class="search-icon">🔍</span></div>`;
   html += '<div class="spacer"></div>';
   html += '<button class="btn btn-outline toolbar-eq" onclick="importStoriesToTimeline()">📥 导入故事小记</button>';
@@ -2448,9 +2448,8 @@ function renderTimeline() {
   Object.keys(TIMELINE_COLORS).forEach(c => {
     const tc = TIMELINE_COLORS[c];
     const active = ps.colorFilter === c;
-    const cls = active ? '' : ' inactive';
-    const bgStyle = active ? `background:${tc.color}` : '';
-    html += `<div class="timeline-color-filter${cls}" onclick="timelineColorFilter('${esc(c)}')" style="${bgStyle}"><span class="timeline-color-dot" style="background:${active ? '#fff' : tc.color}"></span><span>${esc(tc.label)}</span></div>`;
+    const cls = active ? ' active' : '';
+    html += `<div class="timeline-color-filter${cls}" data-color="${esc(c)}" onclick="timelineColorFilter('${esc(c)}')"><span class="timeline-color-label">${esc(tc.label)}</span></div>`;
   });
   html += '</div>';
 
