@@ -1220,10 +1220,48 @@ ul,li{list-style:none}
   .combobox-dropdown{max-height:160px;-webkit-overflow-scrolling:touch;min-width:140px}
 }
 
+/* AY轮：制品/加价/修改列表根据输入栏实际宽度决定是否两行（容器查询），解决两栏布局下输入栏<860px仍用8列一行的挤压问题 */
+@container (max-width:860px){
+  .dc-product-header{display:none!important}
+  .dc-extra-header{display:none!important}
+  .dc-product-row{
+    grid-template-columns:28px 1fr 70px 60px 48px 32px !important;
+    grid-template-areas:"seq name pattern price qty del"
+                        ". urgent same same same .";
+    gap:4px!important;padding:0
+  }
+  .dc-product-row .form-input{padding:5px 6px!important;font-size:12px;box-sizing:border-box;text-align:left}
+  .dc-product-row .combobox-input{padding-right:26px!important}
+  .dc-product-row .dc-prod-seq{grid-area:seq;justify-content:flex-start;padding-left:10px;font-size:12px}
+  .dc-product-row .combobox-wrapper{grid-area:name}
+  .dc-product-row .dc-prod-pattern{grid-area:pattern}
+  .dc-product-row .dc-prod-price{grid-area:price}
+  .dc-product-row .dc-prod-qty{grid-area:qty}
+  .dc-product-row .dc-prod-urgent{grid-area:urgent;justify-content:flex-start;font-size:11px;gap:2px}
+  .dc-product-row .dc-prod-same{grid-area:same;justify-content:flex-start;font-size:11px;gap:2px}
+  .dc-product-row .dc-prod-del{grid-area:del;width:28px;height:28px;font-size:12px;justify-self:end}
+  .dc-product-row .dc-prod-check input{width:14px;height:14px;flex-shrink:0}
+  .dc-product-row .dc-prod-name{font-size:12px}
+  .dc-product-row .dc-prod-model-type-wrapper{min-width:0;flex:1}
+  .dc-product-row .dc-prod-model-type{padding-right:6px!important;font-size:11px;padding:3px 4px;background:#fff}
+  .dc-product-row .dc-prod-same .combobox-toggle{display:none}
+  .dc-extra-row{grid-template-columns:60px 1fr 44px 52px 28px!important;gap:4px!important;padding:0}
+  .dc-extra-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
+  .dc-extra-del{width:28px;height:28px;font-size:12px;justify-self:end}
+  .dc-mod-header{display:none!important}
+  .dc-mod-row{grid-template-columns:1fr 50px 60px 28px!important;gap:4px!important;padding:0}
+  .dc-mod-row .dc-mod-note{display:none!important}
+  .dc-mod-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
+  .dc-mod-row .combobox-input{padding-right:26px!important}
+  .dc-mod-del{width:28px;height:28px;font-size:12px;justify-self:end}
+  .dc-product-row .combobox-input,.dc-extra-row .combobox-input,.dc-mod-row .combobox-input{padding-right:30px!important}
+  .combobox-dropdown{max-height:160px;-webkit-overflow-scrolling:touch;min-width:140px}
+}
+
 /* ===== Design Quote Calculator ===== */
 .calc-page{max-width:1200px;margin:0 auto}
 .calc-page-grid{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
-.calc-input-col{display:flex;flex-direction:column;gap:12px}
+.calc-input-col{display:flex;flex-direction:column;gap:12px;container-type:inline-size}
 .calc-card{background:var(--c-card-bg,#fff);border:1px solid var(--c-border-light,#e8e8e8);border-radius:10px;padding:14px}
 .calc-card-title{font-size:14px;font-weight:600;color:var(--c-primary);margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .calc-card-hint{font-size:11px;font-weight:400;color:var(--c-text-muted)}
@@ -1586,7 +1624,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=80"></script>
+<script src="app.js?v=81"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
