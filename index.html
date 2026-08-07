@@ -1262,8 +1262,8 @@ ul,li{list-style:none}
 .calc-page{max-width:1200px;margin:0 auto}
 .calc-page-grid{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
 .calc-input-col{display:flex;flex-direction:column;gap:12px;container-type:inline-size}
-.calc-card{background:var(--c-card-bg,#fff);border:1px solid var(--c-border-light,#e8e8e8);border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
-.calc-card-title{font-size:14px;font-weight:600;color:var(--c-primary);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.calc-card{background:var(--c-card-bg,#fff);border:1px solid var(--c-border-light,#e8e8e8);border-radius:10px;padding:14px}
+.calc-card-title{font-size:14px;font-weight:600;color:var(--c-primary);margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .calc-card-hint{font-size:11px;font-weight:400;color:var(--c-text-muted)}
 .calc-mode-tabs{display:flex;gap:0;margin-bottom:8px}
 .calc-mode-tab{flex:1;padding:8px 12px;border:1px solid var(--c-border);background:var(--c-bg);font-size:13px;cursor:pointer;color:var(--c-text);transition:all .15s}
@@ -1344,8 +1344,8 @@ ul,li{list-style:none}
 .calc-rate-input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .calc-rate-input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .calc-rate-fixed{font-size:13px;color:var(--c-text-muted);width:70px;text-align:center}
-.calc-sub-area{padding:8px 0 4px 20px;border-top:1px dashed var(--c-border-light);margin-top:6px;transition:opacity .2s}
-.calc-sub-area.disabled{display:none}
+.calc-sub-area{padding:4px 0 4px 20px;transition:opacity .2s}
+.calc-sub-area.disabled{opacity:.4;pointer-events:none}
 .calc-receipt-col{position:sticky;top:12px;display:flex;flex-direction:column;gap:12px}
 .calc-receipt{background:linear-gradient(135deg,var(--c-primary-bg),#f8fbff);border:1px solid var(--c-primary-light);border-radius:10px;padding:16px}
 .dc-r-title{font-size:18px;font-weight:700;color:var(--c-text);margin-bottom:12px;text-align:center}
@@ -1633,7 +1633,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=99"></script>
+<script src="app.js?v=98"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

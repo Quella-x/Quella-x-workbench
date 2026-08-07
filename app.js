@@ -3019,7 +3019,7 @@ function renderDesignCalc() {
 
   // AR轮: 同模阶梯价倍率示意表（与稿件用途倍率同款 radio 行）
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">同模阶梯价倍率 <span class="calc-card-hint">（行内选同模类型即读取，可自行维护）</span></div>';
+  html += '<div class="calc-card-title">全局同模阶梯价倍率 <span class="calc-card-hint">（行内选同模类型即读取，可自行维护）</span></div>';
   html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" name="dc_model_rule" disabled checked> 无同模</label><span></span></div>';
   DC_MODEL.filter(m => m.value !== 'none').forEach(m => {
     html += '<div class="calc-rate-row">';
@@ -3036,7 +3036,7 @@ function renderDesignCalc() {
   // SET
   html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" name="dcDiscMode" value="set" onchange="dcDiscModeChange()"> SET优惠</label></div>';
   html += '<div id="dc-set-area" class="calc-sub-area disabled">';
-  html += '<div style="font-size:12px;color:var(--c-text-muted);padding:4px 0 8px;line-height:1.5">系统根据柄图自动分组，档位不叠加。</div>';
+  html += '<div style="font-size:12px;color:var(--c-text-muted);padding:4px 0;line-height:1.5">系统根据柄图自动分组，档位不叠加。</div>';
   DC_SET.forEach(s => {
     const rate = (settings.setRates && settings.setRates[s.value]) ?? s.rate;
     html += '<div class="calc-rate-row">';
@@ -3055,7 +3055,7 @@ function renderDesignCalc() {
   html += '</div>';
   // Custom discount rows
   html += '<div id="dc-custom-discs"></div>';
-  html += '<div id="dc-custom-disc-add-area" style="display:none;margin-top:8px;padding:8px;border:1px dashed var(--c-border);border-radius:6px;background:var(--c-primary-bg)">';
+  html += '<div id="dc-custom-disc-add-area" style="display:none;margin-top:4px;padding:8px;border:1px dashed var(--c-border);border-radius:6px;background:var(--c-primary-bg)">';
   html += '<div class="calc-rate-row" style="gap:4px">';
   html += '<input type="text" class="calc-rate-input" id="dcNewDiscName" placeholder="方案名称" style="width:auto;flex:1;text-align:left;font-size:13px">';
   html += '<select class="calc-rate-input" id="dcNewDiscType" style="width:auto;font-size:12px"><option value="rate">折扣率</option><option value="amount">减免额</option></select>';
@@ -3064,11 +3064,11 @@ function renderDesignCalc() {
   html += '<button type="button" class="btn btn-ghost btn-sm" onclick="dcCancelAddCustomDisc()" style="padding:4px 10px;font-size:12px">取消</button>';
   html += '</div>';
   html += '</div>';
-  html += '<div style="margin-top:8px">';
+  html += '<div style="margin-top:4px">';
   html += '<button type="button" class="btn btn-outline btn-sm" onclick="dcShowAddCustomDisc()" style="width:100%">+ 添加优惠方案</button>';
-  html += '<div style="display:flex;gap:6px;margin-top:6px">';
-  html += '<button type="button" class="btn btn-danger btn-sm" onclick="dcDeleteCheckedCustomDisc()" style="flex:1">删除方案</button>';
-  html += '<button type="button" class="btn btn-primary btn-sm" onclick="dcSaveCustomDiscsFeedback()" style="flex:1">保存方案</button>';
+  html += '<div style="display:flex;gap:6px;margin-top:4px">';
+  html += '<button type="button" class="btn btn-danger btn-sm" onclick="dcDeleteCheckedCustomDisc()" style="flex:1">🗑️ 删除方案</button>';
+  html += '<button type="button" class="btn btn-primary btn-sm" onclick="dcSaveCustomDiscsFeedback()" style="flex:1">💾 保存方案</button>';
   html += '</div>';
   html += '</div>';
   html += '</div>';
