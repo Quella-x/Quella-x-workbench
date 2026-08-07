@@ -3307,7 +3307,7 @@ function dcRenderExtras() {
         return `<option value="${seq}"${(e.bindSeq || 'none') === seq ? ' selected' : ''}>${esc(label)}</option>`;
       }));
     html += '<div class="dc-extra-row">';
-    html += `<select class="form-input dc-extra-bind" onchange="dcUpdateExtra(${i},'bindSeq',this.value)">${bindOpts}</select>`;
+    html += `<select class="form-select dc-extra-bind" onchange="dcUpdateExtra(${i},'bindSeq',this.value)">${bindOpts}</select>`;
     html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-extra-name" value="${esc(e.name)}" placeholder="名称" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateExtra(${i},'name',this.value);dcFillPrice(this,'extra',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
     html += `<input type="number" class="form-input dc-extra-qty" value="${e.quantity}" placeholder="数量" min="1" oninput="dcUpdateExtra(${i},'quantity',this.value)">`;
     html += `<input type="number" class="form-input dc-extra-price" value="${e.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateExtra(${i},'price',this.value)">`;
