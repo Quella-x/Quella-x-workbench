@@ -541,8 +541,8 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyCount"]{flex:0 0 55px}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyPrice"]{flex:0 0 80px}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="note"]{flex:1 1 0;min-width:80px}
-/* Y轮修正：接稿修改项目标题。「次数」保持；「价格」「备注」往左 */
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyCount"]{flex:0 0 55px;padding-left:0;margin-left:-6px}
+/* Z轮修正：接稿修改项目「次数」标题继续往左 */
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyCount"]{flex:0 0 55px;padding-left:0;margin-left:-10px}
 .dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyPrice"]{flex:0 0 80px;padding-left:0;margin-left:-2px}
 .dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="note"]{flex:1 1 0;min-width:80px;padding-left:0;margin-left:-4px}
 /* P轮修正：开团记录制品列表「单价/对应厂家」标题 padding-left 30px；
@@ -1504,7 +1504,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=55"></script>
+<script src="app.js?v=56"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
