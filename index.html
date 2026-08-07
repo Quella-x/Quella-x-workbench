@@ -1180,15 +1180,26 @@ ul,li{list-style:none}
   .pricelist-menu{max-width:100%}
   .calc-page-grid{grid-template-columns:1fr !important}
   .calc-receipt-col{position:static !important}
-  /* v29-fix: mobile 报价计算制品/加价改为横向行（对齐接稿排期） */
+  /* AP轮: mobile 报价计算制品改为两行（像接稿排期制品列表） */
   .dc-product-header{display:none!important}
   .dc-extra-header{display:none!important}
-  .dc-product-row{grid-template-columns:28px 1fr 70px 48px 42px 40px 40px 28px!important;gap:4px!important;padding:0}
+  .dc-product-row{
+    grid-template-columns:32px 1fr 70px 52px 44px 32px !important;
+    grid-template-areas:"seq name pattern price qty del" "same same same urgent urgent urgent";
+    gap:4px!important;padding:0
+  }
   .dc-product-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
+  .dc-product-row .dc-prod-seq{grid-area:seq;justify-content:flex-start;padding-left:4px}
+  .dc-product-row .combobox-wrapper{grid-area:name}
+  .dc-product-row .dc-prod-pattern{grid-area:pattern}
+  .dc-product-row .dc-prod-price{grid-area:price}
+  .dc-product-row .dc-prod-qty{grid-area:qty}
+  .dc-product-row .dc-prod-del{grid-area:del;width:28px;height:28px;font-size:12px;justify-self:end}
+  .dc-product-row .dc-prod-check:first-of-type{grid-area:same;justify-content:flex-start;font-size:11px;gap:2px}
+  .dc-product-row .dc-prod-check:last-of-type{grid-area:urgent;justify-content:flex-start;font-size:11px;gap:2px}
+  .dc-product-row .dc-prod-check input{width:14px;height:14px}
   .dc-product-row .dc-prod-name{font-size:12px}
-  .dc-product-row .dc-prod-check{font-size:10px;gap:0;justify-content:center}
-  .dc-product-row .dc-prod-check input{width:12px;height:12px}
-  .dc-product-row .dc-prod-del{width:28px;height:28px;font-size:12px;justify-self:end}
+  .dc-product-row .dc-prod-model-inline{grid-column:1/-1}
   .dc-extra-row{grid-template-columns:60px 1fr 44px 52px 28px!important;gap:4px!important;padding:0}
   .dc-extra-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
   .dc-extra-del{width:28px;height:28px;font-size:12px;justify-self:end}
@@ -1231,8 +1242,12 @@ ul,li{list-style:none}
 .dc-prod-model-rate{width:64px;padding:5px 6px;font-size:12px}
 /* v-NEW: 加价项目绑定下拉（置于最前、扩大） */
 .dc-extra-bind{flex:1;min-width:0;padding:7px 6px;font-size:12px;text-align:left}
-/* v-NEW: 实时报价中绑定的加价项目树形缩进展示（无蓝条，颜色与制品相同） */
-.dc-rr.bound{margin-left:0;padding-left:28px;color:var(--c-text);font-size:13px}
+/* v-NEW: 实时报价中绑定的加价项目树形缩进展示（无蓝条，颜色与制品相同）
+   AP轮：tree 后文字与制品序号后第一个字左对齐
+   制品文字起点 = .dc-rr padding-left(12) + .dc-r-no(20) + margin(8) = 40px
+   所以 .dc-r-tree(22) + margin(2) = 24px，bound 左内边距 = 40 - 24 = 16px
+*/
+.dc-rr.bound{margin-left:0;padding:2px 12px 2px 16px;color:var(--c-text);font-size:13px}
 .dc-r-tree{display:inline-block;min-width:22px;margin-right:2px;color:var(--c-text);font-style:normal;font-weight:600}
 /* v22: 加价项目——与制品列表同款对齐规则：header 与 row padding/gap 一致 */
 .dc-extra-header{display:grid;grid-template-columns:90px minmax(120px,1.1fr) 65px 70px 40px;gap:6px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
@@ -1536,7 +1551,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=71"></script>
+<script src="app.js?v=72"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

@@ -3130,7 +3130,7 @@ function dcRenderProducts() {
     const cbId = 'dcp_' + i + '_' + Math.random().toString(36).slice(2,6);
     const optHTML = productNames.map(n => `<div class="combobox-option" onclick="dcSelectProduct(${i},this,'${cbId}')" data-value="${esc(n)}">${esc(n)}</div>`).join('');
     const seq = String(i + 1).padStart(2, '0');
-    const modelOpts = DC_MODEL.filter(m => m.value !== 'none').map(m => `<option value="${m.value}"${p.sameModelType === m.value ? ' selected' : ''}>${m.label}*${m.rate}</option>`).join('');
+    const modelOpts = DC_MODEL.filter(m => m.value !== 'none').map(m => `<option value="${m.value}"${p.sameModelType === m.value ? ' selected' : ''}>${m.value}*${m.rate}</option>`).join('');
     html += '<div class="dc-product-row">';
     html += `<div class="dc-prod-seq">${seq}</div>`;
     html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-name" value="${esc(p.name)}" placeholder="制品" data-key="name" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateProduct(${i},'name',this.value);dcFillPrice(this,'product',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
@@ -3414,18 +3414,20 @@ function dcRecalc() {
   // Step 2: Group by patternId for SET discount (only in SET mode)
   let productsTotal = 0;
   const groupDetails = [];
+  const itemGroupRate = new Array(productDetails.length).fill(1.0);
 
   if (dMode === 'set') {
     const groups = {};
-    const noPatternItems = [];
-    productDetails.forEach(d => {
+    const noPatternIdx = [];
+    productDetails.forEach((d, i) => {
       if (d.patternId) {
         if (!groups[d.patternId]) groups[d.patternId] = [];
-        groups[d.patternId].push(d);
-      } else { noPatternItems.push(d); }
+        groups[d.patternId].push({ d, i });
+      } else { noPatternIdx.push(i); }
     });
     Object.keys(groups).forEach(pid => {
-      const items = groups[pid];
+      const entries = groups[pid];
+      const items = entries.map(e => e.d);
       const groupSubtotal = items.reduce((s, d) => s + d.lt, 0);
       const categories = new Set(items.map(d => d.name).filter(n => n));
       const catCount = categories.size;
@@ -3434,14 +3436,16 @@ function dcRecalc() {
       else if (catCount >= 4) { setRate = set4Rate; setLabel = `≥4种品类`; }
       const groupDiscounted = groupSubtotal * setRate;
       productsTotal += groupDiscounted;
+      entries.forEach(e => { itemGroupRate[e.i] = setRate; });
       groupDetails.push({ patternId: pid, items, groupSubtotal, catCount, setRate, setLabel, groupDiscounted });
     });
-    noPatternItems.forEach(d => { productsTotal += d.lt; });
+    noPatternIdx.forEach(i => { productsTotal += productDetails[i].lt; });
   } else {
     productsTotal = productDetails.reduce((s, d) => s + d.lt, 0);
   }
 
   // Step 3: Extras (no same-model, no SET) — split bound / unbound by 制品序号
+  // AP轮：绑定加价继承绑定制品的 SET 组折扣率
   let extrasTotal = 0;
   const extraDetails = [];
   const boundMap = {};   // origIdx -> [extras]
@@ -3450,10 +3454,15 @@ function dcRecalc() {
     const price = parseFloat(e.price) || 0;
     const qty = parseInt(e.quantity) || 0;
     const lt = price * qty;
-    const ex = { name: e.name, qty, lt, bindSeq: e.bindSeq || 'none' };
+    const bs = e.bindSeq || 'none';
+    let groupRate = 1.0;
+    if (bs !== 'none') {
+      const bi = parseInt(bs, 10) - 1;
+      if (bi >= 0 && bi < _dcProducts.length) groupRate = itemGroupRate[bi] ?? 1.0;
+    }
+    const ex = { name: e.name, qty, lt, bindSeq: bs, groupRate };
     extraDetails.push(ex);
     extrasTotal += lt;
-    const bs = e.bindSeq || 'none';
     if (bs !== 'none') {
       const bi = parseInt(bs, 10) - 1;
       if (bi >= 0 && bi < _dcProducts.length) {
@@ -3463,21 +3472,30 @@ function dcRecalc() {
     } else { unboundExtras.push(ex); }
   });
 
-  // Step 4: Base total = products + extras
+  // Step 4: Base total & AP轮：按制品是否勾选加急拆分（已含 SET 组折扣）
   const baseTotal = productsTotal + extrasTotal;
-  // v-NEW: 加急比例 = 勾选制品（含其绑定加价）占基价比例
   let urgentBase = 0;
-  productDetails.forEach(d => { if (d.urgent) { urgentBase += d.lt; const list = boundMap[d.idx]; if (list) list.forEach(ex => urgentBase += ex.lt); } });
-  const urgentRatio = baseTotal > 0 ? (urgentBase / baseTotal) : 0;
-  const urgentEnabled = urgentRatio > 0;
-  // Step 5: Apply usage rate
-  const afterRates = baseTotal * uRate;
-  let finalPrice = afterRates;
+  let nonUrgentBase = 0;
+  productDetails.forEach(d => {
+    const gr = itemGroupRate[d.idx] ?? 1.0;
+    const discountedLt = d.lt * gr;
+    const boundLt = (boundMap[d.idx] || []).reduce((s, ex) => s + ex.lt * ex.groupRate, 0);
+    if (d.urgent) urgentBase += discountedLt + boundLt;
+    else nonUrgentBase += discountedLt + boundLt;
+  });
+  nonUrgentBase += unboundExtras.reduce((s, ex) => s + ex.lt * ex.groupRate, 0);
+
+  const urgentEnabled = urgentBase > 0;
+  // Step 5: Apply usage rate（加急仅作用于勾选部分）
+  const afterRatesBeforeUrgent = (urgentBase + nonUrgentBase) * uRate;
+  const priceAfterUrgent = urgentBase * uRate * urgentRate + nonUrgentBase * uRate;
+  let finalPrice = priceAfterUrgent;
   let discHTML = '';
 
   // Step 6: Global discount (only in discount mode, SET already applied to products)
+  // AP轮：折扣在加急之后应用，因此初始金额已含加急
   if (dMode === 'discount') {
-    let d = afterRates;
+    let d = finalPrice;
     const mCheck = document.getElementById('dcDiscMulti');
     if (mCheck && mCheck.checked) {
       const mInp = document.querySelector('input[data-disc="multi"]');
@@ -3506,10 +3524,7 @@ function dcRecalc() {
     discHTML += `<div class="dc-rr"><span>同担/同推优惠</span><span>-¥${_dcFanReduce.toFixed(2)}</span></div>`;
   }
 
-  // Step 8: 加急（按勾选制品比例整体相乘，顺序严格在用途/优惠/同担之后）
-  if (urgentEnabled) {
-    finalPrice = finalPrice * (1 + (urgentRate - 1) * urgentRatio);
-  }
+  // Step 8: 加急已在 Step 5 精确应用（仅勾选制品及其绑定加价 × urgentRate）
 
   // Save rates
   const settings = DB.get('calcSettings', {});
@@ -3592,13 +3607,13 @@ function dcRecalc() {
   r += `<div class="dc-r-section"><div class="dc-rr grand-bar"><span>总价</span><span>¥${baseTotal.toFixed(2)}</span></div></div>`;
   r += '<div class="dc-r-section"><div class="dc-r-sub">倍率计算</div>';
   r += `<div class="dc-rr"><span>稿件用途：${uType}</span><span>×${uRate}</span></div>`;
-  r += `<div class="dc-rr total"><span>倍率后价格</span><span>¥${afterRates.toFixed(2)}</span></div></div>`;
+  r += `<div class="dc-rr total"><span>倍率后价格</span><span>¥${afterRatesBeforeUrgent.toFixed(2)}</span></div></div>`;
   if (discHTML) { r += '<div class="dc-r-section"><div class="dc-r-sub">优惠</div>' + discHTML + '</div>'; }
   // 加急（与倍率计算同款展示：倍率 ×rate / 加急后价格）
   if (urgentEnabled) {
     r += '<div class="dc-r-section"><div class="dc-r-sub">加急</div>';
     r += `<div class="dc-rr"><span>加急倍率 ×${urgentRate}</span><span></span></div>`;
-    r += `<div class="dc-rr total"><span>加急后价格</span><span>¥${finalPrice.toFixed(2)}</span></div></div>`;
+    r += `<div class="dc-rr total"><span>加急后价格</span><span>¥${priceAfterUrgent.toFixed(2)}</span></div></div>`;
   }
   r += '<div class="dc-r-final"><div class="dc-r-final-label">最终报价</div>';
   r += `<div class="dc-r-final-val">¥${finalPrice.toFixed(2)}</div></div>`;
