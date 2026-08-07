@@ -3593,7 +3593,7 @@ function dcRecalc() {
     } else { unboundExtras.push(ex); }
   });
 
-  // Step 4: AP轮：按制品是否勾选加急拆分（已含 SET 组折扣）
+  // Step 4: AP轮：按制品是否勾选加急拆分（已含 SET 组折扣，未含折扣/加急/用途）
   let urgentBase = 0;
   let nonUrgentBase = 0;
   productDetails.forEach(d => {
@@ -3608,19 +3608,14 @@ function dcRecalc() {
     const lt = ex.lt * ex.groupRate;
     if (_dcWholeOrderUrgent) urgentBase += lt; else nonUrgentBase += lt;
   });
-
+  const baseBeforeDiscount = urgentBase + nonUrgentBase;  // （制品+加价）已含SET折扣，未含折扣/加急/用途
   const urgentEnabled = urgentBase > 0;
-  // Step 5: Apply usage rate（加急仅作用于勾选部分）
-  const urgentAfter = urgentBase * uRate * urgentRate;
-  const nonUrgentAfter = nonUrgentBase * uRate;
-  const afterRatesBeforeUrgent = (urgentBase + nonUrgentBase) * uRate;
-  let finalPrice = urgentAfter + nonUrgentAfter;
-  let discHTML = '';
 
-  // Step 6: Global discount (only in discount mode, SET already applied to products)
-  // AP轮：折扣在加急之后应用，因此初始金额已含加急
+  // Step 5: 折扣（作用于（制品+加价），在加急之前）——符合 原价-同模-加价-折扣-加急-用途
+  let discHTML = '';
+  let afterDiscount = baseBeforeDiscount;
   if (dMode === 'discount') {
-    let d = finalPrice;
+    let d = baseBeforeDiscount;
     const mCheck = document.getElementById('dcDiscMulti');
     if (mCheck && mCheck.checked) {
       // Bn轮：阈值=净不同制品数量（排除加价项目、同柄、同模）；九折只作用于净制品金额
@@ -3633,16 +3628,15 @@ function dcRecalc() {
         if (p.sameModel) return;                                  // 同模排除
         if (x.patternId && patternFreq[x.patternId] > 1) return;   // 同柄（共享柄图标识）排除
         const gr = itemGroupRate[i] || 1.0;
-        const basePre = x.lt * gr;                                // 制品基价(含SET组折扣)，不含加价项目
-        const urg = x.urgent ? urgentRate : 1.0;
-        netBase += basePre * urg * uRate;
+        const basePre = x.lt * gr;                                // 制品基价(含SET组折扣)，不含加价项目/加急/用途
+        netBase += basePre;
         netQty += x.qty;
       });
       if (netQty >= 8) {
         const mInp = document.querySelector('input[data-disc="multi"]');
         const mR = mInp ? (parseFloat(mInp.value) || 0.9) : 0.9;
         const after = netBase * mR;
-        d = finalPrice - netBase + after;                         // 仅净制品部分打折；加价项目/同柄/同模保持原价
+        d = baseBeforeDiscount - netBase + after;                  // 仅净制品部分打折；加价项目/同柄/同模保持原价
         discHTML += `<div class="dc-rr"><span>多件折扣（不同制品≥8件）</span><span>×${mR}</span></div>`;
       }
     }
@@ -3658,16 +3652,27 @@ function dcRecalc() {
         }
       }
     });
-    finalPrice = d;
+    afterDiscount = d;
   }
 
-  // Step 7: 同担/同推 random reduction (always applies)
+  // Step 6: 同担/同推 random reduction（always applies，仍属折扣）
   if (_dcFanReduce > 0) {
-    finalPrice = finalPrice - _dcFanReduce;
+    afterDiscount = afterDiscount - _dcFanReduce;
     discHTML += `<div class="dc-rr"><span>同担/同推优惠</span><span>-¥${_dcFanReduce.toFixed(2)}</span></div>`;
   }
 
-  // Step 8: 加急已在 Step 5 精确应用（仅勾选制品及其绑定加价 × urgentRate）
+  // Step 7: 加急（仅勾选部分 × urgentRate）——总价 =（制品+加价）×加急（未含用途倍率）
+  // 折扣已作用于整体，按比例拆分紧急/非紧急再施加急倍率
+  let grandTotal = 0;
+  if (baseBeforeDiscount > 0) {
+    const ratio = urgentBase / baseBeforeDiscount;
+    const urgentPart = afterDiscount * ratio;
+    const nonUrgentPart = afterDiscount * (1 - ratio);
+    grandTotal = urgentPart * urgentRate + nonUrgentPart;
+  }
+
+  // Step 8: 用途（稿件用途倍率）最后施加——符合 原价-同模-加价-折扣-加急-用途
+  const finalPrice = grandTotal * uRate;
 
   // Save rates
   const settings = DB.get('calcSettings', {});
@@ -3766,23 +3771,24 @@ function dcRecalc() {
     });
     r += `<div class="dc-rr total"><span>加价合计</span><span>¥${extrasTotal.toFixed(2)}</span></div></div>`;
   }
-  // 倍率计算（稿件用途倍率）
-  r += '<div class="dc-r-section"><div class="dc-r-sub">倍率计算</div>';
-  r += `<div class="dc-rr"><span>稿件用途：${uType}</span><span>×${uRate}</span></div>`;
-  r += `<div class="dc-rr total"><span>倍率小计</span><span>¥${afterRatesBeforeUrgent.toFixed(2)}</span></div></div>`;
-  // 加急（仅已勾选制品，展示方式与倍率计算一致）——移至总价前
+  // 加急（仅勾选部分 × urgentRate）——移至总价前
   if (urgentEnabled) {
-    const urgentBaseAfter = urgentBase * uRate;
+    const urgentBaseAfterDisc = baseBeforeDiscount > 0 ? afterDiscount * (urgentBase / baseBeforeDiscount) : 0;
     const urgentTitle = _dcWholeOrderUrgent ? '整单加急（全部制品与加价项目）' : '加急（仅已勾选制品）';
     const urgentBaseLabel = _dcWholeOrderUrgent ? '整单加急-总价格' : '加急基数';
+    const urgentSub = urgentBaseAfterDisc * urgentRate;
     r += `<div class="dc-r-section"><div class="dc-r-sub">${urgentTitle}</div>`;
-    r += `<div class="dc-rr"><span>${urgentBaseLabel}</span><span>¥${urgentBaseAfter.toFixed(2)}</span></div>`;
+    r += `<div class="dc-rr"><span>${urgentBaseLabel}</span><span>¥${urgentBaseAfterDisc.toFixed(2)}</span></div>`;
     r += `<div class="dc-rr"><span>加急倍率</span><span>×${urgentRate}</span></div>`;
-    r += `<div class="dc-rr total"><span>加急小计</span><span>¥${urgentAfter.toFixed(2)}</span></div></div>`;
+    r += `<div class="dc-rr total"><span>加急小计</span><span>¥${urgentSub.toFixed(2)}</span></div></div>`;
   }
-  // 总价：包含加急后结果（已含稿件用途倍率与加急倍率，未含后续优惠）
-  const grandTotal = urgentAfter + nonUrgentAfter;
+  // 总价 =（制品+加价）×加急（已含折扣与加急倍率，未含用途倍率）
   r += `<div class="dc-r-section"><div class="dc-rr grand-bar"><span>总价</span><span>¥${grandTotal.toFixed(2)}</span></div></div>`;
+  // 倍率计算（稿件用途倍率）——置于原位置（总价之后）
+  r += '<div class="dc-r-section"><div class="dc-r-sub">倍率计算</div>';
+  r += `<div class="dc-rr"><span>稿件用途：${uType}</span><span>×${uRate}</span></div>`;
+  r += `<div class="dc-rr total"><span>倍率小计</span><span>¥${(grandTotal * uRate).toFixed(2)}</span></div></div>`;
+  // 优惠（折扣明细，已计入总价）
   if (discHTML) { r += '<div class="dc-r-section"><div class="dc-r-sub">优惠</div>' + discHTML + '</div>'; }
   r += '<div class="dc-r-final"><div class="dc-r-final-label">最终报价</div>';
   r += `<div class="dc-r-final-val">¥${finalPrice.toFixed(2)}</div></div>`;
