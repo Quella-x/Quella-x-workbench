@@ -3001,7 +3001,7 @@ function renderDesignCalc() {
   DC_USAGE.forEach((t, i) => {
     const rate = (settings.usageRates && settings.usageRates[t.value]) ?? t.rate;
     html += '<div class="calc-rate-row">';
-    html += `<label class="calc-rate-label"><input type="radio" name="dcUsage" value="${t.value}"${i === 0 ? ' checked' : ''} onchange="dcRecalc()"> ${t.value}</label>`;
+    html += `<label class="calc-rate-label"><input type="radio" class="calc-circle" name="dcUsage" value="${t.value}"${i === 0 ? ' checked' : ''} onchange="dcRecalc()"> ${t.value}</label>`;
     html += `<input type="number" class="calc-rate-input" step="0.1" value="${rate}" data-usage="${t.value}" oninput="dcRecalc()">`;
     html += '</div>';
   });
@@ -3020,10 +3020,10 @@ function renderDesignCalc() {
   // AR轮: 同模阶梯价倍率示意表（与稿件用途倍率同款 radio 行）
   html += '<div class="calc-card">';
   html += '<div class="calc-card-title">全局同模阶梯价倍率 <span class="calc-card-hint">（行内选同模类型即读取，可自行维护）</span></div>';
-  html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" name="dc_model_rule" disabled checked> 无同模</label><span></span></div>';
+  html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" class="calc-circle" name="dc_model_rule" disabled checked> 无同模</label><span></span></div>';
   DC_MODEL.filter(m => m.value !== 'none').forEach(m => {
     html += '<div class="calc-rate-row">';
-    html += `<label class="calc-rate-label"><input type="radio" name="dc_model_rule" disabled> ${m.value}</label>`;
+    html += `<label class="calc-rate-label"><input type="radio" class="calc-circle" name="dc_model_rule" disabled> ${m.value}</label>`;
     html += `<input type="number" class="calc-rate-input" step="0.1" value="${m.rate}" readonly>`;
     html += '</div>';
   });
@@ -3032,9 +3032,9 @@ function renderDesignCalc() {
   // Discount system (SET与折扣互斥，同担/同推独立)
   html += '<div class="calc-card">';
   html += '<div class="calc-card-title">优惠体系 <span class="calc-card-hint">（SET优惠与折扣优惠互斥，可自行添加折扣优惠方案）</span></div>';
-  html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" name="dcDiscMode" value="none" checked onchange="dcDiscModeChange()"> 无优惠</label></div>';
+  html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" class="calc-circle" name="dcDiscMode" value="none" checked onchange="dcDiscModeChange()"> 无优惠</label></div>';
   // SET
-  html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" name="dcDiscMode" value="set" onchange="dcDiscModeChange()"> SET优惠</label></div>';
+  html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" class="calc-circle" name="dcDiscMode" value="set" onchange="dcDiscModeChange()"> SET优惠</label></div>';
   html += '<div id="dc-set-area" class="calc-sub-area disabled">';
   html += '<div style="font-size:12px;color:var(--c-text-muted);padding:4px 0;line-height:1.5">系统根据柄图自动分组，档位不叠加。</div>';
   DC_SET.forEach(s => {
@@ -3046,7 +3046,7 @@ function renderDesignCalc() {
   });
   html += '</div>';
   // Discount (with custom discount support)
-  html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" name="dcDiscMode" value="discount" onchange="dcDiscModeChange()"> 折扣优惠</label></div>';
+  html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" class="calc-circle" name="dcDiscMode" value="discount" onchange="dcDiscModeChange()"> 折扣优惠</label></div>';
   html += '<div id="dc-disc-area" class="calc-sub-area disabled">';
   const discMultiRate = settings.discMultiRate ?? 0.9;
   html += '<div class="calc-rate-row">';

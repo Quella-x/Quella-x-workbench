@@ -1333,11 +1333,11 @@ ul,li{list-style:none}
 .calc-rate-row:last-child{border-bottom:none}
 .calc-rate-label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--c-text);cursor:pointer}
 .calc-rate-label input[type="radio"],.calc-rate-label input[type="checkbox"]{accent-color:var(--c-primary)}
-/* Bo轮：整单加急开关改成与稿件用途倍率radio同款圆形（checkbox视觉radio化） */
-.dc-urgent-toggle{appearance:none;-webkit-appearance:none;width:20px;height:20px;border:2px solid var(--c-border);border-radius:50%;outline:none;cursor:pointer;position:relative;flex-shrink:0;background:#fff;box-sizing:border-box;margin:0}
-.dc-urgent-toggle:checked{border-color:var(--c-primary);background:#fff}
-.dc-urgent-toggle:checked::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:var(--c-primary)}
-.dc-urgent-toggle:disabled{opacity:.45;cursor:not-allowed}
+/* Bo轮：整单加急开关改成与稿件用途倍率radio同款圆形（checkbox视觉radio化）；Br轮：抽出通用 .calc-circle 让稿件用途倍率/同模阶梯价/优惠体系的 radio 也统一到 20px/2px边框/8px蓝点 */
+.dc-urgent-toggle,.calc-circle{appearance:none;-webkit-appearance:none;width:20px;height:20px;border:2px solid var(--c-border);border-radius:50%;outline:none;cursor:pointer;position:relative;flex-shrink:0;background:#fff;box-sizing:border-box;margin:0}
+.dc-urgent-toggle:checked,.calc-circle:checked{border-color:var(--c-primary);background:#fff}
+.dc-urgent-toggle:checked::after,.calc-circle:checked::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:var(--c-primary)}
+.dc-urgent-toggle:disabled,.calc-circle:disabled{opacity:.45;cursor:not-allowed}
 .calc-rate-input{width:70px;padding:4px 8px;border:1px solid var(--c-border);border-radius:6px;font-size:13px;text-align:center}
 /* Bn轮：稿件用途倍率/加急/全局同模阶梯价倍率/优惠体系/同担同推优惠的数字框取消上下步进箭头，仅可输入修改 */
 .calc-rate-input[type=number]::-webkit-outer-spin-button,
@@ -1633,7 +1633,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=101"></script>
+<script src="app.js?v=102"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
