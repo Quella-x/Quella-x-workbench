@@ -2938,6 +2938,7 @@ let _dcModifications = [];
 let _dcCustomDiscs = DB.get('calcCustomDiscs', []); // {name, type:'rate'|'amount', value} — persisted
 let _dcFanReduce = 0; // 同担/同推随机减价金额
 let _dcWholeOrderUrgent = false; // 整单加急（默认关闭）
+let _dcGlobalModelType = ''; // 全局同模类型（单选可空；默认不选择）
 
 function renderDesignCalc() {
   const body = $('#mainBody');
@@ -3017,13 +3018,12 @@ function renderDesignCalc() {
   html += '</div>';
   html += '</div>';
 
-  // AR轮: 同模阶梯价倍率示意表（与稿件用途倍率同款 radio 行）
+  // Bu轮: 全局同模阶梯价倍率单选（可空，去掉无同模；制品行未选类型时读取此项）
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">全局同模阶梯价倍率 <span class="calc-card-hint">（行内选同模类型即读取，可自行维护）</span></div>';
-  html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" class="calc-circle" name="dc_model_rule" disabled checked> 无同模</label><span></span></div>';
+  html += '<div class="calc-card-title">全局同模阶梯价倍率 <span class="calc-card-hint">（默认不选择；制品行未选同模类型时读取此项）</span></div>';
   DC_MODEL.filter(m => m.value !== 'none').forEach(m => {
     html += '<div class="calc-rate-row">';
-    html += `<label class="calc-rate-label"><input type="radio" class="calc-circle" name="dc_model_rule" disabled> ${m.value}</label>`;
+    html += `<label class="calc-rate-label"><input type="radio" class="calc-circle" name="dc_model_rule" value="${m.value}" ${_dcGlobalModelType === m.value ? 'checked' : ''} onchange="dcSelectGlobalModel('${m.value}')"> ${m.value}</label>`;
     html += `<input type="number" class="calc-rate-input" step="0.1" value="${m.rate}" readonly>`;
     html += '</div>';
   });
@@ -3178,6 +3178,10 @@ function dcRenderProducts() {
     html += `<label class="dc-prod-check dc-prod-same"><input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模</label>`;
     if (p.sameModel) {
       html += `<div class="combobox-wrapper dc-prod-model-type-wrapper"><input type="text" class="form-input combobox-input dc-prod-model-type" value="${esc(modelTypeLabel)}" placeholder="请选择同模类型" readonly onfocus="showComboboxDropdown('${modelCbId}')" onclick="showComboboxDropdown('${modelCbId}')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${modelCbId}')">▼</button><div class="combobox-dropdown" id="${modelCbId}">${modelOptsHTML}</div></div>`;
+      // Bu轮：本行与全局都未选同模类型 → 校验提示
+      if (!p.sameModelType && !_dcGlobalModelType) {
+        html += `<span class="dc-prod-model-warn">⚠ 请选择同模类型</span>`;
+      }
     }
     html += `<button type="button" class="btn btn-ghost btn-sm dc-prod-del" onclick="dcRemoveProduct(${i})">✕</button>`;
     html += `</div>`;
@@ -3209,6 +3213,13 @@ function dcSelectModelType(idx, el, modelCbId) {
   dcUpdateProduct(idx, 'sameModelType', val); // 内部会刷新 sameModelRate
   // 等待 dcUpdateProduct 中的 dcRenderProducts 后 input 会被重新渲染，这里先关闭下拉
   document.getElementById(modelCbId).classList.remove('show');
+}
+
+// Bu轮：全局同模单选（可空切换：再次点击已选项则取消选择）
+function dcSelectGlobalModel(val) {
+  _dcGlobalModelType = (_dcGlobalModelType === val) ? '' : val;
+  document.querySelectorAll('input[name="dc_model_rule"]').forEach(r => { r.checked = (r.value === _dcGlobalModelType); });
+  dcRecalc();
 }
 
 function dcAddProduct() { _dcProducts.push(newProduct()); dcRenderProducts(); dcRecalc(); }
@@ -3493,17 +3504,26 @@ function dcRecalc() {
   _dcProducts.forEach((p, idx) => {
     const price = parseFloat(p.price) || 0;
     const qty = parseInt(p.quantity) || 0;
-    const needType = !!p.sameModel && !p.sameModelType; // 勾选同模但未选类型
-    const useModel = !!p.sameModel && !!p.sameModelType;
-    const mRate = useModel ? (parseFloat(p.sameModelRate) || 1.0) : 1.0;
+    // Bu轮：同模类型优先级 = 本行下拉 > 全局单选 > 皆空则提示且不计算同模报价
+    let useModel = false, modelType = '', mRate = 1.0, needType = false;
+    if (p.sameModel) {
+      if (p.sameModelType) {
+        useModel = true; modelType = p.sameModelType; mRate = parseFloat(p.sameModelRate) || 1.0;
+      } else if (_dcGlobalModelType) {
+        const gm = DC_MODEL.find(m => m.value === _dcGlobalModelType);
+        useModel = true; modelType = _dcGlobalModelType; mRate = gm ? (parseFloat(gm.rate) || 1.0) : 1.0;
+      } else {
+        needType = true; // 本行与全局都未选同模类型 → 不计算同模报价，仅提示
+      }
+    }
     let lt, modelBreakdown = '';
     if (useModel) {
       if (qty > 1) {
         lt = price + price * (qty - 1) * mRate;
-        modelBreakdown = `${p.sameModelType || '同模'} 首件 ¥${price.toFixed(2)} + 余${qty-1}件 ×¥${(price * mRate).toFixed(2)}`;
+        modelBreakdown = `${modelType || '同模'} 首件 ¥${price.toFixed(2)} + 余${qty-1}件 ×¥${(price * mRate).toFixed(2)}`;
       } else {
         lt = price * mRate;
-        modelBreakdown = `${p.sameModelType || '同模'} ¥${price.toFixed(2)} ×${mRate}`;
+        modelBreakdown = `${modelType || '同模'} ¥${price.toFixed(2)} ×${mRate}`;
       }
     } else {
       lt = price * qty;

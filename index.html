@@ -1338,6 +1338,8 @@ ul,li{list-style:none}
 .dc-urgent-toggle:checked,.calc-circle:checked{border-color:var(--c-primary);background:#fff}
 .dc-urgent-toggle:checked::after,.calc-circle:checked::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:var(--c-primary)}
 .dc-urgent-toggle:disabled,.calc-circle:disabled{opacity:.45;cursor:not-allowed}
+/* Bu轮：制品行勾选同模但本行与全局都未选类型时的校验提示 */
+.dc-prod-model-warn{color:#e34d59;font-size:11px;margin-left:6px;align-self:center;white-space:nowrap}
 .calc-rate-input{width:70px;padding:4px 8px;border:1px solid var(--c-border);border-radius:6px;font-size:13px;text-align:center}
 /* Bn轮：稿件用途倍率/加急/全局同模阶梯价倍率/优惠体系/同担同推优惠的数字框取消上下步进箭头，仅可输入修改 */
 .calc-rate-input[type=number]::-webkit-outer-spin-button,
@@ -1633,7 +1635,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=103"></script>
+<script src="app.js?v=104"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
