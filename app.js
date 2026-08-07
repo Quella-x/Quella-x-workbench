@@ -3020,10 +3020,10 @@ function renderDesignCalc() {
 
   // Bu轮: 全局同模阶梯价倍率单选（可空，去掉无同模；制品行未选类型时读取此项）
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">全局同模阶梯价倍率 <span class="calc-card-hint">（默认不选择；制品行未选同模类型时读取此项）</span></div>';
+  html += '<div class="calc-card-title">同模阶梯价倍率 <span class="calc-card-hint">选择同模更改项（默认不选择，制品行未选时读取此项）</span></div>';
   DC_MODEL.filter(m => m.value !== 'none').forEach(m => {
     html += '<div class="calc-rate-row">';
-    html += `<label class="calc-rate-label"><input type="radio" class="calc-circle" name="dc_model_rule" value="${m.value}" ${_dcGlobalModelType === m.value ? 'checked' : ''} onchange="dcSelectGlobalModel('${m.value}')"> ${m.value}</label>`;
+    html += `<label class="calc-rate-label"><input type="checkbox" class="calc-circle" name="dc_model_rule" value="${m.value}" ${_dcGlobalModelType === m.value ? 'checked' : ''} onchange="dcSelectGlobalModel('${m.value}', this.checked)"> ${m.value}</label>`;
     html += `<input type="number" class="calc-rate-input" step="0.1" value="${m.rate}" readonly>`;
     html += '</div>';
   });
@@ -3216,8 +3216,14 @@ function dcSelectModelType(idx, el, modelCbId) {
 }
 
 // Bu轮：全局同模单选（可空切换：再次点击已选项则取消选择）
-function dcSelectGlobalModel(val) {
-  _dcGlobalModelType = (_dcGlobalModelType === val) ? '' : val;
+function dcSelectGlobalModel(val, checked) {
+  // Bu轮：原生 radio 无法二次点击取消，改 checkbox 实现"单选 + 可空"
+  if (checked) {
+    _dcGlobalModelType = val; // 选中即设为当前项
+  } else {
+    _dcGlobalModelType = '';  // 再次点击已选项 → 取消选择
+  }
+  // 单选约束：只保留与当前值一致的复选框为选中态
   document.querySelectorAll('input[name="dc_model_rule"]').forEach(r => { r.checked = (r.value === _dcGlobalModelType); });
   dcRecalc();
 }
