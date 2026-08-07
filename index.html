@@ -1206,7 +1206,7 @@ ul,li{list-style:none}
   .dc-product-row .dc-prod-name{font-size:12px}
   .dc-product-row .dc-prod-model-type-wrapper{width:160px;min-width:160px;flex:0 0 auto}
   .dc-product-row .dc-prod-model-type{width:100%;padding-right:30px!important;font-size:12px}
-  .dc-extra-row{grid-template-columns:80px 1fr 44px 52px 28px!important;gap:4px!important;padding:0}
+  .dc-extra-row{grid-template-columns:110px 1fr 44px 52px 28px!important;gap:4px!important;padding:0}
   .dc-extra-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
   .dc-extra-del{width:28px;height:28px;font-size:12px;justify-self:end}
   /* AS轮：mobile 修改加价隐藏表头、备注，列宽适配 */
@@ -1247,7 +1247,7 @@ ul,li{list-style:none}
   .dc-product-row .dc-prod-name{font-size:12px}
   .dc-product-row .dc-prod-model-type-wrapper{width:160px;min-width:160px;flex:0 0 auto}
   .dc-product-row .dc-prod-model-type{width:100%;padding-right:30px!important;font-size:12px}
-  .dc-extra-row{grid-template-columns:80px 1fr 44px 52px 28px!important;gap:4px!important;padding:0}
+  .dc-extra-row{grid-template-columns:110px 1fr 44px 52px 28px!important;gap:4px!important;padding:0}
   .dc-extra-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
   .dc-extra-del{width:28px;height:28px;font-size:12px;justify-self:end}
   .dc-mod-header{display:none!important}
@@ -1306,8 +1306,8 @@ ul,li{list-style:none}
 .dc-prod-del:hover{background:#fff0f0;color:var(--c-danger)}
 /* v-NEW: 制品序号（只读，纯数字，无框） */
 .dc-prod-seq{display:flex;align-items:center;justify-content:flex-start;font-size:13px;font-weight:600;color:var(--c-text);min-width:24px;height:32px;box-sizing:border-box;padding-left:10px}
-/* v-NEW: 加价项目绑定下拉（置于最前、扩大） */
-.dc-extra-bind{flex:1;min-width:0;padding:7px 6px;font-size:12px;text-align:left}
+/* v-NEW: 加价项目绑定下拉（置于最前、扩大）；CD轮：加宽到150px、外观对齐灵感记录下拉（圆角边框+右侧箭头，保持原生select结构） */
+.dc-extra-bind{appearance:none;-webkit-appearance:none;flex:0 0 150px;min-width:150px;padding:7px 30px 7px 8px;font-size:13px;text-align:left;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237f8c9a' d='M6 9L1 4h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
 /* v-NEW: 实时报价中绑定的加价项目树形缩进展示（无蓝条，颜色与制品相同）
    AS轮：tree 后文字与制品明细文字左对齐
    制品文字起点 = .dc-rr padding-left(12) + .dc-r-no(20) + margin(8) = 40px
@@ -1316,10 +1316,10 @@ ul,li{list-style:none}
 .dc-rr.bound{margin-left:0;padding:2px 12px 2px 40px;color:var(--c-text);font-size:13px}
 .dc-r-tree{display:inline-block;width:28px;margin-right:0;color:var(--c-text);font-style:normal;font-weight:600;text-align:left}
 /* v22: 加价项目——与制品列表同款对齐规则：header 与 row padding/gap 一致 */
-.dc-extra-header{display:grid;grid-template-columns:110px minmax(120px,1.1fr) 65px 70px 40px;gap:6px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
+.dc-extra-header{display:grid;grid-template-columns:150px minmax(120px,1.1fr) 65px 70px 40px;gap:6px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
 .dc-extra-header > span{box-sizing:border-box;padding-left:8px}
 .dc-extra-header > span:last-child{padding-left:0}
-.dc-extra-row{display:grid;grid-template-columns:110px minmax(120px,1.1fr) 65px 70px 40px;gap:6px;margin-bottom:6px;align-items:center;padding:0}
+.dc-extra-row{display:grid;grid-template-columns:150px minmax(120px,1.1fr) 65px 70px 40px;gap:6px;margin-bottom:6px;align-items:center;padding:0}
 .dc-extra-row .form-input{padding:7px 8px;font-size:13px;box-sizing:border-box;text-align:left}
 .dc-extra-del{width:32px;height:28px;padding:0;font-size:14px;display:flex;align-items:center;justify-content:center;justify-self:end;background:transparent;color:var(--c-text-light);border:none;border-radius:6px;transition:all .15s}
 .dc-extra-del:hover{background:#fff0f0;color:var(--c-danger)}
@@ -1637,7 +1637,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=112"></script>
+<script src="app.js?v=113"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
