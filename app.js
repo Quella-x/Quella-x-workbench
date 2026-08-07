@@ -1397,7 +1397,7 @@ let _searchTimer, _homeSearchTimer;
 const PAGE_SIZES = {
   'home': 5, 'groupbuy-records': 5, 'groupbuy-samples': 5,
   'design-commission': 5, 'design-auth': 5, 'oc-commission': 5,
-  'groupbuy-factories': 20, 'design-inspiration': 20, 'oc-profiles': 20, 'oc-stories': 10, 'oc-relations': 20,
+  'groupbuy-factories': 20, 'design-inspiration': 20, 'oc-profiles': 20, 'oc-stories': 10, 'oc-relations': 5,
 };
 const TWO_COL_MODULES = ['groupbuy-factories', 'design-inspiration', 'oc-profiles'];
 
@@ -1487,13 +1487,14 @@ function renderListPage(pageKey, mod) {
   if (mod.personFilterField) {
     const chars = DB.list('ocCharacters');
     if (!ps.personFilter) ps.personFilter = null;
-    html += '<div class="relation-person-grid" style="margin-bottom:12px">';
+    html += '<div class="relation-person-grid collapsed" style="margin-bottom:12px">';
     html += `<div class="relation-person-btn ${!ps.personFilter ? 'active' : ''}" onclick="setPersonFilter('${pageKey}','')"><span>📋 全部</span></div>`;
     chars.forEach(c => {
       const active = ps.personFilter === c.name ? 'active' : '';
       html += `<div class="relation-person-btn ${active}" onclick="setPersonFilter('${pageKey}','${esc(c.name)}')"><span>${esc(c.name)}</span></div>`;
     });
     html += '</div>';
+    html += '<button class="relation-toggle-btn" onclick="togglePersonGrid(this)">展开 ▾</button>';
   }
   // Apply person filter
   if (mod.personFilterField && ps.personFilter) {
@@ -2428,13 +2429,14 @@ function renderTimeline() {
   let html = '<div class="fade-in">';
   // Person name buttons (text only) — at very top (like stories page)
   // v16: 全部按钮常驻，即使没有人物档案也显示
-  html += '<div class="relation-person-grid" style="margin-bottom:12px">';
+  html += '<div class="relation-person-grid collapsed" style="margin-bottom:12px">';
   html += `<div class="relation-person-btn ${!ps.personFilter ? 'active' : ''}" onclick="timelinePersonFilter('')"><span>📋 全部</span></div>`;
   chars.forEach(c => {
     const active = ps.personFilter === c.name ? 'active' : '';
     html += `<div class="relation-person-btn ${active}" onclick="timelinePersonFilter('${esc(c.name)}')"><span>${esc(c.name)}</span></div>`;
   });
   html += '</div>';
+  html += '<button class="relation-toggle-btn" onclick="togglePersonGrid(this)">展开 ▾</button>';
   // Toolbar
   html += '<div class="toolbar">';
   html += `<div class="search-box"><input type="text" placeholder="搜索事件..." value="${esc(ps.search)}" oninput="onSearch('oc-timeline', this.value)"><span class="search-icon">🔍</span></div>`;
@@ -2593,7 +2595,7 @@ function renderRelations() {
     if (relations.length) {
       if (!pageState['oc-relations']) pageState['oc-relations'] = { pageNo: 1 };
       const ps = pageState['oc-relations'];
-      const pageSize = 20;
+      const pageSize = 5;
       const totalPages = Math.ceil(relations.length / pageSize);
       if (ps.pageNo > totalPages) ps.pageNo = 1;
       const pageNo = ps.pageNo || 1;
@@ -2636,6 +2638,12 @@ function goRelationPage(pageNo) {
   renderRelations();
 }
 
+function togglePersonGrid(btn) {
+  const grid = btn.previousElementSibling;
+  if (!grid || !grid.classList.contains('relation-person-grid')) return;
+  const collapsed = grid.classList.toggle('collapsed');
+  btn.textContent = collapsed ? '展开 ▾' : '收起 ▴';
+}
 function togglePersonRelations(name, btn) {
   $$('.relation-person-btn').forEach(b => b.classList.remove('active'));
   const expand = $('#personRelationsExpand');
