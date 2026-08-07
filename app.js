@@ -2587,10 +2587,14 @@ function renderRelations() {
     // Person buttons (缩略为姓名按钮可展开)
     if (chars.length) {
       html += '<div style="margin-top:16px"><div style="font-size:13px;font-weight:600;color:var(--c-primary-dark);margin-bottom:8px">👥 人物关系快捷查看</div>';
-      html += '<div class="relation-person-grid">';
+      html += '<div class="relation-person-row">';
+      html += '<div class="relation-person-grid distribute collapsed">';
+      html += `<div class="relation-person-btn" onclick="clearPersonRelations()"><span>📋 全部</span></div>`;
       chars.forEach(c => {
         html += `<div class="relation-person-btn" onclick="togglePersonRelations('${esc(c.name)}', this)"><span>${esc(c.name)}</span></div>`;
       });
+      html += '</div>';
+      html += '<button class="relation-toggle-btn" onclick="togglePersonGrid(this)">展开 ▾</button>';
       html += '</div>';
       html += '<div id="personRelationsExpand" class="relation-expand"></div>';
       html += '</div>';
@@ -2647,6 +2651,11 @@ function togglePersonGrid(btn) {
   if (!grid || !grid.classList.contains('relation-person-grid')) return;
   const collapsed = grid.classList.toggle('collapsed');
   btn.textContent = collapsed ? '展开 ▾' : '收起 ▴';
+}
+function clearPersonRelations() {
+  $$('.relation-person-btn').forEach(b => b.classList.remove('active'));
+  const expand = $('#personRelationsExpand');
+  if (expand) { expand.classList.remove('show'); expand.dataset.current = ''; expand.innerHTML = ''; }
 }
 function togglePersonRelations(name, btn) {
   $$('.relation-person-btn').forEach(b => b.classList.remove('active'));
