@@ -3187,7 +3187,7 @@ function dcUpdateProduct(idx, field, val) {
     p.sameModelType = val;
     const m = DC_MODEL.find(m => m.value === val);
     p.sameModelRate = m ? m.rate : 1.0;
-    dcRecalc(); return;
+    dcRenderProducts(); dcRecalc(); return;
   }
   else if (field === 'sameModelRate') { p.sameModelRate = parseFloat(val) || 0; dcRecalc(); return; }
   else if (field === 'name') { p.name = val; }
