@@ -3173,7 +3173,6 @@ function dcRenderProducts() {
     html += `<input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模`;
     if (p.sameModel) {
       html += `<div class="combobox-wrapper dc-prod-model-type-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-model-type" value="${esc(modelTypeLabel)}" placeholder="类型" readonly onfocus="showComboboxDropdown('${modelCbId}')" onclick="showComboboxDropdown('${modelCbId}')"><div class="combobox-dropdown" id="${modelCbId}">${modelOptsHTML}</div></div>`;
-      html += `<input type="number" class="form-input dc-prod-model-rate" value="${p.sameModelRate}" step="0.1" min="0" oninput="dcUpdateProduct(${i},'sameModelRate',this.value)">`;
     }
     html += `</label>`;
     html += `<input type="number" class="form-input dc-prod-qty" value="${p.quantity}" placeholder="数量" min="1" oninput="dcUpdateProduct(${i},'quantity',this.value)">`;
