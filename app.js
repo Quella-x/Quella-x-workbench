@@ -2449,7 +2449,7 @@ function renderTimeline() {
     const tc = TIMELINE_COLORS[c];
     const active = ps.colorFilter === c;
     const cls = active ? ' active' : '';
-    html += `<div class="timeline-color-filter${cls}" data-color="${esc(c)}" onclick="timelineColorFilter('${esc(c)}')">${esc(tc.label)}</div>`;
+    html += `<div class="timeline-color-filter${cls}" data-color="${esc(c)}" onclick="timelineColorFilter('${esc(c)}')"><span class="timeline-color-label">${esc(tc.label)}</span></div>`;
   });
   html += '</div>';
 
