@@ -1186,7 +1186,7 @@ ul,li{list-style:none}
   .dc-product-row{
     grid-template-columns:28px minmax(130px,1fr) 70px 60px 48px 32px !important;
     grid-template-areas:"seq name pattern price qty del"
-                        ". row2 row2 row2 row2 row2"!important;
+                        ". row2 row2 row2 row2 ."!important;
     gap:4px!important;padding:0
   }
   .dc-product-row .form-input{padding:5px 6px!important;font-size:12px;box-sizing:border-box;text-align:left}
@@ -1197,8 +1197,8 @@ ul,li{list-style:none}
   .dc-product-row .dc-prod-price{grid-area:price}
   .dc-product-row .dc-prod-qty{grid-area:qty}
   .dc-product-row .dc-prod-row2{grid-area:row2;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .dc-product-row .dc-prod-urgent{justify-content:flex-start;font-size:11px;gap:2px}
-  .dc-product-row .dc-prod-same{justify-content:flex-start;font-size:11px;gap:2px}
+  .dc-product-row .dc-prod-urgent{justify-content:flex-start;font-size:12px;gap:2px}
+  .dc-product-row .dc-prod-same{justify-content:flex-start;font-size:12px;gap:2px}
   .dc-product-row .dc-prod-del{grid-area:del;width:28px;height:28px;font-size:12px;justify-self:end}
   .dc-product-row .dc-prod-check input{width:14px;height:14px;flex-shrink:0}
   .dc-product-row .dc-prod-name{font-size:12px}
@@ -1227,7 +1227,7 @@ ul,li{list-style:none}
   .dc-product-row{
     grid-template-columns:28px minmax(130px,1fr) 70px 60px 48px 32px !important;
     grid-template-areas:"seq name pattern price qty del"
-                        ". row2 row2 row2 row2 row2"!important;
+                        ". row2 row2 row2 row2 ."!important;
     gap:4px!important;padding:0
   }
   .dc-product-row .form-input{padding:5px 6px!important;font-size:12px;box-sizing:border-box;text-align:left}
@@ -1238,8 +1238,8 @@ ul,li{list-style:none}
   .dc-product-row .dc-prod-price{grid-area:price}
   .dc-product-row .dc-prod-qty{grid-area:qty}
   .dc-product-row .dc-prod-row2{grid-area:row2;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .dc-product-row .dc-prod-urgent{justify-content:flex-start;font-size:11px;gap:2px}
-  .dc-product-row .dc-prod-same{justify-content:flex-start;font-size:11px;gap:2px}
+  .dc-product-row .dc-prod-urgent{justify-content:flex-start;font-size:12px;gap:2px}
+  .dc-product-row .dc-prod-same{justify-content:flex-start;font-size:12px;gap:2px}
   .dc-product-row .dc-prod-del{grid-area:del;width:28px;height:28px;font-size:12px;justify-self:end}
   .dc-product-row .dc-prod-check input{width:14px;height:14px;flex-shrink:0}
   .dc-product-row .dc-prod-name{font-size:12px}
@@ -1283,7 +1283,7 @@ ul,li{list-style:none}
 .dc-product-header > span:nth-child(6){grid-area:urgent}
 .dc-product-header > span:nth-child(7){grid-area:same}
 .dc-product-header > span:nth-child(8){grid-area:del}
-.dc-product-row{display:grid;grid-template-columns:28px minmax(130px,1fr) 70px 60px 48px 32px;gap:4px;margin-bottom:6px;align-items:center;padding:0;grid-template-areas:"seq name pattern price qty del" ". row2 row2 row2 row2 row2"}
+.dc-product-row{display:grid;grid-template-columns:28px minmax(130px,1fr) 70px 60px 48px 32px;gap:4px;margin-bottom:6px;align-items:center;padding:0;grid-template-areas:"seq name pattern price qty del" ". row2 row2 row2 row2 ."}
 .dc-product-row .form-input{padding:6px 8px;font-size:13px;box-sizing:border-box;text-align:left}
 .dc-product-row .dc-prod-name-wrapper,.dc-extra-row .combobox-wrapper{min-width:0;width:100%}
 .dc-product-row .dc-prod-seq{grid-area:seq}
@@ -1292,10 +1292,10 @@ ul,li{list-style:none}
 .dc-product-row .dc-prod-price{grid-area:price}
 .dc-product-row .dc-prod-qty{grid-area:qty}
 .dc-product-row .dc-prod-row2{grid-area:row2;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.dc-product-row .dc-prod-urgent{justify-content:flex-start;font-size:11px;gap:2px}
-.dc-product-row .dc-prod-same{justify-content:flex-start;font-size:11px;gap:2px}
+.dc-product-row .dc-prod-urgent{justify-content:flex-start;font-size:13px;gap:2px}
+.dc-product-row .dc-prod-same{justify-content:flex-start;font-size:13px;gap:2px}
 .dc-product-row .dc-prod-del{margin-left:auto}
-.dc-prod-check{display:flex;align-items:center;justify-content:flex-start;gap:3px;font-size:11px;cursor:pointer;color:var(--c-text-muted);white-space:nowrap}
+.dc-prod-check{display:flex;align-items:center;justify-content:flex-start;gap:3px;font-size:13px;cursor:pointer;color:var(--c-text-muted);white-space:nowrap}
 .dc-prod-check input{accent-color:var(--c-primary);width:14px;height:14px;flex-shrink:0}
 /* BC轮：同模下拉移出 label，作为独立 combobox，与制品名称下拉同款 */
 .dc-prod-model-type-wrapper{position:relative;display:inline-block;width:130px;min-width:130px;flex:0 0 auto}
@@ -1624,7 +1624,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=85"></script>
+<script src="app.js?v=86"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
