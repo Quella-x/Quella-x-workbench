@@ -3161,13 +3161,14 @@ function dcRenderProducts() {
     const seq = String(i + 1).padStart(2, '0');
     // AS轮：同模类型下拉改成与制品名称同款的 combobox 下拉选择器
     const modelCbId = 'dcm_' + i + '_' + Math.random().toString(36).slice(2,6);
-    const modelOptsHTML = DC_MODEL.filter(m => m.value !== 'none').map(m => `<div class="combobox-option" onclick="dcSelectModelType(${i},this,'${modelCbId}')" data-value="${esc(m.value)}" data-rate="${m.rate}">${esc(m.value)}*${m.rate}</div>`).join('');
-    const modelTypeLabel = p.sameModelType ? `${p.sameModelType}*${p.sameModelRate}` : '';
+    const modelOptsHTML = DC_MODEL.filter(m => m.value !== 'none').map(m => `<div class="combobox-option" onclick="dcSelectModelType(${i},this,'${modelCbId}')" data-value="${esc(m.value)}" data-rate="${m.rate}">${esc(m.value)}</div>`).join('');
+    const modelTypeLabel = p.sameModelType || '';
     html += '<div class="dc-product-row">';
     html += `<div class="dc-prod-seq">${seq}</div>`;
     html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-name" value="${esc(p.name)}" placeholder="制品" data-key="name" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateProduct(${i},'name',this.value);dcFillPrice(this,'product',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
     html += `<input type="text" class="form-input dc-prod-pattern" value="${esc(p.patternId||'')}" placeholder="柄图标识" oninput="dcUpdateProduct(${i},'patternId',this.value)">`;
     html += `<input type="number" class="form-input dc-prod-price" value="${p.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateProduct(${i},'price',this.value)">`;
+    html += `<div class="dc-prod-row2">`;
     html += `<label class="dc-prod-check dc-prod-urgent"><input type="checkbox" ${p.urgent ? 'checked' : ''} onchange="dcUpdateProduct(${i},'urgent',this.checked)">加急</label>`;
     html += `<label class="dc-prod-check dc-prod-same">`;
     html += `<input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模`;
@@ -3175,6 +3176,7 @@ function dcRenderProducts() {
       html += `<div class="combobox-wrapper dc-prod-model-type-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-model-type" value="${esc(modelTypeLabel)}" placeholder="类型" readonly onfocus="showComboboxDropdown('${modelCbId}')" onclick="showComboboxDropdown('${modelCbId}')"><div class="combobox-dropdown" id="${modelCbId}">${modelOptsHTML}</div></div>`;
     }
     html += `</label>`;
+    html += `</div>`;
     html += `<input type="number" class="form-input dc-prod-qty" value="${p.quantity}" placeholder="数量" min="1" oninput="dcUpdateProduct(${i},'quantity',this.value)">`;
     html += `<button type="button" class="btn btn-ghost btn-sm dc-prod-del" onclick="dcRemoveProduct(${i})">✕</button>`;
     html += '</div>';
@@ -3201,7 +3203,7 @@ function dcSelectModelType(idx, el, modelCbId) {
   const input = wrapper.querySelector('.combobox-input');
   const val = el.dataset.value || el.textContent;
   const rate = parseFloat(el.dataset.rate) || 1.0;
-  if (input) input.value = val + '*' + rate;
+  if (input) input.value = val;
   dcUpdateProduct(idx, 'sameModelType', val); // 内部会刷新 sameModelRate
   // 等待 dcUpdateProduct 中的 dcRenderProducts 后 input 会被重新渲染，这里先关闭下拉
   document.getElementById(modelCbId).classList.remove('show');
