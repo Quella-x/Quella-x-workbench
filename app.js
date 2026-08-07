@@ -2925,11 +2925,16 @@ function newProduct() {
 function newExtra() {
   return { name: '', quantity: 1, price: 0, bindSeq: 'none' };
 }
+// AS轮：修改加价工厂
+function newModification() {
+  return { modifyType: '', modifyCount: 1, modifyPrice: 0, note: '' };
+}
 
 let _dcMode = 'custom';
 let _dcImportId = null;
 let _dcProducts = [newProduct()];
 let _dcExtras = [];
+let _dcModifications = [];
 let _dcCustomDiscs = DB.get('calcCustomDiscs', []); // {name, type:'rate'|'amount', value} — persisted
 let _dcFanReduce = 0; // 同担/同推随机减价金额
 
@@ -2964,7 +2969,7 @@ function renderDesignCalc() {
   // Product list
   html += '<div class="calc-card">';
   html += '<div class="calc-card-title">制品列表 <span class="calc-card-hint">（柄图自动分组，勾选同模启用阶梯计价）</span></div>';
-  html += '<div class="dc-product-header"><span>序号</span><span>制品</span><span>柄图标识</span><span>单价</span><span>数量</span><span>加急</span><span>同模</span><span></span></div>';
+  html += '<div class="dc-product-header"><span>序号</span><span>制品</span><span>柄图标识</span><span>单价</span><span>加急</span><span>同模</span><span>数量</span><span></span></div>';
   html += '<div id="dc-products"></div>';
   html += '<div style="display:flex;gap:8px;margin-top:8px">';
   html += '<button type="button" class="btn btn-outline btn-sm" onclick="dcAddProduct()">+ 添加制品</button>';
@@ -2978,6 +2983,14 @@ function renderDesignCalc() {
   html += '<div class="dc-extra-header"><span>制品绑定</span><span>加价项目</span><span>数量</span><span>单价</span><span></span></div>';
   html += '<div id="dc-extras"></div>';
   html += '<button type="button" class="btn btn-outline btn-sm" onclick="dcAddExtra()" style="margin-top:8px">+ 添加加价项目</button>';
+  html += '</div>';
+
+  // AS轮：修改加价（导入接稿时显示，可手动维护）
+  html += '<div class="calc-card"' + (_dcMode === 'import' ? '' : ' style="display:none"') + '>';
+  html += '<div class="calc-card-title">修改加价 <span class="calc-card-hint">（次数×价格，计入最终总价）</span></div>';
+  html += '<div class="dc-mod-header"><span>修改类型</span><span>次数</span><span>价格</span><span>备注</span><span></span></div>';
+  html += '<div id="dc-modifications"></div>';
+  html += '<button type="button" class="btn btn-outline btn-sm" onclick="dcAddModification()" style="margin-top:8px">+ 添加修改加价</button>';
   html += '</div>';
 
   // Usage rate
@@ -3092,19 +3105,20 @@ function renderDesignCalc() {
   body.innerHTML = html;
   dcRenderProducts();
   dcRenderExtras();
+  dcRenderModifications();
   dcRenderCustomDiscs();
   setTimeout(dcRecalc, 50);
 }
 
 function dcSetMode(mode) {
   _dcMode = mode;
-  if (mode === 'custom') { _dcImportId = null; _dcProducts = [newProduct()]; _dcExtras = []; _dcFanReduce = 0; }
+  if (mode === 'custom') { _dcImportId = null; _dcProducts = [newProduct()]; _dcExtras = []; _dcModifications = []; _dcFanReduce = 0; }
   renderDesignCalc();
 }
 
 function dcImportRecord(id) {
   _dcImportId = id;
-  if (!id) { _dcProducts = [newProduct()]; _dcExtras = []; dcRenderProducts(); dcRenderExtras(); dcRecalc(); return; }
+  if (!id) { _dcProducts = [newProduct()]; _dcExtras = []; _dcModifications = []; dcRenderProducts(); dcRenderExtras(); dcRenderModifications(); dcRecalc(); return; }
   const rec = DB.getById('commissions', id);
   if (!rec) return;
   // v-NEW: 导入时还原行内同模类型/倍率与加价绑定
@@ -3118,11 +3132,14 @@ function dcImportRecord(id) {
     } else if (sm === true) {
       sameModel = true; sameModelType = '改人'; sameModelRate = (p.sameModelRate != null ? parseFloat(p.sameModelRate) : 0.5);
     }
-    const urgent = (p.urgent === true) || (rec.urgentEnabled === true);
+    // AS轮：加急仅由 per-product urgent 字段决定，不再用旧版整单 urgentEnabled 覆盖
+    const urgent = p.urgent === true;
     return { name: p.name || '', patternId: p.patternId || '', size: p.size || '', quantity: parseInt(p.quantity) || 1, price: parseFloat(p.price) || 0, sameModel, sameModelType, sameModelRate, urgent };
   });
   if (!_dcProducts.length) _dcProducts = [newProduct()];
   _dcExtras = (rec.extraItems || []).map(e => ({ name: e.name || '', quantity: parseInt(e.quantity) || 1, price: parseFloat(e.price) || 0, bindSeq: e.bindSeq || 'none' }));
+  // AS轮：导入接稿的修改加价
+  _dcModifications = (rec.modifications || []).map(m => ({ modifyType: m.modifyType || '', modifyCount: parseInt(m.modifyCount) || 1, modifyPrice: parseFloat(m.modifyPrice) || 0, note: m.note || '' }));
   renderDesignCalc();
   setTimeout(() => {
     const usageVal = Array.isArray(rec.usageType) ? rec.usageType[0] : rec.usageType;
@@ -3142,21 +3159,24 @@ function dcRenderProducts() {
     const cbId = 'dcp_' + i + '_' + Math.random().toString(36).slice(2,6);
     const optHTML = productNames.map(n => `<div class="combobox-option" onclick="dcSelectProduct(${i},this,'${cbId}')" data-value="${esc(n)}">${esc(n)}</div>`).join('');
     const seq = String(i + 1).padStart(2, '0');
-    const modelOpts = DC_MODEL.filter(m => m.value !== 'none').map(m => `<option value="${m.value}"${p.sameModelType === m.value ? ' selected' : ''}>${m.value}*${m.rate}</option>`).join('');
+    // AS轮：同模类型下拉改成与制品名称同款的 combobox 下拉选择器
+    const modelCbId = 'dcm_' + i + '_' + Math.random().toString(36).slice(2,6);
+    const modelOptsHTML = DC_MODEL.filter(m => m.value !== 'none').map(m => `<div class="combobox-option" onclick="dcSelectModelType(${i},this,'${modelCbId}')" data-value="${esc(m.value)}" data-rate="${m.rate}">${esc(m.value)}*${m.rate}</div>`).join('');
+    const modelTypeLabel = p.sameModelType ? `${p.sameModelType}*${p.sameModelRate}` : '';
     html += '<div class="dc-product-row">';
     html += `<div class="dc-prod-seq">${seq}</div>`;
     html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-name" value="${esc(p.name)}" placeholder="制品" data-key="name" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateProduct(${i},'name',this.value);dcFillPrice(this,'product',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
     html += `<input type="text" class="form-input dc-prod-pattern" value="${esc(p.patternId||'')}" placeholder="柄图标识" oninput="dcUpdateProduct(${i},'patternId',this.value)">`;
     html += `<input type="number" class="form-input dc-prod-price" value="${p.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateProduct(${i},'price',this.value)">`;
-    html += `<input type="number" class="form-input dc-prod-qty" value="${p.quantity}" placeholder="数量" min="1" oninput="dcUpdateProduct(${i},'quantity',this.value)">`;
     html += `<label class="dc-prod-check dc-prod-urgent"><input type="checkbox" ${p.urgent ? 'checked' : ''} onchange="dcUpdateProduct(${i},'urgent',this.checked)">加急</label>`;
     html += `<label class="dc-prod-check dc-prod-same">`;
     html += `<input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模`;
     if (p.sameModel) {
-      html += `<select class="form-input dc-prod-model-type" onchange="dcUpdateProduct(${i},'sameModelType',this.value)">${modelOpts}</select>`;
+      html += `<div class="combobox-wrapper dc-prod-model-type-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-model-type" value="${esc(modelTypeLabel)}" placeholder="类型" readonly onfocus="showComboboxDropdown('${modelCbId}')" onclick="showComboboxDropdown('${modelCbId}')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${modelCbId}')">▼</button><div class="combobox-dropdown" id="${modelCbId}">${modelOptsHTML}</div></div>`;
       html += `<input type="number" class="form-input dc-prod-model-rate" value="${p.sameModelRate}" step="0.1" min="0" oninput="dcUpdateProduct(${i},'sameModelRate',this.value)">`;
     }
     html += `</label>`;
+    html += `<input type="number" class="form-input dc-prod-qty" value="${p.quantity}" placeholder="数量" min="1" oninput="dcUpdateProduct(${i},'quantity',this.value)">`;
     html += `<button type="button" class="btn btn-ghost btn-sm dc-prod-del" onclick="dcRemoveProduct(${i})">✕</button>`;
     html += '</div>';
   });
@@ -3173,6 +3193,19 @@ function dcSelectProduct(idx, el, cbId) {
     dcFillPrice(input, 'product', idx);
   }
   document.getElementById(cbId).classList.remove('show');
+}
+
+// AS轮：同模类型 combobox 选择回调
+function dcSelectModelType(idx, el, modelCbId) {
+  const wrapper = el.closest('.combobox-wrapper');
+  if (!wrapper) return;
+  const input = wrapper.querySelector('.combobox-input');
+  const val = el.dataset.value || el.textContent;
+  const rate = parseFloat(el.dataset.rate) || 1.0;
+  if (input) input.value = val + '*' + rate;
+  dcUpdateProduct(idx, 'sameModelType', val); // 内部会刷新 sameModelRate
+  // 等待 dcUpdateProduct 中的 dcRenderProducts 后 input 会被重新渲染，这里先关闭下拉
+  document.getElementById(modelCbId).classList.remove('show');
 }
 
 function dcAddProduct() { _dcProducts.push(newProduct()); dcRenderProducts(); dcRecalc(); }
@@ -3291,6 +3324,54 @@ function dcUpdateExtra(idx, field, val) {
   else if (field === 'price') { _dcExtras[idx].price = parseFloat(val) || 0; }
   else if (field === 'bindSeq') { _dcExtras[idx].bindSeq = val; }
   dcRecalc();
+}
+
+/* ===== Modification Surcharge (AS轮: 导入接稿的修改加价，次数×价格) ===== */
+function dcRenderModifications() {
+  const c = $('#dc-modifications');
+  if (!c) return;
+  const priceList = DB.list('priceList');
+  const modifyTypeNames = [...new Set(priceList.filter(p => p.category === '修改类型' && p.product).map(p => p.product))].sort((a,b)=>a.localeCompare(b,'zh'));
+  let html = '';
+  _dcModifications.forEach((m, i) => {
+    const cbId = 'dcm_' + i + '_' + Math.random().toString(36).slice(2,6);
+    const optHTML = modifyTypeNames.map(n => `<div class="combobox-option" onclick="dcSelectModification(${i},this,'${cbId}')" data-value="${esc(n)}">${esc(n)}</div>`).join('');
+    html += '<div class="dc-mod-row">';
+    html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-mod-type" value="${esc(m.modifyType||'')}" placeholder="修改类型" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateModification(${i},'modifyType',this.value);filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
+    html += `<input type="number" class="form-input dc-mod-count" value="${m.modifyCount}" placeholder="次数" min="1" oninput="dcUpdateModification(${i},'modifyCount',this.value)">`;
+    html += `<input type="number" class="form-input dc-mod-price" value="${m.modifyPrice}" placeholder="价格" min="0" step="0.01" oninput="dcUpdateModification(${i},'modifyPrice',this.value)">`;
+    html += `<input type="text" class="form-input dc-mod-note" value="${esc(m.note||'')}" placeholder="备注" oninput="dcUpdateModification(${i},'note',this.value)">`;
+    html += `<button type="button" class="btn btn-ghost btn-sm dc-mod-del" onclick="dcRemoveModification(${i})">✕</button>`;
+    html += '</div>';
+  });
+  c.innerHTML = html;
+}
+
+function dcSelectModification(idx, el, cbId) {
+  const wrapper = el.closest('.combobox-wrapper');
+  if (!wrapper) return;
+  const input = wrapper.querySelector('.combobox-input');
+  if (input) {
+    input.value = el.dataset.value || el.textContent;
+    dcUpdateModification(idx, 'modifyType', input.value);
+  }
+  document.getElementById(cbId).classList.remove('show');
+}
+
+function dcAddModification() { _dcModifications.push(newModification()); dcRenderModifications(); dcRecalc(); }
+function dcRemoveModification(idx) { _dcModifications.splice(idx, 1); dcRenderModifications(); dcRecalc(); }
+function dcUpdateModification(idx, field, val) {
+  if (!_dcModifications[idx]) return;
+  const m = _dcModifications[idx];
+  if (field === 'modifyType') { m.modifyType = val; }
+  else if (field === 'modifyCount') { m.modifyCount = parseInt(val) || 1; }
+  else if (field === 'modifyPrice') { m.modifyPrice = parseFloat(val) || 0; }
+  else if (field === 'note') { m.note = val; }
+  dcRecalc();
+}
+
+function dcCalcModTotal() {
+  return _dcModifications.reduce((s, m) => s + (parseInt(m.modifyCount) || 0) * (parseFloat(m.modifyPrice) || 0), 0);
 }
 
 /* ===== Custom Discount Management (persisted, mutually exclusive with system discount) ===== */
@@ -3636,6 +3717,17 @@ function dcRecalc() {
   r += `<div class="dc-r-deposit"><div class="dc-r-db-label">定金(50%)</div><div class="dc-r-db-val">¥${deposit.toFixed(2)}</div></div>`;
   r += `<div class="dc-r-balance"><div class="dc-r-db-label">尾款(50%)</div><div class="dc-r-db-val">¥${balance.toFixed(2)}</div></div>`;
   r += '</div>';
+  // AS轮：修改加价、需付尾款、最终总价
+  const modTotal = dcCalcModTotal();
+  if (modTotal > 0) {
+    const balancePayable = balance + modTotal;
+    const finalTotal = finalPrice + modTotal;
+    r += '<div class="dc-r-section">';
+    r += `<div class="dc-rr"><span>修改加价</span><span>¥${modTotal.toFixed(2)}</span></div>`;
+    r += `<div class="dc-rr total"><span>需付尾款</span><span>¥${balancePayable.toFixed(2)}</span></div>`;
+    r += `<div class="dc-rr total"><span>最终总价</span><span>¥${finalTotal.toFixed(2)}</span></div>`;
+    r += '</div>';
+  }
   r += '<div class="dc-r-footer">@筱小葵｜专属报价・仅供本次使用</div>';
   receipt.innerHTML = r;
 }
@@ -3669,15 +3761,21 @@ function dcUpdateQuote() {
   const price = dcGetFinalPrice();
   const rec = DB.getById('commissions', _dcImportId);
   if (!rec) { Toast.error('接稿记录不存在'); return; }
+  const modTotal = dcCalcModTotal();
+  const finalTotal = price + modTotal;
   rec.quoteAmount = price;
   rec.deposit = Math.round(price * 0.5 * 100) / 100;
   rec.balance = Math.round(price * 0.5 * 100) / 100;
+  rec.modifications = _dcModifications.map(m => ({ modifyType: m.modifyType, modifyCount: m.modifyCount, modifyPrice: m.modifyPrice, note: m.note }));
+  rec.amount = finalTotal;
   DB.update('commissions', _dcImportId, rec);
   Toast.success('报价金额已更新至接稿记录');
 }
 
 function dcCreateCommission() {
   const price = dcGetFinalPrice();
+  const modTotal = dcCalcModTotal();
+  const finalTotal = price + modTotal;
   const uRadio = document.querySelector('input[name="dcUsage"]:checked');
   const usageType = uRadio ? [uRadio.value] : ['自用'];
   const urgentInp = document.querySelector('input[data-urgent="rate"]');
@@ -3693,9 +3791,10 @@ function dcCreateCommission() {
       return { name: p.name, patternId: p.patternId || '', size: sizeAuto, quantity: p.quantity, price: p.price, sameModel: sm, sameModelRate: p.sameModelRate, urgent: !!p.urgent };
     }),
     sameDesign: [], extraItems: _dcExtras.map(e => ({ name: e.name, quantity: e.quantity, price: e.price, bindSeq: e.bindSeq || 'none' })),
+    modifications: _dcModifications.map(m => ({ modifyType: m.modifyType, modifyCount: m.modifyCount, modifyPrice: m.modifyPrice, note: m.note })),
     urgentRate,
     quoteAmount: price, deposit: Math.round(price * 0.5 * 100) / 100, balance: Math.round(price * 0.5 * 100) / 100,
-    paymentStatus: ['未付'], progress: ['待接稿'], modifyCount: 0, amount: 0, notes: '由报价计算器创建',
+    paymentStatus: ['未付'], progress: ['待接稿'], modifyCount: 0, amount: finalTotal, notes: '由报价计算器创建',
   });
   Toast.success('已新增接稿记录，可在接稿排期中查看');
 }

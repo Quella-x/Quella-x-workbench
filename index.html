@@ -1180,13 +1180,13 @@ ul,li{list-style:none}
   .pricelist-menu{max-width:100%}
   .calc-page-grid{grid-template-columns:1fr !important}
   .calc-receipt-col{position:static !important}
-  /* AR轮: mobile 报价计算制品两行——序号与添加按钮左对齐；柄图标识完全展示；加急对齐制品框 */
+  /* AS轮: mobile 报价计算制品两行——序号与添加按钮左对齐；数量放到第二排；加急与同模靠近 */
   .dc-product-header{display:none!important}
   .dc-extra-header{display:none!important}
   .dc-product-row{
-    grid-template-columns:28px 1fr 72px 44px 40px 28px !important;
-    grid-template-areas:"seq name pattern price qty del" ". urgent same same same same";
-    gap:2px!important;padding:0
+    grid-template-columns:28px 1fr 1fr 60px 32px !important;
+    grid-template-areas:"seq name name pattern del" ". urgent same same qty";
+    gap:4px!important;padding:0
   }
   .dc-product-row .form-input{padding:5px 6px!important;font-size:12px;box-sizing:border-box;text-align:left}
   .dc-product-row .combobox-input{padding-right:26px!important}
@@ -1194,21 +1194,29 @@ ul,li{list-style:none}
   .dc-product-row .combobox-wrapper{grid-area:name}
   .dc-product-row .dc-prod-pattern{grid-area:pattern}
   .dc-product-row .dc-prod-price{grid-area:price}
-  .dc-product-row .dc-prod-qty{grid-area:qty}
-  .dc-product-row .dc-prod-del{grid-area:del;width:28px;height:28px;font-size:12px;justify-self:end}
   .dc-product-row .dc-prod-urgent{grid-area:urgent;justify-content:flex-start;font-size:11px;gap:2px}
   .dc-product-row .dc-prod-same{grid-area:same;justify-content:flex-start;font-size:11px;gap:2px}
+  .dc-product-row .dc-prod-qty{grid-area:qty}
+  .dc-product-row .dc-prod-del{grid-area:del;width:28px;height:28px;font-size:12px;justify-self:end}
   .dc-product-row .dc-prod-check input{width:14px;height:14px;flex-shrink:0}
   .dc-product-row .dc-prod-name{font-size:12px}
-  .dc-product-row .dc-prod-model-type{min-width:0;flex:1;font-size:11px;padding:3px 4px;-webkit-appearance:none;-moz-appearance:none;appearance:none;background:#fff}
+  .dc-product-row .dc-prod-model-type-wrapper{min-width:0;flex:1}
+  .dc-product-row .dc-prod-model-type{padding-right:22px!important;font-size:11px;padding:3px 4px;background:#fff}
   .dc-product-row .dc-prod-model-rate{width:38px;font-size:11px;padding:3px 4px;-webkit-appearance:none;-moz-appearance:textfield;appearance:none}
   .dc-product-row .dc-prod-model-rate::-webkit-inner-spin-button,
   .dc-product-row .dc-prod-model-rate::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
   .dc-extra-row{grid-template-columns:60px 1fr 44px 52px 28px!important;gap:4px!important;padding:0}
   .dc-extra-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
   .dc-extra-del{width:28px;height:28px;font-size:12px;justify-self:end}
+  /* AS轮：mobile 修改加价隐藏表头、备注，列宽适配 */
+  .dc-mod-header{display:none!important}
+  .dc-mod-row{grid-template-columns:1fr 50px 60px 28px!important;gap:4px!important;padding:0}
+  .dc-mod-row .dc-mod-note{display:none!important}
+  .dc-mod-row .form-input{padding:5px 8px!important;font-size:12px;box-sizing:border-box;text-align:left}
+  .dc-mod-row .combobox-input{padding-right:26px!important}
+  .dc-mod-del{width:28px;height:28px;font-size:12px;justify-self:end}
   /* 下拉框箭头需 30px 右内边距，避免被 ▼ 遮挡（覆盖上面 form-input 简写的 8px） */
-  .dc-product-row .combobox-input,.dc-extra-row .combobox-input{padding-right:30px!important}
+  .dc-product-row .combobox-input,.dc-extra-row .combobox-input,.dc-mod-row .combobox-input{padding-right:30px!important}
   /* v16: combobox dropdown scrollable on mobile */
   .combobox-dropdown{max-height:160px;-webkit-overflow-scrolling:touch;min-width:140px}
 }
@@ -1226,17 +1234,18 @@ ul,li{list-style:none}
 .calc-mode-tab:last-child{border-radius:0 6px 6px 0;border-left:none}
 .calc-mode-tab.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary)}
 .calc-import-select{width:100%;margin-top:4px}
-/* AQ轮: 报价计算制品列表——序号列收窄、间距收紧，让制品下拉框更靠近序号；同模改为勾选+下拉 inline */
-.dc-product-header{display:grid;grid-template-columns:28px minmax(150px,1.5fr) 76px 60px 48px 48px minmax(100px,auto) 32px;gap:4px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
+/* AS轮: 报价计算制品列表——序号左对齐添加按钮；同模改为combobox下拉选择器；加急与同模靠近 */
+.dc-product-header{display:grid;grid-template-columns:28px minmax(150px,1.5fr) 76px 60px 48px minmax(120px,auto) 48px 32px;gap:4px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
 .dc-product-header > span{box-sizing:border-box;padding-left:8px}
 .dc-product-header > span:last-child{padding-left:0}
-.dc-product-row{display:grid;grid-template-columns:28px minmax(150px,1.5fr) 76px 60px 48px 48px minmax(100px,auto) 32px;gap:4px;margin-bottom:6px;align-items:center;padding:0}
+.dc-product-row{display:grid;grid-template-columns:28px minmax(150px,1.5fr) 76px 60px 48px minmax(120px,auto) 48px 32px;gap:4px;margin-bottom:6px;align-items:center;padding:0}
 .dc-product-row .form-input{padding:6px 8px;font-size:13px;box-sizing:border-box;text-align:left}
 .dc-product-row .combobox-wrapper,.dc-extra-row .combobox-wrapper{min-width:0;width:100%}
 .dc-prod-check{display:flex;align-items:center;justify-content:flex-start;gap:3px;font-size:11px;cursor:pointer;color:var(--c-text-muted);white-space:nowrap}
 .dc-prod-check input{accent-color:var(--c-primary);width:14px;height:14px;flex-shrink:0}
 .dc-prod-same{display:flex;align-items:center;gap:4px;flex-wrap:wrap;white-space:normal}
-.dc-prod-same .dc-prod-model-type{flex:1;min-width:80px;padding:4px 5px;font-size:12px;border-radius:6px;background:#fff;-webkit-appearance:none;-moz-appearance:none;appearance:none}
+.dc-prod-same .dc-prod-model-type-wrapper{flex:1;min-width:70px;max-width:120px}
+.dc-prod-same .dc-prod-model-type{padding-right:24px!important;font-size:12px;cursor:pointer;background:#fff}
 .dc-prod-same .dc-prod-model-rate{width:46px;padding:4px 5px;font-size:12px;border-radius:6px;text-align:center;-webkit-appearance:none;-moz-appearance:textfield;appearance:none}
 .dc-prod-same .dc-prod-model-rate::-webkit-inner-spin-button,
 .dc-prod-same .dc-prod-model-rate::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
@@ -1247,11 +1256,11 @@ ul,li{list-style:none}
 /* v-NEW: 加价项目绑定下拉（置于最前、扩大） */
 .dc-extra-bind{flex:1;min-width:0;padding:7px 6px;font-size:12px;text-align:left}
 /* v-NEW: 实时报价中绑定的加价项目树形缩进展示（无蓝条，颜色与制品相同）
-   AP轮：tree 后文字与制品序号后第一个字左对齐
+   AS轮：tree 后文字与制品明细文字左对齐
    制品文字起点 = .dc-rr padding-left(12) + .dc-r-no(20) + margin(8) = 40px
    所以 .dc-r-tree(22) + margin(2) = 24px，bound 左内边距 = 40 - 24 = 16px
 */
-.dc-rr.bound{margin-left:0;padding:2px 12px 2px 4px;color:var(--c-text);font-size:13px}
+.dc-rr.bound{margin-left:0;padding:2px 12px 2px 16px;color:var(--c-text);font-size:13px}
 .dc-r-tree{display:inline-block;min-width:22px;margin-right:2px;color:var(--c-text);font-style:normal;font-weight:600}
 /* v22: 加价项目——与制品列表同款对齐规则：header 与 row padding/gap 一致 */
 .dc-extra-header{display:grid;grid-template-columns:90px minmax(120px,1.1fr) 65px 70px 40px;gap:6px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
@@ -1261,6 +1270,14 @@ ul,li{list-style:none}
 .dc-extra-row .form-input{padding:7px 8px;font-size:13px;box-sizing:border-box;text-align:left}
 .dc-extra-del{width:32px;height:28px;padding:0;font-size:14px;display:flex;align-items:center;justify-content:center;justify-self:end;background:transparent;color:var(--c-text-light);border:none;border-radius:6px;transition:all .15s}
 .dc-extra-del:hover{background:#fff0f0;color:var(--c-danger)}
+/* AS轮：修改加价 */
+.dc-mod-header{display:grid;grid-template-columns:minmax(100px,1.2fr) 55px 65px minmax(80px,1fr) 32px;gap:6px;font-size:12px;color:var(--c-text-muted);margin-bottom:6px;padding:0;text-align:left;font-weight:500}
+.dc-mod-header > span{box-sizing:border-box;padding-left:8px}
+.dc-mod-header > span:last-child{padding-left:0}
+.dc-mod-row{display:grid;grid-template-columns:minmax(100px,1.2fr) 55px 65px minmax(80px,1fr) 32px;gap:6px;margin-bottom:6px;align-items:center;padding:0}
+.dc-mod-row .form-input{padding:7px 8px;font-size:13px;box-sizing:border-box;text-align:left}
+.dc-mod-del{width:32px;height:28px;padding:0;font-size:14px;display:flex;align-items:center;justify-content:center;justify-self:end;background:transparent;color:var(--c-text-light);border:none;border-radius:6px;transition:all .15s}
+.dc-mod-del:hover{background:#fff0f0;color:var(--c-danger)}
 .calc-rate-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--c-border-light)}
 .calc-rate-row:last-child{border-bottom:none}
 .calc-rate-label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--c-text);cursor:pointer}
@@ -1555,7 +1572,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=74"></script>
+<script src="app.js?v=75"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
