@@ -3802,6 +3802,8 @@ function dcRecalc() {
     });
     r += `<div class="dc-rr total"><span>加价合计</span><span>¥${extrasTotal.toFixed(2)}</span></div></div>`;
   }
+  // 优惠（折扣明细，已计入总价）——移至加急前，匹配计算顺序：原价→同模→加价→折扣→加急→用途
+  if (discHTML) { r += '<div class="dc-r-section"><div class="dc-r-sub">优惠</div>' + discHTML + '</div>'; }
   // 加急（仅勾选部分 × urgentRate）——移至总价前
   if (urgentEnabled) {
     const urgentBaseAfterDisc = baseBeforeDiscount > 0 ? afterDiscount * (urgentBase / baseBeforeDiscount) : 0;
@@ -3819,8 +3821,6 @@ function dcRecalc() {
   r += '<div class="dc-r-section"><div class="dc-r-sub">倍率计算</div>';
   r += `<div class="dc-rr"><span>稿件用途：${uType}</span><span>×${uRate}</span></div>`;
   r += `<div class="dc-rr total"><span>倍率小计</span><span>¥${finalPrice.toFixed(2)}</span></div></div>`;
-  // 优惠（折扣明细，已计入总价）
-  if (discHTML) { r += '<div class="dc-r-section"><div class="dc-r-sub">优惠</div>' + discHTML + '</div>'; }
   r += '<div class="dc-r-final"><div class="dc-r-final-label">最终报价</div>';
   r += `<div class="dc-r-final-val">¥${finalPrice.toFixed(2)}</div></div>`;
   const deposit = Math.round(finalPrice * 0.5 * 100) / 100;
