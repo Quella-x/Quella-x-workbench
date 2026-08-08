@@ -1342,7 +1342,9 @@ ul,li{list-style:none}
 .dc-urgent-toggle,.calc-circle{appearance:none;-webkit-appearance:none;width:16px;height:16px;border:1px solid var(--c-border);border-radius:50%;outline:none;cursor:pointer;position:relative;flex-shrink:0;background:#fff;box-sizing:border-box;margin:0}
 .dc-urgent-toggle:checked,.calc-circle:checked{border-color:var(--c-primary);background:#fff}
 .dc-urgent-toggle:checked::after,.calc-circle:checked::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:var(--c-primary)}
-.dc-urgent-toggle:disabled,.calc-circle:disabled{opacity:.45;cursor:not-allowed}
+.dc-urgent-toggle:disabled,.calc-circle:disabled{opacity:1;cursor:not-allowed;background:#e8e8ea;border-color:#ccc}
+.dc-urgent-toggle:disabled::after,.calc-circle:disabled::after{background:#bbb;border-color:#ccc}
+.calc-rate-label-disabled{color:var(--c-text-muted);cursor:not-allowed}
 /* Bu轮：制品行勾选同模但本行与全局都未选类型时的校验提示 */
 .dc-prod-model-warn{color:#e34d59;font-size:11px;margin-left:6px;align-self:center;white-space:nowrap}
 .calc-rate-input{width:70px;padding:4px 8px;border:1px solid var(--c-border);border-radius:6px;font-size:13px;text-align:center}
@@ -1372,7 +1374,7 @@ ul,li{list-style:none}
 .dc-rr{display:flex;justify-content:space-between;font-size:13px;padding:2px 12px;color:var(--c-text)}
 /* vCN: 优惠/加急/折扣汇总行——行距与制品行间相同（无额外 margin-top），首条汇总行通过 .promo-first 与制品拉开 */
 .dc-rr.promo,.dc-rr.disc{padding:2px 12px}
-.dc-rr.promo-first{margin-top:8px}
+.dc-rr.promo-first{margin-top:12px}
 /* v21: 尾部数字（右侧 ¥金额 / ×倍率）加粗 */
 .dc-rr > span:last-child{font-weight:600}
 /* v28: 默认 total 上面分割线——与折后小计等 total 行字体同色（var(--c-text)），1px 实线 */
@@ -1643,7 +1645,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=123"></script>
+<script src="app.js?v=124"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
