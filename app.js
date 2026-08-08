@@ -3851,9 +3851,9 @@ function dcRecalc() {
       const urgentFirstCls = discHTML ? '' : ' promo-first';
       r += `<div class="dc-rr promo${urgentFirstCls}"><span>加急：${urgentSeqs.map(pad2).join('、')}</span><span>×${urgentRate}</span></div>`;
     }
-    // 折后小计：折扣后、加急前的总额（afterDiscount 已含加价折扣后金额）
+    // 制品小计：加急前的制品总额（afterDiscount 已含加价折扣后金额；非SET模式无折扣，文案用制品小计）
     const flatSubtotal = afterDiscount;
-    r += `<div class="dc-rr total"><span>折后小计</span><span>¥${flatSubtotal.toFixed(2)}</span></div>`;
+    r += `<div class="dc-rr total"><span>制品小计</span><span>¥${flatSubtotal.toFixed(2)}</span></div>`;
     r += '</div>';
   }
   if (unboundExtras.length) {
