@@ -3644,6 +3644,10 @@ function dcRecalc() {
     return cls;
   };
   let afterDiscount = baseBeforeDiscount;
+  if (dMode === 'set') {
+    // CQ轮：加价项目不纳入SET优惠；productsTotal 已仅含制品的SET组折扣后金额
+    afterDiscount = productsTotal;
+  }
   if (dMode === 'discount') {
     let d = baseBeforeDiscount;
     const mCheck = document.getElementById('dcDiscMulti');
