@@ -3557,7 +3557,7 @@ function dcRecalc() {
       lt = price * qty;
     }
     const effectiveUrgent = !!p.urgent || _dcWholeOrderUrgent;
-    productDetails.push({ idx, name: p.name, patternId: p.patternId || '', qty, price, lt, useModel, mRate, modelBreakdown, urgent: effectiveUrgent });
+    productDetails.push({ idx, name: p.name, patternId: p.patternId || '', qty, price, lt, useModel, mRate, modelBreakdown, actualUrgent: !!p.urgent, urgent: effectiveUrgent });
   });
 
   // Step 2: Group by patternId for SET discount (only in SET mode)
@@ -3665,7 +3665,7 @@ function dcRecalc() {
         const mR = mInp ? (parseFloat(mInp.value) || 0.9) : 0.9;
         const after = netBase * mR;
         d = baseBeforeDiscount - netBase + after;                  // 仅净制品部分打折；加价项目/同柄/同模保持原价
-        discHTML += `<div class="dc-rr"><span>多件折扣（不同制品≥8件）</span><span>×${mR}</span></div>`;
+        discHTML += `<div class="dc-rr"><span>折扣优惠：不同制品≥8件</span><span>×${mR}</span></div>`;
       }
     }
     _dcCustomDiscs.forEach((cd, ci) => {
@@ -3717,7 +3717,7 @@ function dcRecalc() {
   if (!receipt) return;
   let r = '<div class="dc-r-title">实时报价</div>';
   let prodIdx = 0;
-  // v-NEW: 渲染某制品序号下绑定的加价项目（缩进展示）
+  // 渲染某制品序号下绑定的加价项目（缩进展示）
   const renderBoundExtras = (origIdx) => {
     const list = boundMap[origIdx];
     if (!list || !list.length) return '';
@@ -3731,87 +3731,118 @@ function dcRecalc() {
     return s;
   };
 
+  const whole = !!_dcWholeOrderUrgent;
+  const showInlineUrgent = urgentEnabled && !whole;   // 单行/部分制品加急→分组内内联；整单→底部独立块
+  const pad2 = n => String(n).padStart(2, '0');
+
   if (dMode === 'set' && groupDetails.length) {
-    const displayNoByIdx = {};
     groupDetails.forEach(g => {
       r += `<div class="dc-r-section"><div class="dc-r-sub">柄图：${esc(g.patternId)}（${g.catCount}种品类）</div>`;
-      const allUrgent = g.items.length > 0 && g.items.every(d => d.urgent);
+      const urgentSeqs = [];
       g.items.forEach(d => {
         if (!d.name && !d.price) return;
         const tag = d.useModel ? '（同模）' : '';
         prodIdx++;
-        displayNoByIdx[d.idx] = prodIdx;
-        r += `<div class="dc-rr"><span><i class="dc-r-no">${String(prodIdx).padStart(2,'0')}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
+        r += `<div class="dc-rr"><span><i class="dc-r-no">${pad2(prodIdx)}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
         if (d.useModel) r += `<div class="dc-rr sub"><span>${d.modelBreakdown}</span><span></span></div>`;
         r += renderBoundExtras(d.idx);
-        // By轮：单项加急和加价项目一样树状图显示在制品下面
-        if (!_dcWholeOrderUrgent && !allUrgent && d.urgent) {
-          r += `<div class="dc-rr bound"><span><i class="dc-r-tree">└─</i>加急 ×${urgentRate}</span><span></span></div>`;
-        }
+        if (d.actualUrgent) urgentSeqs.push(prodIdx);
       });
-      // v20: SET优惠增加与上方制品的间距 (margin-top:6px)，并在右侧恢复 ×倍率
+      // 组内（含绑定加价）已含SET折扣的基数
+      let groupWithBound = 0, groupUrgentWB = 0;
+      g.items.forEach(d => {
+        const boundLt = (boundMap[d.idx] || []).reduce((s, ex) => s + ex.lt * ex.groupRate, 0);
+        const base = d.lt * (itemGroupRate[d.idx] ?? 1.0) + boundLt;
+        groupWithBound += base;
+        if (d.actualUrgent) groupUrgentWB += base;
+      });
+      // 整单加急：组内不含加急；否则按组内加急比例上浮
+      const groupDisplay = whole ? groupWithBound : (groupWithBound + groupUrgentWB * (urgentRate - 1));
+      // SET优惠（行下方接加急/小计）
       if (g.setRate < 1.0) {
         r += `<div class="dc-rr" style="margin-top:6px"><span>SET优惠：${esc(g.setLabel)}</span><span>×${g.setRate}</span></div>`;
-        r += `<div class="dc-rr total"><span>折后小计</span><span>¥${g.groupDiscounted.toFixed(2)}</span></div>`;
-      } else {
-        r += `<div class="dc-rr total"><span>金额</span><span>¥${g.groupDiscounted.toFixed(2)}</span></div>`;
       }
-      // Bk轮→By轮：全组加急仍保留组级提示；单项加急改树状线展示
-      if (!_dcWholeOrderUrgent && allUrgent) {
-        r += `<div class="dc-rr" style="margin-top:6px"><span>SET加急（本组全加急）</span><span>×${urgentRate}</span></div>`;
+      // 单行/部分制品加急→置于SET优惠行下方，样式与SET优惠统一（整单加急不在组内输出）
+      if (showInlineUrgent && urgentSeqs.length) {
+        const allUrgent = urgentSeqs.length === g.items.length;
+        const label = allUrgent ? 'SET加急' : `加急：${urgentSeqs.map(pad2).join('、')}`;
+        r += `<div class="dc-rr" style="margin-top:6px"><span>${label}</span><span>×${urgentRate}</span></div>`;
       }
+      // 折后小计（整单含加急；组内已含加急则上浮后金额）
+      r += `<div class="dc-rr total"><span>${g.setRate < 1.0 ? '折后小计' : '金额'}</span><span>¥${groupDisplay.toFixed(2)}</span></div>`;
       r += '</div>';
     });
-    const noPatternItems = productDetails.filter(d => !d.patternId);
+    const noPatternItems = productDetails.filter(d => !d.patternId && (d.name || d.price));
     if (noPatternItems.length) {
       r += '<div class="dc-r-section"><div class="dc-r-sub">无柄图制品</div>';
+      const urgentSeqs = [];
       noPatternItems.forEach(d => {
-        if (!d.name && !d.price) return;
         const tag = d.useModel ? '（同模）' : '';
-        r += `<div class="dc-rr"><span><i class="dc-r-no">${String(++prodIdx).padStart(2,'0')}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
+        prodIdx++;
+        r += `<div class="dc-rr"><span><i class="dc-r-no">${pad2(prodIdx)}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
         if (d.useModel) r += `<div class="dc-rr sub"><span>${d.modelBreakdown}</span><span></span></div>`;
         r += renderBoundExtras(d.idx);
-        // By轮：无柄图制品的单项加急同样树状展示
-        if (!_dcWholeOrderUrgent && d.urgent) {
-          r += `<div class="dc-rr bound"><span><i class="dc-r-tree">└─</i>加急 ×${urgentRate}</span><span></span></div>`;
-        }
+        if (d.actualUrgent) urgentSeqs.push(prodIdx);
       });
+      let groupWithBound = 0, groupUrgentWB = 0;
+      noPatternItems.forEach(d => {
+        const boundLt = (boundMap[d.idx] || []).reduce((s, ex) => s + ex.lt * ex.groupRate, 0);
+        const base = d.lt + boundLt;
+        groupWithBound += base;
+        if (d.actualUrgent) groupUrgentWB += base;
+      });
+      const groupDisplay = whole ? groupWithBound : (groupWithBound + groupUrgentWB * (urgentRate - 1));
+      if (showInlineUrgent && urgentSeqs.length) {
+        r += `<div class="dc-rr" style="margin-top:6px"><span>加急：${urgentSeqs.map(pad2).join('、')}</span><span>×${urgentRate}</span></div>`;
+      }
+      r += `<div class="dc-rr total"><span>金额</span><span>¥${groupDisplay.toFixed(2)}</span></div>`;
       r += '</div>';
     }
+    // 同担/同推优惠（订单级折扣）置于分组之后、加急底部块之前
+    if (discHTML) { r += '<div class="dc-r-section"><div class="dc-r-sub">优惠</div>' + discHTML + '</div>'; }
   } else {
     r += '<div class="dc-r-section"><div class="dc-r-sub">制品明细</div>';
+    const urgentSeqs = [];
     productDetails.forEach(d => {
       if (!d.name && !d.price) return;
       const tag = d.useModel ? '（同模）' : '';
       const pTag = d.patternId ? `［${esc(d.patternId)}］` : '';
-      r += `<div class="dc-rr"><span><i class="dc-r-no">${String(++prodIdx).padStart(2,'0')}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}${pTag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
+      prodIdx++;
+      r += `<div class="dc-rr"><span><i class="dc-r-no">${pad2(prodIdx)}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}${pTag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
       if (d.useModel) r += `<div class="dc-rr sub"><span>${d.modelBreakdown}</span><span></span></div>`;
       r += renderBoundExtras(d.idx);
-      // By轮：非SET模式下单项加急也树状展示
-      if (!_dcWholeOrderUrgent && d.urgent) {
+      // 单项加急：制品下方树状「└─加急」，并汇总到分组尾部「加急：序号」
+      if (!whole && d.actualUrgent) {
         r += `<div class="dc-rr bound"><span><i class="dc-r-tree">└─</i>加急 ×${urgentRate}</span><span></span></div>`;
       }
+      if (d.actualUrgent) urgentSeqs.push(prodIdx);
     });
+    // 折扣优惠（多件折扣/自定义/同担）内联于明细内、加急行之前
+    if (discHTML) { r += discHTML; }
+    if (showInlineUrgent && urgentSeqs.length) {
+      r += `<div class="dc-rr" style="margin-top:6px"><span>加急：${urgentSeqs.map(pad2).join('、')}</span><span>×${urgentRate}</span></div>`;
+    }
+    // 折后小计（制品部分，含绑定加价与加急，不含未绑定加价）
+    const unboundSum = unboundExtras.reduce((s, ex) => s + ex.lt * ex.groupRate, 0);
+    const unboundGrand = whole ? unboundSum * urgentRate : unboundSum;
+    const flatSubtotal = grandTotal - unboundGrand;
+    r += `<div class="dc-rr total"><span>折后小计</span><span>¥${flatSubtotal.toFixed(2)}</span></div>`;
     r += '</div>';
   }
   if (unboundExtras.length) {
     r += '<div class="dc-r-section"><div class="dc-r-sub">加价项目（不绑定）</div>';
     unboundExtras.forEach(d => {
       if (!d.name && !d.lt) return;
-      r += `<div class="dc-rr"><span><i class="dc-r-no">${String(++prodIdx).padStart(2,'0')}</i>${esc(d.name || '未命名')} ×${d.qty}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
+      r += `<div class="dc-rr"><span><i class="dc-r-no">${pad2(++prodIdx)}</i>${esc(d.name || '未命名')} ×${d.qty}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
     });
     r += `<div class="dc-rr total"><span>加价合计</span><span>¥${extrasTotal.toFixed(2)}</span></div></div>`;
   }
-  // 优惠（折扣明细，已计入总价）——移至加急前，匹配计算顺序：原价→同模→加价→折扣→加急→用途
-  if (discHTML) { r += '<div class="dc-r-section"><div class="dc-r-sub">优惠</div>' + discHTML + '</div>'; }
-  // 加急（仅勾选部分 × urgentRate）——移至总价前
-  if (urgentEnabled) {
+  // 整单加急：底部独立区块（分组内不输出加急行）
+  if (whole && urgentEnabled) {
     const urgentBaseAfterDisc = baseBeforeDiscount > 0 ? afterDiscount * (urgentBase / baseBeforeDiscount) : 0;
-    const urgentTitle = _dcWholeOrderUrgent ? '整单加急（全部制品与加价项目）' : '加急（仅已勾选制品）';
-    const urgentBaseLabel = _dcWholeOrderUrgent ? '整单加急-总价格' : '加急基数';
     const urgentSub = urgentBaseAfterDisc * urgentRate;
-    r += `<div class="dc-r-section"><div class="dc-r-sub">${urgentTitle}</div>`;
-    r += `<div class="dc-rr"><span>${urgentBaseLabel}</span><span>¥${urgentBaseAfterDisc.toFixed(2)}</span></div>`;
+    r += `<div class="dc-r-section"><div class="dc-r-sub">整单加急（全部制品与加价项目）</div>`;
+    r += `<div class="dc-rr"><span>整单加急-总价格</span><span>¥${urgentBaseAfterDisc.toFixed(2)}</span></div>`;
     r += `<div class="dc-rr"><span>加急倍率</span><span>×${urgentRate}</span></div>`;
     r += `<div class="dc-rr total"><span>加急小计</span><span>¥${urgentSub.toFixed(2)}</span></div></div>`;
   }
