@@ -1370,6 +1370,9 @@ ul,li{list-style:none}
 /* v26: 实时报价小计/优惠——柄图小计和SET优惠信息改小字号 (11px)，保持 muted 灰色 */
 .dc-r-section .dc-r-subtotal{color:var(--c-text-muted);font-weight:600;font-size:11px;padding:3px 0;text-align:left}
 .dc-rr{display:flex;justify-content:space-between;font-size:13px;padding:2px 12px;color:var(--c-text)}
+/* vCN: 优惠/加急/折扣汇总行——行距与制品行间相同（无额外 margin-top），首条汇总行通过 .promo-first 与制品拉开 */
+.dc-rr.promo,.dc-rr.disc{padding:2px 12px}
+.dc-rr.promo-first{margin-top:8px}
 /* v21: 尾部数字（右侧 ¥金额 / ×倍率）加粗 */
 .dc-rr > span:last-child{font-weight:600}
 /* v28: 默认 total 上面分割线——与折后小计等 total 行字体同色（var(--c-text)），1px 实线 */
@@ -1640,7 +1643,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=122"></script>
+<script src="app.js?v=123"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

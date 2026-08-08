@@ -3054,10 +3054,12 @@ function renderDesignCalc() {
   html += '</div>'; // end discount card
 
   // Bk轮：加急功能 — 整单加急（默认关闭，开启后全部制品与加价×倍率）+ 制品单独勾选
+  // BN轮：任一行制品勾选加急后，整单加急开关置灰（互斥）
+  const anyProductUrgent = _dcProducts.some(p => p.urgent);
   html += '<div class="calc-card">';
   html += '<div class="calc-card-title">加急 <span class="calc-card-hint">（单个制品加急请单选，此为整单加急）</span></div>';
   html += '<div class="calc-rate-row">';
-  html += `<label class="calc-rate-label"><input type="checkbox" class="dc-urgent-toggle" id="dcWholeOrderUrgentChk" ${_dcWholeOrderUrgent ? 'checked' : ''} onchange="dcToggleWholeOrderUrgent(this.checked)"> 加急（整单）</label>`;
+  html += `<label class="calc-rate-label"><input type="checkbox" class="dc-urgent-toggle" id="dcWholeOrderUrgentChk" ${_dcWholeOrderUrgent ? 'checked' : ''} ${anyProductUrgent ? 'disabled' : ''} onchange="dcToggleWholeOrderUrgent(this.checked)"> 加急（整单）</label>`;
   html += '<input type="number" class="calc-rate-input" step="0.1" value="2" data-urgent="rate" oninput="dcRecalc()">';
   html += '</div>';
   html += '</div>';
@@ -3498,9 +3500,9 @@ function dcDiscModeChange() {
 }
 
 function dcSyncWholeOrderToggle() {
-  // 整单加急开关始终可选；开启时由各制品行的 disabled 控制（effectiveUrgent 已覆盖，不重复计费）
+  // Bn轮：任一行制品勾选/取消"加急"时，同步整单加急开关的置灰状态
   const tog = document.getElementById('dcWholeOrderUrgentChk');
-  if (tog) tog.disabled = false;
+  if (tog) tog.disabled = _dcProducts.some(p => p.urgent);
 }
 function dcToggleWholeOrderUrgent(val) {
   _dcWholeOrderUrgent = !!val;
@@ -3640,6 +3642,12 @@ function dcRecalc() {
 
   // Step 5: 折扣（作用于（制品+加价），在加急之前）——符合 原价-同模-加价-折扣-加急-用途
   let discHTML = '';
+  let discFirst = true; // 折扣HTML内首行加 promo-first，让制品→首条优惠间距加大
+  const discCls = () => {
+    const cls = 'dc-rr disc' + (discFirst ? ' promo-first' : '');
+    discFirst = false;
+    return cls;
+  };
   let afterDiscount = baseBeforeDiscount;
   if (dMode === 'discount') {
     let d = baseBeforeDiscount;
@@ -3664,7 +3672,7 @@ function dcRecalc() {
         const mR = mInp ? (parseFloat(mInp.value) || 0.9) : 0.9;
         const after = netBase * mR;
         d = baseBeforeDiscount - netBase + after;                  // 仅净制品部分打折；加价项目/同柄/同模保持原价
-        discHTML += `<div class="dc-rr"><span>折扣优惠：不同制品≥8件</span><span>×${mR}</span></div>`;
+        discHTML += `<div class="${discCls()}"><span>折扣优惠：不同制品≥8件</span><span>×${mR}</span></div>`;
       }
     }
     _dcCustomDiscs.forEach((cd, ci) => {
@@ -3672,10 +3680,10 @@ function dcRecalc() {
       if (cdCheck && cdCheck.checked && cd.value > 0) {
         if (cd.type === 'rate') {
           d = d * cd.value;
-          discHTML += `<div class="dc-rr"><span>${esc(cd.name || '自定义' + (ci+1))}</span><span>×${cd.value}</span></div>`;
+          discHTML += `<div class="${discCls()}"><span>${esc(cd.name || '自定义' + (ci+1))}</span><span>×${cd.value}</span></div>`;
         } else {
           d = d - cd.value;
-          discHTML += `<div class="dc-rr"><span>${esc(cd.name || '自定义' + (ci+1))}</span><span>-¥${cd.value.toFixed(2)}</span></div>`;
+          discHTML += `<div class="${discCls()}"><span>${esc(cd.name || '自定义' + (ci+1))}</span><span>-¥${cd.value.toFixed(2)}</span></div>`;
         }
       }
     });
@@ -3685,7 +3693,7 @@ function dcRecalc() {
   // Step 6: 同担/同推 random reduction（always applies，仍属折扣）
   if (_dcFanReduce > 0) {
     afterDiscount = afterDiscount - _dcFanReduce;
-    discHTML += `<div class="dc-rr"><span>同担/同推优惠</span><span>-¥${_dcFanReduce.toFixed(2)}</span></div>`;
+    discHTML += `<div class="${discCls()}"><span>同担/同推优惠</span><span>-¥${_dcFanReduce.toFixed(2)}</span></div>`;
   }
 
   // Step 7: 加急（仅勾选部分 × urgentRate）——总价 =（制品+加价）×加急（未含用途倍率）
@@ -3762,13 +3770,13 @@ function dcRecalc() {
       const groupDisplay = whole ? groupWithBound : (groupWithBound + groupUrgentWB * (urgentRate - 1));
       // SET优惠（行下方接加急/小计）
       if (g.setRate < 1.0) {
-        r += `<div class="dc-rr" style="margin-top:2px"><span>SET优惠：${esc(g.setLabel)}</span><span>×${g.setRate}</span></div>`;
+        r += `<div class="dc-rr promo promo-first"><span>SET优惠：${esc(g.setLabel)}</span><span>×${g.setRate}</span></div>`;
       }
       // 单行/部分制品加急→置于SET优惠行下方，样式与SET优惠统一（整单加急不在组内输出）
       if (showInlineUrgent && urgentSeqs.length) {
         const allUrgent = urgentSeqs.length === g.items.length;
         const label = allUrgent ? 'SET加急' : `加急：${urgentSeqs.map(pad2).join('、')}`;
-        r += `<div class="dc-rr" style="margin-top:2px"><span>${label}</span><span>×${urgentRate}</span></div>`;
+        r += `<div class="dc-rr promo"><span>${label}</span><span>×${urgentRate}</span></div>`;
       }
       // 折后小计（整单含加急；组内已含加急则上浮后金额）
       r += `<div class="dc-rr total"><span>${g.setRate < 1.0 ? '折后小计' : '金额'}</span><span>¥${groupDisplay.toFixed(2)}</span></div>`;
@@ -3795,7 +3803,7 @@ function dcRecalc() {
       });
       const groupDisplay = whole ? groupWithBound : (groupWithBound + groupUrgentWB * (urgentRate - 1));
       if (showInlineUrgent && urgentSeqs.length) {
-        r += `<div class="dc-rr" style="margin-top:2px"><span>加急：${urgentSeqs.map(pad2).join('、')}</span><span>×${urgentRate}</span></div>`;
+        r += `<div class="dc-rr promo promo-first"><span>加急：${urgentSeqs.map(pad2).join('、')}</span><span>×${urgentRate}</span></div>`;
       }
       r += `<div class="dc-rr total"><span>金额</span><span>¥${groupDisplay.toFixed(2)}</span></div>`;
       r += '</div>';
@@ -3823,7 +3831,8 @@ function dcRecalc() {
     // 折扣优惠（多件折扣/自定义/同担）内联于明细内、加急行之前
     if (discHTML) { r += discHTML; }
     if (showInlineUrgent && urgentSeqs.length) {
-      r += `<div class="dc-rr" style="margin-top:2px"><span>加急：${urgentSeqs.map(pad2).join('、')}</span><span>×${urgentRate}</span></div>`;
+      const urgentFirstCls = discHTML ? '' : ' promo-first';
+      r += `<div class="dc-rr promo${urgentFirstCls}"><span>加急：${urgentSeqs.map(pad2).join('、')}</span><span>×${urgentRate}</span></div>`;
     }
     // 折后小计（制品部分，含绑定加价与加急，不含未绑定加价）
     const unboundSum = unboundExtras.reduce((s, ex) => s + ex.lt * ex.groupRate, 0);
