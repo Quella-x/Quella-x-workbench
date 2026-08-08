@@ -3054,11 +3054,10 @@ function renderDesignCalc() {
   html += '</div>'; // end discount card
 
   // Bk轮：加急功能 — 整单加急（默认关闭，开启后全部制品与加价×倍率）+ 制品单独勾选
-  const anyProductUrgent = _dcProducts.some(p => p.urgent);
   html += '<div class="calc-card">';
   html += '<div class="calc-card-title">加急 <span class="calc-card-hint">（单个制品加急请单选，此为整单加急）</span></div>';
   html += '<div class="calc-rate-row">';
-  html += `<label class="calc-rate-label"><input type="checkbox" class="dc-urgent-toggle" id="dcWholeOrderUrgentChk" ${_dcWholeOrderUrgent ? 'checked' : ''} ${anyProductUrgent ? 'disabled' : ''} onchange="dcToggleWholeOrderUrgent(this.checked)"> 加急（整单）</label>`;
+  html += `<label class="calc-rate-label"><input type="checkbox" class="dc-urgent-toggle" id="dcWholeOrderUrgentChk" ${_dcWholeOrderUrgent ? 'checked' : ''} onchange="dcToggleWholeOrderUrgent(this.checked)"> 加急（整单）</label>`;
   html += '<input type="number" class="calc-rate-input" step="0.1" value="2" data-urgent="rate" oninput="dcRecalc()">';
   html += '</div>';
   html += '</div>';
@@ -3499,9 +3498,9 @@ function dcDiscModeChange() {
 }
 
 function dcSyncWholeOrderToggle() {
-  // Bn轮：任一行制品勾选/取消"加急"时，同步整单加急开关的置灰状态
+  // 整单加急开关始终可选；开启时由各制品行的 disabled 控制（effectiveUrgent 已覆盖，不重复计费）
   const tog = document.getElementById('dcWholeOrderUrgentChk');
-  if (tog) tog.disabled = _dcProducts.some(p => p.urgent);
+  if (tog) tog.disabled = false;
 }
 function dcToggleWholeOrderUrgent(val) {
   _dcWholeOrderUrgent = !!val;
@@ -3763,13 +3762,13 @@ function dcRecalc() {
       const groupDisplay = whole ? groupWithBound : (groupWithBound + groupUrgentWB * (urgentRate - 1));
       // SET优惠（行下方接加急/小计）
       if (g.setRate < 1.0) {
-        r += `<div class="dc-rr" style="margin-top:6px"><span>SET优惠：${esc(g.setLabel)}</span><span>×${g.setRate}</span></div>`;
+        r += `<div class="dc-rr" style="margin-top:2px"><span>SET优惠：${esc(g.setLabel)}</span><span>×${g.setRate}</span></div>`;
       }
       // 单行/部分制品加急→置于SET优惠行下方，样式与SET优惠统一（整单加急不在组内输出）
       if (showInlineUrgent && urgentSeqs.length) {
         const allUrgent = urgentSeqs.length === g.items.length;
         const label = allUrgent ? 'SET加急' : `加急：${urgentSeqs.map(pad2).join('、')}`;
-        r += `<div class="dc-rr" style="margin-top:6px"><span>${label}</span><span>×${urgentRate}</span></div>`;
+        r += `<div class="dc-rr" style="margin-top:2px"><span>${label}</span><span>×${urgentRate}</span></div>`;
       }
       // 折后小计（整单含加急；组内已含加急则上浮后金额）
       r += `<div class="dc-rr total"><span>${g.setRate < 1.0 ? '折后小计' : '金额'}</span><span>¥${groupDisplay.toFixed(2)}</span></div>`;
@@ -3796,7 +3795,7 @@ function dcRecalc() {
       });
       const groupDisplay = whole ? groupWithBound : (groupWithBound + groupUrgentWB * (urgentRate - 1));
       if (showInlineUrgent && urgentSeqs.length) {
-        r += `<div class="dc-rr" style="margin-top:6px"><span>加急：${urgentSeqs.map(pad2).join('、')}</span><span>×${urgentRate}</span></div>`;
+        r += `<div class="dc-rr" style="margin-top:2px"><span>加急：${urgentSeqs.map(pad2).join('、')}</span><span>×${urgentRate}</span></div>`;
       }
       r += `<div class="dc-rr total"><span>金额</span><span>¥${groupDisplay.toFixed(2)}</span></div>`;
       r += '</div>';
@@ -3817,14 +3816,14 @@ function dcRecalc() {
       r += renderBoundExtras(d.idx, !whole && d.actualUrgent);
       // 单项加急：制品下方树状「└─加急」，并汇总到分组尾部「加急：序号」
       if (!whole && d.actualUrgent) {
-        r += `<div class="dc-rr bound"><span><i class="dc-r-tree">└─</i>加急 ×${urgentRate}</span><span></span></div>`;
+        r += `<div class="dc-rr bound"><span><i class="dc-r-tree">└─</i>加急</span><span></span></div>`;
       }
       if (d.actualUrgent) urgentSeqs.push(prodIdx);
     });
     // 折扣优惠（多件折扣/自定义/同担）内联于明细内、加急行之前
     if (discHTML) { r += discHTML; }
     if (showInlineUrgent && urgentSeqs.length) {
-      r += `<div class="dc-rr" style="margin-top:6px"><span>加急：${urgentSeqs.map(pad2).join('、')}</span><span>×${urgentRate}</span></div>`;
+      r += `<div class="dc-rr" style="margin-top:2px"><span>加急：${urgentSeqs.map(pad2).join('、')}</span><span>×${urgentRate}</span></div>`;
     }
     // 折后小计（制品部分，含绑定加价与加急，不含未绑定加价）
     const unboundSum = unboundExtras.reduce((s, ex) => s + ex.lt * ex.groupRate, 0);
