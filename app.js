@@ -3302,11 +3302,11 @@ function dcRenderExtras() {
     const nameCbId = 'dcen_' + i + '_' + Math.random().toString(36).slice(2,6);
     const optHTML = extraNames.map(n => `<div class="combobox-option" onclick="dcSelectExtra(${i},this,'${nameCbId}')" data-value="${esc(n)}">${esc(n)}</div>`).join('');
     // 绑定制品下拉：读取制品列表自动生成的序号+制品，首项为「无（不绑定）」
-    const bindOptHTML = ['<div class="combobox-option" data-value="none">无（不绑定）</div>']
+    const bindOptHTML = ['<div class="combobox-option" data-value="none" onclick="dcSelectExtraBind(' + i + ',this,\'' + bindCbId + '\')">无（不绑定）</div>']
       .concat(_dcProducts.map((p, j) => {
         const seq = String(j + 1).padStart(2, '0');
         const label = p.name ? (seq + ' ' + p.name) : seq;
-        return `<div class="combobox-option" data-value="${seq}">${esc(label)}</div>`;
+        return `<div class="combobox-option" data-value="${seq}" onclick="dcSelectExtraBind(${i},this,'${bindCbId}')">${esc(label)}</div>`;
       })).join('');
     html += '<div class="dc-extra-row">';
     // 绑定制品 combobox（置于名称前面，与灵感记录制品下拉同款，保留【下拉选择器】结构）
@@ -3346,7 +3346,7 @@ function dcSelectExtraBind(idx, el, cbId) {
   if (!wrapper) return;
   const input = wrapper.querySelector('.combobox-input');
   if (input) {
-    input.value = el.textContent;
+    input.value = (el.dataset.value === 'none') ? '' : (el.textContent || '');
     dcUpdateExtra(idx, 'bindSeq', el.dataset.value || 'none');
   }
   const dd = document.getElementById(cbId);
@@ -3991,7 +3991,8 @@ function renderPriceList() {
         html += `<span class="menu-name">${esc(r.product || '未命名')}${r.defaultSize ? `<sub class="menu-size-sub">(${esc(r.defaultSize)})</sub>` : ''}</span>`;
         html += `<span class="menu-dots"></span>`;
         const priceUnit = Array.isArray(r.priceUnit) ? (r.priceUnit[0] || '元') : (r.priceUnit || '元');
-        const priceText = priceUnit === '元' ? `¥${esc(r.price || 0)}` : `¥${esc(r.price || 0)}/p`;
+        const unitSuffix = priceUnit === '元' ? '' : priceUnit.replace('元', '');
+        const priceText = `¥${esc(r.price || 0)}${esc(unitSuffix)}`;
         html += `<span class="menu-price">${priceText}</span>`;
         html += '<span style="margin-left:8px;display:flex;gap:2px">';
         html += `<span class="btn-icon" style="font-size:12px;width:24px;height:24px" onclick="event.stopPropagation();openEditForm('design-pricelist','${r.id}')">✏️</span>`;
