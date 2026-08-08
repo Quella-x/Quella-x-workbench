@@ -3651,7 +3651,7 @@ function dcRecalc() {
   if (dMode === 'set') {
     // CT轮：加价项目与制品一起算入折扣——绑定加价跟随对应制品的SET组折扣率，未绑定加价保持原价
     let extrasAfterSet = 0;
-    _dcExtras.forEach(ex => { extrasAfterSet += ex.lt * (ex.groupRate || 1.0); });
+    extraDetails.forEach(ex => { extrasAfterSet += ex.lt * (ex.groupRate || 1.0); });
     afterDiscount = productsTotal + extrasAfterSet;
   }
   if (dMode === 'discount') {
