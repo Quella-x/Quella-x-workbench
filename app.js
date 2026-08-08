@@ -3626,12 +3626,11 @@ function dcRecalc() {
   let extraUrgentBase = 0, extraNonUrgentBase = 0;   // 加价项目 原价 基数
   productDetails.forEach(d => {
     if (d.urgent) prodUrgentBase += d.lt; else prodNonUrgentBase += d.lt;   // 制品按原价拆分
-    const boundLt = (boundMap[d.idx] || []).reduce((s, ex) => s + ex.lt, 0); // 加价项目不打折
-    if (d.urgent) extraUrgentBase += boundLt; else extraNonUrgentBase += boundLt;
+    // 绑定加价项目不随制品加急乘倍率，仅作为 extrasTotal 原价计入总价
   });
-  // 未绑定加价：仅整单加急时计入加急基数
+  // 未绑定加价：不随单制品加急乘倍率；整单加急时统一在 Step7 对 (afterDiscount+extrasTotal) 乘倍率
   unboundExtras.forEach(ex => {
-    if (_dcWholeOrderUrgent) extraUrgentBase += ex.lt; else extraNonUrgentBase += ex.lt;
+    extraNonUrgentBase += ex.lt;
   });
   const baseBeforeDiscount = prodUrgentBase + prodNonUrgentBase;   // 折扣只作用于制品原价（不含加价项目）
   const urgentEnabled = (prodUrgentBase + extraUrgentBase) > 0;    // 加急基数含制品+加价项目
@@ -3694,19 +3693,15 @@ function dcRecalc() {
 
   // Step 7: 加急
   // 顺序：制品→同模→SET/折扣→加价项目→加急→用途
-  // 单制品/部分加急：加急溢价基于原价（不受SET/折扣影响），即 (urgent原价+urgent绑定加价)*(urgentRate-1)
-  // 整单加急：保持原逻辑，(折扣后总额+加价总额)*urgentRate
+  // 加价项目全额计入总价，但不乘加急倍率；加急仅作用于制品（单制品/整单均如此）
+  // 单制品/部分加急：加急溢价 = prodUrgentBase * (urgentRate-1)
+  // 整单加急：grandTotal = (afterDiscount + extrasTotal) * urgentRate
   let grandTotal = 0;
   if (baseBeforeDiscount > 0) {
     if (_dcWholeOrderUrgent) {
-      const ratio = prodUrgentBase / baseBeforeDiscount;        // 制品中加急占比（原价比例）
-      const urgentPart = afterDiscount * ratio;                 // 制品加急部分（折扣后）
-      const nonUrgentPart = afterDiscount * (1 - ratio);        // 制品非加急部分（折扣后）
-      const prodGrand = urgentPart * urgentRate + nonUrgentPart;
-      const extraGrand = extraUrgentBase * urgentRate + extraNonUrgentBase;  // 加价项目随整单加急
-      grandTotal = prodGrand + extraGrand;
+      grandTotal = (afterDiscount + extrasTotal) * urgentRate;
     } else {
-      const urgentPremium = (prodUrgentBase + extraUrgentBase) * (urgentRate - 1);
+      const urgentPremium = prodUrgentBase * (urgentRate - 1);
       grandTotal = afterDiscount + extrasTotal + urgentPremium;
     }
   }
@@ -3776,7 +3771,7 @@ function dcRecalc() {
         const boundLt = (boundMap[d.idx] || []).reduce((s, ex) => s + ex.lt, 0);  // 加价项目不打折
         const base = d.lt * (itemGroupRate[d.idx] ?? 1.0) + boundLt;  // 制品折扣后 + 加价原价
         groupWithBound += base;
-        if (d.actualUrgent) groupUrgentWB += d.lt + boundLt;  // 单制品加急溢价基于原价（含绑定加价）
+        if (d.actualUrgent) groupUrgentWB += d.lt;  // 单制品加急溢价仅基于制品原价，不含绑定加价
       });
       // 整单加急：组内不含加急；否则按组内加急原价上浮溢价
       const groupDisplay = whole ? groupWithBound : (groupWithBound + groupUrgentWB * (urgentRate - 1));
@@ -3816,7 +3811,7 @@ function dcRecalc() {
         const boundLt = (boundMap[d.idx] || []).reduce((s, ex) => s + ex.lt, 0);  // 加价项目不打折
         const base = d.lt + boundLt;
         groupWithBound += base;
-        if (d.actualUrgent) groupUrgentWB += d.lt + boundLt;  // 单制品加急溢价基于原价（含绑定加价）
+        if (d.actualUrgent) groupUrgentWB += d.lt;  // 单制品加急溢价仅基于制品原价，不含绑定加价
       });
       const groupDisplay = whole ? groupWithBound : (groupWithBound + groupUrgentWB * (urgentRate - 1));
       if (showInlineUrgent && urgentSeqs.length) {
@@ -3851,10 +3846,8 @@ function dcRecalc() {
       const urgentFirstCls = discHTML ? '' : ' promo-first';
       r += `<div class="dc-rr promo${urgentFirstCls}"><span>加急：${urgentSeqs.map(pad2).join('、')}</span><span>×${urgentRate}</span></div>`;
     }
-    // 折后小计（制品部分，含绑定加价与加急，不含未绑定加价）
-    const unboundSum = unboundExtras.reduce((s, ex) => s + ex.lt * ex.groupRate, 0);
-    const unboundGrand = whole ? unboundSum * urgentRate : unboundSum;
-    const flatSubtotal = grandTotal - unboundGrand;
+    // 折后小计：折扣后、加急前的总额（加价项目不乘加急）
+    const flatSubtotal = afterDiscount + extrasTotal;
     r += `<div class="dc-rr total"><span>折后小计</span><span>¥${flatSubtotal.toFixed(2)}</span></div>`;
     r += '</div>';
   }
