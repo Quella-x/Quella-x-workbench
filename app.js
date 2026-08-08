@@ -2983,7 +2983,7 @@ function renderDesignCalc() {
   // Extra items
   html += '<div class="calc-card">';
   html += '<div class="calc-card-title">加价项目 <span class="calc-card-hint">（不参与同模计价、SET折扣）</span></div>';
-  html += '<div class="dc-extra-header"><span>制品绑定</span><span>加价项目</span><span>数量</span><span>单价</span><span></span></div>';
+  html += '<div class="dc-extra-header"><span>绑定制品</span><span>加价项目</span><span>数量</span><span>单价</span><span></span></div>';
   html += '<div id="dc-extras"></div>';
   html += '<button type="button" class="btn btn-outline btn-sm" onclick="dcAddExtra()" style="margin-top:8px">+ 添加加价项目</button>';
   html += '</div>';
@@ -3298,17 +3298,21 @@ function dcRenderExtras() {
   const extraNames = [...new Set(priceList.filter(p => p.category === '加价项目' && p.product).map(p => p.product))].sort((a,b)=>a.localeCompare(b,'zh'));
   let html = '';
   _dcExtras.forEach((e, i) => {
-    const cbId = 'dce_' + i + '_' + Math.random().toString(36).slice(2,6);
-    const optHTML = extraNames.map(n => `<div class="combobox-option" onclick="dcSelectExtra(${i},this,'${cbId}')" data-value="${esc(n)}">${esc(n)}</div>`).join('');
-    const bindOpts = ['<option value="none"' + ((e.bindSeq || 'none') === 'none' ? ' selected' : '') + '>无</option>']
+    const bindCbId = 'dceb_' + i + '_' + Math.random().toString(36).slice(2,6);
+    const nameCbId = 'dcen_' + i + '_' + Math.random().toString(36).slice(2,6);
+    const optHTML = extraNames.map(n => `<div class="combobox-option" onclick="dcSelectExtra(${i},this,'${nameCbId}')" data-value="${esc(n)}">${esc(n)}</div>`).join('');
+    // 绑定制品下拉：读取制品列表自动生成的序号+制品，首项为「无（不绑定）」
+    const bindOptHTML = ['<div class="combobox-option" data-value="none">无（不绑定）</div>']
       .concat(_dcProducts.map((p, j) => {
         const seq = String(j + 1).padStart(2, '0');
         const label = p.name ? (seq + ' ' + p.name) : seq;
-        return `<option value="${seq}"${(e.bindSeq || 'none') === seq ? ' selected' : ''}>${esc(label)}</option>`;
-      }));
+        return `<div class="combobox-option" data-value="${seq}">${esc(label)}</div>`;
+      })).join('');
     html += '<div class="dc-extra-row">';
-    html += `<select class="form-select dc-extra-bind" onchange="dcUpdateExtra(${i},'bindSeq',this.value)">${bindOpts}</select>`;
-    html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-extra-name" value="${esc(e.name)}" placeholder="名称" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateExtra(${i},'name',this.value);dcFillPrice(this,'extra',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
+    // 绑定制品 combobox（置于名称前面，与灵感记录制品下拉同款，保留【下拉选择器】结构）
+    html += `<div class="combobox-wrapper dc-extra-bind-wrapper"><input type="text" class="form-input combobox-input dc-extra-bind-input" value="${esc(dcExtraBindDisplay(e.bindSeq))}" placeholder="绑定制品" onfocus="showComboboxDropdown('${bindCbId}')" onclick="showComboboxDropdown('${bindCbId}')" oninput="filterComboboxDropdown('${bindCbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${bindCbId}')">▼</button><div class="combobox-dropdown" id="${bindCbId}">${bindOptHTML}</div></div>`;
+    // 名称 combobox（保留原结构）
+    html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-extra-name" value="${esc(e.name)}" placeholder="名称" onfocus="showComboboxDropdown('${nameCbId}')" onclick="showComboboxDropdown('${nameCbId}')" oninput="dcUpdateExtra(${i},'name',this.value);dcFillPrice(this,'extra',${i});filterComboboxDropdown('${nameCbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${nameCbId}')">▼</button><div class="combobox-dropdown" id="${nameCbId}">${optHTML}</div></div>`;
     html += `<input type="number" class="form-input dc-extra-qty" value="${e.quantity}" placeholder="数量" min="1" oninput="dcUpdateExtra(${i},'quantity',this.value)">`;
     html += `<input type="number" class="form-input dc-extra-price" value="${e.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateExtra(${i},'price',this.value)">`;
     html += `<button type="button" class="btn btn-ghost btn-sm dc-extra-del" onclick="dcRemoveExtra(${i})">✕</button>`;
@@ -3327,6 +3331,26 @@ function dcSelectExtra(idx, el, cbId) {
     dcFillPrice(input, 'extra', idx);
   }
   document.getElementById(cbId).classList.remove('show');
+}
+function dcExtraBindDisplay(seq) {
+  if (!seq || seq === 'none') return '';
+  const bi = parseInt(seq, 10) - 1;
+  if (bi >= 0 && bi < _dcProducts.length) {
+    const p = _dcProducts[bi];
+    return String(bi + 1).padStart(2, '0') + ' ' + (p.name || '');
+  }
+  return seq;
+}
+function dcSelectExtraBind(idx, el, cbId) {
+  const wrapper = el.closest('.combobox-wrapper');
+  if (!wrapper) return;
+  const input = wrapper.querySelector('.combobox-input');
+  if (input) {
+    input.value = el.textContent;
+    dcUpdateExtra(idx, 'bindSeq', el.dataset.value || 'none');
+  }
+  const dd = document.getElementById(cbId);
+  if (dd) dd.classList.remove('show');
 }
 function dcAddExtra() { _dcExtras.push(newExtra()); dcRenderExtras(); dcRecalc(); }
 function dcRemoveExtra(idx) { _dcExtras.splice(idx, 1); dcRenderExtras(); dcRecalc(); }
