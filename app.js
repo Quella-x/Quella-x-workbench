@@ -3755,7 +3755,12 @@ function dcRecalc() {
         prodIdx++;
         r += `<div class="dc-rr"><span><i class="dc-r-no">${pad2(prodIdx)}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
         if (d.useModel) r += `<div class="dc-rr sub"><span>${d.modelBreakdown}</span><span></span></div>`;
-        r += renderBoundExtras(d.idx);
+        // 若本品单行加急（非整单），绑定加价下方还会紧跟「└─加急」，故传入 urgentAfter 修正末连接符
+        r += renderBoundExtras(d.idx, !whole && d.actualUrgent);
+        // 单项加急：制品下方树状「└─加急」（非整单；整单加急在底部独立块），与汇总行「加急：序号 ×倍率」并存
+        if (!whole && d.actualUrgent) {
+          r += `<div class="dc-rr bound"><span><i class="dc-r-tree">└─</i>加急</span><span></span></div>`;
+        }
         if (d.actualUrgent) urgentSeqs.push(prodIdx);
       });
       // 组内（含绑定加价）已含SET折扣的基数
@@ -3791,7 +3796,12 @@ function dcRecalc() {
         prodIdx++;
         r += `<div class="dc-rr"><span><i class="dc-r-no">${pad2(prodIdx)}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
         if (d.useModel) r += `<div class="dc-rr sub"><span>${d.modelBreakdown}</span><span></span></div>`;
-        r += renderBoundExtras(d.idx);
+        // 若本品单行加急（非整单），绑定加价下方还会紧跟「└─加急」，故传入 urgentAfter 修正末连接符
+        r += renderBoundExtras(d.idx, !whole && d.actualUrgent);
+        // 单项加急：制品下方树状「└─加急」（非整单；整单加急在底部独立块），与汇总行「加急：序号 ×倍率」并存
+        if (!whole && d.actualUrgent) {
+          r += `<div class="dc-rr bound"><span><i class="dc-r-tree">└─</i>加急</span><span></span></div>`;
+        }
         if (d.actualUrgent) urgentSeqs.push(prodIdx);
       });
       let groupWithBound = 0, groupUrgentWB = 0;
