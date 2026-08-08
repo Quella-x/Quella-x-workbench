@@ -3717,15 +3717,18 @@ function dcRecalc() {
   if (!receipt) return;
   let r = '<div class="dc-r-title">实时报价</div>';
   let prodIdx = 0;
-  // 渲染某制品序号下绑定的加价项目（缩进展示）
-  const renderBoundExtras = (origIdx) => {
+  // 渲染某制品序号下绑定的加价项目（缩进展示，构成 ├─/└─ 树）
+  // urgentAfter=true 时表示该产品下方还会紧跟「└─加急」行，故绑定加价最后一项用 ├─（而非 └─），树形才正确
+  const renderBoundExtras = (origIdx, urgentAfter) => {
     const list = boundMap[origIdx];
     if (!list || !list.length) return '';
-    const n = list.length;
+    const visible = list.filter(d => d.name || d.lt);
+    const n = visible.length;
+    if (!n) return '';
+    const lastConnector = urgentAfter ? '├─' : '└─';
     let s = '';
-    list.forEach((d, k) => {
-      if (!d.name && !d.lt) return;
-      const tree = (k === n - 1) ? '└─' : '├─';
+    visible.forEach((d, k) => {
+      const tree = (k === n - 1) ? lastConnector : '├─';
       s += `<div class="dc-rr bound"><span><i class="dc-r-tree">${tree}</i>${esc(d.name || '未命名')} ×${d.qty}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
     });
     return s;
@@ -3810,7 +3813,8 @@ function dcRecalc() {
       prodIdx++;
       r += `<div class="dc-rr"><span><i class="dc-r-no">${pad2(prodIdx)}</i>${esc(d.name || '未命名')} ×${d.qty}${tag}${pTag}</span><span>¥${d.lt.toFixed(2)}</span></div>`;
       if (d.useModel) r += `<div class="dc-rr sub"><span>${d.modelBreakdown}</span><span></span></div>`;
-      r += renderBoundExtras(d.idx);
+      // 若本品单行加急（非整单），绑定加价下方还会紧跟「└─加急」，故传入 urgentAfter 修正末连接符
+      r += renderBoundExtras(d.idx, !whole && d.actualUrgent);
       // 单项加急：制品下方树状「└─加急」，并汇总到分组尾部「加急：序号」
       if (!whole && d.actualUrgent) {
         r += `<div class="dc-rr bound"><span><i class="dc-r-tree">└─</i>加急 ×${urgentRate}</span><span></span></div>`;
