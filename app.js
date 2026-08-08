@@ -3008,32 +3008,23 @@ function renderDesignCalc() {
   });
   html += '</div>';
 
-  // Bk轮：加急功能 — 整单加急（默认关闭，开启后全部制品与加价×倍率）+ 制品单独勾选
-  const anyProductUrgent = _dcProducts.some(p => p.urgent);
-  html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">加急 <span class="calc-card-hint">（单个制品加急请单选，此为整单加急）</span></div>';
-  html += '<div class="calc-rate-row">';
-  html += `<label class="calc-rate-label"><input type="checkbox" class="dc-urgent-toggle" id="dcWholeOrderUrgentChk" ${_dcWholeOrderUrgent ? 'checked' : ''} ${anyProductUrgent ? 'disabled' : ''} onchange="dcToggleWholeOrderUrgent(this.checked)"> 加急（整单）</label>`;
-  html += '<input type="number" class="calc-rate-input" step="0.1" value="2" data-urgent="rate" oninput="dcRecalc()">';
-  html += '</div>';
-  html += '</div>';
-
-  // Bu轮: 全局同模阶梯价倍率单选（可空，去掉无同模；制品行未选类型时读取此项）
-  html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">同模阶梯价倍率 <span class="calc-card-hint">（选择同模更改项，制品行勾选启用，可单独选择同模类型）</span></div>';
-  DC_MODEL.filter(m => m.value !== 'none').forEach(m => {
-    html += '<div class="calc-rate-row">';
-    html += `<label class="calc-rate-label"><input type="checkbox" class="calc-circle" name="dc_model_rule" value="${m.value}" ${_dcGlobalModelType === m.value ? 'checked' : ''} onchange="dcSelectGlobalModel('${m.value}', this.checked)"> ${m.value}</label>`;
-    html += `<input type="number" class="calc-rate-input" step="0.1" value="${m.rate}" readonly>`;
-    html += '</div>';
-  });
-  html += '</div>';
-
-  // Discount system (SET与折扣互斥，同担/同推独立)
+  // Discount system (SET与折扣互斥，同担/同推独立) — 置于加急之前
   html += '<div class="calc-card">';
   html += '<div class="calc-card-title">优惠体系 <span class="calc-card-hint">（SET优惠与折扣优惠互斥，可自行添加折扣优惠方案）</span></div>';
   html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" class="calc-circle" name="dcDiscMode" value="none" checked onchange="dcDiscModeChange()"> 无优惠</label></div>';
-  // Discount (with custom discount support) — 放置前面
+  // SET
+  html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" class="calc-circle" name="dcDiscMode" value="set" onchange="dcDiscModeChange()"> SET优惠</label></div>';
+  html += '<div id="dc-set-area" class="calc-sub-area disabled">';
+  html += '<div style="font-size:12px;color:var(--c-text-muted);padding:4px 0;line-height:1.5">系统根据柄图自动分组，档位不叠加。</div>';
+  DC_SET.forEach(s => {
+    const rate = (settings.setRates && settings.setRates[s.value]) ?? s.rate;
+    html += '<div class="calc-rate-row">';
+    html += `<label class="calc-rate-label">${s.label}</label>`;
+    html += `<input type="number" class="calc-rate-input" step="0.1" value="${rate}" data-set="${s.value}" oninput="dcRecalc()">`;
+    html += '</div>';
+  });
+  html += '</div>';
+  // Discount (with custom discount support)
   html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" class="calc-circle" name="dcDiscMode" value="discount" onchange="dcDiscModeChange()"> 折扣优惠</label></div>';
   html += '<div id="dc-disc-area" class="calc-sub-area disabled">';
   const discMultiRate = settings.discMultiRate ?? 0.9;
@@ -3060,19 +3051,28 @@ function renderDesignCalc() {
   html += '</div>';
   html += '</div>';
   html += '</div>';
-  // SET
-  html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" class="calc-circle" name="dcDiscMode" value="set" onchange="dcDiscModeChange()"> SET优惠</label></div>';
-  html += '<div id="dc-set-area" class="calc-sub-area disabled">';
-  html += '<div style="font-size:12px;color:var(--c-text-muted);padding:4px 0;line-height:1.5">系统根据柄图自动分组，档位不叠加。</div>';
-  DC_SET.forEach(s => {
-    const rate = (settings.setRates && settings.setRates[s.value]) ?? s.rate;
+  html += '</div>'; // end discount card
+
+  // Bk轮：加急功能 — 整单加急（默认关闭，开启后全部制品与加价×倍率）+ 制品单独勾选
+  const anyProductUrgent = _dcProducts.some(p => p.urgent);
+  html += '<div class="calc-card">';
+  html += '<div class="calc-card-title">加急 <span class="calc-card-hint">（单个制品加急请单选，此为整单加急）</span></div>';
+  html += '<div class="calc-rate-row">';
+  html += `<label class="calc-rate-label"><input type="checkbox" class="dc-urgent-toggle" id="dcWholeOrderUrgentChk" ${_dcWholeOrderUrgent ? 'checked' : ''} ${anyProductUrgent ? 'disabled' : ''} onchange="dcToggleWholeOrderUrgent(this.checked)"> 加急（整单）</label>`;
+  html += '<input type="number" class="calc-rate-input" step="0.1" value="2" data-urgent="rate" oninput="dcRecalc()">';
+  html += '</div>';
+  html += '</div>';
+
+  // Bu轮: 全局同模阶梯价倍率单选（可空，去掉无同模；制品行未选类型时读取此项）
+  html += '<div class="calc-card">';
+  html += '<div class="calc-card-title">同模阶梯价倍率 <span class="calc-card-hint">（选择同模更改项，制品行勾选启用，可单独选择同模类型）</span></div>';
+  DC_MODEL.filter(m => m.value !== 'none').forEach(m => {
     html += '<div class="calc-rate-row">';
-    html += `<label class="calc-rate-label">${s.label}</label>`;
-    html += `<input type="number" class="calc-rate-input" step="0.1" value="${rate}" data-set="${s.value}" oninput="dcRecalc()">`;
+    html += `<label class="calc-rate-label"><input type="checkbox" class="calc-circle" name="dc_model_rule" value="${m.value}" ${_dcGlobalModelType === m.value ? 'checked' : ''} onchange="dcSelectGlobalModel('${m.value}', this.checked)"> ${m.value}</label>`;
+    html += `<input type="number" class="calc-rate-input" step="0.1" value="${m.rate}" readonly>`;
     html += '</div>';
   });
   html += '</div>';
-  html += '</div>'; // end discount card
 
   // 同担/同推优惠 (独立板块，不与任何优惠互斥)
   html += '<div class="calc-card">';
