@@ -2919,7 +2919,7 @@ const DC_SET = [
 
 // v-NEW: 制品行工厂（含行内同模类型/倍率字段）
 function newProduct() {
-  return { name: '', patternId: '', size: '', quantity: 1, price: 0, sameModel: false, sameModelType: '', sameModelRate: 1.0, urgent: false };
+  return { _pid: _dcProdSeq++, name: '', patternId: '', size: '', quantity: 1, price: 0, sameModel: false, sameModelType: '', sameModelRate: 1.0, urgent: false, setGroup: '' };
 }
 // v-NEW: 加价项目工厂（含绑定制品序号字段）
 function newExtra() {
@@ -2939,6 +2939,8 @@ let _dcCustomDiscs = DB.get('calcCustomDiscs', []); // {name, type:'rate'|'amoun
 let _dcFanReduce = 0; // 同担/同推随机减价金额
 let _dcWholeOrderUrgent = false; // 整单加急（默认关闭）
 let _dcGlobalModelType = ''; // 全局同模类型（单选可空；默认不选择）
+let _dcProdSeq = 1;          // CX轮：制品稳定序号（用于手动SET分组选择态）
+let _dcSelSet = new Set();   // CX轮：手动SET分组——当前勾选的制品 _pid 集合
 
 function renderDesignCalc() {
   const body = $('#mainBody');
@@ -2971,12 +2973,14 @@ function renderDesignCalc() {
 
   // Product list
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">制品列表 <span class="calc-card-hint">（柄图自动分组，勾选同模启用阶梯计价）</span></div>';
-  html += '<div class="dc-product-header"><span>序号</span><span>制品</span><span>柄图标识</span><span>价格</span><span>数量</span><span>加急</span><span>同模</span><span></span></div>';
+  html += '<div class="calc-card-title">制品列表 <span class="calc-card-hint">（柄图自动分组；勾选制品后点「归为SET」可手动成组，适用于单一柄图/无柄图）</span></div>';
+  html += '<div class="dc-product-header"><span>选</span><span>序号</span><span>制品</span><span>柄图标识</span><span>价格</span><span>数量</span><span>加急</span><span>同模</span><span></span></div>';
   html += '<div id="dc-products"></div>';
-  html += '<div style="display:flex;gap:8px;margin-top:8px">';
+  html += '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">';
   html += '<button type="button" class="btn btn-outline btn-sm" onclick="dcAddProduct()">+ 添加制品</button>';
   html += '<button type="button" class="btn btn-danger btn-sm" onclick="dcClearProducts()">🗑️ 一键清除</button>';
+  html += '<button type="button" class="btn btn-primary btn-sm" onclick="dcMakeSet()">🏷️ 归为SET</button>';
+  html += '<span id="dc-sel-hint" style="font-size:12px;color:var(--c-text-muted)"></span>';
   html += '</div>';
   html += '</div>';
 
@@ -3116,6 +3120,7 @@ function renderDesignCalc() {
 
 function dcSetMode(mode) {
   _dcMode = mode;
+  _dcSelSet.clear();
   if (mode === 'custom') { _dcImportId = null; _dcProducts = [newProduct()]; _dcExtras = []; _dcModifications = []; _dcFanReduce = 0; }
   renderDesignCalc();
 }
@@ -3138,7 +3143,7 @@ function dcImportRecord(id) {
     }
     // AS轮：加急仅由 per-product urgent 字段决定，不再用旧版整单 urgentEnabled 覆盖
     const urgent = p.urgent === true;
-    return { name: p.name || '', patternId: p.patternId || '', size: p.size || '', quantity: parseInt(p.quantity) || 1, price: parseFloat(p.price) || 0, sameModel, sameModelType, sameModelRate, urgent };
+    return { _pid: _dcProdSeq++, name: p.name || '', patternId: p.patternId || '', size: p.size || '', quantity: parseInt(p.quantity) || 1, price: parseFloat(p.price) || 0, sameModel, sameModelType, sameModelRate, urgent, setGroup: '' };
   });
   if (!_dcProducts.length) _dcProducts = [newProduct()];
   _dcExtras = (rec.extraItems || []).map(e => ({ name: e.name || '', quantity: parseInt(e.quantity) || 1, price: parseFloat(e.price) || 0, bindSeq: e.bindSeq || 'none' }));
@@ -3167,7 +3172,10 @@ function dcRenderProducts() {
     const modelCbId = 'dcm_' + i + '_' + Math.random().toString(36).slice(2,6);
     const modelOptsHTML = DC_MODEL.filter(m => m.value !== 'none').map(m => `<div class="combobox-option" onclick="dcSelectModelType(${i},this,'${modelCbId}')" data-value="${esc(m.value)}" data-rate="${m.rate}">${esc(m.value)}</div>`).join('');
     const modelTypeLabel = p.sameModelType || '';
-    html += '<div class="dc-product-row">';
+    const selChk = _dcSelSet.has(p._pid) ? 'checked' : '';
+    const groupedCls = p.setGroup ? ' dc-prod-grouped' : '';
+    html += `<div class="dc-product-row${groupedCls}">`;
+    html += `<div class="dc-prod-sel"><input type="checkbox" ${selChk} onchange="dcToggleSel(${p._pid}, this.checked)"></div>`;
     html += `<div class="dc-prod-seq">${seq}</div>`;
     html += `<div class="combobox-wrapper dc-prod-name-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-name" value="${esc(p.name)}" placeholder="制品" data-key="name" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateProduct(${i},'name',this.value);dcFillPrice(this,'product',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
     html += `<input type="text" class="form-input dc-prod-pattern" value="${esc(p.patternId||'')}" placeholder="柄图标识" oninput="dcUpdateProduct(${i},'patternId',this.value)">`;
@@ -3199,6 +3207,43 @@ function dcSelectProduct(idx, el, cbId) {
   document.getElementById(cbId).classList.remove('show');
 }
 
+// CX轮：制品选择（用于手动SET分组）
+function dcToggleSel(pid, checked) {
+  if (checked) _dcSelSet.add(pid); else _dcSelSet.delete(pid);
+  const hint = document.getElementById('dc-sel-hint');
+  if (hint) hint.textContent = _dcSelSet.size ? `已选 ${_dcSelSet.size} 项` : '';
+}
+
+// CX轮：将当前勾选的制品归为同一个SET组（手动分组优先于自动按柄图分组）
+function dcMakeSet() {
+  const dRadio = document.querySelector('input[name="dcDiscMode"]:checked');
+  const dMode = dRadio ? dRadio.value : 'none';
+  if (dMode !== 'set') {
+    const hint = document.getElementById('dc-sel-hint');
+    if (hint) hint.textContent = '请先在「优惠体系」选择 SET优惠 模式';
+    return;
+  }
+  const pids = [..._dcSelSet];
+  if (!pids.length) {
+    const hint = document.getElementById('dc-sel-hint');
+    if (hint) hint.textContent = '请先勾选要归为SET的制品';
+    return;
+  }
+  const prods = _dcProducts.filter(p => pids.includes(p._pid));
+  const groups = new Set(prods.map(p => p.setGroup || ''));
+  if (groups.size === 1 && [...groups][0] !== '') {
+    // 已同属一个SET组 → 再次点击取消分组
+    prods.forEach(p => p.setGroup = '');
+  } else {
+    const gid = 'SG' + (_dcProdSeq++);
+    prods.forEach(p => p.setGroup = gid);
+  }
+  _dcSelSet.clear();
+  const hint = document.getElementById('dc-sel-hint');
+  if (hint) hint.textContent = '';
+  dcRenderProducts(); dcRecalc();
+}
+
 // AS轮：同模类型 combobox 选择回调
 function dcSelectModelType(idx, el, modelCbId) {
   const wrapper = el.closest('.combobox-wrapper');
@@ -3226,7 +3271,7 @@ function dcSelectGlobalModel(val, checked) {
 }
 
 function dcAddProduct() { _dcProducts.push(newProduct()); dcRenderProducts(); dcRecalc(); }
-function dcClearProducts() { _dcProducts = [newProduct()]; dcRenderProducts(); dcRecalc(); }
+function dcClearProducts() { _dcProducts = [newProduct()]; _dcSelSet.clear(); dcRenderProducts(); dcRecalc(); }
 function dcRemoveProduct(idx) { _dcProducts.splice(idx, 1); if (!_dcProducts.length) _dcProducts = [newProduct()]; dcRenderProducts(); dcRecalc(); }
 function dcUpdateProduct(idx, field, val) {
   if (!_dcProducts[idx]) return;
@@ -3558,7 +3603,7 @@ function dcRecalc() {
       lt = price * qty;
     }
     const effectiveUrgent = !!p.urgent || _dcWholeOrderUrgent;
-    productDetails.push({ idx, name: p.name, patternId: p.patternId || '', qty, price, lt, useModel, mRate, modelBreakdown, actualUrgent: !!p.urgent, urgent: effectiveUrgent });
+    productDetails.push({ idx, name: p.name, patternId: p.patternId || '', qty, price, lt, useModel, mRate, modelBreakdown, actualUrgent: !!p.urgent, urgent: effectiveUrgent, setGroup: p.setGroup || '' });
   });
 
   // Step 2: Group by patternId for SET discount (only in SET mode)
@@ -3567,17 +3612,21 @@ function dcRecalc() {
   const itemGroupRate = new Array(productDetails.length).fill(1.0);
 
   if (dMode === 'set') {
+    // CX轮：分组键优先级 = 手动SET组(setGroup) > 柄图(patternId) > 无柄图
     const groups = {};
     const noPatternIdx = [];
     productDetails.forEach((d, i) => {
-      if (d.patternId) {
-        if (!groups[d.patternId]) groups[d.patternId] = [];
-        groups[d.patternId].push({ d, i });
+      let key = null;
+      if (d.setGroup) key = 'SG:' + d.setGroup;
+      else if (d.patternId) key = 'P:' + d.patternId;
+      if (key) {
+        if (!groups[key]) groups[key] = { isManual: !!d.setGroup, label: d.setGroup || d.patternId, items: [] };
+        groups[key].items.push({ d, i });
       } else { noPatternIdx.push(i); }
     });
-    Object.keys(groups).forEach(pid => {
-      const entries = groups[pid];
-      const items = entries.map(e => e.d);
+    Object.keys(groups).forEach(key => {
+      const g = groups[key];
+      const items = g.items.map(e => e.d);
       const groupSubtotal = items.reduce((s, d) => s + d.lt, 0);
       const categories = new Set(items.map(d => d.name).filter(n => n));
       const catCount = categories.size;
@@ -3586,8 +3635,8 @@ function dcRecalc() {
       else if (catCount >= 4) { setRate = set4Rate; setLabel = `≥4种品类`; }
       const groupDiscounted = groupSubtotal * setRate;
       productsTotal += groupDiscounted;
-      entries.forEach(e => { itemGroupRate[e.i] = setRate; });
-      groupDetails.push({ patternId: pid, items, groupSubtotal, catCount, setRate, setLabel, groupDiscounted });
+      g.items.forEach(e => { itemGroupRate[e.i] = setRate; });
+      groupDetails.push({ patternId: g.label, isManual: g.isManual, items, groupSubtotal, catCount, setRate, setLabel, groupDiscounted });
     });
     noPatternIdx.forEach(i => { productsTotal += productDetails[i].lt; });
   } else {
@@ -3754,7 +3803,7 @@ function dcRecalc() {
 
   if (dMode === 'set' && groupDetails.length) {
     groupDetails.forEach(g => {
-      r += `<div class="dc-r-section"><div class="dc-r-sub">柄图：${esc(g.patternId)}（${g.catCount}种品类）</div>`;
+      r += `<div class="dc-r-section"><div class="dc-r-sub">${g.isManual ? 'SET组' : '柄图：' + esc(g.patternId)}（${g.catCount}种品类）</div>`;
       const urgentSeqs = [];
       g.items.forEach(d => {
         if (!d.name && !d.price) return;
