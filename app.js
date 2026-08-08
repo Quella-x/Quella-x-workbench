@@ -3605,8 +3605,12 @@ function dcRecalc() {
     const qty = parseInt(e.quantity) || 0;
     const lt = price * qty;
     const bs = e.bindSeq || 'none';
-    // 加价项目不纳入SET/折扣优惠计算（全额计入，折扣只作用于制品）；故 groupRate 恒为 1.0
-    const groupRate = 1.0;
+    // CT轮：加价项目与制品一起算入折扣——绑定加价继承其绑定制品的 SET 组折扣率；未绑定保持原价
+    let groupRate = 1.0;
+    if (bs !== 'none') {
+      const bi = parseInt(bs, 10) - 1;
+      if (bi >= 0 && bi < _dcProducts.length) groupRate = itemGroupRate[bi] ?? 1.0;
+    }
     const ex = { name: e.name, qty, lt, bindSeq: bs, groupRate };
     extraDetails.push(ex);
     extrasTotal += lt;
@@ -3645,14 +3649,16 @@ function dcRecalc() {
   };
   let afterDiscount = baseBeforeDiscount;
   if (dMode === 'set') {
-    // CQ轮：加价项目不纳入SET优惠；productsTotal 已仅含制品的SET组折扣后金额
-    afterDiscount = productsTotal;
+    // CT轮：加价项目与制品一起算入折扣——绑定加价跟随对应制品的SET组折扣率，未绑定加价保持原价
+    let extrasAfterSet = 0;
+    _dcExtras.forEach(ex => { extrasAfterSet += ex.lt * (ex.groupRate || 1.0); });
+    afterDiscount = productsTotal + extrasAfterSet;
   }
   if (dMode === 'discount') {
-    let d = baseBeforeDiscount;
+    let d = baseBeforeDiscount + extrasTotal;    // CT轮：折扣作用于（制品+加价）整体
     const mCheck = document.getElementById('dcDiscMulti');
     if (mCheck && mCheck.checked) {
-      // Bn轮：阈值=净不同制品数量（排除加价项目、同柄、同模）；九折只作用于净制品金额
+      // Bn轮：阈值=净不同制品数量（排除同模、同柄）；九折只作用于净制品金额，加价项目保持原价
       const patternFreq = {};
       productDetails.forEach(x => { if (x.patternId) patternFreq[x.patternId] = (patternFreq[x.patternId] || 0) + 1; });
       let netQty = 0, netBase = 0;
@@ -3670,7 +3676,7 @@ function dcRecalc() {
         const mInp = document.querySelector('input[data-disc="multi"]');
         const mR = mInp ? (parseFloat(mInp.value) || 0.9) : 0.9;
         const after = netBase * mR;
-        d = baseBeforeDiscount - netBase + after;                  // 仅净制品部分打折；加价项目/同柄/同模保持原价
+        d = baseBeforeDiscount + extrasTotal - netBase + after;    // 仅净制品部分打折；加价项目保持原价
         discHTML += `<div class="${discCls()}"><span>折扣优惠：不同制品≥8件</span><span>×${mR}</span></div>`;
       }
     }
@@ -3678,7 +3684,7 @@ function dcRecalc() {
       const cdCheck = document.querySelector(`input[data-cdisc-check="${ci}"]`);
       if (cdCheck && cdCheck.checked && cd.value > 0) {
         if (cd.type === 'rate') {
-          d = d * cd.value;
+          d = d * cd.value;   // CT轮：对整体（含加价）打折
           discHTML += `<div class="${discCls()}"><span>${esc(cd.name || '自定义' + (ci+1))}</span><span>×${cd.value}</span></div>`;
         } else {
           d = d - cd.value;
@@ -3697,26 +3703,21 @@ function dcRecalc() {
 
   // Step 7: 加急
   // 顺序：制品→同模→SET/折扣→加价项目→加急→用途
-  // 加价项目全额计入总价，但不乘加急倍率；加急仅作用于制品（单制品/整单均如此）
+  // CT轮：afterDiscount 已含加价折扣后金额；加价项目不乘加急倍率，加急溢价仅基于制品原价 prodUrgentBase
   // 单制品/部分加急：加急溢价 = prodUrgentBase * (urgentRate-1)
-  // 整单加急：grandTotal = (afterDiscount + extrasTotal) * urgentRate
+  // 整单加急：grandTotal = afterDiscount * urgentRate（折扣后整体含加价乘倍率）
   let grandTotal = 0;
   if (baseBeforeDiscount > 0) {
     if (_dcWholeOrderUrgent) {
-      grandTotal = (afterDiscount + extrasTotal) * urgentRate;
+      grandTotal = afterDiscount * urgentRate;
     } else {
       const urgentPremium = prodUrgentBase * (urgentRate - 1);
-      grandTotal = afterDiscount + extrasTotal + urgentPremium;
+      grandTotal = afterDiscount + urgentPremium;
     }
   }
 
-  // Step 8: 废弃「整体汇总后再×稿件用途倍率」；改用统一公式 finalPrice = 总价 + 总基数×(uRate−1)
-  // 逐项等价于 A_i × (urgentRate_i + uRate − 1)：
-  //   自用(uRate=1) → A×urgentRate；倍率>1 → A×(urgentRate+uRate−1)；不加急(urgentRate=1) → A×uRate 与旧逻辑一致
-  // grandTotal=折扣后含加急溢价未含用途；用途倍率作用于（制品折扣后 + 加价项目全额）
-  // afterDiscount 仅含制品，需补 extrasTotal 才覆盖加价项目
-  const fullAfterDiscount = afterDiscount + extrasTotal;
-  const finalPrice = grandTotal + fullAfterDiscount * (uRate - 1);
+  // Step 8: 用途倍率作用于折扣后整体（afterDiscount 已含制品+加价折扣后金额）
+  const finalPrice = grandTotal + afterDiscount * (uRate - 1);
 
   // Save rates
   const settings = DB.get('calcSettings', {});
@@ -3769,11 +3770,11 @@ function dcRecalc() {
         }
         if (d.actualUrgent) urgentSeqs.push(prodIdx);
       });
-      // 组内基数：制品含SET折扣，绑定加价全额（不纳入SET优惠）
+      // 组内基数：制品含SET折扣，绑定加价跟随其制品SET折扣率（CT轮：一起算入折扣）
       let groupWithBound = 0, groupUrgentWB = 0;
       g.items.forEach(d => {
-        const boundLt = (boundMap[d.idx] || []).reduce((s, ex) => s + ex.lt, 0);  // 加价项目不打折
-        const base = d.lt * (itemGroupRate[d.idx] ?? 1.0) + boundLt;  // 制品折扣后 + 加价原价
+        const boundLt = (boundMap[d.idx] || []).reduce((s, ex) => s + ex.lt * ex.groupRate, 0);  // 绑定加价跟随SET折扣
+        const base = d.lt * (itemGroupRate[d.idx] ?? 1.0) + boundLt;  // 制品折扣后 + 加价折扣后
         groupWithBound += base;
         if (d.actualUrgent) groupUrgentWB += d.lt;  // 单制品加急溢价仅基于制品原价，不含绑定加价
       });
@@ -3812,7 +3813,7 @@ function dcRecalc() {
       });
       let groupWithBound = 0, groupUrgentWB = 0;
       noPatternItems.forEach(d => {
-        const boundLt = (boundMap[d.idx] || []).reduce((s, ex) => s + ex.lt, 0);  // 加价项目不打折
+        const boundLt = (boundMap[d.idx] || []).reduce((s, ex) => s + ex.lt * ex.groupRate, 0);  // 加价跟随折扣
         const base = d.lt + boundLt;
         groupWithBound += base;
         if (d.actualUrgent) groupUrgentWB += d.lt;  // 单制品加急溢价仅基于制品原价，不含绑定加价
@@ -3850,8 +3851,8 @@ function dcRecalc() {
       const urgentFirstCls = discHTML ? '' : ' promo-first';
       r += `<div class="dc-rr promo${urgentFirstCls}"><span>加急：${urgentSeqs.map(pad2).join('、')}</span><span>×${urgentRate}</span></div>`;
     }
-    // 折后小计：折扣后、加急前的总额（加价项目不乘加急）
-    const flatSubtotal = afterDiscount + extrasTotal;
+    // 折后小计：折扣后、加急前的总额（afterDiscount 已含加价折扣后金额）
+    const flatSubtotal = afterDiscount;
     r += `<div class="dc-rr total"><span>折后小计</span><span>¥${flatSubtotal.toFixed(2)}</span></div>`;
     r += '</div>';
   }
@@ -3863,9 +3864,9 @@ function dcRecalc() {
     });
     r += `<div class="dc-rr total"><span>加价合计</span><span>¥${extrasTotal.toFixed(2)}</span></div></div>`;
   }
-  // 整单加急：底部独立区块（分组内不输出加急行）；基数含制品(折扣后)+加价项目(全额)
+  // 整单加急：底部独立区块（分组内不输出加急行）；基数含制品+加价折扣后整体
   if (whole && urgentEnabled) {
-    const fullBaseAfterDisc = afterDiscount + extrasTotal;     // 制品(折扣后) + 加价项目(全额)
+    const fullBaseAfterDisc = afterDiscount;     // 折扣后整体（含加价）
     const urgentSub = fullBaseAfterDisc * urgentRate;
     r += `<div class="dc-r-section"><div class="dc-r-sub">整单加急（全部制品与加价项目）</div>`;
     r += `<div class="dc-rr"><span>整单加急-总价格</span><span>¥${fullBaseAfterDisc.toFixed(2)}</span></div>`;
