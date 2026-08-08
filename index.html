@@ -1186,9 +1186,9 @@ ul,li{list-style:none}
   .dc-product-header{display:none!important}
   .dc-extra-header{display:none!important}
   .dc-product-row{
-    grid-template-columns:22px 28px minmax(120px,1fr) 70px 60px 48px 32px !important;
-    grid-template-areas:"sel seq name pattern price qty del"
-                        ". . row2 row2 row2 row2 ."!important;
+    grid-template-columns:28px minmax(120px,1fr) 70px 60px 48px 32px !important;
+    grid-template-areas:"seq name pattern price qty del"
+                        ". row2 row2 row2 row2 ."!important;
     gap:4px!important;padding:0
   }
   .dc-product-row .form-input{padding:5px 6px!important;font-size:12px;box-sizing:border-box;text-align:left}
@@ -1228,9 +1228,9 @@ ul,li{list-style:none}
   .dc-product-header{display:none!important}
   .dc-extra-header{display:none!important}
   .dc-product-row{
-    grid-template-columns:22px 28px minmax(120px,1fr) 70px 60px 48px 32px !important;
-    grid-template-areas:"sel seq name pattern price qty del"
-                        ". . row2 row2 row2 row2 ."!important;
+    grid-template-columns:28px minmax(120px,1fr) 70px 60px 48px 32px !important;
+    grid-template-areas:"seq name pattern price qty del"
+                        ". row2 row2 row2 row2 ."!important;
     gap:4px!important;padding:0
   }
   .dc-product-row .form-input{padding:5px 6px!important;font-size:12px;box-sizing:border-box;text-align:left}
@@ -1279,16 +1279,15 @@ ul,li{list-style:none}
 .dc-product-header{display:none}
 .dc-product-header > span{box-sizing:border-box;padding-left:8px}
 .dc-product-header > span:last-child{padding-left:0}
-.dc-product-header > span:nth-child(1){grid-area:sel}
-.dc-product-header > span:nth-child(2){grid-area:seq}
-.dc-product-header > span:nth-child(3){grid-area:name}
-.dc-product-header > span:nth-child(4){grid-area:pattern}
-.dc-product-header > span:nth-child(5){grid-area:price}
-.dc-product-header > span:nth-child(6){grid-area:qty}
-.dc-product-header > span:nth-child(7){grid-area:urgent}
-.dc-product-header > span:nth-child(8){grid-area:same}
-.dc-product-header > span:nth-child(9){grid-area:del}
-.dc-product-row{display:grid;grid-template-columns:22px 28px minmax(110px,1fr) 70px 60px 48px 32px;gap:4px;margin-bottom:6px;align-items:center;padding:0;grid-template-areas:"sel seq name pattern price qty del" ". . row2 row2 row2 row2 ."}
+.dc-product-header > span:nth-child(1){grid-area:seq}
+.dc-product-header > span:nth-child(2){grid-area:name}
+.dc-product-header > span:nth-child(3){grid-area:pattern}
+.dc-product-header > span:nth-child(4){grid-area:price}
+.dc-product-header > span:nth-child(5){grid-area:qty}
+.dc-product-header > span:nth-child(6){grid-area:urgent}
+.dc-product-header > span:nth-child(7){grid-area:same}
+.dc-product-header > span:nth-child(8){grid-area:del}
+.dc-product-row{display:grid;grid-template-columns:28px minmax(110px,1fr) 70px 60px 48px 32px;gap:4px;margin-bottom:6px;align-items:center;padding:0;grid-template-areas:"seq name pattern price qty del" ". row2 row2 row2 row2 ."}
 .dc-product-row .form-input{padding:6px 8px;font-size:13px;box-sizing:border-box;text-align:left}
 .dc-product-row .dc-prod-name-wrapper,.dc-extra-row .combobox-wrapper{min-width:0;width:100%}
 .dc-product-row .dc-prod-seq{min-width:24px}
@@ -1300,9 +1299,6 @@ ul,li{list-style:none}
 .dc-product-row .dc-prod-urgent{justify-content:flex-start;font-size:13px;gap:2px}
 .dc-product-row .dc-prod-same{justify-content:flex-start;font-size:13px;gap:2px}
 .dc-product-row .dc-prod-del{margin-left:auto}
-.dc-product-row .dc-prod-sel{grid-area:sel;display:flex;align-items:center;justify-content:center}
-.dc-product-row .dc-prod-sel input{width:16px;height:16px;flex-shrink:0;accent-color:var(--c-primary)}
-.dc-product-row.dc-prod-grouped{background:var(--c-primary-bg,#eef4ff);border-radius:6px}
 .dc-prod-check{display:flex;align-items:center;justify-content:flex-start;gap:3px;font-size:13px;cursor:pointer;color:var(--c-text-muted);white-space:nowrap}
 .dc-prod-check input{accent-color:var(--c-primary);width:14px;height:14px;flex-shrink:0}
 /* BC轮：同模下拉移出 label，作为独立 combobox，与制品名称下拉同款 */
@@ -1649,7 +1645,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=134"></script>
+<script src="app.js?v=137"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
