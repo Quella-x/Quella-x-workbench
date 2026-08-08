@@ -3033,19 +3033,7 @@ function renderDesignCalc() {
   html += '<div class="calc-card">';
   html += '<div class="calc-card-title">优惠体系 <span class="calc-card-hint">（SET优惠与折扣优惠互斥，可自行添加折扣优惠方案）</span></div>';
   html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" class="calc-circle" name="dcDiscMode" value="none" checked onchange="dcDiscModeChange()"> 无优惠</label></div>';
-  // SET
-  html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" class="calc-circle" name="dcDiscMode" value="set" onchange="dcDiscModeChange()"> SET优惠</label></div>';
-  html += '<div id="dc-set-area" class="calc-sub-area disabled">';
-  html += '<div style="font-size:12px;color:var(--c-text-muted);padding:4px 0;line-height:1.5">系统根据柄图自动分组，档位不叠加。</div>';
-  DC_SET.forEach(s => {
-    const rate = (settings.setRates && settings.setRates[s.value]) ?? s.rate;
-    html += '<div class="calc-rate-row">';
-    html += `<label class="calc-rate-label">${s.label}</label>`;
-    html += `<input type="number" class="calc-rate-input" step="0.1" value="${rate}" data-set="${s.value}" oninput="dcRecalc()">`;
-    html += '</div>';
-  });
-  html += '</div>';
-  // Discount (with custom discount support)
+  // Discount (with custom discount support) — 放置前面
   html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" class="calc-circle" name="dcDiscMode" value="discount" onchange="dcDiscModeChange()"> 折扣优惠</label></div>';
   html += '<div id="dc-disc-area" class="calc-sub-area disabled">';
   const discMultiRate = settings.discMultiRate ?? 0.9;
@@ -3071,6 +3059,18 @@ function renderDesignCalc() {
   html += '<button type="button" class="btn btn-primary btn-sm" onclick="dcSaveCustomDiscsFeedback()" style="flex:1">💾 保存方案</button>';
   html += '</div>';
   html += '</div>';
+  html += '</div>';
+  // SET
+  html += '<div class="calc-rate-row"><label class="calc-rate-label"><input type="radio" class="calc-circle" name="dcDiscMode" value="set" onchange="dcDiscModeChange()"> SET优惠</label></div>';
+  html += '<div id="dc-set-area" class="calc-sub-area disabled">';
+  html += '<div style="font-size:12px;color:var(--c-text-muted);padding:4px 0;line-height:1.5">系统根据柄图自动分组，档位不叠加。</div>';
+  DC_SET.forEach(s => {
+    const rate = (settings.setRates && settings.setRates[s.value]) ?? s.rate;
+    html += '<div class="calc-rate-row">';
+    html += `<label class="calc-rate-label">${s.label}</label>`;
+    html += `<input type="number" class="calc-rate-input" step="0.1" value="${rate}" data-set="${s.value}" oninput="dcRecalc()">`;
+    html += '</div>';
+  });
   html += '</div>';
   html += '</div>'; // end discount card
 
