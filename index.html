@@ -1649,6 +1649,55 @@ ul,li{list-style:none}
 }
 
 /* ===== v15: Combobox structure preserved on all devices ===== */
+
+/* ===== Life Module (生活 · 每日打卡/每日记录) v188 ===== */
+.life-section-title{font-size:15px;font-weight:700;margin:14px 0 8px;display:flex;align-items:center;gap:6px}
+.life-today-todo{background:linear-gradient(135deg,var(--c-primary-bg),#ffffff);border:1px solid var(--c-border);border-radius:var(--radius);padding:12px 14px;margin-bottom:6px}
+.life-today-todo h3{font-size:14px;margin-bottom:8px}
+.life-todo-list{display:flex;flex-wrap:wrap;gap:8px}
+.life-todo-item{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--c-border);border-radius:20px;padding:5px 10px;font-size:13px}
+.life-todo-item .lti-ico{font-size:15px}
+.life-checkin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:6px}
+.life-checkin-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow-sm)}
+.lcc-top{display:flex;align-items:center;gap:8px}
+.lcc-icon{font-size:22px}
+.lcc-label{font-weight:600;font-size:15px}
+.lcc-period{margin-left:auto;font-size:11px;color:var(--c-text-light);background:var(--c-border-light);padding:2px 8px;border-radius:10px}
+.lcc-streak{display:flex;align-items:baseline;gap:4px}
+.lcc-num{font-size:28px;font-weight:800;color:var(--c-primary-dark);line-height:1}
+.lcc-unit{font-size:12px;color:var(--c-text-light)}
+.lcc-status{font-size:13px}
+.lcc-status.done{color:var(--c-green);font-weight:600}
+.lcc-status.todo{color:var(--c-warning);font-weight:600}
+.lcc-actions{display:flex;gap:6px;align-items:center;margin-top:2px}
+.lcc-date{flex:1;min-width:0;padding:6px 8px;font-size:14px}
+.life-add-type{margin-top:14px}
+.life-add-form{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:12px;margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.life-add-form input,.life-add-form select{padding:7px 9px;font-size:14px;border:1px solid var(--c-border);border-radius:var(--radius-sm)}
+.life-record-datebar{display:flex;align-items:center;gap:10px;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:10px 14px;margin-bottom:6px;flex-wrap:wrap}
+.life-record-datebar input[type=date]{padding:7px 9px;font-size:15px;border:1px solid var(--c-border);border-radius:var(--radius-sm)}
+.life-stat-row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+.life-stat{background:var(--c-primary-bg);border-radius:var(--radius);padding:8px 14px;flex:1;min-width:120px}
+.life-stat .ls-val{font-size:20px;font-weight:800;color:var(--c-primary-dark)}
+.life-stat .ls-label{font-size:12px;color:var(--c-text-light)}
+.life-record-section{margin-top:14px}
+.life-record-section-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.life-record-section-head .lrs-ico{font-size:18px}
+.life-record-section-head .lrs-label{font-weight:600;font-size:14px}
+.life-rec-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:8px}
+.life-rec-fields{flex:1;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px}
+.life-rec-fields .lrf{display:flex;gap:4px}
+.life-rec-fields .lrf b{color:var(--c-text-light);font-weight:500}
+.life-rec-actions{display:flex;gap:4px;flex-shrink:0}
+.life-rec-form{background:var(--c-card);border:1px dashed var(--c-primary);border-radius:var(--radius);padding:12px;margin-bottom:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.life-rec-form .lf-field{display:flex;flex-direction:column;gap:3px;min-width:120px}
+.life-rec-form .lf-field label{font-size:12px;color:var(--c-text-light)}
+.life-rec-form input,.life-rec-form select{padding:7px 9px;font-size:14px;border:1px solid var(--c-border);border-radius:var(--radius-sm)}
+@media (max-width:768px){
+  .life-checkin-grid{grid-template-columns:1fr 1fr}
+  .lcc-num{font-size:24px}
+  .life-stat{min-width:100px}
+}
 </style>
 </head>
 <body>
@@ -1700,7 +1749,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=182"></script>
+<script src="app.js?v=188"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

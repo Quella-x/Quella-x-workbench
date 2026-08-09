@@ -273,10 +273,12 @@ const DEFAULT_NAV_ICONS = {
   'home': '🏠', 'groupbuy': '📦', 'groupbuy-records': '📋', 'groupbuy-factories': '🏭',
   'groupbuy-samples': '🔬', 'groupbuy-calc': '🧮', 'design': '🎨', 'design-inspiration': '💡',
   'design-commission': '📅', 'design-calc': '🧮', 'design-auth': '📜', 'design-pricelist': '💰',
-  'oc': '👤', 'oc-profiles': '🎭', 'oc-relations': '🔗', 'oc-stories': '📖', 'oc-timeline': '🕐', 'oc-commission': '🖌️'
+  'oc': '👤', 'oc-profiles': '🎭', 'oc-relations': '🔗', 'oc-stories': '📖', 'oc-timeline': '🕐', 'oc-commission': '🖌️',
+  'life-checkin': '✅', 'life-record': '📝'
 };
 const DEFAULT_SETTINGS = {
   theme: { primary: '#9DC8FF', primaryLight: '#BDE7FF', primaryDark: '#7AB5F5', primaryBg: '#E0F2FF', sidebarStart: '#7AB5F5', sidebarEnd: '#5BA3F0' },
+  customThemes: [],
   navIcons: { ...DEFAULT_NAV_ICONS },
   navLabels: {},
   fieldLabels: {},
@@ -841,6 +843,8 @@ function renderCalendar(year, month, records, commissionRecords = []) {
   const today = new Date();
   const todayKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
   const START_COLOR = '#ff9a3c', END_COLOR = '#f5c518', BOTH_COLOR = '#712258';
+  // v188: 深空打卡蓝点缓存（固定位置在开稿/接稿/同天下）
+  const lifeDeepspaceCache = new Set(DB.list('lifeCheckins').filter(r => r.type === 'deepspace').map(r => r.date));
   let html = '<div class="cal-grid">';
   ['日', '一', '二', '三', '四', '五', '六'].forEach(w => { html += `<div class="cal-weekday">${w}</div>`; });
   for (let i = startWeekday - 1; i >= 0; i--) { html += `<div class="cal-day other-month"><span class="cal-date">${prevMonthDays - i}</span></div>`; }
@@ -865,7 +869,11 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     } else if (hasEnd) {
       commTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${END_COLOR}"></span><span class="cal-day-tag-text" style="color:${END_COLOR}">截稿</span></span>`;
     }
-    const commTags = commTag ? `<div class="cal-day-tags home-comm-tags">${commTag}</div>` : '';
+    let deepTag = '';
+    if (lifeDeepspaceCache.has(dateStr)) {
+      deepTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:#9DC8FF"></span><span class="cal-day-tag-text" style="color:#5BA3F0">深空</span></span>`;
+    }
+    const commTags = commTag ? `<div class="cal-day-tags home-comm-tags">${commTag}${deepTag}</div>` : (deepTag ? `<div class="cal-day-tags home-comm-tags">${deepTag}</div>` : '');
     html += `<div class="cal-day${isToday ? ' today' : ''}">
       <div class="cal-date-row"><span class="cal-date">${d}</span></div>
       <div class="cal-dots">${topDots}${dayCount}</div>
@@ -889,6 +897,7 @@ function renderCalendar(year, month, records, commissionRecords = []) {
   html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>开稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>截稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>当天同时存在开稿和截稿项目</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:#9DC8FF"></span>深空打卡</span>`;
   html += '</div>';
   html += '</div>';
   return html;
@@ -974,12 +983,17 @@ const NAV = [
     { key: 'oc-timeline', label: '时间线' },
     { key: 'oc-commission', label: '约稿记录' },
   ]},
+  { key: 'life', label: '生活', group: true, children: [
+    { key: 'life-checkin', label: '每日打卡' },
+    { key: 'life-record', label: '每日记录' },
+  ]},
 ];
 const PAGE_TITLES = {
   'home': '首页 · 自媒体发布记录', 'groupbuy-records': '开团 · 开团记录', 'groupbuy-factories': '开团 · 厂家记录',
   'groupbuy-samples': '开团 · 打样记录', 'groupbuy-calc': '开团 · 价目计算', 'design-inspiration': '美工 · 灵感记录',
   'design-commission': '美工 · 接稿排期', 'design-calc': '美工 · 报价计算', 'design-auth': '美工 · 授权记录', 'design-pricelist': '美工 · 价目表',
   'oc-profiles': 'OC · 人物档案', 'oc-relations': 'OC · 人物关系', 'oc-stories': 'OC · 故事小记', 'oc-timeline': 'OC · 时间线', 'oc-commission': 'OC · 约稿记录',
+  'life-checkin': '生活 · 每日打卡', 'life-record': '生活 · 每日记录',
 };
 
 /* ===== Module Configs ===== */
@@ -1512,6 +1526,8 @@ function navigate(page) {
   if (page === 'oc-timeline') return renderTimeline();
   if (page === 'design-pricelist') return renderPriceList();
   if (page === 'design-calc') return renderDesignCalc();
+  if (page === 'life-checkin') return renderLifeCheckin();
+  if (page === 'life-record') return renderLifeRecord();
   const mod = MODULES[page];
   if (mod) return renderListPage(page, mod);
   body.innerHTML = '<div class="empty-state"><div class="empty-icon">🔧</div><div class="empty-text">页面开发中...</div></div>';
@@ -4510,6 +4526,26 @@ function renderThemeSettings(html) {
   colors.forEach(c => {
     html += `<div class="color-picker-row"><label>${c.label}</label><input type="color" id="set_${c.key}" value="${t[c.key]}"><input type="text" id="set_${c.key}_txt" value="${t[c.key]}"></div>`;
   });
+  // 保存为方案
+  html += '<div style="margin-top:16px;display:flex;gap:8px;align-items:center">';
+  html += '<input type="text" class="form-input" id="set_custom_name" placeholder="方案名称" style="flex:1;min-width:0">';
+  html += '<button class="btn btn-primary" style="flex-shrink:0" onclick="saveCustomTheme()">保存为方案</button>';
+  html += '</div>';
+  // 已保存方案
+  const customThemes = (s.customThemes || []);
+  if (customThemes.length) {
+    html += '<h4 style="font-size:14px;margin:20px 0 12px;color:var(--c-primary)">已保存方案</h4>';
+    html += '<div style="display:flex;flex-direction:column;gap:8px">';
+    customThemes.forEach((ct, i) => {
+      html += '<div style="display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--c-border);border-radius:8px;background:var(--c-card)">';
+      html += `<div style="width:28px;height:28px;border-radius:6px;background:${ct.primary};flex-shrink:0;border:1px solid var(--c-border-light)"></div>`;
+      html += `<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--c-text)">${ct.name}</div><div style="font-size:11px;color:var(--c-text-muted)">${ct.primary}</div></div>`;
+      html += `<button class="btn btn-outline" style="padding:4px 10px;font-size:12px;flex-shrink:0" onclick="applyCustomTheme(${i})">应用</button>`;
+      html += `<button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;flex-shrink:0;color:#e74c3c" onclick="deleteCustomTheme(${i})">删除</button>`;
+      html += '</div>';
+    });
+    html += '</div>';
+  }
   html += '</div>';
   return html;
 }
@@ -4522,6 +4558,44 @@ function applyPresetTheme(name) {
   applyTheme(s.theme);
   renderSettingsModal();
   Toast.success('已应用「' + name + '」主题');
+}
+function saveCustomTheme() {
+  const s = getSettings();
+  if (!s.customThemes) s.customThemes = [];
+  const nameEl = $('#set_custom_name');
+  let name = nameEl ? nameEl.value.trim() : '';
+  name = name.replace(/[<>&"]/g, '');
+  if (!name) name = '我的配色' + (s.customThemes.length + 1);
+  const theme = {};
+  ['primary', 'primaryLight', 'primaryDark', 'primaryBg', 'sidebarStart', 'sidebarEnd'].forEach(k => {
+    const el = $('#set_' + k);
+    theme[k] = el ? el.value : (s.theme[k] || '#9DC8FF');
+  });
+  const exist = s.customThemes.findIndex(c => c.name === name);
+  if (exist >= 0) s.customThemes[exist] = Object.assign({ name: name }, theme);
+  else s.customThemes.push(Object.assign({ name: name }, theme));
+  saveSettings(s);
+  renderSettingsModal();
+  Toast.success('已保存方案「' + name + '」');
+}
+function applyCustomTheme(idx) {
+  const s = getSettings();
+  const ct = (s.customThemes || [])[idx];
+  if (!ct) return;
+  s.theme = { primary: ct.primary, primaryLight: ct.primaryLight, primaryDark: ct.primaryDark, primaryBg: ct.primaryBg, sidebarStart: ct.sidebarStart, sidebarEnd: ct.sidebarEnd };
+  saveSettings(s);
+  applyTheme(s.theme);
+  renderSettingsModal();
+  Toast.success('已应用「' + ct.name + '」');
+}
+function deleteCustomTheme(idx) {
+  const s = getSettings();
+  const ct = (s.customThemes || [])[idx];
+  if (!ct) return;
+  s.customThemes.splice(idx, 1);
+  saveSettings(s);
+  renderSettingsModal();
+  Toast.success('已删除方案「' + ct.name + '」');
 }
 
 function renderNavIconSettings(html) {
@@ -4856,6 +4930,332 @@ function migrateData() {
     if (r.unit !== undefined) { delete r.unit; changed = true; }
   });
   if (changed) DB.set('priceList', priceList);
+}
+
+/* ============================================================
+   生活模块 · 每日打卡 / 每日记录 (v188)
+   ============================================================ */
+const LIFE_CHECKIN_TYPES = [
+  { key: 'deepspace', label: '深空打卡', icon: '🌌', period: 'day', calendar: true },
+  { key: 'sport', label: '运动打卡', icon: '🏃', period: 'day' },
+  { key: 'massage', label: '每周按摩打卡', icon: '💆', period: 'week' },
+  { key: 'vacuum', label: '吸尘打卡', icon: '🧹', period: 'week' },
+];
+const LIFE_RECORD_TYPES = [
+  { key: 'sleep', label: '睡眠记录', icon: '😴', fields: [
+    { key: 'sleepTime', label: '入睡时间', type: 'time' },
+    { key: 'wakeTime', label: '起床时间', type: 'time' },
+    { key: 'wakeCount', label: '清醒次数', type: 'number' },
+    { key: 'duration', label: '睡眠时长(小时)', type: 'number', auto: true, hint: '根据入睡/起床自动计算' },
+  ]},
+  { key: 'meal', label: '三餐记录', icon: '🍚', fields: [
+    { key: 'mealTime', label: '吃饭时间', type: 'time' },
+    { key: 'food', label: '饭菜信息', type: 'text' },
+    { key: 'mealCount', label: '几餐', type: 'number' },
+  ]},
+  { key: 'snack', label: '零食记录', icon: '🍟', fields: [
+    { key: 'snackTime', label: '吃零食时间', type: 'time' },
+    { key: 'food', label: '零食信息', type: 'text' },
+    { key: 'category', label: '类别', type: 'text', placeholder: '如 炸鸡汉堡类' },
+  ]},
+];
+function getLifeCheckinTypes() { return LIFE_CHECKIN_TYPES.concat(DB.list('lifeCheckinTypes')); }
+function getLifeRecordTypes() {
+  return LIFE_RECORD_TYPES.concat(DB.list('lifeRecordTypes').map(t => ({
+    key: t.key, label: t.label, icon: t.icon || '📝',
+    fields: t.fields || [
+      { key: 'f1', label: '内容', type: 'text' },
+      { key: 'f2', label: '时间', type: 'time' },
+      { key: 'f3', label: '数量', type: 'number' },
+    ],
+  })));
+}
+function parseDateStr(s) { const p = s.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+function addDaysStr(s, n) { const d = parseDateStr(s); d.setDate(d.getDate() + n); return fmtDate(d); }
+function weekKeyOf(s) {
+  const d = parseDateStr(s);
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1 - day);
+  const monday = new Date(d); monday.setDate(d.getDate() + diff);
+  const yearStart = new Date(monday.getFullYear(), 0, 1);
+  const week = Math.ceil((((monday - yearStart) / 86400000) + 1) / 7);
+  return monday.getFullYear() + '-W' + String(week).padStart(2, '0');
+}
+function getCheckin(typeKey, dateStr) {
+  return DB.list('lifeCheckins').find(r => r.type === typeKey && r.date === dateStr) || null;
+}
+function lifeDailyStreak(typeKey) {
+  const set = new Set(DB.list('lifeCheckins').filter(r => r.type === typeKey).map(r => r.date));
+  if (!set.size) return 0;
+  let cursor = todayStr();
+  if (!set.has(cursor)) {
+    const y = addDaysStr(todayStr(), -1);
+    if (!set.has(y)) return 0;
+    cursor = y;
+  }
+  let streak = 0;
+  while (set.has(cursor)) { streak++; cursor = addDaysStr(cursor, -1); }
+  return streak;
+}
+function lifeWeeklyStreak(typeKey) {
+  const set = new Set(DB.list('lifeCheckins').filter(r => r.type === typeKey).map(r => weekKeyOf(r.date)));
+  if (!set.size) return 0;
+  const d = new Date();
+  const wk = () => weekKeyOf(fmtDate(d));
+  if (!set.has(wk())) { d.setDate(d.getDate() - 7); if (!set.has(wk())) return 0; }
+  let streak = 0;
+  while (set.has(wk())) { streak++; d.setDate(d.getDate() - 7); }
+  return streak;
+}
+function sleepDurationHours(sleepTime, wakeTime) {
+  if (!sleepTime || !wakeTime) return null;
+  const [sh, sm] = sleepTime.split(':').map(Number);
+  const [wh, wm] = wakeTime.split(':').map(Number);
+  let mins = (wh * 60 + wm) - (sh * 60 + sm);
+  if (mins <= 0) mins += 1440;
+  return Math.round(mins / 60 * 10) / 10;
+}
+
+/* ---- 每日打卡 ---- */
+function renderLifeCheckin() {
+  const body = $('#mainBody');
+  if (!pageState['life-checkin']) pageState['life-checkin'] = { addOpen: false, newLabel: '', newIcon: '✅', newPeriod: 'day' };
+  const ps = pageState['life-checkin'];
+  const types = getLifeCheckinTypes();
+  const today = todayStr();
+
+  const todoList = types.filter(t => {
+    if (t.period === 'day') return !getCheckin(t.key, today);
+    return !DB.list('lifeCheckins').some(r => r.type === t.key && weekKeyOf(r.date) === weekKeyOf(today));
+  });
+
+  let html = '<div class="fade-in">';
+  html += '<div class="life-section-title">🌿 每日打卡</div>';
+
+  html += '<div class="life-today-todo">';
+  html += '<h3>📌 今日待打卡</h3>';
+  if (!todoList.length) html += '<div style="color:var(--c-green);font-weight:600">🎉 今日全部完成，太棒了！</div>';
+  else {
+    html += '<div class="life-todo-list">';
+    todoList.forEach(t => {
+      const act = t.period === 'day' ? `lifeCheckinDo('${t.key}','${today}')` : `lifeCheckinDoWeek('${t.key}')`;
+      html += `<div class="life-todo-item"><span class="lti-ico">${t.icon}</span><span>${esc(t.label)}</span><button class="btn btn-sm btn-primary" onclick="${act}" style="margin-left:4px">打卡</button></div>`;
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+
+  html += '<div class="life-checkin-grid">';
+  types.forEach(t => {
+    let done, streak, streakUnit;
+    if (t.period === 'day') {
+      done = !!getCheckin(t.key, today);
+      streak = lifeDailyStreak(t.key);
+      streakUnit = '天';
+    } else {
+      done = DB.list('lifeCheckins').some(r => r.type === t.key && weekKeyOf(r.date) === weekKeyOf(today));
+      streak = lifeWeeklyStreak(t.key);
+      streakUnit = '周';
+    }
+    const statusCls = done ? 'done' : 'todo';
+    const statusTxt = done ? (t.period === 'day' ? '今日已打卡 ✓' : '本周已打卡 ✓') : (t.period === 'day' ? '今日待打卡' : '本周待打卡');
+    html += `<div class="life-checkin-card">
+      <div class="lcc-top"><span class="lcc-icon">${t.icon}</span><span class="lcc-label">${esc(t.label)}</span><span class="lcc-period">${t.period === 'day' ? '日签' : '周签'}</span></div>
+      <div class="lcc-streak"><span class="lcc-num">${streak}</span><span class="lcc-unit">${streakUnit}连续</span></div>
+      <div class="lcc-status ${statusCls}">${statusTxt}</div>
+      <div class="lcc-actions">
+        <input type="date" class="form-input lcc-date" id="lc-date-${t.key}" value="${today}" max="${today}">
+        <button class="btn btn-primary" onclick="lifeCheckinDo('${t.key}', document.getElementById('lc-date-${t.key}').value)">打卡</button>
+        <button class="btn btn-ghost" onclick="lifeCheckinRemove('${t.key}', document.getElementById('lc-date-${t.key}').value)">撤销</button>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+
+  html += '<div class="life-add-type">';
+  if (!ps.addOpen) html += `<button class="btn btn-ghost" onclick="lifeCheckinAddOpen()">+ 新增打卡项</button>`;
+  else {
+    html += `<div class="life-add-form">
+      <input type="text" id="lc-new-label" placeholder="名称，如 喝水打卡" value="${esc(ps.newLabel)}">
+      <input type="text" id="lc-new-icon" placeholder="图标emoji" value="${esc(ps.newIcon)}" style="width:64px;text-align:center">
+      <select id="lc-new-period"><option value="day">日签</option><option value="week">周签</option></select>
+      <button class="btn btn-primary" onclick="lifeCheckinAddSave()">添加</button>
+      <button class="btn btn-ghost" onclick="lifeCheckinAddCancel()">取消</button>
+    </div>`;
+  }
+  html += '</div>';
+
+  html += '</div>';
+  body.innerHTML = html;
+}
+function lifeCheckinDo(typeKey, dateStr) {
+  dateStr = dateStr || todayStr();
+  if (dateStr > todayStr()) { Toast.warning('不能给未来的日期打卡'); return; }
+  if (getCheckin(typeKey, dateStr)) { Toast.info('该日期已打卡'); return; }
+  DB.add('lifeCheckins', { type: typeKey, date: dateStr });
+  Toast.success('打卡成功');
+  renderLifeCheckin();
+}
+function lifeCheckinDoWeek(typeKey) {
+  const wk = weekKeyOf(todayStr());
+  if (DB.list('lifeCheckins').some(r => r.type === typeKey && weekKeyOf(r.date) === wk)) { Toast.info('本周已打卡'); return; }
+  DB.add('lifeCheckins', { type: typeKey, date: todayStr() });
+  Toast.success('本周打卡成功');
+  renderLifeCheckin();
+}
+function lifeCheckinRemove(typeKey, dateStr) {
+  const rec = getCheckin(typeKey, dateStr);
+  if (!rec) { Toast.info('该日期无打卡记录'); return; }
+  DB.remove('lifeCheckins', rec.id);
+  Toast.success('已撤销');
+  renderLifeCheckin();
+}
+function lifeCheckinAddOpen() { pageState['life-checkin'].addOpen = true; renderLifeCheckin(); }
+function lifeCheckinAddCancel() { const ps = pageState['life-checkin']; ps.addOpen = false; ps.newLabel = ''; renderLifeCheckin(); }
+function lifeCheckinAddSave() {
+  const ps = pageState['life-checkin'];
+  const label = $('#lc-new-label').value.trim();
+  const icon = $('#lc-new-icon').value.trim() || '✅';
+  const period = $('#lc-new-period').value;
+  if (!label) { Toast.warning('请填写名称'); return; }
+  const list = DB.list('lifeCheckinTypes');
+  list.push({ key: 'c_' + uid(), label, icon, period });
+  DB.set('lifeCheckinTypes', list);
+  ps.addOpen = false; ps.newLabel = '';
+  Toast.success('已新增打卡项');
+  renderLifeCheckin();
+}
+
+/* ---- 每日记录 ---- */
+function renderLifeRecord() {
+  const body = $('#mainBody');
+  if (!pageState['life-record']) pageState['life-record'] = { date: todayStr(), formType: null, editId: null, values: {} };
+  const ps = pageState['life-record'];
+  const types = getLifeRecordTypes();
+  const date = ps.date;
+  const all = DB.list('lifeRecords');
+
+  let html = '<div class="fade-in">';
+  html += '<div class="life-section-title">📝 每日记录</div>';
+
+  html += `<div class="life-record-datebar">
+    <span>📅 日期</span>
+    <input type="date" value="${date}" max="${todayStr()}" onchange="lifeRecordSetDate(this.value)">
+    <div class="spacer"></div>
+    <button class="btn btn-ghost" onclick="lifeRecordGoDate(-1)">‹ 前一天</button>
+    <button class="btn btn-ghost" onclick="lifeRecordGoDate(1)">后一天 ›</button>
+  </div>`;
+
+  const sleepRecs = all.filter(r => r.type === 'sleep' && r.fields && r.fields.duration != null);
+  const todaySleep = all.find(r => r.type === 'sleep' && r.date === date && r.fields && r.fields.duration != null);
+  const last7 = sleepRecs.filter(r => r.date >= addDaysStr(date, -6) && r.date <= date);
+  const avg7 = last7.length ? (last7.reduce((s, r) => s + Number(r.fields.duration), 0) / last7.length) : null;
+  html += '<div class="life-stat-row">';
+  html += `<div class="life-stat"><div class="ls-val">${todaySleep ? todaySleep.fields.duration + 'h' : '—'}</div><div class="ls-label">${date.slice(5)} 睡眠时长</div></div>`;
+  html += `<div class="life-stat"><div class="ls-val">${avg7 != null ? Math.round(avg7 * 10) / 10 + 'h' : '—'}</div><div class="ls-label">近7日平均睡眠</div></div>`;
+  html += `<div class="life-stat"><div class="ls-val">${all.filter(r => r.date === date).length}</div><div class="ls-label">${date.slice(5)} 记录条数</div></div>`;
+  html += '</div>';
+
+  types.forEach(t => {
+    const recs = all.filter(r => r.type === t.key && r.date === date).sort((a, b) => (a._ct || 0) - (b._ct || 0));
+    html += `<div class="life-record-section">
+      <div class="life-record-section-head"><span class="lrs-ico">${t.icon}</span><span class="lrs-label">${esc(t.label)}</span>
+        <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="lifeRecOpenForm('${t.key}')">+ 添加</button></div>`;
+    if (ps.formType === t.key) {
+      html += `<div class="life-rec-form" id="lifeRecForm">`;
+      t.fields.forEach(f => {
+        const v = ps.values[f.key] != null ? ps.values[f.key] : '';
+        const ph = f.placeholder ? ` placeholder="${esc(f.placeholder)}"` : '';
+        html += `<div class="lf-field"><label>${esc(f.label)}${f.auto ? '（自动）' : ''}</label>`;
+        if (f.type === 'number') html += `<input type="number" step="0.1" id="lrf-${f.key}" value="${esc(v)}"${ph}>`;
+        else if (f.type === 'time') html += `<input type="time" id="lrf-${f.key}" value="${esc(v)}"${ph}>`;
+        else html += `<input type="text" id="lrf-${f.key}" value="${esc(v)}"${ph}>`;
+        html += `</div>`;
+      });
+      html += `<div class="lf-field" style="flex-direction:row;gap:6px">
+        <button class="btn btn-primary" onclick="lifeRecSave('${t.key}')">${ps.editId ? '保存修改' : '保存'}</button>
+        <button class="btn btn-ghost" onclick="lifeRecCancel()">取消</button>
+      </div>`;
+      html += `</div>`;
+    }
+    if (!recs.length) {
+      html += `<div style="color:var(--c-text-muted);font-size:13px;padding:6px 2px">暂无记录</div>`;
+    } else {
+      recs.forEach(r => {
+        const fieldsHtml = t.fields.map(f => {
+          let val = r.fields ? r.fields[f.key] : '';
+          if (f.key === 'duration' && (val == null || val === '') && r.fields && r.fields.sleepTime && r.fields.wakeTime) {
+            val = sleepDurationHours(r.fields.sleepTime, r.fields.wakeTime);
+          }
+          if (val === '' || val == null) return '';
+          return `<span class="lrf"><b>${esc(f.label)}:</b> ${esc(val)}</span>`;
+        }).filter(Boolean).join('');
+        html += `<div class="life-rec-card">
+          <div class="life-rec-fields">${fieldsHtml}</div>
+          <div class="life-rec-actions">
+            <button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('${t.key}','${r.id}')">编辑</button>
+            <button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button>
+          </div>
+        </div>`;
+      });
+    }
+    html += `</div>`;
+  });
+
+  html += '<div class="life-add-type">';
+  html += `<button class="btn btn-ghost" onclick="lifeRecAddType()">+ 新增记录类型</button>`;
+  html += '</div>';
+
+  html += '</div>';
+  body.innerHTML = html;
+}
+function lifeRecordSetDate(v) { const ps = pageState['life-record']; ps.date = v; ps.formType = null; ps.editId = null; renderLifeRecord(); }
+function lifeRecordGoDate(n) { const ps = pageState['life-record']; ps.date = addDaysStr(ps.date, n); if (ps.date > todayStr()) ps.date = todayStr(); ps.formType = null; ps.editId = null; renderLifeRecord(); }
+function lifeRecOpenForm(typeKey) { const ps = pageState['life-record']; ps.formType = typeKey; ps.editId = null; ps.values = {}; renderLifeRecord(); }
+function lifeRecCancel() { const ps = pageState['life-record']; ps.formType = null; ps.editId = null; ps.values = {}; renderLifeRecord(); }
+function lifeRecEdit(typeKey, id) {
+  const ps = pageState['life-record'];
+  const rec = DB.getById('lifeRecords', id);
+  ps.formType = typeKey; ps.editId = id; ps.values = rec && rec.fields ? { ...rec.fields } : {};
+  renderLifeRecord();
+}
+function lifeRecSave(typeKey) {
+  const ps = pageState['life-record'];
+  const t = getLifeRecordTypes().find(x => x.key === typeKey);
+  const values = {};
+  t.fields.forEach(f => {
+    let v = $('#lrf-' + f.key).value;
+    if (f.type === 'number') v = v === '' ? null : Number(v);
+    values[f.key] = v;
+  });
+  if (typeKey === 'sleep') {
+    const dur = sleepDurationHours(values.sleepTime, values.wakeTime);
+    if (dur != null) values.duration = dur;
+  }
+  if (ps.editId) {
+    DB.update('lifeRecords', ps.editId, { type: typeKey, date: ps.date, fields: values });
+    Toast.success('已保存修改');
+  } else {
+    DB.add('lifeRecords', { type: typeKey, date: ps.date, fields: values });
+    Toast.success('已添加记录');
+  }
+  ps.formType = null; ps.editId = null; ps.values = {};
+  renderLifeRecord();
+}
+function lifeRecDelete(id) { DB.remove('lifeRecords', id); Toast.success('已删除'); renderLifeRecord(); }
+function lifeRecAddType() {
+  const label = window.prompt('记录类型名称（如 喝水记录）：');
+  if (!label) return;
+  const icon = window.prompt('图标 emoji（可留空）：', '📝') || '📝';
+  const list = DB.list('lifeRecordTypes');
+  list.push({ key: 'r_' + uid(), label: label.trim(), icon, fields: [
+    { key: 'f1', label: '内容', type: 'text' },
+    { key: 'f2', label: '时间', type: 'time' },
+    { key: 'f3', label: '数量', type: 'number' },
+  ]});
+  DB.set('lifeRecordTypes', list);
+  Toast.success('已新增记录类型');
+  renderLifeRecord();
 }
 
 /* ===== Init ===== */
