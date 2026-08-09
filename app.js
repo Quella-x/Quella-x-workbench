@@ -889,10 +889,11 @@ function renderCalendar(year, month, records, commissionRecords = []) {
   html += `<span class="legend-item"><span class="status-dot" style="background:#fa8c16"></span>视频号</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:#07a059"></span>公众号</span>`;
   html += '</div>';
+  html += '<div class="cal-legend-sep"></div>';
   html += '<div class="cal-legend">';
   html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>开稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>截稿</span>`;
-  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>开稿+截稿重合</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>当天同时存在开稿和截稿项目</span>`;
   html += '</div>';
   html += '</div>';
   return html;
@@ -1916,12 +1917,13 @@ function renderCommissionCalendar(year, month, records) {
   html += '<div class="cal-legend">';
   html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>开稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>截稿</span>`;
-  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>开稿+截稿重合</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>当天同时存在开稿和截稿项目</span>`;
   html += '</div>';
+  html += '<div class="cal-legend-sep"></div>';
   html += '<div class="cal-legend">';
-  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[0]}"></span>紧急(截稿临近)</span>`;
-  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[1]}"></span>正常</span>`;
-  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[2]}"></span>充裕</span>`;
+  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[0]}"></span>紧急（截稿≤3天）</span>`;
+  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[1]}"></span>正常（4-7天）</span>`;
+  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[2]}"></span>充裕（>7天）</span>`;
   html += '</div>';
   html += '</div>';
   return html;
@@ -3234,7 +3236,7 @@ function renderDesignCalc() {
 
   // Usage rate
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">稿件用途倍率 <span class="calc-card-hint">（选择稿件用途，可改数值）</span></div>';
+  html += '<div class="calc-card-title">稿件用途倍率 <span class="calc-card-hint">（可更改数值）</span></div>';
   DC_USAGE.forEach((t, i) => {
     const rate = (settings.usageRates && settings.usageRates[t.value]) ?? t.rate;
     html += '<div class="calc-rate-row">';
@@ -3293,7 +3295,7 @@ function renderDesignCalc() {
   // BN轮：任一行制品勾选加急后，整单加急开关置灰（互斥）
   const anyProductUrgent = _dcProducts.some(p => p.urgent);
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">加急 <span class="calc-card-hint">（单个制品加急请单选，此为整单加急）</span></div>';
+  html += '<div class="calc-card-title">加急 <span class="calc-card-hint">（此为整单加急，制品行勾选，可单独选择部分制品加急）</span></div>';
   html += '<div class="calc-rate-row">';
   html += `<label class="calc-rate-label${anyProductUrgent ? ' calc-rate-label-disabled' : ''}"><input type="checkbox" class="dc-urgent-toggle" id="dcWholeOrderUrgentChk" ${_dcWholeOrderUrgent ? 'checked' : ''} ${anyProductUrgent ? 'disabled' : ''} onchange="dcToggleWholeOrderUrgent(this.checked)"> 加急（整单）</label>`;
   html += '<input type="number" class="calc-rate-input" step="0.1" value="2" data-urgent="rate" oninput="dcRecalc()">';
