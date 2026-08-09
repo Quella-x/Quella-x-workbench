@@ -4915,6 +4915,23 @@ function migrateData() {
     if (r.unit !== undefined) { delete r.unit; changed = true; }
   });
   if (changed) DB.set('priceList', priceList);
+
+  // v191: 清理已删除的「生活模块」孤儿数据。这些 key 在 v190 已从代码与 SYNC_STORES 移除，
+  // 但用户本地 localStorage 中可能仍有残留（不再展示、不再同步）。此处一次性清除，幂等安全。
+  const ORPHAN_LIFE_KEYS = ['lifeCheckins', 'lifeRecords', 'lifeCheckinTypes', 'lifeRecordTypes'];
+  let orphanRemoved = 0;
+  ORPHAN_LIFE_KEYS.forEach(k => {
+    const lsKey = DB._prefix + k;
+    if (localStorage.getItem(lsKey) != null) { localStorage.removeItem(lsKey); orphanRemoved++; }
+  });
+  if (orphanRemoved) console.info('[migrate] 已清理生活模块孤儿数据 key 数:', orphanRemoved);
+
+  // 若上次停留页是已删除的生活页，回退到首页，避免打开即空白
+  const uiState = DB.get('ui_state', {});
+  if (uiState.lastPage && String(uiState.lastPage).startsWith('life-')) {
+    uiState.lastPage = 'home';
+    DB.set('ui_state', uiState);
+  }
 }
 
 /* ===== Init ===== */
