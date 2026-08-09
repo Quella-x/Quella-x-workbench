@@ -446,6 +446,56 @@ function buildDynamicCombobox(col, value) {
   return `<div class="combobox-wrapper" data-subkey="${col.subkey}" style="min-width:0;flex:1"><input type="text" class="form-input combobox-input" data-subkey="${col.subkey}" value="${esc(value)}" placeholder="${esc(col.label)}" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="${oninputStr}"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
 }
 
+/* ===== 接稿排期：加价项目「绑定制品」下拉（读取制品序号+制品，首项「无（不绑定）」） ===== */
+function commissionBindOptions(products, cbId) {
+  let opts = [`<div class="combobox-option" data-value="" onclick="selectComboboxOption('${cbId}',this)">无（不绑定）</div>`];
+  (products || []).forEach((p, i) => {
+    const seq = String(i + 1).padStart(2, '0');
+    const label = p.name ? (seq + ' ' + p.name) : seq;
+    opts.push(`<div class="combobox-option" data-value="${esc(label)}" onclick="selectComboboxOption('${cbId}',this)">${esc(label)}</div>`);
+  });
+  return opts.join('');
+}
+function buildCommissionBindCombobox(col, value, products) {
+  const cbId = 'dybind_' + col.subkey + '_' + Math.random().toString(36).slice(2, 8);
+  // products 为空（新建表单尚未注入 DOM）时，从 #products_rows 实时读取
+  let items = products;
+  if (!items) {
+    items = $$('#products_rows .dynamic-list-row').map((row, idx) => {
+      const ni = row.querySelector('[data-subkey="name"]');
+      return { name: ni ? ni.value.trim() : '', idx: idx };
+    });
+  }
+  const optHTML = commissionBindOptions(items, cbId);
+  return `<div class="combobox-wrapper" data-subkey="${col.subkey}" style="min-width:0;flex:0 0 140px"><input type="text" class="form-input combobox-input" data-subkey="${col.subkey}" value="${esc(value)}" placeholder="${esc(col.label)}" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}" data-bind="productRef">${optHTML}</div></div>`;
+}
+/* 表单注入后刷新绑定下拉（读取最新制品列表） */
+function refreshCommissionBindOptions() {
+  const prodRows = $$('#products_rows .dynamic-list-row');
+  const labels = prodRows.map((row, idx) => {
+    const ni = row.querySelector('[data-subkey="name"]');
+    const name = ni ? ni.value.trim() : '';
+    const seq = String(idx + 1).padStart(2, '0');
+    return { seq: seq, label: name ? (seq + ' ' + name) : seq };
+  });
+  $$('.combobox-dropdown[data-bind="productRef"]').forEach(dd => {
+    const cbId = dd.id;
+    let html = `<div class="combobox-option" data-value="" onclick="selectComboboxOption('${cbId}',this)">无（不绑定）</div>`;
+    labels.forEach(l => { html += `<div class="combobox-option" data-value="${esc(l.label)}" onclick="selectComboboxOption('${cbId}',this)">${esc(l.label)}</div>`; });
+    dd.innerHTML = html;
+  });
+}
+/* 删除动态列表行并重排序号（序号列仅制品列表有） */
+function removeDynamicRow(btn) {
+  const row = btn.parentElement;
+  const container = row.closest('.dynamic-list-container');
+  row.remove();
+  if (container) {
+    const rows = container.querySelectorAll('.dynamic-list-row');
+    rows.forEach((r, i) => { const s = r.querySelector('.dl-seq'); if (s) s.textContent = String(i + 1).padStart(2, '0'); });
+  }
+}
+
 function buildDynamicListHTML(field, data, moduleKey) {
   const label = moduleKey ? getFieldLabel(moduleKey, field.key, field.label) : field.label;
   const items = data[field.key] || [];
@@ -463,12 +513,16 @@ function buildDynamicListHTML(field, data, moduleKey) {
   }
   html += `<div class="dynamic-list-rows" id="${field.key}_rows">`;
   const rows = items.length > 0 ? items : [{}];
-  rows.forEach(item => {
+  rows.forEach((item, idx) => {
     html += `<div class="dynamic-list-row">`;
     columns.forEach(col => {
       const v = item[col.subkey] !== undefined ? item[col.subkey] : (col.default !== undefined ? col.default : '');
       if (Array.isArray(v)) v = v[0] !== undefined ? v[0] : '';
-      if (col.type === 'multiselect' && col.options) {
+      if (col.type === 'seq') {
+        html += `<span class="dl-seq" data-subkey="_seq">${String(idx + 1).padStart(2, '0')}</span>`;
+      } else if (col.bindProducts) {
+        html += buildCommissionBindCombobox(col, v, data ? data.products : null);
+      } else if (col.type === 'multiselect' && col.options) {
         const selected = Array.isArray(v) ? v : (v ? String(v).split(',') : []);
         const cbId = 'dymc_' + col.subkey + '_' + Math.random().toString(36).slice(2,6);
         const optsHTML = col.options.map(o => {
@@ -491,12 +545,15 @@ function buildDynamicListHTML(field, data, moduleKey) {
         html += `<select class="form-input" data-subkey="${col.subkey}">${emptyOpt}${opts}</select>`;
       } else if (col.type === 'combobox' || (col.options && col.type !== 'select')) {
         html += buildDynamicCombobox(col, v);
+      } else if (col.type === 'checkbox') {
+        const chk = v ? 'checked' : '';
+        html += `<label class="dl-urgent-cell"><input type="checkbox" data-subkey="${col.subkey}" ${chk}></label>`;
       } else {
         const inputType = col.type || 'text';
         html += `<input type="${inputType}" class="form-input" data-subkey="${col.subkey}" value="${esc(v)}" placeholder="${esc(col.label)}">`;
       }
     });
-    html += `<button type="button" class="btn btn-ghost btn-sm" onclick="this.parentElement.remove()">删除</button>`;
+    html += `<button type="button" class="btn btn-ghost btn-sm" onclick="removeDynamicRow(this)">删除</button>`;
     html += `</div>`;
   });
   html += `</div>`;
@@ -517,8 +574,13 @@ function addDynamicRow(key) {
   const row = document.createElement('div');
   row.className = 'dynamic-list-row';
   let html = '';
+  const curCount = container.children.length;
   (field.columns || []).forEach(col => {
-    if (col.type === 'multiselect' && col.options) {
+    if (col.type === 'seq') {
+      html += `<span class="dl-seq" data-subkey="_seq">${String(curCount + 1).padStart(2, '0')}</span>`;
+    } else if (col.bindProducts) {
+      html += buildCommissionBindCombobox(col, '', null);
+    } else if (col.type === 'multiselect' && col.options) {
       const cbId = 'dymc_' + col.subkey + '_' + Math.random().toString(36).slice(2,6);
       // v19: 优先用 col.default 数组（更通用），其次用 o.default 单选项默认
       const colDef = Array.isArray(col.default) ? col.default : null;
@@ -542,13 +604,16 @@ function addDynamicRow(key) {
     } else if (col.type === 'combobox' || (col.options && col.type !== 'select')) {
       const def = col.default !== undefined ? col.default : '';
       html += buildDynamicCombobox(col, def);
+    } else if (col.type === 'checkbox') {
+      const chk = col.default ? 'checked' : '';
+      html += `<label class="dl-urgent-cell"><input type="checkbox" data-subkey="${col.subkey}" ${chk}></label>`;
     } else {
       const inputType = col.type || 'text';
       const defVal = col.default !== undefined ? col.default : '';
       html += `<input type="${inputType}" class="form-input" data-subkey="${col.subkey}" value="${esc(defVal)}" placeholder="${esc(col.label)}">`;
     }
   });
-  html += `<button type="button" class="btn btn-ghost btn-sm" onclick="this.parentElement.remove()">删除</button>`;
+  html += `<button type="button" class="btn btn-ghost btn-sm" onclick="removeDynamicRow(this)">删除</button>`;
   row.innerHTML = html;
   container.appendChild(row);
 }
@@ -565,13 +630,17 @@ function fillDynamicPrice(input, lookupType) {
   if (!name) return;
   const priceList = DB.list('priceList');
   let item;
+  let priceSubkey = 'price';
   if (lookupType === 'product') {
     item = priceList.find(p => p.product === name && PRODUCT_CATEGORIES.includes(p.category));
   } else if (lookupType === 'extra') {
     item = priceList.find(p => p.product === name && p.category === '加价项目');
+  } else if (lookupType === 'modify') {
+    item = priceList.find(p => p.product === name && p.category === '修改类型');
+    priceSubkey = 'modifyPrice';
   }
   if (item) {
-    const priceInput = row.querySelector('[data-subkey="price"]');
+    const priceInput = row.querySelector('[data-subkey="' + priceSubkey + '"]');
     if (priceInput) priceInput.value = item.price || 0;
     // v19: 尺寸自动识别——不仅 defaultSize，size/specs 字段也兼容
     const sizeVal = item.defaultSize || item.size || (item.specs && item.specs.size) || '';
@@ -604,6 +673,10 @@ function readForm(container) {
           item[sk] = checked;
         });
         $$('[data-subkey]', row).forEach(input => {
+          if (input.tagName === 'INPUT' && input.type === 'checkbox') {
+            if (item[input.dataset.subkey] === undefined) item[input.dataset.subkey] = input.checked;
+            return;
+          }
           if (input.tagName === 'INPUT' || input.tagName === 'SELECT' || input.tagName === 'TEXTAREA') {
             if (item[input.dataset.subkey] === undefined) item[input.dataset.subkey] = input.value;
           }
@@ -803,7 +876,7 @@ function renderCalendar(year, month, records, commissionRecords = []) {
   html += `<span class="legend-item"><span class="status-dot" style="background:#07a059"></span>公众号</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>开稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>截稿</span>`;
-  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>开稿+截稿同天</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>开稿+截稿重合</span>`;
   html += '</div>';
   return html;
 }
@@ -915,6 +988,7 @@ MODULES['home'] = {
     { key: 'title', label: '作品标题', type: 'text' },
     { key: 'link', label: '作品链接', type: 'text', placeholder: '粘贴作品链接' },
     { key: 'contentType', label: '内容类型', type: 'multiselect', single: true, options: [{ value: '图文', label: '图文' }, { value: '短视频', label: '短视频' }, { value: '推文', label: '推文' }, { value: '直播', label: '直播' }] },
+    { key: 'status', label: '发布状态', type: 'multiselect', single: true, default: '待发布', options: [{ value: '待发布', label: '待发布' }, { value: '已发布', label: '已发布' }] },
     { section: '24小时数据' },
     { key: 'data24h_likes', label: '点赞', type: 'number', row: 'data24h' },
     { key: 'data24h_saves', label: '收藏', type: 'number', row: 'data24h' },
@@ -929,6 +1003,7 @@ MODULES['home'] = {
   ],
   listFields: [
     { label: '平台', key: 'platform', tag: true },
+    { label: '状态', key: 'status', tag: true },
     { label: '类型', key: 'contentType' },
     { label: '发布时间', key: 'publishTime', date: true },
     { label: '24h点赞', key: 'data24h_likes' },
@@ -1125,6 +1200,7 @@ MODULES['design-commission'] = {
     { key: 'deadline', label: '截稿时间', type: 'date' },
     { key: 'usageType', label: '稿件用途', type: 'multiselect', single: true, default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'products', label: '制品列表', type: 'dynamic-list', columns: [
+      { subkey: '_seq', label: '序号', type: 'seq' },
       { subkey: 'name', label: '制品', type: 'text', datalistId: 'comm_product_dl', priceLookup: 'product' },
       { subkey: 'patternId', label: '柄图标识', type: 'text' },
       { subkey: 'price', label: '价格', type: 'number' },
@@ -1134,22 +1210,26 @@ MODULES['design-commission'] = {
         { value: '无同模', label: '无同模' },
         { value: '改色+字', label: '改色+字' }, { value: '改人+字/色', label: '改人+字/色' }, { value: '改人', label: '改人' }
       ]},
+      { subkey: 'urgent', label: '加急', type: 'checkbox' },
     ]},
     { key: 'sameDesign', label: '同柄图', type: 'multiselect', single: true, options: [
       { value: '是', label: '是' }, { value: '否', label: '否' }, { value: '部分同柄', label: '部分同柄' }
     ]},
     { key: 'extraItems', label: '加价项目', type: 'dynamic-list', columns: [
+      { subkey: 'productRef', label: '绑定制品', type: 'combobox', bindProducts: true, placeholder: '绑定制品（选填）' },
       { subkey: 'name', label: '加价项目', type: 'text', datalistId: 'comm_extra_dl', priceLookup: 'extra' },
       { subkey: 'quantity', label: '数量', type: 'number' },
       { subkey: 'price', label: '价格', type: 'number' },
     ]},
+    { key: 'isUrgent', label: '是否加急', type: 'multiselect', single: true, default: '否', options: [{ value: '是', label: '是' }, { value: '否', label: '否' }] },
     { key: 'quoteAmount', label: '报价金额', type: 'number', hint: '元（手动输入）' },
-    { key: 'deposit', label: '定金', type: 'readonly', hint: '自动计算（报价金额50%）' },
-    { key: 'balance', label: '尾款', type: 'readonly', hint: '自动计算' },
+    { key: 'deposit', label: '定金', type: 'readonly', row: 'depositBalance', hint: '自动计算（报价金额50%）' },
+    { key: 'balance', label: '尾款', type: 'readonly', row: 'depositBalance', hint: '自动计算' },
     { key: 'paymentStatus', label: '支付状态', type: 'multiselect', single: true, default: '定金', options: [{ value: '未付', label: '未付' }, { value: '定金', label: '定金' }, { value: '尾款', label: '尾款' }, { value: '全款', label: '全款' }] },
     { key: 'progress', label: '稿件进度', type: 'multiselect', single: true, default: '已接稿', options: [{ value: '待接稿', label: '待接稿' }, { value: '已接稿', label: '已接稿' }, { value: '修改中', label: '修改中' }, { value: '已交付', label: '已交付' }] },
+    { key: 'deliveredTime', label: '交付时间', type: 'date', hint: '设为「已交付」时自动记录；用于报价导入接稿过滤' },
     { key: 'modifications', label: '修改项目', type: 'dynamic-list', maxRows: 2, columns: [
-      { subkey: 'modifyType', label: '修改类型', type: 'combobox', datalistId: 'comm_modify_dl', options: [] },
+      { subkey: 'modifyType', label: '修改类型', type: 'combobox', datalistId: 'comm_modify_dl', priceLookup: 'modify', options: [] },
       { subkey: 'modifyCount', label: '次数', type: 'number' },
       { subkey: 'modifyPrice', label: '价格（元）', type: 'number' },
       { subkey: 'note', label: '备注', type: 'text' },
@@ -1168,6 +1248,7 @@ MODULES['design-commission'] = {
     { label: '用途', key: 'usageType' },
     { label: '制品', key: '_firstProduct' },
     { label: '截稿', key: 'deadline', date: true },
+    { label: '交付', key: 'deliveredTime', date: true },
     { label: '报价', key: 'quoteAmount', prefix: '¥' },
   ],
   stats: (records) => {
@@ -1591,7 +1672,10 @@ function renderListPage(pageKey, mod) {
         let v = r[f.key];
         if (f.key === '_productCount') v = calcProductQty(r) + '件';
         if (f.key === 'clientInfo') return; // 单主已在卡片标题展示，正文不再重复
-        if (f.key === '_firstProduct') { const names = (r.products || []).map(p => p.name).filter(Boolean); v = names.join('、'); }
+        if (f.key === '_firstProduct') {
+          if (pageKey === 'design-commission') return; // 接稿排期在下面用复选框展示
+          const names = (r.products || []).map(p => p.name).filter(Boolean); v = names.join('、');
+        }
         if (v == null || v === '') return;
         if (f.tag && Array.isArray(v)) {
           const tags = v.map(val => {
@@ -1623,6 +1707,18 @@ function renderListPage(pageKey, mod) {
           html += `<span class="field"><span class="field-label">${esc(f.label)}:</span><span class="field-value">${esc(String(v))}</span></span>`;
         }
       });
+      if (pageKey === 'design-commission' && r.products && r.products.length) {
+        const doneCount = r.products.filter(p => p.done).length;
+        html += `<div class="field comm-products-field" onclick="event.stopPropagation()"><span class="field-label">制品:</span><div class="comm-product-checklist">`;
+        r.products.forEach((p, idx) => {
+          html += `<label class="comm-product-item ${p.done ? 'done' : ''}">
+            <input type="checkbox" ${p.done ? 'checked' : ''} onchange="event.stopPropagation();commissionToggleProductDone('${r.id}',${idx},this.checked,true)">
+            <span>${esc(p.name || '未命名')}</span>
+          </label>`;
+        });
+        html += `</div></div>`;
+        html += `<span class="field"><span class="field-label">完成:</span><span class="field-value" style="color:${doneCount === r.products.length ? 'var(--c-green)' : 'var(--c-text)'}">${doneCount}/${r.products.length}</span></span>`;
+      }
       html += '</div>';
       if (isOverdue) html += `<div style="margin-top:8px;padding:4px 8px;background:#fff1f0;border-radius:4px;font-size:11px;color:var(--c-red)">⚠️ 已过截止日期</div>`;
       html += '</div>';
@@ -1802,7 +1898,7 @@ function renderCommissionCalendar(year, month, records) {
   html += '<div class="cal-legend">';
   html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>开稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>截稿</span>`;
-  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>开稿+截稿同天</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>开稿+截稿重合</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[0]}"></span>紧急(截稿临近)</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[1]}"></span>正常</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[2]}"></span>充裕</span>`;
@@ -2009,7 +2105,7 @@ function openAddForm(pageKey) {
     { label: '取消', class: 'btn-ghost', action: closeModal },
     { label: '保存', class: 'btn-primary', action: () => saveForm(pageKey, mod, null) },
   ]);
-  setTimeout(() => { setupFormInteractions(pageKey); }, 50);
+  setTimeout(() => { setupFormInteractions(pageKey); refreshCommissionBindOptions(); }, 50);
 }
 
 function openEditForm(pageKey, id) {
@@ -2024,6 +2120,7 @@ function openEditForm(pageKey, id) {
   ]);
   setTimeout(() => {
     setupFormInteractions(pageKey);
+    refreshCommissionBindOptions();
     if ($('#imgUpload')) {
       initImageUpload('#imgUpload');
       if (record.images) $('#imgUpload')._setImages(record.images);
@@ -2058,7 +2155,13 @@ function saveForm(pageKey, mod, id) {
   const imgs = readFormImages($('#modalBody'));
   if (imgs.length) data.images = imgs;
   else if (id) delete data.images;
-  if (pageKey === 'design-commission') calcCommissionPrice(data);
+  if (pageKey === 'design-commission') {
+    calcCommissionPrice(data);
+    // DU轮：标记为「已交付」且无交付时间时，自动记录交付日期（用于报价导入接稿的7天过滤）
+    if (valIncludes(data.progress, '已交付') && !data.deliveredTime) {
+      data.deliveredTime = todayStr();
+    }
+  }
   if (pageKey === 'design-inspiration' && data.category) saveCustomCategory(data.category);
   if (pageKey === 'groupbuy-samples' && data.category) saveCustomSampleCategory(data.category);
   if (id) { DB.update(mod.store, id, data); Toast.success('记录已更新'); }
@@ -2101,8 +2204,22 @@ function openDetail(pageKey, id) {
       const items = r[f.key];
       if (items && items.length) {
         const cols = f.columns || [];
-        html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><div class="detail-value"><table class="detail-table"><tr>${cols.map(c => `<th>${esc(c.label)}</th>`).join('')}</tr>`;
-        items.forEach(item => { html += `<tr>${cols.map(c => `<td>${esc(item[c.subkey] || '')}</td>`).join('')}</tr>`; });
+        const isCommProd = (pageKey === 'design-commission' && f.key === 'products');
+        const extraHead = isCommProd ? '<th style="width:54px">完成</th>' : '';
+        const extraCell = isCommProd
+          ? (item, idx) => `<td class="comm-prod-done"><label><input type="checkbox" ${item.done ? 'checked' : ''} onclick="commissionToggleProductDone('${id}',${idx},this.checked)"> ${item.done ? '✓' : ''}</label></td>`
+          : null;
+        html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><div class="detail-value"><table class="detail-table"><tr>${cols.map(c => `<th>${esc(c.label)}</th>`).join('')}${extraHead}</tr>`;
+        items.forEach((item, idx) => {
+          html += `<tr class="${item.done ? 'prod-done' : ''}">`;
+          cols.forEach(c => {
+            if (c.type === 'seq') html += `<td style="text-align:center;font-weight:700;color:var(--c-text-light)">${String(idx + 1).padStart(2, '0')}</td>`;
+            else if (c.type === 'checkbox') html += `<td style="text-align:center">${item[c.subkey] ? '✓' : ''}</td>`;
+            else html += `<td>${esc(item[c.subkey] || '')}</td>`;
+          });
+          html += extraCell ? extraCell(item, idx) : '';
+          html += `</tr>`;
+        });
         html += `</table></div></div>`;
       }
       return;
@@ -2120,6 +2237,17 @@ function openDetail(pageKey, id) {
     { label: '关闭', class: 'btn-ghost', action: closeModal },
     { label: '编辑', class: 'btn-primary', action: () => { closeModal(); openEditForm(pageKey, id); } },
   ], 'lg');
+}
+
+// 接稿排期：制品完成勾选（持久化到 commission.products[idx].done）
+function commissionToggleProductDone(id, idx, checked, fromList = false) {
+  const r = DB.getById('commissions', id);
+  if (!r || !r.products || !r.products[idx]) return;
+  r.products[idx].done = checked;
+  DB.update('commissions', id, r);
+  Toast.success(checked ? '已标记完成' : '已取消完成');
+  if (fromList) renderListPage('design-commission');
+  else openDetail('design-commission', id);
 }
 
 /* ===== Delete ===== */
@@ -2142,16 +2270,21 @@ function renderHome() {
 
   let html = '<div class="fade-in">';
 
+  const statusOf = (r) => (r.status === '已发布' ? '已发布' : '待发布');
+
   // Platform buttons (always visible, 4 in a row, for switching)
+  // 每个平台按钮底部直接显示该平台「待发布 / 已发布」数量（待发布左、已发布右）
   html += '<div class="platform-buttons">';
   const platformIcons = { '小红书': '📕', '抖音': '🎵', '视频号': '📹', '公众号': '📝' };
   MODULES.home.tabs.forEach(t => {
-    const count = allRecords.filter(r => valIncludes(r.platform, t.value)).length;
+    const tRecords = allRecords.filter(r => valIncludes(r.platform, t.value));
+    const pendingForT = tRecords.filter(r => statusOf(r) === '待发布').length;
+    const publishedForT = tRecords.filter(r => statusOf(r) === '已发布').length;
     const activeStyle = (ps.view === 'platform' && ps.tab === t.value) ? 'box-shadow:0 0 0 3px rgba(255,255,255,.6);transform:translateY(-2px)' : '';
     html += `<button class="platform-btn" style="background:${t.color};${activeStyle}" onclick="enterPlatformView('${t.value}')">`;
     html += `<span class="platform-icon">${platformIcons[t.value] || '📝'}</span>`;
-    html += `<span class="platform-count">${count}</span>`;
     html += `<span class="platform-name">${esc(t.label)}</span>`;
+    html += `<span class="platform-status-row"><span class="platform-pending">待发布 ${pendingForT}</span><span class="platform-sep">·</span><span class="platform-published">已发布 ${publishedForT}</span></span>`;
     html += '</button>';
   });
   html += '</div>';
@@ -2193,6 +2326,8 @@ function renderHome() {
     html += '<button class="btn btn-primary" onclick="openAddForm(\'home\')">+ 新增记录</button>';
     html += '</div>';
 
+    html += renderHomeStatusFilterBar();
+
     // Records
     let filteredRecords = records;
     if (ps.search) filteredRecords = filteredRecords.filter(r => (r.title || '').toLowerCase().includes(ps.search.toLowerCase()));
@@ -2229,6 +2364,49 @@ function renderHome() {
     html += renderStatsSection([
       { label: ps.tab + '发布数', value: records.length, sub: '当前平台' },
     ], ps.tab + '统计');
+  } else if (ps.view === 'status') {
+    // 全局状态视图：statusFilter 为空 = 全部记录；否则 待发布 / 已发布
+    const statusLabel = ps.statusFilter;
+    const statusRecords = statusLabel ? allRecords.filter(r => statusOf(r) === statusLabel) : allRecords;
+    const statusTitle = statusLabel ? (statusLabel + '记录') : '全部记录';
+
+    html += '<div class="home-status-head"><span class="home-status-title">' + esc(statusTitle) + '（' + statusRecords.length + '）</span><button class="btn btn-sm btn-ghost" onclick="homeBackToMain()">‹ 返回日历</button></div>';
+
+    html += '<div class="toolbar" style="margin-top:4px">';
+    html += `<div class="search-box"><input type="text" placeholder="搜索标题..." value="${esc(ps.search)}" oninput="homeSearch(this.value)"><span class="search-icon">🔍</span></div>`;
+    html += `<input type="date" class="filter-select" value="${ps.dateFilter}" onchange="homeDateFilter(this.value)" style="padding:8px" placeholder="请选择日期" title="请选择日期">`;
+    html += `<button class="filter-select" onclick="homeClearFilter()" style="cursor:pointer;border:1px solid var(--c-border)">清除筛选</button>`;
+    html += '<div class="spacer"></div>';
+    html += '<button class="btn btn-primary" onclick="openAddForm(\'home\')">+ 新增记录</button>';
+    html += '</div>';
+
+    html += renderHomeStatusFilterBar();
+
+    let filteredRecords = statusRecords;
+    if (ps.search) filteredRecords = filteredRecords.filter(r => (r.title || '').toLowerCase().includes(ps.search.toLowerCase()));
+    if (ps.dateFilter) filteredRecords = filteredRecords.filter(r => (r.publishTime || '').startsWith(ps.dateFilter));
+    filteredRecords.sort((a, b) => (b.publishTime || '').localeCompare(a.publishTime || ''));
+
+    if (ps.homePageNo == null) ps.homePageNo = 1;
+    const homePageSize = 5;
+    const homeTotalPages = Math.ceil(filteredRecords.length / homePageSize);
+    if (ps.homePageNo > homeTotalPages) ps.homePageNo = 1;
+    const homePaged = filteredRecords.slice((ps.homePageNo - 1) * homePageSize, ps.homePageNo * homePageSize);
+
+    if (!filteredRecords.length) {
+      html += '<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-text">暂无' + esc(statusTitle) + '记录</div></div>';
+    } else {
+      html += '<div class="record-list">';
+      homePaged.forEach(r => { html += renderHomeRecordCard(r); });
+      html += '</div>';
+      if (homeTotalPages > 1) {
+        html += '<div class="pagination">';
+        html += `<button class="btn btn-sm btn-ghost" ${ps.homePageNo <= 1 ? 'disabled' : ''} onclick="homeGoPage(${ps.homePageNo - 1})">‹ 上一页</button>`;
+        html += `<span class="page-info">第 ${ps.homePageNo} / ${homeTotalPages} 页 (共 ${filteredRecords.length} 条)</span>`;
+        html += `<button class="btn btn-sm btn-ghost" ${ps.homePageNo >= homeTotalPages ? 'disabled' : ''} onclick="homeGoPage(${ps.homePageNo + 1})">下一页 ›</button>`;
+        html += '</div>';
+      }
+    }
   }
 
   html += '</div>';
@@ -2248,6 +2426,9 @@ function renderHomeRecordCard(r) {
     const pColor = PLATFORM_COLORS[p] || '#9DC8FF';
     html += `<span class="field"><span class="tag" style="background:${pColor}20;color:${pColor}">${esc(p)}</span></span>`;
   });
+  const recStatus = (r.status === '已发布') ? '已发布' : '待发布';
+  const recStatusCls = recStatus === '已发布' ? 'tag-success' : 'tag-warning';
+  html += `<span class="field"><span class="tag ${recStatusCls}">${recStatus}</span></span>`;
   html += `<span class="field"><span class="field-label">发布:</span><span class="field-value">${fmtDate(r.publishTime)}</span></span>`;
   const ct = arrVal(r.contentType);
   if (ct.length) html += `<span class="field"><span class="field-label">类型:</span><span class="field-value">${esc(ct.join('、'))}</span></span>`;
@@ -2274,6 +2455,28 @@ function homeSearch(val) { pageState.home.search = val; pageState.home.homePageN
 function homeDateFilter(val) { pageState.home.dateFilter = val; pageState.home.homePageNo = 1; renderHome(); }
 function homeClearFilter() { pageState.home.search = ''; pageState.home.dateFilter = ''; pageState.home.homePageNo = 1; renderHome(); }
 function homeGoPage(pageNo) { pageState.home.homePageNo = pageNo; renderHome(); }
+function homeSetStatusFilter(s) {
+  const ps = pageState.home;
+  if (!ps) pageState.home = {};
+  if (ps.statusFilter === s) { ps.statusFilter = ''; }
+  else { ps.statusFilter = s; ps.view = 'status'; ps.search = ''; ps.dateFilter = ''; }
+  ps.homePageNo = 1;
+  renderHome();
+}
+// 全局「待发布 / 已发布」筛选按钮（仅在记录视图即「新增记录」工具栏下方展示，不在日历视图出现）
+function renderHomeStatusFilterBar() {
+  const ps = pageState.home || {};
+  const allRecords = DB.list('publishRecords');
+  const statusOf = (r) => (r.status === '已发布' ? '已发布' : '待发布');
+  const pendingCount = allRecords.filter(r => statusOf(r) === '待发布').length;
+  const publishedCount = allRecords.filter(r => statusOf(r) === '已发布').length;
+  const sf = ps.statusFilter;
+  let h = '<div class="home-status-filter">';
+  h += `<button class="home-status-btn ${sf === '待发布' ? 'active pending' : ''}" onclick="homeSetStatusFilter('待发布')">待发布 <b>${pendingCount}</b></button>`;
+  h += `<button class="home-status-btn ${sf === '已发布' ? 'active published' : ''}" onclick="homeSetStatusFilter('已发布')">已发布 <b>${publishedCount}</b></button>`;
+  h += '</div>';
+  return h;
+}
 
 // v29: 首页灵感速记 → 写入 inspirations（首页不展示，进入「美工·灵感记录」）
 function homeAddInspiration() {
@@ -2960,9 +3163,18 @@ function renderDesignCalc() {
   html += `<button class="calc-mode-tab${_dcMode === 'import' ? ' active' : ''}" onclick="dcSetMode('import')">📥 导入接稿</button>`;
   html += '</div>';
   if (_dcMode === 'import') {
+    // DU轮：已交付且交付日期距今超过7天的订单不显示在导入选项中
+    const _today = new Date(); _today.setHours(0, 0, 0, 0);
+    const isImportHidden = (c) => {
+      if (!valIncludes(c.progress, '已交付') || !c.deliveredTime) return false;
+      const d = new Date(c.deliveredTime);
+      if (isNaN(d.getTime())) return false;
+      return Math.floor((_today - d) / 86400000) > 7;
+    };
+    const visibleCommissions = commissions.filter(c => !isImportHidden(c));
     html += '<select class="calc-import-select form-input" onchange="dcImportRecord(this.value)">';
     html += '<option value="">请选择接稿记录</option>';
-    commissions.forEach(c => {
+    visibleCommissions.forEach(c => {
       const label = (c.clientInfo || '未命名') + ' · ' + (c.acceptTime || '');
       html += `<option value="${c.id}"${_dcImportId === c.id ? ' selected' : ''}>${esc(label)}</option>`;
     });
@@ -2972,7 +3184,7 @@ function renderDesignCalc() {
 
   // Product list
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">制品列表 <span class="calc-card-hint">（点「归为SET」可将当前所有制品归为一组并自动开启SET优惠）</span></div>';
+  html += '<div class="calc-card-title">制品列表 <span class="calc-card-hint">（单个SET选完制品后，可点击「归为SET」归组并自动开启SET优惠）</span></div>';
   html += '<div class="dc-product-header"><span>序号</span><span>制品</span><span>柄图标识</span><span>价格</span><span>数量</span><span>加急</span><span>同模</span><span></span></div>';
   html += '<div id="dc-products"></div>';
   html += '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">';
@@ -2985,7 +3197,7 @@ function renderDesignCalc() {
 
   // Extra items
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">加价项目 <span class="calc-card-hint">（不参与同模计价、SET折扣）</span></div>';
+  html += '<div class="calc-card-title">加价项目 <span class="calc-card-hint">（不参与同模计价）</span></div>';
   html += '<div class="dc-extra-header"><span>绑定制品</span><span>加价项目</span><span>数量</span><span>单价</span><span></span></div>';
   html += '<div id="dc-extras"></div>';
   html += '<button type="button" class="btn btn-outline btn-sm" onclick="dcAddExtra()" style="margin-top:8px">+ 添加加价项目</button>';
@@ -3171,7 +3383,7 @@ function dcRenderProducts() {
     const modelOptsHTML = DC_MODEL.filter(m => m.value !== 'none').map(m => `<div class="combobox-option" onclick="dcSelectModelType(${i},this,'${modelCbId}')" data-value="${esc(m.value)}" data-rate="${m.rate}">${esc(m.value)}</div>`).join('');
     const modelTypeLabel = p.sameModelType || '';
     html += `<div class="dc-product-row">`;
-    html += `<div class="dc-prod-seq">${seq}</div>`;
+    html += `<div class="dc-prod-seq${p.setGroup ? ' setgroup' : ''}">${seq}</div>`;
     html += `<div class="combobox-wrapper dc-prod-name-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-name" value="${esc(p.name)}" placeholder="制品" data-key="name" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateProduct(${i},'name',this.value);dcFillPrice(this,'product',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
     html += `<input type="text" class="form-input dc-prod-pattern" value="${esc(p.patternId||'')}" placeholder="柄图标识" oninput="dcUpdateProduct(${i},'patternId',this.value)">`;
     html += `<input type="number" class="form-input dc-prod-price" value="${p.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateProduct(${i},'price',this.value)">`;
@@ -3245,8 +3457,8 @@ function dcSelectGlobalModel(val, checked) {
 }
 
 function dcAddProduct() { _dcProducts.push(newProduct()); dcRenderProducts(); dcRecalc(); }
-function dcClearProducts() { _dcProducts = [newProduct()]; dcRenderProducts(); dcRecalc(); }
-function dcRemoveProduct(idx) { _dcProducts.splice(idx, 1); if (!_dcProducts.length) _dcProducts = [newProduct()]; dcRenderProducts(); dcRecalc(); }
+function dcClearProducts() { _dcProducts = [newProduct()]; dcSyncWholeOrderToggle(); dcRenderProducts(); dcRecalc(); }
+function dcRemoveProduct(idx) { _dcProducts.splice(idx, 1); if (!_dcProducts.length) _dcProducts = [newProduct()]; dcSyncWholeOrderToggle(); dcRenderProducts(); dcRecalc(); }
 function dcUpdateProduct(idx, field, val) {
   if (!_dcProducts[idx]) return;
   const p = _dcProducts[idx];
@@ -3417,10 +3629,32 @@ function dcSelectModification(idx, el, cbId) {
 
 function dcAddModification() { _dcModifications.push(newModification()); dcRenderModifications(); dcRecalc(); }
 function dcRemoveModification(idx) { _dcModifications.splice(idx, 1); dcRenderModifications(); dcRecalc(); }
+// 修改类型价格从价目表「修改类型」分类自动获取
+function dcLookupModPrice(name) {
+  if (!name) return null;
+  const priceList = DB.list('priceList');
+  const item = priceList.find(p => p.product === name && p.category === '修改类型');
+  if (item && item.price !== undefined && item.price !== null) return parseFloat(item.price) || 0;
+  return null;
+}
 function dcUpdateModification(idx, field, val) {
   if (!_dcModifications[idx]) return;
   const m = _dcModifications[idx];
-  if (field === 'modifyType') { m.modifyType = val; }
+  if (field === 'modifyType') {
+    m.modifyType = val;
+    const price = dcLookupModPrice(val);
+    if (price != null) {
+      m.modifyPrice = price;
+      const c = $('#dc-modifications');
+      if (c) {
+        const row = c.querySelectorAll('.dc-mod-row')[idx];
+        if (row) {
+          const pi = row.querySelector('.dc-mod-price');
+          if (pi) pi.value = price;
+        }
+      }
+    }
+  }
   else if (field === 'modifyCount') { m.modifyCount = parseInt(val) || 1; }
   else if (field === 'modifyPrice') { m.modifyPrice = parseFloat(val) || 0; }
   else if (field === 'note') { m.note = val; }
@@ -3521,7 +3755,11 @@ function dcDiscModeChange() {
 function dcSyncWholeOrderToggle() {
   // Bn轮：任一行制品勾选/取消"加急"时，同步整单加急开关的置灰状态
   const tog = document.getElementById('dcWholeOrderUrgentChk');
-  if (tog) tog.disabled = _dcProducts.some(p => p.urgent);
+  if (!tog) return;
+  const any = _dcProducts.some(p => p.urgent);
+  tog.disabled = any;
+  const lbl = tog.closest('.calc-rate-label');
+  if (lbl) lbl.classList.toggle('calc-rate-label-disabled', any);
 }
 function dcToggleWholeOrderUrgent(val) {
   _dcWholeOrderUrgent = !!val;
@@ -3664,13 +3902,14 @@ function dcRecalc() {
 
   // Step 5: 折扣（作用于（制品+加价），在加急之前）——符合 原价-同模-加价-折扣-加急-用途
   let discHTML = '';
+  let fanHTML = '';     // DL轮：同担/同推优惠独立列出（最终抵扣，从 finalPrice 扣除）
   let discFirst = true; // 折扣HTML内首行加 promo-first，让制品→首条优惠间距加大
   const discCls = () => {
     const cls = 'dc-rr disc' + (discFirst ? ' promo-first' : '');
     discFirst = false;
     return cls;
   };
-  let afterDiscount = baseBeforeDiscount;
+  let afterDiscount = baseBeforeDiscount + extrasTotal;   // 默认无优惠模式：总价含加价项目
   if (dMode === 'set') {
     // CT轮：加价项目与制品一起算入折扣——绑定加价跟随对应制品的SET组折扣率，未绑定加价保持原价
     let extrasAfterSet = 0;
@@ -3718,10 +3957,9 @@ function dcRecalc() {
     afterDiscount = d;
   }
 
-  // Step 6: 同担/同推 random reduction（always applies，仍属折扣）
+  // Step 6: 同担/同推优惠（仅生成展示 HTML；计算移到 Step 8 之后，作为最终抵扣）
   if (_dcFanReduce > 0) {
-    afterDiscount = afterDiscount - _dcFanReduce;
-    discHTML += `<div class="${discCls()}"><span>同担/同推优惠</span><span>-¥${_dcFanReduce.toFixed(2)}</span></div>`;
+    fanHTML += `<div class="${discCls()}"><span>同担/同推优惠</span><span>-¥${_dcFanReduce.toFixed(2)}</span></div>`;
   }
 
   // Step 7: 加急
@@ -3740,7 +3978,9 @@ function dcRecalc() {
   }
 
   // Step 8: 用途倍率作用于折扣后整体（afterDiscount 已含制品+加价折扣后金额）
-  const finalPrice = grandTotal + afterDiscount * (uRate - 1);
+  // DL/DM轮：同担/同推优惠作为最终抵扣，在倍率计算之后扣除；倍率小计保持未扣前金额
+  const priceBeforeFan = grandTotal + afterDiscount * (uRate - 1);
+  const finalPrice = Math.max(0, priceBeforeFan - _dcFanReduce);
 
   // Save rates
   const settings = DB.get('calcSettings', {});
@@ -3874,9 +4114,9 @@ function dcRecalc() {
       const urgentFirstCls = discHTML ? '' : ' promo-first';
       r += `<div class="dc-rr promo${urgentFirstCls}"><span>加急：${urgentSeqs.map(pad2).join('、')}</span><span>×${urgentRate}</span></div>`;
     }
-    // 制品小计：含加急溢价（grandTotal 已含 制品+加价+单制品加急溢价，不含用途倍率）
-    const flatSubtotal = grandTotal;
-    r += `<div class="dc-rr total"><span>制品小计</span><span>¥${flatSubtotal.toFixed(2)}</span></div>`;
+    // 折后小计：整单加急时不含加急溢价（下方独立展示）；单项/部分加急时，加急溢价已内联在明细中，折后小计含该溢价
+    const flatSubtotal = whole ? afterDiscount : grandTotal;
+    r += `<div class="dc-rr total"><span>折后小计</span><span>¥${flatSubtotal.toFixed(2)}</span></div>`;
     r += '</div>';
   }
   if (unboundExtras.length) {
@@ -3891,8 +4131,8 @@ function dcRecalc() {
   if (whole && urgentEnabled) {
     const fullBaseAfterDisc = afterDiscount;     // 折扣后整体（含加价）
     const urgentSub = fullBaseAfterDisc * urgentRate;
-    r += `<div class="dc-r-section"><div class="dc-r-sub">整单加急（全部制品与加价项目）</div>`;
-    r += `<div class="dc-rr"><span>整单加急-总价格</span><span>¥${fullBaseAfterDisc.toFixed(2)}</span></div>`;
+    r += `<div class="dc-r-section"><div class="dc-r-sub">整单加急</div>`;
+    r += `<div class="dc-rr"><span>制品小计</span><span>¥${fullBaseAfterDisc.toFixed(2)}</span></div>`;
     r += `<div class="dc-rr"><span>加急倍率</span><span>×${urgentRate}</span></div>`;
     r += `<div class="dc-rr total"><span>加急小计</span><span>¥${urgentSub.toFixed(2)}</span></div></div>`;
   }
@@ -3901,7 +4141,9 @@ function dcRecalc() {
   // 倍率计算（稿件用途倍率）——置于原位置（总价之后）；小计采用新公式 grandTotal + afterDiscount×(uRate−1)
   r += '<div class="dc-r-section"><div class="dc-r-sub">倍率计算</div>';
   r += `<div class="dc-rr"><span>稿件用途：${uType}</span><span>×${uRate}</span></div>`;
-  r += `<div class="dc-rr total"><span>倍率小计</span><span>¥${finalPrice.toFixed(2)}</span></div></div>`;
+  r += `<div class="dc-rr total"><span>倍率小计</span><span>¥${priceBeforeFan.toFixed(2)}</span></div></div>`;
+  // DL轮：同担/同推优惠独立列出，置于倍率计算之后（已从 finalPrice 中扣除）
+  if (fanHTML) { r += '<div class="dc-r-section">' + fanHTML + '</div>'; }
   r += '<div class="dc-r-final"><div class="dc-r-final-label">最终报价</div>';
   r += `<div class="dc-r-final-val">¥${finalPrice.toFixed(2)}</div></div>`;
   const deposit = Math.round(finalPrice * 0.5 * 100) / 100;
@@ -3910,16 +4152,25 @@ function dcRecalc() {
   r += `<div class="dc-r-deposit"><div class="dc-r-db-label">定金(50%)</div><div class="dc-r-db-val">¥${deposit.toFixed(2)}</div></div>`;
   r += `<div class="dc-r-balance"><div class="dc-r-db-label">尾款(50%)</div><div class="dc-r-db-val">¥${balance.toFixed(2)}</div></div>`;
   r += '</div>';
-  // AT轮：修改加价、最终总价、需付尾款
+  // AT轮：修改加价、最终总价、需付尾款（DY轮回退 DV/DW/DX，恢复 v163 普通小计行）
   const modTotal = dcCalcModTotal();
   if (modTotal > 0) {
     const balancePayable = balance + modTotal;
     const finalTotal = finalPrice + modTotal;
-    r += '<div class="dc-r-section" style="margin-top:12px">';
+    r += '<div class="dc-r-section" style="margin-top:14px">';
     r += '<div class="dc-r-sub">修改项目</div>';
-    r += `<div class="dc-rr"><span>修改加价</span><span>¥${modTotal.toFixed(2)}</span></div>`;
+    _dcModifications.forEach(function(m){
+      const _mt = esc(m.modifyType || '未填写');
+      const _cnt = parseInt(m.modifyCount) || 0;
+      const _sub = _cnt * (parseFloat(m.modifyPrice) || 0);
+      r += `<div class="dc-rr"><span>${_mt} × ${_cnt}</span><span>¥${_sub.toFixed(2)}</span></div>`;
+    });
     r += `<div class="dc-rr total"><span>最终总价</span><span>¥${finalTotal.toFixed(2)}</span></div>`;
-    r += `<div class="dc-rr total"><span>需付尾款</span><span>¥${balancePayable.toFixed(2)}</span></div>`;
+    // DY6轮：双按钮改为与「最终报价」(.dc-r-final) 同款实心蓝块（白字居中），仅并排两列
+    r += '<div class="dc-r-final-balance">';
+    r += `<div class="dc-r-final"><div class="dc-r-final-label">最终总价</div><div class="dc-r-final-val">¥${finalTotal.toFixed(2)}</div></div>`;
+    r += `<div class="dc-r-final"><div class="dc-r-final-label">需付尾款</div><div class="dc-r-final-val">¥${balancePayable.toFixed(2)}</div></div>`;
+    r += '</div>';
     r += '</div>';
   }
   r += '<div class="dc-r-footer">@筱小葵｜专属报价・仅供本次使用</div>';
@@ -4546,6 +4797,16 @@ function migrateData() {
       changed = true;
     } else if (typeof r.sameDesign === 'string' && !r.sameDesign) {
       r.sameDesign = [];
+      changed = true;
+    }
+  });
+  if (changed) DB.set('commissions', commissions);
+
+  // DU轮：导入接稿过滤——已交付且无交付时间的订单回填为今天（之后满7天自动从导入选项消失）
+  changed = false;
+  commissions.forEach(r => {
+    if (valIncludes(r.progress, '已交付') && !r.deliveredTime) {
+      r.deliveredTime = todayStr();
       changed = true;
     }
   });

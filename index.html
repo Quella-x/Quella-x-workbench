@@ -367,12 +367,12 @@ ul,li{list-style:none}
 .modal-overlay.show{opacity:1;pointer-events:auto;transition:opacity .15s}
 .modal{
   background:var(--c-card);border-radius:12px;
-  width:600px;max-width:100%;max-height:90vh;
+  width:780px;max-width:100%;max-height:90vh;
   display:flex;flex-direction:column;overflow:hidden;
   box-shadow:var(--shadow-lg);
 }
-.modal.lg{width:800px}
-.modal.xl{width:900px}
+.modal.lg{width:1000px}
+.modal.xl{width:1120px}
 .modal.sm{width:420px}
 .modal-header{
   display:flex;align-items:center;justify-content:space-between;
@@ -498,8 +498,8 @@ ul,li{list-style:none}
 /* v22: 厂家记录合作记录——日期缩、备注 flex，操作/删除贴左对齐 */
 .dynamic-list-container[data-key="cooperationRecords"] .form-input[data-subkey="date"]{flex:0 0 120px}
 .dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-header span[data-subkey="date"]{flex:0 0 120px}
-.dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-header span[data-subkey="note"]{flex:1.2 1 0;min-width:80px}
-.dynamic-list-container[data-key="cooperationRecords"] .form-input[data-subkey="note"]{flex:1.2 1 0;min-width:80px}
+.dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-header span[data-subkey="note"]{flex:1.5 1 0;min-width:330px}
+.dynamic-list-container[data-key="cooperationRecords"] .form-input[data-subkey="note"]{flex:1.5 1 0;min-width:330px}
 .dynamic-list-rows{display:flex;flex-direction:column;gap:4px;padding:0;margin-bottom:6px}
 .dynamic-list-row{display:flex;gap:4px;align-items:center}
 .dynamic-list-row .form-input{padding:6px 8px;font-size:12px;flex:1;min-width:0;box-sizing:border-box;text-align:left}
@@ -510,6 +510,8 @@ ul,li{list-style:none}
 .dynamic-list-row .form-input[data-subkey="patternId"]{flex:0 0 80px}
 .dynamic-list-row .form-input[data-subkey="price"]{flex:0 0 60px}
 .dynamic-list-row .form-input[data-subkey="size"]{flex:0 0 75px}
+.dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="size"]{flex:0 0 95px}
+.dynamic-list-container[data-key="products"][data-module="design-commission"] .form-input[data-subkey="size"]{flex:0 0 95px}
 .dynamic-list-row .form-input[data-subkey="quantity"]{flex:0 0 60px}
 .dynamic-list-row .form-input[data-subkey="salesCount"]{flex:0 0 80px}
 .dynamic-list-row .form-input[data-subkey="isDisbanded"]{flex:0 0 70px}
@@ -524,26 +526,36 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="extraItems"] .form-input[data-subkey="quantity"]{flex:0 0 65px}
 .dynamic-list-container[data-key="extraItems"] .form-input[data-subkey="price"]{flex:0 0 70px}
 .dynamic-list-container[data-key="extraItems"] .dynamic-list-header span[data-subkey="name"]{flex:1.5 1 0;min-width:90px}
+.dynamic-list-container[data-key="extraItems"] .dynamic-list-header span[data-subkey="productRef"]{flex:0 0 140px}
 .dynamic-list-container[data-key="extraItems"] .dynamic-list-header span[data-subkey="quantity"]{flex:0 0 65px}
 .dynamic-list-container[data-key="extraItems"] .dynamic-list-header span[data-subkey="price"]{flex:0 0 70px}
+.dynamic-list-container[data-key="extraItems"] .dynamic-list-row .form-input[data-subkey="productRef"]{flex:0 0 110px}
+/* DO轮：接稿排期制品「加急」复选列 + 加价「绑定制品」列 */
+.dynamic-list-header span[data-subkey="urgent"]{flex:0 0 50px;text-align:center;padding-left:0}
+.dynamic-list-row .dl-urgent-cell{flex:0 0 50px;display:flex;align-items:center;justify-content:center}
+.dynamic-list-row .dl-urgent-cell input{width:16px;height:16px;cursor:pointer}
+/* DP轮：接稿排期制品「序号」列（格式与报价计算 dc-prod-seq 一致：String(i+1).padStart(2,'0')） */
+.dynamic-list-header span[data-subkey="_seq"],
+.dynamic-list-row [data-subkey="_seq"]{flex:0 0 42px;text-align:center;justify-content:center;padding-left:0}
+.dl-seq{font-size:13px;font-weight:600;color:var(--c-text);font-variant-numeric:tabular-nums}
 /* v22: 开团记录售后记录——名称列与制品名称统一为 1.5fr */
 .dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="orderNo"]{flex:0 0 70px}
 .dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="name"]{flex:1.5 1 0;min-width:90px}
 .dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="quantity"]{flex:0 0 80px}
-.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="amount"]{flex:0 0 60px}
+.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="amount"]{flex:0 0 80px}
 .dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="type"]{flex:0 0 95px}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="orderNo"]{flex:0 0 70px}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="name"]{flex:1.5 1 0;min-width:90px}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="quantity"]{flex:0 0 80px}
-.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="amount"]{flex:0 0 60px}
+.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="amount"]{flex:0 0 80px}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="type"]{flex:0 0 95px}
 /* v29: 接稿排期修改项目（修改类型/次数/价格/备注）列宽 */
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyCount"]{flex:0 0 70px}
-.dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyPrice"]{flex:0 0 80px}
+.dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyPrice"]{flex:0 0 100px}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="note"]{flex:1 1 0;min-width:80px}
 /* AE轮：接稿修改项目标题统一左对齐底下内容框（恢复默认 padding-left:8px，去掉负 margin） */
 .dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyCount"]{flex:0 0 70px;padding-left:8px;margin-left:0}
-.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyPrice"]{flex:0 0 80px;padding-left:8px;margin-left:0}
+.dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyPrice"]{flex:0 0 100px;padding-left:8px;margin-left:0}
 .dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="note"]{flex:1 1 0;min-width:80px;padding-left:8px;margin-left:0}
 /* P轮修正：开团记录制品列表「单价/对应厂家」标题 padding-left 30px；
    「售卖数量/是否流团」标题在目前 8px 基础上减 2 → 6px；
@@ -622,6 +634,11 @@ ul,li{list-style:none}
 .detail-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
 .detail-table th{background:var(--c-primary-bg);padding:8px;text-align:left;font-weight:600;color:var(--c-text-muted);border:1px solid var(--c-border)}
 .detail-table td{padding:8px;border:1px solid var(--c-border);color:var(--c-text)}
+/* 接稿排期制品完成勾选（DN轮） */
+.detail-table td.comm-prod-done{text-align:center;white-space:nowrap}
+.detail-table td.comm-prod-done label{display:inline-flex;align-items:center;gap:2px;cursor:pointer;font-size:12px;color:var(--c-green)}
+.detail-table td.comm-prod-done input{width:16px;height:16px;accent-color:var(--c-green)}
+.detail-table tr.prod-done td{text-decoration:line-through;color:var(--c-text-muted);opacity:.7}
 
 /* Empty state */
 .empty-state{text-align:center;padding:48px 20px;color:var(--c-text-muted)}
@@ -948,11 +965,40 @@ ul,li{list-style:none}
   position:relative;overflow:hidden;
 }
 .platform-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
-.platform-btn .platform-count{
-  font-size:18px;font-weight:800;
-}
-.platform-btn .platform-name{font-size:12px;opacity:.9}
+.platform-btn .platform-name{font-size:13px;font-weight:700;opacity:.95}
 .platform-btn .platform-icon{font-size:20px;margin-bottom:1px}
+
+/* ===== Platform Button Status Counts (DN轮) ===== */
+.platform-btn .platform-status-row{
+  display:flex;align-items:center;justify-content:center;gap:6px;margin-top:3px;
+  font-size:13px;font-weight:800;white-space:nowrap;
+}
+.platform-btn .platform-status-row .platform-pending{color:#fff7e6}
+.platform-btn .platform-status-row .platform-published{color:#eaffea}
+.platform-btn .platform-status-row .platform-sep{opacity:.85;font-weight:700}
+
+/* ===== Global Status Filter Buttons (DN-4轮) ===== */
+.home-status-filter{display:flex;gap:10px;margin-bottom:14px}
+.home-status-btn{
+  flex:1;min-width:0;padding:10px 12px;border-radius:10px;cursor:pointer;
+  border:1px solid var(--c-border);background:var(--c-card-bg,#fff);
+  font-size:13px;font-weight:600;color:var(--c-text-light);
+  display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;
+}
+.home-status-btn b{font-size:16px;font-weight:800}
+.home-status-btn.active.pending{background:#fffbe6;border-color:var(--c-orange);color:var(--c-orange)}
+.home-status-btn.active.published{background:#f0fff0;border-color:var(--c-green);color:var(--c-green)}
+.home-status-btn.active.pending b{color:var(--c-orange)}
+.home-status-btn.active.published b{color:var(--c-green)}
+.home-status-head{display:flex;align-items:center;justify-content:space-between;margin:4px 0 10px}
+.home-status-title{font-size:15px;font-weight:700}
+
+/* ===== Commission List-Card Product Checklist ===== */
+.comm-products-field{align-items:flex-start}
+.comm-product-checklist{display:flex;flex-direction:column;gap:5px;flex:1}
+.comm-product-item{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--c-text)}
+.comm-product-item input{width:16px;height:16px;accent-color:var(--c-green);cursor:pointer}
+.comm-product-item.done{text-decoration:line-through;color:var(--c-text-muted);opacity:.7}
 
 /* ===== Home Inspiration Quick-Input (v29) ===== */
 .home-insp{
@@ -1176,9 +1222,9 @@ ul,li{list-style:none}
 /* ===== Responsive additions ===== */
 @media(max-width:920px){
   .platform-buttons{flex-wrap:wrap}
-  .platform-btn{min-width:calc(50% - 6px);padding:8px 8px;font-size:13px}
-  .platform-btn .platform-count{font-size:18px}
+  .platform-btn{min-width:calc(50% - 6px);padding:8px 6px;font-size:13px}
   .platform-btn .platform-icon{font-size:20px}
+  .platform-btn .platform-status-row{font-size:12px;gap:4px}
   .pricelist-menu{max-width:100%}
   .calc-page-grid{grid-template-columns:1fr !important}
   .calc-receipt-col{position:static !important}
@@ -1308,6 +1354,7 @@ ul,li{list-style:none}
 .dc-prod-del:hover{background:#fff0f0;color:var(--c-danger)}
 /* v-NEW: 制品序号（只读，纯数字，无框） */
 .dc-prod-seq{display:flex;align-items:center;justify-content:flex-start;font-size:13px;font-weight:600;color:var(--c-text);min-width:24px;height:32px;box-sizing:border-box;padding-left:10px}
+.dc-product-row .dc-prod-seq.setgroup{color:var(--c-primary)}
 /* v-NEW: 加价项目绑定制品字段（combobox，置于名称前面，样式同灵感记录制品下拉，保留【下拉选择器】结构）
    CF轮：废弃原生 select，改用 combobox（input+toggle+dropdown），选项读取制品列表序号+制品，含「无（不绑定）」 */
 .dc-extra-bind-wrapper{width:100%}
@@ -1406,12 +1453,16 @@ ul,li{list-style:none}
 }
 .dc-rr.grand-bar > span:first-child{text-align:left}
 .dc-rr.grand-bar > span:last-child{text-align:right}
+/* DYA轮：右侧金额数字字号改为 15px（左侧文字保持 13px） */
+.dc-rr.grand-bar > span:last-child{font-size:15px}
+/* 回退到 v172：删除 DY7修正/DY8 对蓝色「总价」栏(.dc-rr.grand-bar)的放大覆盖规则，恢复原始 13px/700 样式 */
 /* v22: 总价 section 与其他 section 一致间距（14px）—— 去掉之前的收紧规则 */
 /* v30: 同模明细行（改人/改色...）左对齐制品文字（12 行内边距 + 20 序号宽 + 8 间距 = 40px） */
 .dc-rr.sub{font-size:11px;color:var(--c-text-muted);padding:0 12px 1px 40px}
 .dc-r-final{background:var(--c-primary);color:#fff;border-radius:8px;padding:12px;text-align:center;margin-top:4px}
 .dc-r-final-label{font-size:12px;opacity:.9}
 .dc-r-final-val{font-size:24px;font-weight:700;margin-top:2px}
+/* DY轮：回退 DV/DW/DX 的修改项目强调面板，恢复 v163 原版——最终总价/需付尾款用普通小计行（.dc-rr.total），不再额外强调 */
 .calc-actions{display:flex;gap:8px}
 /* v37: 实时报价收据底部署名——字号 11px（与 dc-r-sub/改人 小字同号），色与 .dc-rr 同（var(--c-text)），居中；与上下模块间距 8px 略小 */
 .dc-r-footer{text-align:center;font-size:10px;color:var(--c-text);padding:8px 12px 2px;margin-top:6px}
@@ -1424,6 +1475,9 @@ ul,li{list-style:none}
 }
 .dc-r-db-label{font-size:11px;opacity:.8}
 .dc-r-db-val{font-size:18px;font-weight:700;margin-top:2px}
+
+/* DY6轮：修改项目「最终总价 / 需付尾款」双按钮改用与「最终报价」(.dc-r-final) 同款实心蓝块（白字居中），仅并排两列 */
+.dc-r-final-balance{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 
 /* ===== v15: Export quote as image ===== */
 .dc-export-btn{
@@ -1645,7 +1699,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=137"></script>
+<script src="app.js?v=178"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
