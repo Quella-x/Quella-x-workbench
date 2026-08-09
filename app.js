@@ -223,6 +223,8 @@ function initModalSwipe() {
   }, { passive: true });
 }
 
+// v-DY: 模态打开时压入一条 history 状态，使手机系统「侧滑返回」手势优先关闭模态而非直接退出 APP
+let _modalHistoryPushed = false;
 function openModal(title, bodyHTML, footerBtns, size = '') {
   $('#modalTitle').textContent = title; $('#modalBody').innerHTML = bodyHTML;
   const fc = $('#modalFooter'); fc.innerHTML = ''; fc.style.display = '';
@@ -232,8 +234,19 @@ function openModal(title, bodyHTML, footerBtns, size = '') {
   $('#modal').className = 'modal' + (size ? ' ' + size : '');
   $('#modalOverlay').classList.add('show');
   initModalSwipe();
+  if (!_modalHistoryPushed) { try { history.pushState({ wbModal: 1 }, ''); _modalHistoryPushed = true; } catch (e) {} }
 }
-function closeModal() { $('#modalOverlay').classList.remove('show'); $('#modalBody').innerHTML = ''; $('#modalFooter').innerHTML = ''; }
+function closeModal() {
+  $('#modalOverlay').classList.remove('show'); $('#modalBody').innerHTML = ''; $('#modalFooter').innerHTML = '';
+  if (_modalHistoryPushed) { _modalHistoryPushed = false; try { history.back(); } catch (e) {} }
+}
+// 系统返回手势（Android 侧滑返回 / 浏览器后退）触发 popstate → 关闭当前模态并回到上一级
+window.addEventListener('popstate', function () {
+  if (_modalHistoryPushed) {
+    _modalHistoryPushed = false;
+    $('#modalOverlay').classList.remove('show'); $('#modalBody').innerHTML = ''; $('#modalFooter').innerHTML = '';
+  }
+});
 
 /* ===== Lightbox ===== */
 function openLightbox(src) { $('#lightboxImg').src = src; $('#lightbox').classList.add('show'); }
@@ -869,14 +882,18 @@ function renderCalendar(year, month, records, commissionRecords = []) {
   for (let i = 1; i <= remaining; i++) { html += `<div class="cal-day other-month"><span class="cal-date">${i}</span></div>`; }
   html += '</div>';
   // v29-fix6: 底部图例 — 平台发布 + 开稿/截稿/同天，按顺序排在公众号后面
+  html += '<div class="cal-legend-wrap">';
   html += '<div class="cal-legend">';
   html += `<span class="legend-item"><span class="status-dot" style="background:#ff2442"></span>小红书</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:#161823"></span>抖音</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:#fa8c16"></span>视频号</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:#07a059"></span>公众号</span>`;
+  html += '</div>';
+  html += '<div class="cal-legend">';
   html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>开稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>截稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>开稿+截稿重合</span>`;
+  html += '</div>';
   html += '</div>';
   return html;
 }
@@ -1895,13 +1912,17 @@ function renderCommissionCalendar(year, month, records) {
   for (let i = 1; i <= remaining; i++) { html += `<div class="cal-day other-month"><span class="cal-date">${i}</span></div>`; }
   html += '</div>';
   // Legend (v29-fix4: 改回 v27 样式 — 开稿/截稿 用实际色，加同天开+截)
+  html += '<div class="cal-legend-wrap">';
   html += '<div class="cal-legend">';
   html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>开稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>截稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>开稿+截稿重合</span>`;
+  html += '</div>';
+  html += '<div class="cal-legend">';
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[0]}"></span>紧急(截稿临近)</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[1]}"></span>正常</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[2]}"></span>充裕</span>`;
+  html += '</div>';
   html += '</div>';
   return html;
 }
@@ -3184,7 +3205,7 @@ function renderDesignCalc() {
 
   // Product list
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">制品列表 <span class="calc-card-hint">（单个SET选完制品后，可点击「归为SET」归组并自动开启SET优惠）</span></div>';
+  html += '<div class="calc-card-title">制品列表 <span class="calc-card-hint">（单个柄图SET选完制品后，可点击「归为SET」归组）</span></div>';
   html += '<div class="dc-product-header"><span>序号</span><span>制品</span><span>柄图标识</span><span>价格</span><span>数量</span><span>加急</span><span>同模</span><span></span></div>';
   html += '<div id="dc-products"></div>';
   html += '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">';
@@ -3281,7 +3302,7 @@ function renderDesignCalc() {
 
   // Bu轮: 全局同模阶梯价倍率单选（可空，去掉无同模；制品行未选类型时读取此项）
   html += '<div class="calc-card">';
-  html += '<div class="calc-card-title">同模阶梯价倍率 <span class="calc-card-hint">（选择同模更改项，制品行勾选启用，可单独选择同模类型）</span></div>';
+  html += '<div class="calc-card-title">同模阶梯价倍率 <span class="calc-card-hint">（制品行勾选启用，可单独选择同模类型）</span></div>';
   DC_MODEL.filter(m => m.value !== 'none').forEach(m => {
     html += '<div class="calc-rate-row">';
     html += `<label class="calc-rate-label"><input type="checkbox" class="calc-circle" name="dc_model_rule" value="${m.value}" ${_dcGlobalModelType === m.value ? 'checked' : ''} onchange="dcSelectGlobalModel('${m.value}', this.checked)"> ${m.value}</label>`;
