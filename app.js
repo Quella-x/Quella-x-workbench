@@ -30,7 +30,7 @@ const DB = {
 
 /* ===== Cloud Sync (Supabase REST) ===== */
 /* 同步集合：这些 store 会参与云端同步；其余（ui_state、customOpts_*、syncCfg 等）仅本地 */
-const SYNC_STORES = ['publishRecords','groupbuys','factories','samples','calcTemplates','calcRecords','inspirations','commissions','authorizations','priceList','ocCharacters','ocRelations','ocStories','ocTimeline','ocCommissions','appSettings','customCategories','lifeCheckins','lifeRecords','lifeCheckinTypes','lifeRecordTypes'];
+const SYNC_STORES = ['publishRecords','groupbuys','factories','samples','calcTemplates','calcRecords','inspirations','commissions','authorizations','priceList','ocCharacters','ocRelations','ocStories','ocTimeline','ocCommissions','appSettings','customCategories'];
 
 function hashStr(str) {
   let h = 0;
@@ -273,8 +273,7 @@ const DEFAULT_NAV_ICONS = {
   'home': '🏠', 'groupbuy': '📦', 'groupbuy-records': '📋', 'groupbuy-factories': '🏭',
   'groupbuy-samples': '🔬', 'groupbuy-calc': '🧮', 'design': '🎨', 'design-inspiration': '💡',
   'design-commission': '📅', 'design-calc': '🧮', 'design-auth': '📜', 'design-pricelist': '💰',
-  'oc': '👤', 'oc-profiles': '🎭', 'oc-relations': '🔗', 'oc-stories': '📖', 'oc-timeline': '🕐', 'oc-commission': '🖌️',
-  'life-checkin': '✅', 'life-record': '📝'
+  'oc': '👤', 'oc-profiles': '🎭', 'oc-relations': '🔗', 'oc-stories': '📖', 'oc-timeline': '🕐',   'oc-commission': '🖌️'
 };
 const DEFAULT_SETTINGS = {
   theme: { primary: '#9DC8FF', primaryLight: '#BDE7FF', primaryDark: '#7AB5F5', primaryBg: '#E0F2FF', sidebarStart: '#7AB5F5', sidebarEnd: '#5BA3F0' },
@@ -843,8 +842,6 @@ function renderCalendar(year, month, records, commissionRecords = []) {
   const today = new Date();
   const todayKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
   const START_COLOR = '#ff9a3c', END_COLOR = '#f5c518', BOTH_COLOR = '#712258';
-  // v188: 深空打卡蓝点缓存（固定位置在开稿/接稿/同天下）
-  const lifeDeepspaceCache = new Set(DB.list('lifeCheckins').filter(r => r.type === 'deepspace').map(r => r.date));
   let html = '<div class="cal-grid">';
   ['日', '一', '二', '三', '四', '五', '六'].forEach(w => { html += `<div class="cal-weekday">${w}</div>`; });
   for (let i = startWeekday - 1; i >= 0; i--) { html += `<div class="cal-day other-month"><span class="cal-date">${prevMonthDays - i}</span></div>`; }
@@ -869,11 +866,7 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     } else if (hasEnd) {
       commTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${END_COLOR}"></span><span class="cal-day-tag-text" style="color:${END_COLOR}">截稿</span></span>`;
     }
-    let deepTag = '';
-    if (lifeDeepspaceCache.has(dateStr)) {
-      deepTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:#9DC8FF"></span><span class="cal-day-tag-text" style="color:#5BA3F0">深空</span></span>`;
-    }
-    const commTags = commTag ? `<div class="cal-day-tags home-comm-tags">${commTag}${deepTag}</div>` : (deepTag ? `<div class="cal-day-tags home-comm-tags">${deepTag}</div>` : '');
+    const commTags = commTag ? `<div class="cal-day-tags home-comm-tags">${commTag}</div>` : '';
     html += `<div class="cal-day${isToday ? ' today' : ''}">
       <div class="cal-date-row"><span class="cal-date">${d}</span></div>
       <div class="cal-dots">${topDots}${dayCount}</div>
@@ -897,7 +890,6 @@ function renderCalendar(year, month, records, commissionRecords = []) {
   html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>开稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>截稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>当天同时存在开稿和截稿项目</span>`;
-  html += `<span class="legend-item"><span class="status-dot" style="background:#9DC8FF"></span>深空打卡</span>`;
   html += '</div>';
   html += '</div>';
   return html;
@@ -963,10 +955,6 @@ function renderAnnualChart(records, dateField, opts = {}) {
 /* ===== Navigation Config ===== */
 const NAV = [
   { key: 'home', label: '首页' },
-  { key: 'life', label: '生活', group: true, children: [
-    { key: 'life-checkin', label: '每日打卡' },
-    { key: 'life-record', label: '每日记录' },
-  ]},
   { key: 'groupbuy', label: '开团', group: true, children: [
     { key: 'groupbuy-records', label: '开团记录' },
     { key: 'groupbuy-factories', label: '厂家记录' },
@@ -993,7 +981,6 @@ const PAGE_TITLES = {
   'groupbuy-samples': '开团 · 打样记录', 'groupbuy-calc': '开团 · 价目计算', 'design-inspiration': '美工 · 灵感记录',
   'design-commission': '美工 · 接稿排期', 'design-calc': '美工 · 报价计算', 'design-auth': '美工 · 授权记录', 'design-pricelist': '美工 · 价目表',
   'oc-profiles': 'OC · 人物档案', 'oc-relations': 'OC · 人物关系', 'oc-stories': 'OC · 故事小记', 'oc-timeline': 'OC · 时间线', 'oc-commission': 'OC · 约稿记录',
-  'life-checkin': '生活 · 每日打卡', 'life-record': '生活 · 每日记录',
 };
 
 /* ===== Module Configs ===== */
@@ -1526,8 +1513,6 @@ function navigate(page) {
   if (page === 'oc-timeline') return renderTimeline();
   if (page === 'design-pricelist') return renderPriceList();
   if (page === 'design-calc') return renderDesignCalc();
-  if (page === 'life-checkin') return renderLifeCheckin();
-  if (page === 'life-record') return renderLifeRecord();
   const mod = MODULES[page];
   if (mod) return renderListPage(page, mod);
   body.innerHTML = '<div class="empty-state"><div class="empty-icon">🔧</div><div class="empty-text">页面开发中...</div></div>';
@@ -4930,418 +4915,6 @@ function migrateData() {
     if (r.unit !== undefined) { delete r.unit; changed = true; }
   });
   if (changed) DB.set('priceList', priceList);
-}
-
-/* ============================================================
-   生活模块 · 每日打卡 / 每日记录 (v190)
-   数据独立存储 lifeCheckins / lifeRecords，加入 SYNC_STORES 云端同步
-   ============================================================ */
-const LIFE_CHECKIN_DEFS = {
-  deepspace: { key: 'deepspace', label: '深空打卡', icon: '🌌', period: 'day', calendar: true },
-  sport: { key: 'sport', label: '运动打卡', icon: '🏃', period: 'day' },
-  massage: { key: 'massage', label: '每周按摩打卡', icon: '💆', period: 'week' },
-  vacuum: { key: 'vacuum', label: '吸尘打卡', icon: '🧹', period: 'week' },
-};
-const LIFE_RECORD_DEFS = {
-  sleep: { key: 'sleep', label: '睡眠记录', icon: '😴', fields: [
-    { key: 'sleepTime', label: '入睡时间', type: 'time' },
-    { key: 'wakeTime', label: '起床时间', type: 'time' },
-    { key: 'wakeCount', label: '清醒次数', type: 'number' },
-  ], autoDuration: true },
-  meal: { key: 'meal', label: '三餐记录', icon: '🍚', fields: [
-    { key: 'mealType', label: '餐次', type: 'select', options: ['早餐', '午餐', '晚餐'] },
-    { key: 'time', label: '吃饭时间', type: 'time' },
-    { key: 'note', label: '备注（吃了什么）', type: 'text' },
-  ]},
-  snack: { key: 'snack', label: '零食记录', icon: '🍟', fields: [
-    { key: 'note', label: '零食内容', type: 'text' },
-    { key: 'time', label: '时间', type: 'time' },
-    { key: 'qty', label: '数量备注', type: 'text' },
-  ]},
-};
-function getLifeCheckinTypes() { return Object.values(LIFE_CHECKIN_DEFS).concat(DB.list('lifeCheckinTypes')); }
-function getLifeRecordTypes() { return Object.values(LIFE_RECORD_DEFS).concat(DB.list('lifeRecordTypes')); }
-
-/* ----- 日期 / 周 工具 ----- */
-function parseDateStr(s) { const p = s.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
-function addDaysStr(s, n) { const d = parseDateStr(s); d.setDate(d.getDate() + n); return fmtDate(d); }
-function weekKeyOf(s) {
-  const d = parseDateStr(s);
-  const day = d.getDay();
-  const diff = (day === 0 ? -6 : 1 - day);
-  const monday = new Date(d); monday.setDate(d.getDate() + diff);
-  const yearStart = new Date(monday.getFullYear(), 0, 1);
-  const week = Math.ceil((((monday - yearStart) / 86400000) + 1) / 7);
-  return monday.getFullYear() + '-W' + String(week).padStart(2, '0');
-}
-/* ----- 打卡 工具 ----- */
-function getCheckin(typeKey, dateStr) { return DB.list('lifeCheckins').find(r => r.type === typeKey && r.date === dateStr) || null; }
-function isWeekChecked(typeKey, wk) { return DB.list('lifeCheckins').some(r => r.type === typeKey && r.week === wk); }
-function lifeDailyStreak(typeKey) {
-  const set = new Set(DB.list('lifeCheckins').filter(r => r.type === typeKey).map(r => r.date));
-  if (!set.size) return 0;
-  let cursor = todayStr();
-  if (!set.has(cursor)) { const y = addDaysStr(todayStr(), -1); if (!set.has(y)) return 0; cursor = y; }
-  let streak = 0; while (set.has(cursor)) { streak++; cursor = addDaysStr(cursor, -1); } return streak;
-}
-function lifeWeeklyStreak(typeKey) {
-  const set = new Set(DB.list('lifeCheckins').filter(r => r.type === typeKey).map(r => r.week));
-  if (!set.size) return 0;
-  const d = new Date(); const wk = () => weekKeyOf(fmtDate(d));
-  if (!set.has(wk())) { d.setDate(d.getDate() - 7); if (!set.has(wk())) return 0; }
-  let streak = 0; while (set.has(wk())) { streak++; d.setDate(d.getDate() - 7); } return streak;
-}
-function sleepDurationHours(sleepTime, wakeTime) {
-  if (!sleepTime || !wakeTime) return null;
-  const [sh, sm] = sleepTime.split(':').map(Number);
-  const [wh, wm] = wakeTime.split(':').map(Number);
-  let mins = (wh * 60 + wm) - (sh * 60 + sm); if (mins <= 0) mins += 1440;
-  return Math.round(mins / 60 * 10) / 10;
-}
-/* ----- 记录 归一化（兼容旧 fields 格式） ----- */
-function normLifeRec(r) {
-  if (r.fields) {
-    const f = r.fields;
-    if (r.type === 'sleep') return { sleepTime: f.sleepTime, wakeTime: f.wakeTime, wakeCount: f.wakeCount, duration: f.duration, mealType: '', time: '', note: '', qty: '' };
-    if (r.type === 'meal') return { mealType: f.mealType || '', time: f.mealTime || '', note: f.food || f.note || '', sleepTime: '', wakeCount: '', duration: '', qty: '' };
-    if (r.type === 'snack') return { note: f.food || f.note || '', time: f.snackTime || '', qty: f.category || '', sleepTime: '', wakeCount: '', duration: '', mealType: '' };
-    return { sleepTime: '', wakeTime: '', wakeCount: '', duration: '', mealType: '', time: f.f2 || '', note: f.f1 || '', qty: f.f3 || '' };
-  }
-  return { sleepTime: r.sleepTime || '', wakeTime: r.wakeTime || '', wakeCount: r.wakeCount != null ? r.wakeCount : '', duration: r.duration != null ? r.duration : '', mealType: r.mealType || '', time: r.time || '', note: r.note || '', qty: r.qty || '' };
-}
-
-/* ---- 每日打卡 ---- */
-function renderLifeCheckin() {
-  const body = $('#mainBody');
-  const ps = pageState['life-checkin'] || (pageState['life-checkin'] = { addOpen: false, newLabel: '', newIcon: '✅', newPeriod: 'day', calYear: new Date().getFullYear(), calMonth: new Date().getMonth() });
-  const types = getLifeCheckinTypes();
-  const today = todayStr();
-
-  const todoList = types.filter(t => {
-    if (t.period === 'day') return !getCheckin(t.key, today);
-    return !isWeekChecked(t.key, weekKeyOf(today));
-  });
-
-  let html = '<div class="fade-in">';
-  html += '<div class="life-section-title">🌿 每日打卡</div>';
-
-  // 今日打卡网格（待打卡快捷）
-  html += '<div class="life-today-todo">';
-  html += '<div class="life-today-header">';
-  html += '<span class="life-today-pin">📌</span>';
-  html += '<div class="life-today-titles">';
-  html += '<div class="life-today-main">今日打卡</div>';
-  html += '<div class="life-today-sub">完成今日任务，点亮每一天✨</div>';
-  html += '</div>';
-  html += '</div>';
-  if (!todoList.length) html += '<div class="life-today-all-done">🎉 今日全部完成，太棒了！</div>';
-  else {
-    html += '<div class="life-today-grid">';
-    todoList.forEach(t => {
-      const act = t.period === 'day' ? `lifeCheckinDo('${t.key}','${today}')` : `lifeCheckinDoWeekDate('${t.key}','${today}')`;
-      html += `<div class="life-today-card" onclick="${act}">
-        <div class="life-today-checkbox"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
-        <span class="life-today-ico">${t.icon}</span>
-        <span class="life-today-label">${esc(t.label)}</span>
-      </div>`;
-    });
-    html += '</div>';
-  }
-  html += '</div>';
-
-  // 小日历（打卡标记视图，区分日/周）
-  html += renderLifeCheckinCalendar(ps.calYear, ps.calMonth, types);
-
-  // 打卡清单（每个类型独立卡片）
-  html += '<div class="life-checkin-grid">';
-  types.forEach(t => {
-    let done, streak, streakUnit, stat2, stat2Label;
-    if (t.period === 'day') {
-      done = !!getCheckin(t.key, today);
-      streak = lifeDailyStreak(t.key);
-      const monthCount = DB.list('lifeCheckins').filter(r => r.type === t.key && r.date && r.date.startsWith(today.slice(0, 7))).length;
-      stat2 = monthCount; stat2Label = '本月次数'; streakUnit = '天';
-    } else {
-      done = isWeekChecked(t.key, weekKeyOf(today));
-      streak = lifeWeeklyStreak(t.key);
-      const weekCount = new Set(DB.list('lifeCheckins').filter(r => r.type === t.key).map(r => r.week)).size;
-      stat2 = weekCount; stat2Label = '已完成周数'; streakUnit = '周';
-    }
-    const statusCls = done ? 'done' : 'todo';
-    const statusTxt = done ? (t.period === 'day' ? '今日已打卡 ✓' : '本周已打卡 ✓') : (t.period === 'day' ? '今日待打卡' : '本周待打卡');
-    const doAct = t.period === 'day' ? `lifeCheckinDo('${t.key}', document.getElementById('lc-date-${t.key}').value)` : `lifeCheckinDoWeekDate('${t.key}', document.getElementById('lc-date-${t.key}').value)`;
-    const btnCls = done ? 'btn-ghost' : 'btn-primary';
-    const btnTxt = done ? '已打卡' : '打卡';
-    const btnAttr = done ? 'disabled' : '';
-    html += `<div class="life-checkin-card">
-      <div class="lcc-top"><span class="lcc-icon">${t.icon}</span><span class="lcc-label">${esc(t.label)}</span><span class="lcc-period">${t.period === 'day' ? '日签' : '周签'}</span></div>
-      <div class="lcc-stats">
-        <div class="lcc-stat"><span class="lcc-num">${streak}</span><span class="lcc-unit">${streakUnit}连续</span></div>
-        <div class="lcc-stat"><span class="lcc-num">${stat2}</span><span class="lcc-unit">${stat2Label}</span></div>
-      </div>
-      <div class="lcc-status ${statusCls}">${statusTxt}</div>
-      <div class="lcc-actions">
-        <input type="date" class="form-input lcc-date" id="lc-date-${t.key}" value="${today}" max="${today}">
-        <button class="btn ${btnCls}" ${btnAttr} onclick="${doAct}">${btnTxt}</button>
-        <button class="btn btn-ghost" onclick="lifeCheckinRemove('${t.key}', document.getElementById('lc-date-${t.key}').value)">撤销</button>
-      </div>
-    </div>`;
-  });
-  html += '</div>';
-
-  // 新增打卡项
-  html += '<div class="life-add-type">';
-  if (!ps.addOpen) html += `<button class="btn btn-ghost" onclick="lifeCheckinAddOpen()">+ 新增打卡项</button>`;
-  else {
-    html += `<div class="life-add-form">
-      <input type="text" id="lc-new-label" placeholder="名称，如 喝水打卡" value="${esc(ps.newLabel)}">
-      <input type="text" id="lc-new-icon" placeholder="图标emoji" value="${esc(ps.newIcon)}" style="width:64px;text-align:center">
-      <select id="lc-new-period"><option value="day">日签</option><option value="week">周签</option></select>
-      <button class="btn btn-primary" onclick="lifeCheckinAddSave()">添加</button>
-      <button class="btn btn-ghost" onclick="lifeCheckinAddCancel()">取消</button>
-    </div>`;
-  }
-  html += '</div>';
-
-  html += '</div>';
-  body.innerHTML = html;
-}
-
-/* ---- 每日打卡：小日历（区分日/周打卡标记） ---- */
-function renderLifeCheckinCalendar(year, month, types) {
-  const first = new Date(year, month, 1);
-  const startWeekday = (first.getDay() + 6) % 7;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const dayMap = {};
-  DB.list('lifeCheckins').forEach(r => {
-    if (!r.date) return;
-    if (!dayMap[r.date]) dayMap[r.date] = { day: false, week: false };
-    const t = types.find(x => x.key === r.type);
-    if (t && t.period === 'day') dayMap[r.date].day = true;
-    else if (t && t.period === 'week') dayMap[r.date].week = true;
-  });
-  let html = '<div class="life-cal">';
-  html += `<div class="life-cal-head"><button class="btn btn-ghost btn-sm" onclick="lifeCalNav(-1)">‹</button><span>${year}年${month + 1}月</span><button class="btn btn-ghost btn-sm" onclick="lifeCalNav(1)">›</button></div>`;
-  html += '<div class="life-cal-grid life-cal-weekhead"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>';
-  html += '<div class="life-cal-grid">';
-  for (let i = 0; i < startWeekday; i++) html += '<span class="life-cal-cell empty"></span>';
-  for (let d = 1; d <= daysInMonth; d++) {
-    const ds = fmtDate(new Date(year, month, d));
-    const m = dayMap[ds] || {};
-    let marks = '';
-    if (m.day) marks += '<span class="life-cal-dot day"></span>';
-    if (m.week) marks += '<span class="life-cal-dot week"></span>';
-    html += `<span class="life-cal-cell${ds === todayStr() ? ' today' : ''}">${d}${marks}</span>`;
-  }
-  html += '</div>';
-  html += '<div class="life-cal-legend"><span><span class="life-cal-dot day"></span>日打卡</span><span><span class="life-cal-dot week"></span>周打卡</span></div>';
-  html += '</div>';
-  return html;
-}
-function lifeCalNav(dir) {
-  const ps = pageState['life-checkin'];
-  let m = ps.calMonth + dir, y = ps.calYear;
-  if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; }
-  ps.calMonth = m; ps.calYear = y; renderLifeCheckin();
-}
-
-/* ---- 每日打卡：操作 ---- */
-function lifeCheckinDo(typeKey, dateStr) {
-  dateStr = dateStr || todayStr();
-  if (dateStr > todayStr()) { Toast.warning('不能给未来的日期打卡'); return; }
-  if (getCheckin(typeKey, dateStr)) { Toast.info('该日期已打卡'); return; }
-  DB.add('lifeCheckins', { type: typeKey, date: dateStr, week: weekKeyOf(dateStr), isMakeup: dateStr < todayStr(), createdAt: Date.now() });
-  Toast.success('打卡成功');
-  renderLifeCheckin();
-}
-function lifeCheckinDoWeekDate(typeKey, dateStr) {
-  dateStr = dateStr || todayStr();
-  if (dateStr > todayStr()) { Toast.warning('不能给未来的日期打卡'); return; }
-  const wk = weekKeyOf(dateStr);
-  if (isWeekChecked(typeKey, wk)) { Toast.info('该周已打卡'); return; }
-  DB.add('lifeCheckins', { type: typeKey, date: dateStr, week: wk, isMakeup: wk !== weekKeyOf(todayStr()), createdAt: Date.now() });
-  Toast.success('打卡成功');
-  renderLifeCheckin();
-}
-function lifeCheckinRemove(typeKey, dateStr) {
-  dateStr = dateStr || todayStr();
-  const rec = DB.list('lifeCheckins').find(r => r.type === typeKey && r.date === dateStr);
-  if (!rec) { Toast.info('该日期无打卡记录'); return; }
-  DB.remove('lifeCheckins', rec.id);
-  Toast.success('已撤销');
-  renderLifeCheckin();
-}
-function lifeCheckinAddOpen() { pageState['life-checkin'].addOpen = true; renderLifeCheckin(); }
-function lifeCheckinAddCancel() { const ps = pageState['life-checkin']; ps.addOpen = false; ps.newLabel = ''; renderLifeCheckin(); }
-function lifeCheckinAddSave() {
-  const ps = pageState['life-checkin'];
-  const label = $('#lc-new-label').value.trim();
-  const icon = $('#lc-new-icon').value.trim() || '✅';
-  const period = $('#lc-new-period').value;
-  if (!label) { Toast.warning('请填写名称'); return; }
-  const list = DB.list('lifeCheckinTypes');
-  list.push({ key: 'c_' + uid(), label, icon, period });
-  DB.set('lifeCheckinTypes', list);
-  ps.addOpen = false; ps.newLabel = '';
-  Toast.success('已新增打卡项');
-  renderLifeCheckin();
-}
-
-/* ---- 每日记录 ---- */
-function renderLifeRecord() {
-  const body = $('#mainBody');
-  const ps = pageState['life-record'] || (pageState['life-record'] = { date: todayStr(), formType: null, editId: null, values: {} });
-  const types = getLifeRecordTypes();
-  const date = ps.date;
-  const all = DB.list('lifeRecords');
-
-  let html = '<div class="fade-in">';
-  html += '<div class="life-section-title">📝 每日记录</div>';
-
-  html += `<div class="life-record-datebar">
-    <span>📅 日期</span>
-    <input type="date" value="${date}" max="${todayStr()}" onchange="lifeRecordSetDate(this.value)">
-    <div class="spacer"></div>
-    <button class="btn btn-ghost" onclick="lifeRecordGoDate(-1)">‹ 前一天</button>
-    <button class="btn btn-ghost" onclick="lifeRecordGoDate(1)">后一天 ›</button>
-  </div>`;
-
-  // 统计：当日睡眠时长 / 近7日平均 / 当日条数
-  const sleepRecs = all.filter(r => r.type === 'sleep' && (() => { const d = normLifeRec(r).duration; return d != null && d !== ''; })());
-  const todaySleep = all.find(r => r.type === 'sleep' && r.date === date && (() => { const d = normLifeRec(r).duration; return d != null && d !== ''; })());
-  const last7 = sleepRecs.filter(r => r.date >= addDaysStr(date, -6) && r.date <= date);
-  const avg7 = last7.length ? (last7.reduce((s, r) => s + Number(normLifeRec(r).duration), 0) / last7.length) : null;
-  html += '<div class="life-stat-row">';
-  html += `<div class="life-stat"><div class="ls-val">${todaySleep ? normLifeRec(todaySleep).duration + 'h' : '—'}</div><div class="ls-label">${date.slice(5)} 睡眠时长</div></div>`;
-  html += `<div class="life-stat"><div class="ls-val">${avg7 != null ? Math.round(avg7 * 10) / 10 + 'h' : '—'}</div><div class="ls-label">近7日平均睡眠</div></div>`;
-  html += `<div class="life-stat"><div class="ls-val">${all.filter(r => r.date === date).length}</div><div class="ls-label">${date.slice(5)} 记录条数</div></div>`;
-  html += '</div>';
-
-  types.forEach(t => {
-    const recs = all.filter(r => r.type === t.key && r.date === date).sort((a, b) => (a.createdAt || a._ct || 0) - (b.createdAt || b._ct || 0));
-    html += `<div class="life-record-section">
-      <div class="life-record-section-head"><span class="lrs-ico">${t.icon}</span><span class="lrs-label">${esc(t.label)}</span>
-        <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="lifeRecOpenForm('${t.key}')">+ 新增记录</button></div>`;
-    if (ps.formType === t.key) {
-      html += `<div class="life-rec-form" id="lifeRecForm">`;
-      t.fields.forEach(f => {
-        const v = ps.values[f.key] != null ? ps.values[f.key] : '';
-        const ph = f.placeholder ? ` placeholder="${esc(f.placeholder)}"` : '';
-        html += `<div class="lf-field"><label>${esc(f.label)}</label>`;
-        if (f.type === 'number') html += `<input type="number" step="0.1" id="lrf-${f.key}" value="${esc(v)}"${ph}>`;
-        else if (f.type === 'time') html += `<input type="time" id="lrf-${f.key}" value="${esc(v)}"${ph}>`;
-        else if (f.type === 'select') html += `<select id="lrf-${f.key}">${f.options.map(o => `<option value="${esc(o)}"${o === v ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
-        else html += `<input type="text" id="lrf-${f.key}" value="${esc(v)}"${ph}>`;
-        html += `</div>`;
-      });
-      html += `<div class="lf-field" style="flex-direction:row;gap:6px">
-        <button class="btn btn-primary" onclick="lifeRecSave('${t.key}')">${ps.editId ? '保存修改' : '保存'}</button>
-        <button class="btn btn-ghost" onclick="lifeRecCancel()">取消</button>
-      </div>`;
-      html += `</div>`;
-    }
-    if (!recs.length) {
-      html += `<div style="color:var(--c-text-muted);font-size:13px;padding:6px 2px">暂无记录</div>`;
-    } else {
-      recs.forEach(r => {
-        html += `<div class="life-rec-card">
-          <div class="life-rec-fields">${lifeRecFieldsHtml(t, r)}</div>
-          <div class="life-rec-actions">
-            <button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('${t.key}','${r.id}')">编辑</button>
-            <button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button>
-          </div>
-        </div>`;
-      });
-    }
-    // 睡眠：按周统计表
-    if (t.key === 'sleep') {
-      const weeks = {};
-      all.filter(r => r.type === 'sleep').forEach(r => {
-        const d = normLifeRec(r).duration;
-        if (d == null || d === '') return;
-        const wk = weekKeyOf(r.date);
-        if (!weeks[wk]) weeks[wk] = { sum: 0, n: 0 };
-        weeks[wk].sum += Number(d); weeks[wk].n++;
-      });
-      const wkKeys = Object.keys(weeks).sort().reverse().slice(0, 6);
-      if (wkKeys.length) {
-        html += `<div class="life-week-stat"><div class="lws-title">📊 睡眠周统计（最近${wkKeys.length}周）</div><table class="life-week-table"><thead><tr><th>周</th><th>平均时长</th><th>次数</th></tr></thead><tbody>`;
-        wkKeys.forEach(wk => { const w = weeks[wk]; html += `<tr><td>${wk}</td><td>${Math.round(w.sum / w.n * 10) / 10}h</td><td>${w.n}</td></tr>`; });
-        html += `</tbody></table></div>`;
-      }
-    }
-    html += `</div>`;
-  });
-
-  html += '<div class="life-add-type">';
-  html += `<button class="btn btn-ghost" onclick="lifeRecAddType()">+ 新增记录类型</button>`;
-  html += '</div>';
-
-  html += '</div>';
-  body.innerHTML = html;
-}
-function lifeRecFieldsHtml(t, rec) {
-  const n = normLifeRec(rec);
-  const parts = [];
-  t.fields.forEach(f => {
-    const val = n[f.key];
-    if (val === '' || val == null) return;
-    parts.push(`<span class="lrf"><b>${esc(f.label)}:</b> ${esc(val)}</span>`);
-  });
-  if (t.key === 'sleep') {
-    let dur = n.duration;
-    if ((dur == null || dur === '') && n.sleepTime && n.wakeTime) dur = sleepDurationHours(n.sleepTime, n.wakeTime);
-    if (dur != null && dur !== '') parts.push(`<span class="lrf"><b>睡眠时长:</b> ${dur}h</span>`);
-  }
-  return parts.join('');
-}
-function lifeRecordSetDate(v) { const ps = pageState['life-record']; ps.date = v; ps.formType = null; ps.editId = null; renderLifeRecord(); }
-function lifeRecordGoDate(n) { const ps = pageState['life-record']; ps.date = addDaysStr(ps.date, n); if (ps.date > todayStr()) ps.date = todayStr(); ps.formType = null; ps.editId = null; renderLifeRecord(); }
-function lifeRecOpenForm(typeKey) { const ps = pageState['life-record']; ps.formType = typeKey; ps.editId = null; ps.values = {}; renderLifeRecord(); }
-function lifeRecCancel() { const ps = pageState['life-record']; ps.formType = null; ps.editId = null; ps.values = {}; renderLifeRecord(); }
-function lifeRecEdit(typeKey, id) {
-  const ps = pageState['life-record'];
-  const rec = DB.getById('lifeRecords', id);
-  const n = normLifeRec(rec);
-  const t = getLifeRecordTypes().find(x => x.key === typeKey);
-  ps.formType = typeKey; ps.editId = id; ps.values = {};
-  if (t) t.fields.forEach(f => { ps.values[f.key] = n[f.key] != null ? n[f.key] : ''; });
-  renderLifeRecord();
-}
-function lifeRecSave(typeKey) {
-  const ps = pageState['life-record'];
-  const t = getLifeRecordTypes().find(x => x.key === typeKey);
-  const vals = {};
-  t.fields.forEach(f => {
-    let v = $('#lrf-' + f.key).value;
-    if (f.type === 'number') v = v === '' ? null : Number(v);
-    vals[f.key] = v;
-  });
-  const rec = { type: typeKey, date: ps.date, createdAt: Date.now() };
-  Object.assign(rec, vals);
-  if (typeKey === 'sleep') {
-    const dur = sleepDurationHours(vals.sleepTime, vals.wakeTime);
-    if (dur != null) rec.duration = dur;
-  }
-  if (ps.editId) { DB.update('lifeRecords', ps.editId, rec); Toast.success('已保存修改'); }
-  else { DB.add('lifeRecords', rec); Toast.success('已添加记录'); }
-  ps.formType = null; ps.editId = null; ps.values = {};
-  renderLifeRecord();
-}
-function lifeRecDelete(id) { DB.remove('lifeRecords', id); Toast.success('已删除'); renderLifeRecord(); }
-function lifeRecAddType() {
-  const label = window.prompt('记录类型名称（如 喝水记录）：');
-  if (!label) return;
-  const icon = window.prompt('图标 emoji（可留空）：', '📝') || '📝';
-  const list = DB.list('lifeRecordTypes');
-  list.push({ key: 'r_' + uid(), label: label.trim(), icon, fields: [
-    { key: 'f1', label: '内容', type: 'text' },
-    { key: 'f2', label: '时间', type: 'time' },
-    { key: 'f3', label: '数量', type: 'number' },
-  ]});
-  DB.set('lifeRecordTypes', list);
-  Toast.success('已新增记录类型');
-  renderLifeRecord();
 }
 
 /* ===== Init ===== */

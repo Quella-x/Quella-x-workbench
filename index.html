@@ -1649,92 +1649,6 @@ ul,li{list-style:none}
 }
 
 /* ===== v15: Combobox structure preserved on all devices ===== */
-
-/* ===== Life Module (生活 · 每日打卡/每日记录) v190 ===== */
-.life-section-title{font-size:15px;font-weight:700;margin:14px 0 8px;display:flex;align-items:center;gap:6px}
-/* 今日打卡网格 */
-.life-today-todo{background:#fff;border:1px solid var(--c-border);border-radius:var(--radius);padding:14px;margin-bottom:8px;box-shadow:var(--shadow-sm)}
-.life-today-header{display:flex;align-items:flex-start;gap:8px;margin-bottom:12px}
-.life-today-pin{font-size:20px;line-height:1;transform:rotate(-15deg);display:inline-block;margin-top:2px}
-.life-today-titles{display:flex;flex-direction:column;gap:2px}
-.life-today-main{font-size:16px;font-weight:700;color:var(--c-text)}
-.life-today-sub{font-size:12px;color:#d68a9c}
-.life-today-all-done{color:var(--c-green);font-weight:600;font-size:14px;text-align:center;padding:10px 0}
-.life-today-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.life-today-card{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--c-border);border-radius:14px;padding:12px;cursor:pointer;transition:all .15s ease;user-select:none}
-.life-today-card:active{transform:scale(.98)}
-.life-today-card:hover{border-color:var(--c-primary);box-shadow:0 2px 8px rgba(0,0,0,.05)}
-.life-today-checkbox{flex-shrink:0;width:22px;height:22px;border:2px solid #f0c0cc;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all .15s ease}
-.life-today-checkbox svg{width:14px;height:14px;fill:#fff;opacity:0;transform:scale(.6);transition:all .15s ease}
-.life-today-card.done .life-today-checkbox{background:linear-gradient(135deg,#f4a6b8,#f0c0cc);border-color:#f4a6b8}
-.life-today-card.done .life-today-checkbox svg{opacity:1;transform:scale(1)}
-.life-today-ico{font-size:22px;flex-shrink:0}
-.life-today-label{font-size:14px;font-weight:500;color:var(--c-text);line-height:1.2}
-/* 打卡清单卡片 */
-.life-checkin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:6px}
-.life-checkin-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow-sm)}
-.lcc-top{display:flex;align-items:center;gap:8px}
-.lcc-icon{font-size:22px}
-.lcc-label{font-weight:600;font-size:15px}
-.lcc-period{margin-left:auto;font-size:11px;color:var(--c-text-light);background:var(--c-border-light);padding:2px 8px;border-radius:10px}
-.lcc-stats{display:flex;gap:8px}
-.lcc-stat{flex:1;display:flex;flex-direction:column;background:var(--c-primary-bg);border-radius:var(--radius);padding:8px 10px}
-.lcc-num{font-size:22px;font-weight:800;color:var(--c-primary-dark);line-height:1.1}
-.lcc-unit{font-size:11px;color:var(--c-text-light);margin-top:2px}
-.lcc-status{font-size:13px}
-.lcc-status.done{color:var(--c-green);font-weight:600}
-.lcc-status.todo{color:var(--c-warning);font-weight:600}
-.lcc-actions{display:flex;gap:6px;align-items:center;margin-top:2px}
-.lcc-date{flex:1;min-width:0;padding:6px 8px;font-size:14px}
-/* 小日历（区分日/周打卡标记） */
-.life-cal{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:12px;margin:10px 0;box-shadow:var(--shadow-sm)}
-.life-cal-head{display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:14px;margin-bottom:8px}
-.life-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.life-cal-weekhead{margin-bottom:4px}
-.life-cal-weekhead span{text-align:center;font-size:11px;color:var(--c-text-light)}
-.life-cal-cell{position:relative;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:12px;border-radius:8px;background:var(--c-primary-bg)}
-.life-cal-cell.empty{background:transparent}
-.life-cal-cell.today{outline:2px solid var(--c-primary);outline-offset:-2px}
-.life-cal-dot{position:absolute;bottom:3px;width:5px;height:5px}
-.life-cal-dot.day{left:calc(50% - 6px);background:var(--c-primary);border-radius:50%}
-.life-cal-dot.week{left:calc(50% + 1px);background:#f5a623}
-.life-cal-legend{display:flex;gap:14px;margin-top:8px;font-size:11px;color:var(--c-text-light)}
-.life-cal-legend span{display:inline-flex;align-items:center;gap:4px}
-/* 新增打卡项 */
-.life-add-type{margin-top:14px}
-.life-add-form{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:12px;margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.life-add-form input,.life-add-form select{padding:7px 9px;font-size:14px;border:1px solid var(--c-border);border-radius:var(--radius-sm)}
-/* 每日记录 */
-.life-record-datebar{display:flex;align-items:center;gap:10px;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:10px 14px;margin-bottom:6px;flex-wrap:wrap}
-.life-record-datebar input[type=date]{padding:7px 9px;font-size:15px;border:1px solid var(--c-border);border-radius:var(--radius-sm)}
-.life-stat-row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
-.life-stat{background:var(--c-primary-bg);border-radius:var(--radius);padding:8px 14px;flex:1;min-width:120px}
-.life-stat .ls-val{font-size:20px;font-weight:800;color:var(--c-primary-dark)}
-.life-stat .ls-label{font-size:12px;color:var(--c-text-light)}
-.life-record-section{margin-top:14px}
-.life-record-section-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.life-record-section-head .lrs-ico{font-size:18px}
-.life-record-section-head .lrs-label{font-weight:600;font-size:14px}
-.life-rec-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:8px}
-.life-rec-fields{flex:1;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px}
-.life-rec-fields .lrf{display:flex;gap:4px}
-.life-rec-fields .lrf b{color:var(--c-text-light);font-weight:500}
-.life-rec-actions{display:flex;gap:4px;flex-shrink:0}
-.life-rec-form{background:var(--c-card);border:1px dashed var(--c-primary);border-radius:var(--radius);padding:12px;margin-bottom:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
-.life-rec-form .lf-field{display:flex;flex-direction:column;gap:3px;min-width:120px}
-.life-rec-form .lf-field label{font-size:12px;color:var(--c-text-light)}
-.life-rec-form input,.life-rec-form select{padding:7px 9px;font-size:14px;border:1px solid var(--c-border);border-radius:var(--radius-sm)}
-/* 睡眠周统计表 */
-.life-week-stat{margin-top:10px;background:var(--c-primary-bg);border-radius:var(--radius);padding:10px 12px}
-.life-week-stat .lws-title{font-size:13px;font-weight:600;margin-bottom:6px}
-.life-week-table{width:100%;border-collapse:collapse;font-size:12px}
-.life-week-table th,.life-week-table td{border:1px solid var(--c-border-light);padding:4px 6px;text-align:center}
-.life-week-table th{background:var(--c-card);color:var(--c-text-light);font-weight:500}
-@media (max-width:768px){
-  .life-checkin-grid{grid-template-columns:1fr 1fr}
-  .lcc-num{font-size:24px}
-  .life-stat{min-width:100px}
-}
 </style>
 </head>
 <body>
@@ -1786,7 +1700,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=190"></script>
+<script src="app.js?v=191"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
