@@ -1457,7 +1457,6 @@ ul,li{list-style:none}
 .dc-rr.grand-bar > span:last-child{text-align:right}
 /* DYA轮：右侧金额数字字号改为 15px（左侧文字保持 13px） */
 .dc-rr.grand-bar > span:last-child{font-size:15px}
-/* 回退到 v172：删除 DY7修正/DY8 对蓝色「总价」栏(.dc-rr.grand-bar)的放大覆盖规则，恢复原始 13px/700 样式 */
 /* v22: 总价 section 与其他 section 一致间距（14px）—— 去掉之前的收紧规则 */
 /* v30: 同模明细行（改人/改色...）左对齐制品文字（12 行内边距 + 20 序号宽 + 8 间距 = 40px） */
 .dc-rr.sub{font-size:11px;color:var(--c-text-muted);padding:0 12px 1px 40px}
@@ -1701,7 +1700,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=181"></script>
+<script src="app.js?v=182"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

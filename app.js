@@ -753,11 +753,6 @@ document.addEventListener('click', (e) => {
 });
 
 /* ===== Custom Multiselect Option Adder ===== */
-function limitSingleCheckbox(cb) {
-  const group = cb.closest('.checkbox-group');
-  if (!group || !group.dataset.single) return;
-  group.querySelectorAll('input[type="checkbox"]').forEach(c => { if (c !== cb) c.checked = false; });
-}
 function addCustomMultiselectOpt(inputId, moduleKey, fieldKey, btn) {
   const input = document.getElementById(inputId);
   if (!input || !input.value.trim()) return;
@@ -4729,7 +4724,7 @@ function initEvents() {
 
 /* ===== Data Export ===== */
 function exportData() {
-  const stores = ['publishRecords', 'groupbuys', 'factories', 'samples', 'calcTemplates', 'calcRecords', 'inspirations', 'commissions', 'authorizations', 'priceList', 'ocCharacters', 'ocRelations', 'ocStories', 'ocTimeline', 'ocCommissions', 'appSettings', 'customCategories'];
+  const stores = SYNC_STORES;
   const data = {}; let total = 0;
   stores.forEach(s => { const arr = DB.get(s, s === 'appSettings' ? DEFAULT_SETTINGS : s === 'customCategories' ? [] : []); data[DB._prefix + s] = arr; if (Array.isArray(arr)) total += arr.length; });
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
