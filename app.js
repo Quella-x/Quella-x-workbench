@@ -5033,13 +5033,23 @@ function renderLifeCheckin() {
   html += '<div class="life-section-title">🌿 每日打卡</div>';
 
   html += '<div class="life-today-todo">';
-  html += '<h3>📌 今日待打卡</h3>';
-  if (!todoList.length) html += '<div style="color:var(--c-green);font-weight:600">🎉 今日全部完成，太棒了！</div>';
+  html += '<div class="life-today-header">';
+  html += '<span class="life-today-pin">📌</span>';
+  html += '<div class="life-today-titles">';
+  html += '<div class="life-today-main">今日打卡</div>';
+  html += '<div class="life-today-sub">完成今日任务，点亮每一天✨</div>';
+  html += '</div>';
+  html += '</div>';
+  if (!todoList.length) html += '<div class="life-today-all-done">🎉 今日全部完成，太棒了！</div>';
   else {
-    html += '<div class="life-todo-list">';
+    html += '<div class="life-today-grid">';
     todoList.forEach(t => {
       const act = t.period === 'day' ? `lifeCheckinDo('${t.key}','${today}')` : `lifeCheckinDoWeek('${t.key}')`;
-      html += `<div class="life-todo-item"><span class="lti-ico">${t.icon}</span><span>${esc(t.label)}</span><button class="btn btn-sm btn-primary" onclick="${act}" style="margin-left:4px">打卡</button></div>`;
+      html += `<div class="life-today-card" onclick="${act}">
+        <div class="life-today-checkbox"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+        <span class="life-today-ico">${t.icon}</span>
+        <span class="life-today-label">${esc(t.label)}</span>
+      </div>`;
     });
     html += '</div>';
   }

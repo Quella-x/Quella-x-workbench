@@ -1652,11 +1652,23 @@ ul,li{list-style:none}
 
 /* ===== Life Module (生活 · 每日打卡/每日记录) v188 ===== */
 .life-section-title{font-size:15px;font-weight:700;margin:14px 0 8px;display:flex;align-items:center;gap:6px}
-.life-today-todo{background:linear-gradient(135deg,var(--c-primary-bg),#ffffff);border:1px solid var(--c-border);border-radius:var(--radius);padding:12px 14px;margin-bottom:6px}
-.life-today-todo h3{font-size:14px;margin-bottom:8px}
-.life-todo-list{display:flex;flex-wrap:wrap;gap:8px}
-.life-todo-item{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--c-border);border-radius:20px;padding:5px 10px;font-size:13px}
-.life-todo-item .lti-ico{font-size:15px}
+.life-today-todo{background:#fff;border:1px solid var(--c-border);border-radius:var(--radius);padding:14px;margin-bottom:8px;box-shadow:var(--shadow-sm)}
+.life-today-header{display:flex;align-items:flex-start;gap:8px;margin-bottom:12px}
+.life-today-pin{font-size:20px;line-height:1;transform:rotate(-15deg);display:inline-block;margin-top:2px}
+.life-today-titles{display:flex;flex-direction:column;gap:2px}
+.life-today-main{font-size:16px;font-weight:700;color:var(--c-text)}
+.life-today-sub{font-size:12px;color:#d68a9c}
+.life-today-all-done{color:var(--c-green);font-weight:600;font-size:14px;text-align:center;padding:10px 0}
+.life-today-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.life-today-card{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--c-border);border-radius:14px;padding:12px;cursor:pointer;transition:all .15s ease;user-select:none}
+.life-today-card:active{transform:scale(.98)}
+.life-today-card:hover{border-color:var(--c-primary);box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.life-today-checkbox{flex-shrink:0;width:22px;height:22px;border:2px solid #f0c0cc;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all .15s ease}
+.life-today-checkbox svg{width:14px;height:14px;fill:#fff;opacity:0;transform:scale(.6);transition:all .15s ease}
+.life-today-card.done .life-today-checkbox{background:linear-gradient(135deg,#f4a6b8,#f0c0cc);border-color:#f4a6b8}
+.life-today-card.done .life-today-checkbox svg{opacity:1;transform:scale(1)}
+.life-today-ico{font-size:22px;flex-shrink:0}
+.life-today-label{font-size:14px;font-weight:500;color:var(--c-text);line-height:1.2}
 .life-checkin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:6px}
 .life-checkin-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow-sm)}
 .lcc-top{display:flex;align-items:center;gap:8px}
@@ -1749,7 +1761,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=188"></script>
+<script src="app.js?v=189"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
