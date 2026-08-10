@@ -5020,49 +5020,17 @@ function lifeWeeklyStreak(typeKey) {
   if (!set.has(cur)) { cur = prevWeekKey(cur); if (!set.has(cur)) return 0; }
   let s = 0; while (set.has(cur)) { s++; cur = prevWeekKey(cur); } return s;
 }
-function renderCheckinHeatmap(typeKey, year, month) {
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDay = new Date(year, month, 1).getDay();
+function renderCheckinHeatmap(typeKey, daysBack) {
   const checkins = DB.list('lifeCheckins').filter(r => r.type === typeKey);
   const def = LIFE_CHECKIN_DEFS[typeKey];
-  let html = '<div class="life-heatmap">';
-  for (let i = 0; i < firstDay; i++) html += '<div class="hm-day empty"></div>';
-  for (let d = 1; d <= daysInMonth; d++) {
-    const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    let cls = 'hm-day';
-    if (def.period === 'day') { if (checkins.some(r => r.date === ds)) cls += ' done'; }
-    else { if (checkins.some(r => r.date === ds)) cls += ' week'; }
-    html += `<div class="${cls}" title="${ds}"></div>`;
-  }
-  html += '</div>';
-  return html;
-}
-function renderCheckinTodayGrid() {
   const today = todayStr();
-  let html = '<div class="life-checkin-today">';
-  Object.values(LIFE_CHECKIN_DEFS).forEach(t => {
-    const recs = DB.list('lifeCheckins').filter(r => r.type === t.key);
-    let done = false, percent = 0, meta = '';
-    if (t.period === 'day') {
-      done = recs.some(r => r.date === today);
-      percent = done ? 100 : 0;
-      meta = done ? '今日已完成' : '今日待打卡';
-    } else {
-      const thisWeek = weekKeyOf(today);
-      const weekCount = recs.filter(r => r.week === thisWeek).length;
-      done = weekCount > 0;
-      percent = done ? 100 : 0;
-      meta = done ? `本周已 ${weekCount} 次` : '本周待打卡';
-    }
-    const ringCls = 'life-ci-ring' + (t.period === 'week' ? ' week' : '') + (done ? ' done' : '');
-    html += `<div class="life-ci-item" onclick="lifeCheckinDo('${t.key}', '${today}')">
-      <div class="${ringCls}" style="--p:${percent}%">
-        <span class="life-ci-ico">${t.icon}</span>
-        <span class="life-ci-check">✓</span>
-      </div>
-      <div class="life-ci-label">${esc(t.label)}</div>
-      <div class="life-ci-meta">${meta}</div>
-    </div>`;
+  const days = [];
+  for (let i = daysBack - 1; i >= 0; i--) days.push(addDaysStr(today, -i));
+  let html = '<div class="life-heatmap">';
+  days.forEach(ds => {
+    let cls = 'hm-day';
+    if (checkins.some(r => r.date === ds)) cls += def.period === 'day' ? ' done' : ' week';
+    html += `<div class="${cls}" title="${ds}"></div>`;
   });
   html += '</div>';
   return html;
@@ -5073,7 +5041,7 @@ function renderCheckinWeekMatrix() {
   const days = [];
   for (let i = 0; i < 7; i++) { const d = new Date(mon); d.setDate(mon.getDate() + i); days.push(fmtDate(d)); }
   const labels = ['一','二','三','四','五','六','日'];
-  let html = '<table class="life-week-table"><thead><tr><th>习惯</th>';
+  let html = '<table class="life-qm-table"><thead><tr><th>习惯</th>';
   days.forEach((d, i) => html += `<th>${labels[i]}<br><span class="wd">${d.slice(8)}</span></th>`);
   html += '<th>本周</th></tr></thead><tbody>';
   Object.values(LIFE_CHECKIN_DEFS).forEach(t => {
@@ -5087,73 +5055,101 @@ function renderCheckinWeekMatrix() {
   html += '</tbody></table>';
   return html;
 }
-function renderHabitStatCards() {
-  const now = new Date();
-  const year = now.getFullYear(), month = now.getMonth();
-  let html = '<div class="life-habit-grid">';
-  Object.values(LIFE_CHECKIN_DEFS).forEach(t => {
-    const recs = DB.list('lifeCheckins').filter(r => r.type === t.key);
-    const cls = 'life-habit-card' + (t.period === 'week' ? ' week' : '');
-    let v1, v2, u1, u2;
-    if (t.period === 'day') { v1 = lifeDailyStreak(t.key); v2 = lifeDailyMonthCount(t.key); u1 = '连续'; u2 = '本月'; }
-    else { v1 = lifeWeeklyCompletedWeeks(t.key); v2 = lifeWeeklyStreak(t.key); u1 = '已完成周'; u2 = '连续周'; }
-    html += `<div class="${cls}">
-      <div class="lhc-top"><div class="lhc-ico">${t.icon}</div><div class="lhc-info"><div class="lhc-name">${esc(t.label)}</div><div class="lhc-sub">${t.period === 'day' ? '每日打卡' : '每周打卡'}</div></div></div>
-      <div class="lhc-stats"><div class="lhc-stat"><div class="lhc-num">${v1}</div><div class="lhc-unit">${u1}</div></div><div class="lhc-stat"><div class="lhc-num">${v2}</div><div class="lhc-unit">${u2}</div></div></div>
-      ${renderCheckinHeatmap(t.key, year, month)}
-    </div>`;
-  });
-  html += '</div>';
-  return html;
+function renderLifeCheckinSummary() {
+  const today = todayStr();
+  const all = DB.list('lifeCheckins');
+  const total = all.length;
+  const todayDone = Object.values(LIFE_CHECKIN_DEFS).filter(t => {
+    if (t.period === 'day') return all.some(r => r.type === t.key && r.date === today);
+    return all.some(r => r.type === t.key && r.week === weekKeyOf(today));
+  }).length;
+  const weekDone = Object.values(LIFE_CHECKIN_DEFS).filter(t => all.some(r => r.type === t.key && r.week === weekKeyOf(today))).length;
+  const maxStreak = Math.max(0, ...Object.values(LIFE_CHECKIN_DEFS).map(t => lifeDailyStreak(t.key)));
+  return `<div class="life-summary-row">
+    <div class="life-summary-card"><div class="lsc-val">${total}</div><div class="lsc-label">累计打卡</div></div>
+    <div class="life-summary-card"><div class="lsc-val">${todayDone}</div><div class="lsc-label">今日完成</div></div>
+    <div class="life-summary-card"><div class="lsc-val">${weekDone}</div><div class="lsc-label">本周完成</div></div>
+    <div class="life-summary-card"><div class="lsc-val">${maxStreak}</div><div class="lsc-label">最长连续</div></div>
+  </div>`;
+}
+function renderGoalCard(t) {
+  const today = todayStr();
+  const recs = DB.list('lifeCheckins').filter(r => r.type === t.key);
+  let total, streak, rate, status, statusCls, btnTxt, btnDisabled;
+  if (t.period === 'day') {
+    total = recs.length;
+    streak = lifeDailyStreak(t.key);
+    const first = recs.length ? recs.map(r => r.date).sort()[0] : today;
+    const span = Math.max(1, Math.floor((new Date(today) - new Date(first)) / 86400000) + 1);
+    rate = Math.round(total / span * 100);
+    const done = recs.some(r => r.date === today);
+    status = done ? '今日已打卡' : '今日待打卡';
+    statusCls = done ? 'done' : 'todo';
+    btnTxt = done ? '已打卡' : '打卡';
+    btnDisabled = done;
+  } else {
+    total = lifeWeeklyCompletedWeeks(t.key);
+    streak = lifeWeeklyStreak(t.key);
+    const thisWeek = weekKeyOf(today);
+    const weeks = new Set(recs.map(r => r.week || weekKeyOf(r.date)));
+    rate = weeks.size > 0 ? Math.round(total / (total + 1) * 100) : 0;
+    const done = recs.some(r => (r.week || weekKeyOf(r.date)) === thisWeek);
+    status = done ? '本周已打卡' : '本周待打卡';
+    statusCls = done ? 'done' : 'todo';
+    btnTxt = done ? '本周已打' : '打卡';
+    btnDisabled = false;
+  }
+  return `<div class="life-goal-card" onclick="lifeCheckinOpenCard('${t.key}')">
+    <div class="lgc-head">
+      <div class="lgc-ico">${t.icon}</div>
+      <div class="lgc-title-wrap">
+        <div class="lgc-name">${esc(t.label)}</div>
+        <div class="lgc-desc">${t.period === 'day' ? '每日打卡' : '每周打卡'}</div>
+      </div>
+      <div class="lgc-arrow">›</div>
+    </div>
+    <div class="lgc-body">
+      <div class="lgc-stats">
+        <div class="lgc-stat"><div class="lgc-num">${total}</div><div class="lgc-unit">${t.period === 'day' ? '累计打卡' : '已完成周'}</div></div>
+        <div class="lgc-stat"><div class="lgc-num">${streak}</div><div class="lgc-unit">${t.period === 'day' ? '最长连续' : '连续完成'}</div></div>
+        <div class="lgc-stat"><div class="lgc-num">${rate}%</div><div class="lgc-unit">完成率</div></div>
+      </div>
+      <div class="lgc-heatmap">${renderCheckinHeatmap(t.key, 28)}</div>
+    </div>
+    <div class="lgc-foot">
+      <span class="lgc-status ${statusCls}"><span class="lgc-dot"></span>${status}</span>
+      <button class="btn btn-sm btn-primary" ${btnDisabled ? 'disabled' : ''} onclick="event.stopPropagation();lifeCheckinDo('${t.key}','${today}')">${btnTxt}</button>
+    </div>
+  </div>`;
 }
 function renderLifeCheckin() {
   const body = $('#mainBody');
-  if (!pageState['life-checkin']) pageState['life-checkin'] = { calYear: new Date().getFullYear(), calMonth: new Date().getMonth() };
-  const ps = pageState['life-checkin'];
   let html = '<div class="fade-in">';
-  html += '<div class="life-hero"><span class="lh-ico">🌿</span><div class="lh-text"><div class="lh-title">每日打卡</div><div class="lh-sub">日签坚持 · 周签达成</div></div></div>';
-  html += '<div class="life-card life-cal-card">';
-  html += '<div class="life-cal-head"><div class="life-cal-nav"><button class="btn btn-ghost btn-sm" onclick="lifeCheckinMonth(-1)">‹</button><span class="life-cal-month">' + ps.calYear + '年' + (ps.calMonth + 1) + '月</span><button class="btn btn-ghost btn-sm" onclick="lifeCheckinMonth(1)">›</button></div><button class="btn btn-sm btn-ghost" onclick="lifeCheckinMonthReset()">回到今天</button></div>';
-  html += renderLifeCheckinCalendar(ps.calYear, ps.calMonth);
-  html += '<div class="life-cal-legend"><span class="legend-item"><span class="cal-dot" style="background:var(--c-primary)"></span>日打卡</span><span class="legend-item"><span class="life-cal-square"></span>周打卡</span></div>';
-  html += '</div>';
-  html += '<div class="life-section-hd"><span class="lsh-ico">☀️</span><span class="lsh-label">今日打卡</span><span class="lsh-sub">点击图标快速打卡</span></div>';
-  html += renderCheckinTodayGrid();
-  html += '<div class="life-section-hd"><span class="lsh-ico">📅</span><span class="lsh-label">本周打卡</span></div>';
+  html += '<div class="life-hero"><span class="lh-ico">🌿</span><div class="lh-text"><div class="lh-title">每日打卡</div><div class="lh-sub">目标 · 坚持 · 成长</div></div></div>';
+  html += renderLifeCheckinSummary();
+  html += '<div class="life-section-hd"><span class="lsh-ico">⚡</span><span class="lsh-label">快捷打卡</span><span class="lsh-sub">本周习惯矩阵</span></div>';
   html += '<div class="life-week-matrix">' + renderCheckinWeekMatrix() + '</div>';
-  html += '<div class="life-section-hd"><span class="lsh-ico">🔥</span><span class="lsh-label">习惯统计</span></div>';
-  html += renderHabitStatCards();
+  html += '<div class="life-section-hd"><span class="lsh-ico">🎯</span><span class="lsh-label">目标列表</span><span class="lsh-sub">点击卡片补打卡</span></div>';
+  html += '<div class="life-goal-grid">';
+  Object.values(LIFE_CHECKIN_DEFS).forEach(t => { html += renderGoalCard(t); });
+  html += '</div>';
   html += '</div>';
   body.innerHTML = html;
 }
-function lifeCheckinMonthReset() { const ps = pageState['life-checkin']; const now = new Date(); ps.calYear = now.getFullYear(); ps.calMonth = now.getMonth(); renderLifeCheckin(); }
-function renderLifeCheckinCalendar(year, month) {
-  const firstDay = new Date(year, month, 1);
-  const startWeekday = firstDay.getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const todayKey = todayStr();
-  const checkins = DB.list('lifeCheckins');
-  let html = '<div class="cal-grid life-cal-grid">';
-  ['日', '一', '二', '三', '四', '五', '六'].forEach(w => html += `<div class="cal-weekday">${w}</div>`);
-  for (let i = startWeekday - 1; i >= 0; i--) html += `<div class="cal-day other-month"><span class="cal-date"></span></div>`;
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const dayRecs = checkins.filter(r => r.date === dateStr);
-    const isToday = dateStr === todayKey;
-    let markers = '';
-    dayRecs.forEach(r => {
-      const def = LIFE_CHECKIN_DEFS[r.type];
-      if (!def) return;
-      if (def.period === 'day') markers += `<span class="cal-dot" style="background:var(--c-primary)" title="${esc(def.label)}"></span>`;
-      else markers += `<span class="life-cal-square" style="background:#ff9a3c" title="${esc(def.label)}"></span>`;
-    });
-    html += `<div class="cal-day${isToday ? ' today' : ''}"><span class="cal-date">${d}</span><div class="cal-dots">${markers}</div></div>`;
-  }
-  const total = startWeekday + daysInMonth;
-  const rem = total % 7 === 0 ? 0 : 7 - (total % 7);
-  for (let i = 1; i <= rem; i++) html += `<div class="cal-day other-month"><span class="cal-date"></span></div>`;
-  html += '</div>';
-  return html;
+function lifeCheckinOpenCard(typeKey) {
+  const t = LIFE_CHECKIN_DEFS[typeKey];
+  const today = todayStr();
+  const recs = DB.list('lifeCheckins').filter(r => r.type === typeKey);
+  let html = `<div class="life-modal-body">`;
+  html += `<div class="life-modal-hd"><span class="lm-ico">${t.icon}</span><div><div class="lm-name">${esc(t.label)}</div><div class="lm-desc">${t.period === 'day' ? '每日打卡 · 选择日期补卡' : '每周打卡 · 选择日期记录'}</div></div></div>`;
+  html += `<div class="life-modal-actions"><input type="date" class="form-input" id="lc-modal-date" value="${today}" max="${today}"><button class="btn btn-primary" onclick="lifeCheckinDo('${typeKey}', $('#lc-modal-date').value);closeModal();">补打卡</button><button class="btn btn-ghost" onclick="lifeCheckinRemove('${typeKey}', $('#lc-modal-date').value)">撤销</button></div>`;
+  html += `<div class="life-modal-heatmap">${renderCheckinHeatmap(typeKey, 35)}</div>`;
+  html += `<div class="life-modal-list">`;
+  const recent = recs.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
+  if (!recent.length) html += '<div class="life-empty">暂无打卡记录</div>';
+  else recent.forEach(r => { html += `<div class="life-modal-item"><span>${r.date}</span><span>${r.isMakeup ? '补卡' : '打卡'}</span></div>`; });
+  html += '</div></div>';
+  openModal(esc(t.label) + ' 打卡详情', html, '');
 }
 function lifeCheckinDo(typeKey, dateStr) {
   dateStr = dateStr || todayStr();
@@ -5171,64 +5167,20 @@ function lifeCheckinRemove(typeKey, dateStr) {
   Toast.success('已撤销');
   renderLifeCheckin();
 }
-function lifeCheckinMonth(delta) {
-  const ps = pageState['life-checkin'];
-  let m = ps.calMonth + delta, y = ps.calYear;
-  if (m < 0) { m = 11; y--; } else if (m > 11) { m = 0; y++; }
-  ps.calMonth = m; ps.calYear = y;
-  renderLifeCheckin();
-}
-function renderRecordTimeline(recs, type) {
-  let html = '<div class="life-timeline">';
-  recs.forEach(r => {
-    const time = r.time || '';
-    const fieldsHtml = type.fields.filter(f => f.key !== 'duration').map(f => {
-      const val = r[f.key];
-      if (val === '' || val == null) return '';
-      return `<span><b>${esc(f.label)}:</b> ${esc(val)}</span>`;
-    }).filter(Boolean).join('');
-    const dur = (type.key === 'sleep' && r.duration != null) ? `<span><b>睡眠时长:</b> ${Number(r.duration).toFixed(1)}h</span>` : '';
-    html += `<div class="life-tl-item">
-      <div class="life-tl-time">${time ? esc(time.slice(0, 5)) : '—'}</div>
-      <div class="life-tl-main"><div class="tl-fields">${fieldsHtml}${dur}</div></div>
-      <div class="life-tl-ops">
-        <button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('${type.key}','${r.id}')">编辑</button>
-        <button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button>
-      </div>
-    </div>`;
-  });
-  html += '</div>';
-  return html;
-}
-function renderRecordSummaryText(key, current, goal, recs) {
-  if (key === 'sleep') {
-    if (!recs.length) return '今日还没有睡眠记录。<br>建议成年人每日保持 <b>7-8h</b> 睡眠。';
-    if (current >= 7 && current <= 9) return `今日睡眠 <b>${Math.round(current * 10) / 10}h</b>，处于推荐区间。`;
-    if (current < 7) return `今日睡眠 <b>${Math.round(current * 10) / 10}h</b>，略少于推荐值，今晚早点休息～`;
-    return `今日睡眠 <b>${Math.round(current * 10) / 10}h</b>，睡得很足，注意起床时间。`;
-  }
-  if (key === 'meal') {
-    const left = Math.max(0, goal - current);
-    return `今日已记录 <b>${current}</b> 餐，${left ? `距离目标还差 <b>${left}</b> 餐` : '三餐目标已达成 🎉'}。`;
-  }
-  return recs.length ? `今日已记录 <b>${recs.length}</b> 条。` : '今日还没有记录。';
-}
 function renderLifeRecord() {
   const body = $('#mainBody');
   if (!pageState['life-record']) pageState['life-record'] = { date: todayStr(), formType: null, editId: null, values: {} };
   const ps = pageState['life-record'];
   const date = ps.date;
   const all = DB.list('lifeRecords');
-  const today = todayStr();
   let html = '<div class="fade-in">';
   html += '<div class="life-hero"><span class="lh-ico">📝</span><div class="lh-text"><div class="lh-title">每日记录</div><div class="lh-sub">睡眠 · 三餐 · 零食，逐条留痕</div></div></div>';
-  html += `<div class="life-datebar">
+  html += `<div class="life-record-datebar">
     <span>📅 日期</span>
-    <input type="date" class="form-input" value="${date}" max="${today}" onchange="lifeRecordSetDate(this.value)">
+    <input type="date" class="form-input" value="${date}" max="${todayStr()}" onchange="lifeRecordSetDate(this.value)">
     <div class="spacer"></div>
     <button class="btn btn-ghost btn-sm" onclick="lifeRecordGoDate(-1)">‹ 前一天</button>
     <button class="btn btn-ghost btn-sm" onclick="lifeRecordGoDate(1)">后一天 ›</button>
-    <button class="btn btn-primary btn-sm" onclick="lifeRecordSetDate('${today}')">今天</button>
   </div>`;
   const sleepRecs = all.filter(r => r.type === 'sleep' && r.date === date);
   const daySleep = sleepRecs.reduce((s, r) => s + (Number(r.duration) || 0), 0);
@@ -5236,33 +5188,18 @@ function renderLifeRecord() {
   const daySum7 = {};
   last7.forEach(r => { daySum7[r.date] = (daySum7[r.date] || 0) + (Number(r.duration) || 0); });
   const avg7 = Object.keys(daySum7).length ? Object.values(daySum7).reduce((a, b) => a + b, 0) / Object.keys(daySum7).length : null;
-  const mealCount = all.filter(r => r.type === 'meal' && r.date === date).length;
-  const snackCount = all.filter(r => r.type === 'snack' && r.date === date).length;
-  html += '<div class="life-summary-row">';
-  html += `<div class="life-summary-card"><div class="lsc-val">${daySleep ? Math.round(daySleep * 10) / 10 + 'h' : '—'}</div><div class="lsc-label">${date.slice(5)} 睡眠</div></div>`;
-  html += `<div class="life-summary-card"><div class="lsc-val">${avg7 != null ? Math.round(avg7 * 10) / 10 + 'h' : '—'}</div><div class="lsc-label">近7日平均睡眠</div></div>`;
-  html += `<div class="life-summary-card"><div class="lsc-val">${mealCount}</div><div class="lsc-label">今日三餐</div></div>`;
-  html += `<div class="life-summary-card"><div class="lsc-val">${snackCount}</div><div class="lsc-label">今日零食</div></div>`;
+  const count = all.filter(r => r.date === date).length;
+  html += '<div class="life-stat-row">';
+  html += `<div class="life-stat"><div class="ls-val">${daySleep ? Math.round(daySleep * 10) / 10 + 'h' : '—'}</div><div class="ls-label">${date.slice(5)} 睡眠时长</div></div>`;
+  html += `<div class="life-stat"><div class="ls-val">${avg7 != null ? Math.round(avg7 * 10) / 10 + 'h' : '—'}</div><div class="ls-label">近7日平均睡眠</div></div>`;
+  html += `<div class="life-stat"><div class="ls-val">${count}</div><div class="ls-label">${date.slice(5)} 记录条数</div></div>`;
   html += '</div>';
   Object.values(LIFE_RECORD_DEFS).forEach(t => {
     const recs = all.filter(r => r.type === t.key && r.date === date).sort((a, b) => (a._ct || 0) - (b._ct || 0));
-    const goal = t.key === 'sleep' ? 8 : (t.key === 'meal' ? 3 : 0);
-    const current = t.key === 'sleep' ? daySleep : (t.key === 'meal' ? mealCount : snackCount);
-    const pct = goal ? Math.min(100, Math.round(current / goal * 100)) : 0;
     html += `<div class="life-panel">
-      <div class="life-panel-head"><span class="lph-ico">${t.icon}</span><span class="lph-label">${esc(t.label)}</span>`;
-    if (goal) html += `<span class="lph-target">目标 ${goal}${t.key === 'sleep' ? 'h' : '餐'}</span>`;
-    html += `<span class="lph-count">${recs.length} 条</span><button class="btn btn-sm btn-primary" onclick="lifeRecOpenForm('${t.key}')">+ 新增</button></div>
+      <div class="life-panel-head"><span class="lph-ico">${t.icon}</span><span class="lph-label">${esc(t.label)}</span><span class="lph-count">${recs.length} 条</span>
+        <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="lifeRecOpenForm('${t.key}')">+ 新增记录</button></div>
       <div class="life-panel-body">`;
-    html += `<div class="life-record-summary">
-      <div class="lrs-ring-wrap">
-        <div class="life-ring" style="--p:${pct}%"><div class="lr-inner"><div class="lr-val">${current || 0}</div><div class="lr-unit">${t.key === 'sleep' ? '小时' : '条'}</div></div></div>
-        ${goal ? `<div class="lr-goal">目标 ${goal}</div>` : ''}
-      </div>
-      <div class="lrs-text">${renderRecordSummaryText(t.key, current, goal, recs)}</div>
-    </div>`;
-    if (t.key === 'sleep') html += renderSleepChart(all, date);
-    if (t.key === 'sleep') html += renderSleepWeekTable(all);
     if (ps.formType === t.key) {
       html += `<div class="life-rec-form" id="lifeRecForm">`;
       t.fields.forEach(f => {
@@ -5277,10 +5214,30 @@ function renderLifeRecord() {
       html += `<div class="lf-field" style="flex-direction:row;gap:6px"><button class="btn btn-primary" onclick="lifeRecSave('${t.key}')">${ps.editId ? '保存修改' : '保存'}</button><button class="btn btn-ghost" onclick="lifeRecCancel()">取消</button></div>`;
       html += `</div>`;
     }
+    if (t.key === 'sleep') html += renderSleepChart(all, date);
+    if (t.key === 'sleep') html += renderSleepWeekTable(all);
     if (!recs.length) {
-      html += `<div class="life-empty">暂无${esc(t.label)}，点右上角「+ 新增」添加</div>`;
+      html += `<div class="life-empty">暂无${esc(t.label)}，点右上角「+ 新增记录」添加</div>`;
     } else {
-      html += renderRecordTimeline(recs, t);
+      recs.forEach(r => {
+        const fieldsHtml = t.fields.filter(f => f.key !== 'duration').map(f => {
+          const val = r[f.key];
+          if (val === '' || val == null) return '';
+          return `<span class="lrf"><b>${esc(f.label)}:</b> ${esc(val)}</span>`;
+        }).filter(Boolean).join('');
+        const dur = (t.key === 'sleep' && r.duration != null) ? `<span class="lrf"><b>睡眠时长:</b> ${Number(r.duration).toFixed(1)}h</span>` : '';
+        const sub = r.time ? `🕐 ${esc(r.time)} · ${r.date}` : r.date;
+        html += `<div class="life-rec-item">
+          <div class="life-rec-main">
+            <div class="life-rec-meta">${fieldsHtml}${dur}</div>
+            <div class="life-rec-time">${sub}</div>
+          </div>
+          <div class="life-rec-ops">
+            <button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('${t.key}','${r.id}')">编辑</button>
+            <button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button>
+          </div>
+        </div>`;
+      });
     }
     html += `</div></div>`;
   });

@@ -1650,7 +1650,7 @@ ul,li{list-style:none}
 
 /* ===== v15: Combobox structure preserved on all devices ===== */
 
-/* ===== Life Module (生活 · 每日打卡/每日记录) v195 — 参考 App 风格，跟随主题 ===== */
+/* ===== Life Module (生活 · 每日打卡/每日记录) v196 — 每日打卡目标卡片+点阵热图；每日记录 v194 ===== */
 .spacer{flex:1}
 
 /* Hero */
@@ -1665,112 +1665,99 @@ ul,li{list-style:none}
 .life-section-hd .lsh-label{font-size:15px;font-weight:700;color:var(--c-text)}
 .life-section-hd .lsh-sub{margin-left:auto;font-size:12px;color:var(--c-text-light)}
 
-/* Generic card */
-.life-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:14px;margin-top:12px}
+/* Summary cards */
+.life-summary-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin:12px 0 14px}
+.life-summary-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:12px 10px;text-align:center;box-shadow:var(--shadow-sm)}
+.life-summary-card .lsc-val{font-size:22px;font-weight:800;color:var(--c-primary-dark)}
+.life-summary-card .lsc-label{font-size:12px;color:var(--c-text-light);margin-top:2px}
 
-/* Calendar */
-.life-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.life-cal-nav{display:flex;align-items:center;gap:10px}
-.life-cal-month{font-size:16px;font-weight:700;color:var(--c-text);min-width:100px;text-align:center}
-.life-cal-grid .cal-weekday{font-size:12px;color:var(--c-text-light);padding:6px 4px;border-bottom:1px solid var(--c-border-light)}
-.life-cal-grid .cal-day{min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:6px 2px;border-radius:var(--radius-sm);position:relative}
-.life-cal-grid .cal-day.today .cal-date{background:linear-gradient(135deg,var(--c-primary),var(--c-primary-dark));color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700}
-.life-cal-grid .cal-day .cal-dots{gap:2px;margin-top:3px;height:auto;min-height:14px}
-.life-cal-square{display:inline-block;width:8px;height:8px;border-radius:2px;margin:0 1px;vertical-align:middle;background:var(--c-orange)}
-.life-cal-legend{display:flex;gap:16px;margin-top:10px;font-size:12px;color:var(--c-text-light)}
-.life-cal-legend .legend-item{display:flex;align-items:center;gap:4px}
+/* Goal cards */
+.life-goal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.life-goal-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow-sm);cursor:pointer;transition:box-shadow .2s,transform .2s,border-color .2s;display:flex;flex-direction:column;gap:12px}
+.life-goal-card:hover{box-shadow:var(--shadow);transform:translateY(-2px);border-color:var(--c-primary-light)}
+.lgc-head{display:flex;align-items:center;gap:12px}
+.lgc-ico{width:44px;height:44px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.lgc-title-wrap{flex:1;min-width:0}
+.lgc-name{font-size:16px;font-weight:700;color:var(--c-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lgc-desc{font-size:12px;color:var(--c-text-light);margin-top:2px}
+.lgc-arrow{margin-left:auto;font-size:22px;color:var(--c-text-light);font-weight:300}
+.lgc-body{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.lgc-stats{display:flex;gap:10px;flex:1;min-width:180px}
+.lgc-stat{flex:1;background:var(--c-primary-bg);border-radius:var(--radius-sm);padding:10px 8px;text-align:center;min-width:70px}
+.lgc-num{font-size:22px;font-weight:800;color:var(--c-primary-dark);line-height:1}
+.lgc-unit{font-size:11px;color:var(--c-text-light);margin-top:2px}
+.lgc-heatmap{width:96px;flex-shrink:0}
+.lgc-heatmap .life-heatmap{grid-template-columns:repeat(7,1fr);gap:3px}
+.lgc-foot{display:flex;align-items:center;justify-content:space-between;margin-top:2px}
+.lgc-status{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
+.lgc-status.done{color:var(--c-green)}
+.lgc-status.todo{color:var(--c-warning)}
+.lgc-status .lgc-dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+.lgc-foot .btn:disabled{opacity:.55;cursor:not-allowed;background:var(--c-border);color:var(--c-text-light)}
 
-/* Today circular check-in grid */
-.life-checkin-today{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:14px}
-.life-ci-item{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:10px;box-shadow:var(--shadow-sm);cursor:pointer;transition:box-shadow .2s,transform .2s,border-color .2s}
-.life-ci-item:hover{box-shadow:var(--shadow);transform:translateY(-2px);border-color:var(--c-primary-light)}
-.life-ci-ring{position:relative;width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(var(--c-card) 58%,transparent 59%),conic-gradient(var(--c-primary) var(--p,0%),var(--c-border-light) 0)}
-.life-ci-ring.week{background:radial-gradient(var(--c-card) 58%,transparent 59%),conic-gradient(var(--c-orange) var(--p,0%),var(--c-border-light) 0)}
-.life-ci-ring.done{background:radial-gradient(var(--c-card) 58%,transparent 59%),conic-gradient(var(--c-green) 100%,var(--c-green) 0)}
-.life-ci-ico{font-size:28px}
-.life-ci-check{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;background:rgba(126,198,120,.9);border-radius:50%;opacity:0;transition:opacity .2s}
-.life-ci-ring.done .life-ci-check{opacity:1}
-.life-ci-label{font-size:13px;font-weight:600;color:var(--c-text);text-align:center}
-.life-ci-meta{font-size:11px;color:var(--c-text-light);text-align:center}
-
-/* Week matrix */
-.life-week-matrix{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
-.life-week-table{width:100%;border-collapse:collapse;font-size:13px}
-.life-week-table th{padding:10px 6px;text-align:center;font-weight:600;color:var(--c-text-light);background:var(--c-primary-bg);border-bottom:1px solid var(--c-border-light)}
-.life-week-table th .wd{font-weight:400;font-size:11px}
-.life-week-table td{padding:10px 6px;text-align:center;border-bottom:1px solid var(--c-border-light);color:var(--c-text-muted)}
-.life-week-table tr:last-child td{border-bottom:none}
-.life-week-table .habit-cell{text-align:left;padding-left:14px;font-weight:600;color:var(--c-text);display:flex;align-items:center;gap:6px}
-.life-week-table .habit-cell .h-ico{font-size:18px}
-.life-week-table .done{color:var(--c-green);font-size:18px;font-weight:800}
-.life-week-table .count{font-size:12px;color:var(--c-text-light)}
-
-/* Habit stat cards with mini heatmap */
-.life-habit-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
-.life-habit-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow-sm)}
-.life-habit-card .lhc-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.life-habit-card .lhc-ico{width:38px;height:38px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:20px}
-.life-habit-card.week .lhc-ico{background:#fff4e6}
-.life-habit-card .lhc-info{flex:1;min-width:0}
-.life-habit-card .lhc-name{font-size:15px;font-weight:700;color:var(--c-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.life-habit-card .lhc-sub{font-size:12px;color:var(--c-text-light)}
-.life-habit-card .lhc-stats{display:flex;gap:10px;margin-bottom:10px}
-.life-habit-card .lhc-stat{flex:1;background:var(--c-primary-bg);border-radius:var(--radius-sm);padding:8px;text-align:center}
-.life-habit-card.week .lhc-stat{background:#fff4e6}
-.life-habit-card .lhc-num{font-size:20px;font-weight:800;color:var(--c-primary-dark);line-height:1}
-.life-habit-card.week .lhc-num{color:var(--c-orange)}
-.life-habit-card .lhc-unit{font-size:11px;color:var(--c-text-light)}
+/* Heatmap */
 .life-heatmap{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .life-heatmap .hm-day{width:100%;aspect-ratio:1;border-radius:50%;background:var(--c-border-light)}
 .life-heatmap .hm-day.empty{background:transparent}
 .life-heatmap .hm-day.done{background:var(--c-primary)}
 .life-heatmap .hm-day.week{background:var(--c-orange)}
 
+/* Quick check-in matrix */
+.life-quick-matrix{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
+.life-qm-table{width:100%;border-collapse:collapse;font-size:13px}
+.life-qm-table th{padding:10px 6px;text-align:center;font-weight:600;color:var(--c-text-light);background:var(--c-primary-bg);border-bottom:1px solid var(--c-border-light)}
+.life-qm-table th .wd{font-weight:400;font-size:11px}
+.life-qm-table td{padding:10px 6px;text-align:center;border-bottom:1px solid var(--c-border-light);color:var(--c-text-muted)}
+.life-qm-table tr:last-child td{border-bottom:none}
+.life-qm-table .habit-cell{text-align:left;padding-left:14px;font-weight:600;color:var(--c-text);display:flex;align-items:center;gap:6px}
+.life-qm-table .habit-cell .h-ico{font-size:18px}
+.life-qm-table .done{color:var(--c-green);font-size:18px;font-weight:800}
+.life-qm-table .count{font-size:12px;color:var(--c-text-light)}
+
+/* Modal detail */
+.life-modal-body{padding:2px}
+.life-modal-hd{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.life-modal-hd .lm-ico{font-size:32px}
+.life-modal-hd .lm-name{font-size:16px;font-weight:700;color:var(--c-text)}
+.life-modal-hd .lm-desc{font-size:12px;color:var(--c-text-light)}
+.life-modal-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.life-modal-actions input[type=date]{padding:7px 9px;font-size:14px;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:#fff}
+.life-modal-heatmap{width:100%;max-width:220px;margin-bottom:14px}
+.life-modal-list{background:var(--c-bg);border:1px solid var(--c-border);border-radius:var(--radius);padding:8px 12px}
+.life-modal-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--c-border-light);font-size:13px;color:var(--c-text)}
+.life-modal-item:last-child{border-bottom:none}
+
 /* Daily record */
-.life-datebar{display:flex;align-items:center;gap:10px;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:10px 14px;margin-top:12px;flex-wrap:wrap;box-shadow:var(--shadow-sm)}
-.life-datebar input[type=date]{padding:7px 10px;font-size:15px;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:#fff}
-.life-summary-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin:12px 0 4px}
-.life-summary-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:12px 10px;text-align:center;box-shadow:var(--shadow-sm)}
-.life-summary-card .lsc-val{font-size:22px;font-weight:800;color:var(--c-primary-dark)}
-.life-summary-card .lsc-label{font-size:12px;color:var(--c-text-light);margin-top:2px}
+.life-record-datebar{display:flex;align-items:center;gap:10px;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:10px 14px;margin-bottom:4px;flex-wrap:wrap}
+.life-record-datebar input[type=date]{padding:7px 9px;font-size:15px;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:#fff}
+.life-stat-row{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 4px}
+.life-stat{flex:1;min-width:120px;background:var(--c-primary-bg);border-radius:var(--radius);padding:10px 14px;text-align:center}
+.life-stat .ls-val{font-size:20px;font-weight:800;color:var(--c-primary-dark)}
+.life-stat .ls-label{font-size:12px;color:var(--c-text-light);margin-top:2px}
 
-.life-panel{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-top:14px;overflow:hidden}
-.life-panel-head{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--c-primary-bg);border-bottom:1px solid var(--c-border-light)}
-.life-panel-head .lph-ico{font-size:20px}
-.life-panel-head .lph-label{font-size:15px;font-weight:700;color:var(--c-text);flex:1}
-.life-panel-head .lph-target{font-size:12px;color:var(--c-text-light);background:#fff;border:1px solid var(--c-border);border-radius:10px;padding:2px 10px}
-.life-panel-head .lph-count{font-size:12px;color:var(--c-text);font-weight:700;margin-right:4px}
-.life-panel-body{padding:14px}
-
-.life-record-summary{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-.life-record-summary .lrs-ring-wrap{display:flex;flex-direction:column;align-items:center;gap:4px}
-.life-ring{position:relative;width:90px;height:90px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(var(--c-card) 58%,transparent 59%),conic-gradient(var(--c-primary) var(--p,0%),var(--c-border-light) 0)}
-.life-ring .lr-inner{text-align:center}
-.life-ring .lr-val{font-size:22px;font-weight:800;color:var(--c-text);line-height:1}
-.life-ring .lr-unit{font-size:11px;color:var(--c-text-light)}
-.life-ring .lr-goal{font-size:11px;color:var(--c-text-muted)}
-.life-record-summary .lrs-text{flex:1;min-width:160px;font-size:13px;color:var(--c-text-light);line-height:1.6}
-.life-record-summary .lrs-text b{color:var(--c-text);font-weight:600}
-
-/* Timeline */
-.life-timeline{position:relative;padding-left:18px}
-.life-timeline::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:2px;background:var(--c-border-light)}
-.life-tl-item{position:relative;margin-bottom:12px;display:flex;align-items:flex-start;gap:10px}
-.life-tl-item::before{content:"";position:absolute;left:-15px;top:7px;width:8px;height:8px;border-radius:50%;background:var(--c-primary);border:2px solid var(--c-card)}
-.life-tl-time{font-size:12px;color:var(--c-text-muted);min-width:44px;padding-top:10px}
-.life-tl-main{flex:1;min-width:0;background:var(--c-bg);border:1px solid var(--c-border);border-radius:var(--radius-sm);padding:10px 12px}
-.life-tl-main .tl-fields{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px;color:var(--c-text)}
-.life-tl-main .tl-fields b{color:var(--c-text-light);font-weight:500}
-.life-tl-ops{display:flex;gap:4px;flex-shrink:0;padding-top:8px}
-.life-empty{color:var(--c-text-muted);font-size:13px;text-align:center;padding:16px;background:var(--c-border-light);border-radius:var(--radius-sm)}
-
+.life-empty{color:var(--c-text-muted);font-size:13px;padding:12px 2px;text-align:center;background:var(--c-border-light);border-radius:var(--radius-sm);margin-bottom:8px}
+.life-rec-item{background:var(--c-bg);border:1px solid var(--c-border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;transition:border-color .2s}
+.life-rec-item:hover{border-color:var(--c-primary)}
+.life-rec-main{flex:1;min-width:0}
+.life-rec-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--c-text)}
+.life-rec-meta .lrf{display:flex;gap:4px}
+.life-rec-meta .lrf b{color:var(--c-text-light);font-weight:500}
+.life-rec-time{font-size:11px;color:var(--c-text-muted);margin-top:5px}
+.life-rec-ops{display:flex;gap:4px;flex-shrink:0}
 .life-rec-form{background:var(--c-bg);border:1px dashed var(--c-primary);border-radius:var(--radius);padding:12px;margin-bottom:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
 .life-rec-form .lf-field{display:flex;flex-direction:column;gap:3px;min-width:120px}
 .life-rec-form .lf-field label{font-size:12px;color:var(--c-text-light)}
 .life-rec-form input,.life-rec-form select{padding:7px 9px;font-size:14px;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:#fff}
 
+.life-panel{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-top:14px;overflow:hidden}
+.life-panel-head{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--c-primary-bg);border-bottom:1px solid var(--c-border-light)}
+.life-panel-head .lph-ico{font-size:18px}
+.life-panel-head .lph-label{font-weight:700;font-size:14px;color:var(--c-text)}
+.life-panel-head .lph-count{font-size:11px;color:var(--c-text-light);background:#fff;border:1px solid var(--c-border);border-radius:10px;padding:1px 8px}
+.life-panel-body{padding:12px 14px}
+
 /* Sleep chart */
-.sleep-chart{margin-top:6px}
+.sleep-chart{margin:2px 0 6px}
 .sleep-chart-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
 .sleep-chart-title{font-size:12px;font-weight:600;color:var(--c-text-light)}
 .sleep-chart-avg{font-size:12px;color:var(--c-primary-dark);font-weight:700}
@@ -1787,12 +1774,20 @@ ul,li{list-style:none}
 .sleep-chart-foot{margin-top:6px;font-size:11px;color:var(--c-text-muted);display:flex;align-items:center;gap:5px}
 .sleep-chart-foot .sch-dot{width:9px;height:9px;border-radius:2px;background:linear-gradient(180deg,var(--c-orange),#fa8c16)}
 
+/* Sleep week table */
+.life-week-table{margin-top:12px;background:var(--c-primary-bg);border-radius:var(--radius);padding:8px 10px}
+.life-week-table .lwt-title{font-size:12px;font-weight:600;color:var(--c-text-light);margin-bottom:6px}
+.life-week-table table{width:100%;border-collapse:collapse;font-size:12px}
+.life-week-table th,.life-week-table td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--c-border-light)}
+.life-week-table th{color:var(--c-text-light);font-weight:500}
+
 @media (max-width:640px){
-  .life-checkin-today{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
-  .life-habit-grid{grid-template-columns:1fr}
-  .life-week-table{font-size:12px}
-  .life-week-table th,.life-week-table td{padding:8px 4px}
-  .life-record-summary{flex-direction:column;align-items:flex-start}
+  .life-goal-grid{grid-template-columns:1fr}
+  .life-goal-card{padding:12px}
+  .lgc-body{flex-direction:column;align-items:flex-start}
+  .lgc-heatmap{width:100%;max-width:200px}
+  .life-qm-table{font-size:12px}
+  .life-qm-table th,.life-qm-table td{padding:8px 4px}
   .life-summary-row{grid-template-columns:repeat(2,1fr)}
   .life-hero .lh-ico{font-size:26px}
 }
@@ -1847,7 +1842,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=195"></script>
+<script src="app.js?v=196"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
