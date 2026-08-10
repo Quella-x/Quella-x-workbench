@@ -711,12 +711,14 @@ function showComboboxDropdown(id) {
   const dd = document.getElementById(id);
   if (dd) {
     dd.classList.add('show');
-    const input = dd.parentElement.querySelector('.combobox-input');
-    const currentVal = input ? input.value : '';
+    const wrapper = dd.closest('.combobox-wrapper');
+    const input = wrapper ? wrapper.querySelector('.combobox-input') : null;
+    const hidden = wrapper ? wrapper.querySelector('.combobox-value') : null;
+    const currentVal = hidden ? hidden.value : (input ? input.value : '');
     $$('.combobox-option', dd).forEach(o => {
       o.style.display = '';
-      if (o.dataset.value === currentVal || o.textContent === currentVal) o.classList.add('selected');
-      else o.classList.remove('selected');
+      const isSelected = o.dataset.value ? (o.dataset.value === currentVal) : (o.textContent === currentVal);
+      o.classList.toggle('selected', isSelected);
     });
   }
 }
@@ -2729,7 +2731,7 @@ function importStoriesToTimeline() {
     return `<div class="combobox-option" onclick="document.getElementById('importStorySelect').value='${esc(s.id)}';document.getElementById('importStoryInput').value='${esc(label)}'" data-value="${esc(s.id)}">${esc(label)}</div>`;
   }).join('');
   html += '<div class="form-row"><div class="combobox-wrapper import-story-combo">';
-  html += '<input type="hidden" id="importStorySelect" value="">';
+  html += '<input type="hidden" id="importStorySelect" class="combobox-value" value="">';
   html += '<input type="text" class="form-input combobox-input" id="importStoryInput" placeholder="请选择或输入故事小记" onfocus="showComboboxDropdown(\'importStoryList\')" onclick="showComboboxDropdown(\'importStoryList\')" oninput="filterComboboxDropdown(\'importStoryList\',this.value)">';
   html += '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'importStoryList\')">▼</button>';
   html += '<div class="combobox-dropdown" id="importStoryList">' + storyOpts + '</div>';
@@ -3185,12 +3187,13 @@ function renderDesignCalc() {
     const selectedLabel = selectedRec ? ((selectedRec.clientInfo || '未命名') + ' · ' + (selectedRec.acceptTime || '')) : '';
     const importOpts = visibleCommissions.map(c => {
       const label = (c.clientInfo || '未命名') + ' · ' + (c.acceptTime || '');
-      return `<div class="combobox-option${c.id === _dcImportId ? ' selected' : ''}" onclick="dcImportRecord('${c.id}');document.getElementById('dcImportSelectInput').value='${esc(label)}'" data-value="${esc(c.id)}">${esc(label)}</div>`;
+      return `<div class="combobox-option" onclick="dcImportRecord('${c.id}');document.getElementById('dcImportSelectInput').value='${esc(label)}';document.getElementById('dcImportSelectValue').value='${esc(c.id)}'" data-value="${esc(c.id)}">${esc(label)}</div>`;
     }).join('');
     html += '<div class="combobox-wrapper calc-import-combo">';
+    html += `<input type="hidden" class="combobox-value" id="dcImportSelectValue" value="${esc(_dcImportId || '')}">`;
     html += `<input type="text" class="form-input combobox-input" id="dcImportSelectInput" value="${esc(selectedLabel)}" placeholder="请选择或输入接稿记录" onfocus="showComboboxDropdown('dcImportSelectList')" onclick="showComboboxDropdown('dcImportSelectList')" oninput="filterComboboxDropdown('dcImportSelectList',this.value)">`;
     html += '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'dcImportSelectList\')">▼</button>';
-    html += '<div class="combobox-dropdown" id="dcImportSelectList"><div class="combobox-option" onclick="dcImportRecord(\'\');document.getElementById(\'dcImportSelectInput\').value=\'\'" data-value="">请选择接稿记录</div>' + importOpts + '</div>';
+    html += '<div class="combobox-dropdown" id="dcImportSelectList"><div class="combobox-option" onclick="dcImportRecord(\'\');document.getElementById(\'dcImportSelectInput\').value=\'\';document.getElementById(\'dcImportSelectValue\').value=\'\'" data-value="">请选择接稿记录</div>' + importOpts + '</div>';
     html += '</div>';
   }
   html += '</div>';
@@ -3350,7 +3353,15 @@ function dcSetMode(mode) {
 
 function dcImportRecord(id) {
   _dcImportId = id;
-  if (!id) { _dcProducts = [newProduct()]; _dcExtras = []; _dcModifications = []; dcRenderProducts(); dcRenderExtras(); dcRenderModifications(); dcRecalc(); return; }
+  const hidden = document.getElementById('dcImportSelectValue');
+  const input = document.getElementById('dcImportSelectInput');
+  if (hidden) hidden.value = id || '';
+  if (!id) {
+    if (input) input.value = '';
+    _dcProducts = [newProduct()]; _dcExtras = []; _dcModifications = [];
+    dcRenderProducts(); dcRenderExtras(); dcRenderModifications(); dcRecalc();
+    return;
+  }
   const rec = DB.getById('commissions', id);
   if (!rec) return;
   // v-NEW: 导入时还原行内同模类型/倍率与加价绑定
@@ -4305,7 +4316,7 @@ function renderPriceList() {
   html += '<div class="toolbar" style="margin-bottom:8px">';
   html += `<div class="search-box"><input type="text" placeholder="搜索制品/分类..." value="${esc(ps.search)}" oninput="onSearch('design-pricelist', this.value)"><span class="search-icon">🔍</span></div>`;
   html += '<div class="spacer"></div>';
-  html += '<button class="btn btn-outline toolbar-eq" onclick="togglePriceListNotes()">其他说明</button>';
+  html += '<button class="btn btn-outline toolbar-eq" onclick="togglePriceListNotes()">📝 其他说明</button>';
   html += '<button class="btn btn-outline toolbar-eq" onclick="openPriceListSort()">↕️ 调整排序</button>';
   html += '<button class="btn btn-primary" onclick="openAddForm(\'design-pricelist\')">+ 新增价目</button>';
   html += '</div>';
@@ -4314,7 +4325,7 @@ function renderPriceList() {
   if (notes.length) {
     html += '<div style="margin-bottom:10px">';
     html += '<div class="collapsible-toggle" onclick="this.classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">';
-    html += '<span>其他说明</span><span class="toggle-arrow">▼</span></div>';
+    html += '<span>📝 其他说明</span><span class="toggle-arrow">▼</span></div>';
     html += '<div class="collapsible-content">';
     html += '<div class="pricelist-notes-panel" style="margin-top:8px;margin-bottom:8px">';
     html += '<div class="pricelist-notes-grid">';
@@ -4340,17 +4351,13 @@ function renderPriceList() {
       const desc = items.find(i => i.description)?.description || '';
       html += `<div class="pricelist-menu-category">${esc(cat)}</div>`;
       items.forEach(r => {
-        html += '<div class="pricelist-menu-item">';
+        html += `<div class="pricelist-menu-item" onclick="openEditForm('design-pricelist','${r.id}')">`;
         html += `<span class="menu-name">${esc(r.product || '未命名')}${r.defaultSize ? `<sub class="menu-size-sub">(${esc(r.defaultSize)})</sub>` : ''}</span>`;
-        html += `<span class="menu-dots"></span>`;
         const priceUnit = Array.isArray(r.priceUnit) ? (r.priceUnit[0] || '元') : (r.priceUnit || '元');
         const unitSuffix = priceUnit === '元' ? '' : priceUnit.replace('元', '');
         const priceText = `¥${esc(r.price || 0)}${esc(unitSuffix)}`;
         html += `<span class="menu-price">${priceText}</span>`;
-        html += '<span style="margin-left:8px;display:flex;gap:2px">';
-        html += `<span class="btn-icon" style="font-size:12px;width:24px;height:24px" onclick="event.stopPropagation();openEditForm('design-pricelist','${r.id}')">✏️</span>`;
-        html += `<span class="btn-icon danger" style="font-size:12px;width:24px;height:24px" onclick="event.stopPropagation();onDelete('design-pricelist','${r.id}')">🗑️</span>`;
-        html += '</span></div>';
+        html += '</div>';
       });
       if (desc) {
         html += `<div style="padding:6px 0;font-size:11px;color:var(--c-text-muted);white-space:pre-wrap">${esc(desc)}</div>`;
@@ -4406,8 +4413,10 @@ function openPriceListSort() {
       html += `<span class="sort-name">${esc(r.product || '未命名')}${r.defaultSize ? `<sub class="menu-size-sub">(${esc(r.defaultSize)})</sub>` : ''}</span>`;
       html += `<span class="sort-price">¥${esc(r.price || 0)}</span>`;
       html += `<span class="sort-btns">`;
-      html += `<button class="btn btn-ghost btn-sm" ${isFirst ? 'disabled' : ''} onclick="priceItemMove('${r.id}',-1);openPriceListSort();">▲</button>`;
-      html += `<button class="btn btn-ghost btn-sm" ${isLast ? 'disabled' : ''} onclick="priceItemMove('${r.id}',1);openPriceListSort();">▼</button>`;
+      html += `<button class="btn btn-ghost btn-sm" ${isFirst ? 'disabled' : ''} onclick="event.stopPropagation();priceItemMove('${r.id}',-1);openPriceListSort();">▲</button>`;
+      html += `<button class="btn btn-ghost btn-sm" ${isLast ? 'disabled' : ''} onclick="event.stopPropagation();priceItemMove('${r.id}',1);openPriceListSort();">▼</button>`;
+      html += `<span class="btn-icon" style="font-size:12px;width:24px;height:24px" onclick="event.stopPropagation();openEditForm('design-pricelist','${r.id}')">✏️</span>`;
+      html += `<span class="btn-icon danger" style="font-size:12px;width:24px;height:24px" onclick="event.stopPropagation();onDelete('design-pricelist','${r.id}')">🗑️</span>`;
       html += '</span></div>';
     });
   });
