@@ -2713,18 +2713,27 @@ function importStoriesToTimeline() {
   const stories = DB.list('ocStories');
   if (!stories.length) { Toast.warning('暂无故事小记可导入'); return; }
   const chars = DB.list('ocCharacters');
+  const timelineEvents = DB.list('ocTimeline');
+  // v228: 已导入过的故事小记不再显示
+  const importedTitles = new Set(timelineEvents.filter(t => t.source && t.source.startsWith('故事小记: ')).map(t => t.source));
+  const availableStories = stories.filter(s => !importedTitles.has('故事小记: ' + (s.title || '')));
+  if (!availableStories.length) { Toast.warning('所有故事小记都已导入过'); return; }
   let html = '<div style="font-size:13px;margin-bottom:12px;color:var(--c-text-light)">选择要导入的故事小记：</div>';
-  // Dropdown for story selection
-  html += '<div class="form-row"><select class="form-select" id="importStorySelect"><option value="">请选择故事小记</option>';
-  stories.forEach(s => {
+  // v228: 改为 combobox 下拉选择器，支持手动输入筛选
+  const storyOpts = availableStories.map(s => {
     const charNames = arrVal(s.characterIds).map(cid => {
       const c = chars.find(ch => ch.name === cid);
       return c ? c.name : cid;
     });
     const label = (s.title || '未命名') + ' (' + fmtDate(s.createTime) + ' · ' + charNames.join('、') + ')';
-    html += `<option value="${s.id}">${esc(label)}</option>`;
-  });
-  html += '</select></div>';
+    return `<div class="combobox-option" onclick="document.getElementById('importStorySelect').value='${esc(s.id)}';document.getElementById('importStoryInput').value='${esc(label)}'" data-value="${esc(s.id)}">${esc(label)}</div>`;
+  }).join('');
+  html += '<div class="form-row"><div class="combobox-wrapper import-story-combo">';
+  html += '<input type="hidden" id="importStorySelect" value="">';
+  html += '<input type="text" class="form-input combobox-input" id="importStoryInput" placeholder="请选择或输入故事小记" onfocus="showComboboxDropdown(\'importStoryList\')" onclick="showComboboxDropdown(\'importStoryList\')" oninput="filterComboboxDropdown(\'importStoryList\',this.value)">';
+  html += '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'importStoryList\')">▼</button>';
+  html += '<div class="combobox-dropdown" id="importStoryList">' + storyOpts + '</div>';
+  html += '</div></div>';
   html += '<div style="margin-top:12px"><div style="font-size:13px;margin-bottom:6px">默认重要性:</div>';
   html += '<select class="form-select" id="importImportance">';
   Object.keys(TIMELINE_COLORS).forEach(c => {
@@ -2737,7 +2746,7 @@ function importStoriesToTimeline() {
       const storyId = $('#importStorySelect').value;
       const imp = $('#importImportance').value;
       if (!storyId) { Toast.warning('请选择故事小记'); return; }
-      const story = stories.find(s => s.id === storyId);
+      const story = availableStories.find(s => s.id === storyId);
       if (!story) { Toast.warning('故事不存在'); return; }
       // Check if already imported
       const existing = DB.list('ocTimeline').find(t => t.source === '故事小记: ' + (story.title || ''));
@@ -3146,7 +3155,8 @@ let _dcGlobalModelType = ''; // 全局同模类型（单选可空；默认不选
 function renderDesignCalc() {
   const body = $('#mainBody');
   const settings = DB.get('calcSettings', {});
-  _dcWholeOrderUrgent = !!(settings && settings.wholeOrderUrgent);
+  // v228: 导入模式下整单加急由接稿记录决定，不要从 settings 覆盖
+  if (_dcMode !== 'import') _dcWholeOrderUrgent = !!(settings && settings.wholeOrderUrgent);
   const commissions = DB.list('commissions');
 
   let html = '<div class="fade-in calc-page"><div class="calc-page-grid">';
@@ -3171,13 +3181,17 @@ function renderDesignCalc() {
       return Math.floor((_today - d) / 86400000) > 7;
     };
     const visibleCommissions = commissions.filter(c => !isImportHidden(c));
-    html += '<select class="calc-import-select form-input" onchange="dcImportRecord(this.value)">';
-    html += '<option value="">请选择接稿记录</option>';
-    visibleCommissions.forEach(c => {
+    const selectedRec = _dcImportId ? visibleCommissions.find(c => c.id === _dcImportId) : null;
+    const selectedLabel = selectedRec ? ((selectedRec.clientInfo || '未命名') + ' · ' + (selectedRec.acceptTime || '')) : '';
+    const importOpts = visibleCommissions.map(c => {
       const label = (c.clientInfo || '未命名') + ' · ' + (c.acceptTime || '');
-      html += `<option value="${c.id}"${_dcImportId === c.id ? ' selected' : ''}>${esc(label)}</option>`;
-    });
-    html += '</select>';
+      return `<div class="combobox-option${c.id === _dcImportId ? ' selected' : ''}" onclick="dcImportRecord('${c.id}');document.getElementById('dcImportSelectInput').value='${esc(label)}'" data-value="${esc(c.id)}">${esc(label)}</div>`;
+    }).join('');
+    html += '<div class="combobox-wrapper calc-import-combo">';
+    html += `<input type="text" class="form-input combobox-input" id="dcImportSelectInput" value="${esc(selectedLabel)}" placeholder="请选择或输入接稿记录" onfocus="showComboboxDropdown('dcImportSelectList')" onclick="showComboboxDropdown('dcImportSelectList')" oninput="filterComboboxDropdown('dcImportSelectList',this.value)">`;
+    html += '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'dcImportSelectList\')">▼</button>';
+    html += '<div class="combobox-dropdown" id="dcImportSelectList"><div class="combobox-option" onclick="dcImportRecord(\'\');document.getElementById(\'dcImportSelectInput\').value=\'\'" data-value="">请选择接稿记录</div>' + importOpts + '</div>';
+    html += '</div>';
   }
   html += '</div>';
 
