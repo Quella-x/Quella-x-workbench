@@ -856,7 +856,8 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     const dayPlatforms = new Set();
     dayRecords.forEach(r => { arrVal(r.platform).forEach(p => dayPlatforms.add(p)); });
     [...dayPlatforms].forEach(p => { topDots += `<span class="cal-dot" style="background:${PLATFORM_COLORS[p] || '#9DC8FF'}"></span>`; });
-    // v222: 日历格内移除平台发布条数，仅保留圆点
+    // v223: 日历格恢复平台发布条数，字号再缩小
+    const dayCount = dayRecords.length > 0 ? `<span class="cal-day-count">${dayRecords.length}条</span>` : '';
     const dayComms = commissionRecords.filter(r => (r.startTime || '').startsWith(dateStr) || (r.deadline || '').startsWith(dateStr));
     const hasStart = dayComms.some(r => (r.startTime || '').startsWith(dateStr));
     const hasEnd = dayComms.some(r => (r.deadline || '').startsWith(dateStr));
@@ -874,7 +875,7 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     }
     html += `<div class="cal-day${isToday ? ' today' : ''}">
       <div class="cal-date-row"><span class="cal-date">${d}</span></div>
-      <div class="cal-dots">${topDots}</div>
+      <div class="cal-dots">${topDots}${dayCount}</div>
       <div class="cal-tag-rows">
         <div class="cal-tag-row home-comm-tags">${commTag}</div>
         <div class="cal-tag-row home-deep-tags">${deepTag}</div>
@@ -1146,9 +1147,10 @@ MODULES['groupbuy-samples'] = {
   fields: [
     { key: 'factory', label: '厂家', type: 'combobox', options: [], hint: '从厂家记录加载' },
     { key: 'category', label: '打样品类', type: 'combobox', options: [], placeholder: '选择或输入品类...' },
+    { key: 'sampleName', label: '样品名称', type: 'text' },
     { key: 'sampleTime', label: '打样时间', type: 'date', default: todayStr() },
-    { key: 'cost', label: '样品费用', type: 'number', hint: '元', row: 'sampleCostQty' },
-    { key: 'quantity', label: '样品数量', type: 'number', default: 1, row: 'sampleCostQty' },
+    { key: 'cost', label: '打样费用', type: 'number', hint: '元', row: 'sampleCostQty' },
+    { key: 'quantity', label: '打样数量', type: 'number', default: 1, row: 'sampleCostQty' },
     { key: 'receiveTime', label: '收货时间', type: 'date' },
     { key: 'evaluation', label: '样品评价', type: 'multiselect', single: true, options: [{ value: '合格', label: '合格' }, { value: '中等', label: '中等' }, { value: '不合格', label: '不合格' }] },
     { key: 'images', label: '样品图片', type: 'image' },
@@ -1156,12 +1158,11 @@ MODULES['groupbuy-samples'] = {
   ],
   filters: [{ key: 'evaluation', label: '全部评价', options: [{ value: '', label: '全部评价' }, { value: '合格', label: '合格' }, { value: '中等', label: '中等' }, { value: '不合格', label: '不合格' }] }],
   listFields: [
-    { label: '评价', key: 'evaluation', tag: true },
-    { label: '品类', key: 'category' },
     { label: '厂家', key: 'factory' },
+    { label: '打样费用', key: 'cost', prefix: '¥' },
+    { label: '打样数量', key: 'quantity' },
+    { label: '样品评价', key: 'evaluation', tag: true },
     { label: '打样时间', key: 'sampleTime', date: true },
-    { label: '费用', key: 'cost', prefix: '¥' },
-    { label: '数量', key: 'quantity' },
   ],
   stats: (records) => {
     const totalCost = records.reduce((s, r) => s + (parseFloat(r.cost) || 0), 0);
@@ -1213,8 +1214,7 @@ MODULES['design-inspiration'] = {
   listFields: [
     { label: '制品', key: 'category', tag: true },
     { label: '标签', key: 'tags', tag: true },
-    { label: '来源', key: 'source' },
-    { label: '创建', key: 'createTime', date: true },
+    { label: '创建时间', key: 'createTime', date: true },
   ],
 };
 
@@ -1316,11 +1316,10 @@ MODULES['design-auth'] = {
   ],
   filters: [{ key: 'authType', label: '全部类型', options: [{ value: '', label: '全部类型' }, { value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] }],
   listFields: [
-    { label: '类型', key: 'authType', tag: true },
-    { label: '范围', key: 'authScope' },
-    { label: '客户', key: 'clientInfo' },
-    { label: '日期', key: 'authDate', date: true },
-    { label: '费用', key: 'authFee', prefix: '¥' },
+    { label: '授权类型', key: 'authType', tag: true },
+    { label: '授权范围', key: 'authScope' },
+    { label: '授权费用', key: 'authFee', prefix: '¥' },
+    { label: '授权日期', key: 'authDate', date: true },
   ],
   stats: (records) => {
     const totalFee = records.reduce((s, r) => s + (parseFloat(r.authFee) || 0), 0);
@@ -1452,7 +1451,6 @@ MODULES['oc-timeline'] = {
   ],
   listFields: [
     { label: '重要性', key: 'importance', tag: true },
-    { label: '来源', key: 'source' },
     { label: '关联', key: 'characterIds' },
   ],
   special: 'timeline',
@@ -1689,7 +1687,7 @@ function renderListPage(pageKey, mod) {
       html += '<div class="record-card-header">';
       const cardImg = mod.cardImage ? mod.cardImage(r) : null;
       if (cardImg) html += `<img src="${cardImg}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0">`;
-      let titleText = r.title || r.name || r.theme || r.artworkName || r.clientInfo || '未命名记录';
+      let titleText = r.title || r.name || r.theme || r.sampleName || r.artworkName || r.clientInfo || '未命名记录';
       if (isOverdue) titleText = '⚠️ ' + titleText;
       html += `<div class="record-card-title">${esc(titleText)}</div>`;
       html += '<div class="record-card-actions">';
@@ -2316,10 +2314,12 @@ function renderHome() {
     const pendingForT = tRecords.filter(r => statusOf(r) === '待发布').length;
     const publishedForT = tRecords.filter(r => statusOf(r) === '已发布').length;
     const activeStyle = (ps.view === 'platform' && ps.tab === t.value) ? 'box-shadow:0 0 0 3px rgba(255,255,255,.6);transform:translateY(-2px)' : '';
-    html += `<button class="platform-btn" style="background:${t.color};${activeStyle}" onclick="enterPlatformView('${t.value}')">`;
+    html += `<button class="platform-btn" style="background:${t.color};${activeStyle}">`;
+    html += `<span class="platform-main" onclick="enterPlatformView('${t.value}')">`;
     html += `<span class="platform-icon">${platformIcons[t.value] || '📝'}</span>`;
     html += `<span class="platform-name">${esc(t.label)}</span>`;
-    html += `<span class="platform-status-row"><span class="platform-pending">待发布 ${pendingForT}</span><span class="platform-sep">·</span><span class="platform-published">已发布 ${publishedForT}</span></span>`;
+    html += '</span>';
+    html += `<span class="platform-status-row"><span class="platform-pending" onclick="homeSetPlatformStatusFilter('${t.value}', '待发布');event.stopPropagation();">待发布 ${pendingForT}</span><span class="platform-sep">·</span><span class="platform-published" onclick="homeSetPlatformStatusFilter('${t.value}', '已发布');event.stopPropagation();">已发布 ${publishedForT}</span></span>`;
     html += '</button>';
   });
   html += '</div>';
@@ -2349,7 +2349,7 @@ function renderHome() {
     html += '<div class="home-insp-actions"><button class="btn btn-primary" onclick="homeAddInspiration()">保存灵感</button></div>';
     html += '</div>';
   } else if (ps.view === 'platform') {
-    // Platform view: no calendar, show records + chart + stats
+    // Platform view: 当前平台记录 + 状态筛选 + 分页列表 + 图表统计
     const records = allRecords.filter(r => valIncludes(r.platform, ps.tab));
 
     // Toolbar
@@ -2363,8 +2363,9 @@ function renderHome() {
 
     html += renderHomeStatusFilterBar();
 
-    // Records
+    // Records（v223：待发布/已发布筛选与全部列表使用同一模块）
     let filteredRecords = records;
+    if (ps.statusFilter) filteredRecords = filteredRecords.filter(r => statusOf(r) === ps.statusFilter);
     if (ps.search) filteredRecords = filteredRecords.filter(r => (r.title || '').toLowerCase().includes(ps.search.toLowerCase()));
     if (ps.dateFilter) filteredRecords = filteredRecords.filter(r => (r.publishTime || '').startsWith(ps.dateFilter));
     filteredRecords.sort((a, b) => (b.publishTime || '').localeCompare(a.publishTime || ''));
@@ -2399,126 +2400,45 @@ function renderHome() {
     html += renderStatsSection([
       { label: ps.tab + '发布数', value: records.length, sub: '当前平台' },
     ], ps.tab + '统计');
-  } else if (ps.view === 'status') {
-    // 全局状态视图：statusFilter 为空 = 全部记录；否则 待发布 / 已发布
-    const statusLabel = ps.statusFilter;
-    let statusRecords = statusLabel ? allRecords.filter(r => statusOf(r) === statusLabel) : allRecords;
-    // v221: 若从平台模块进入，只显示该平台记录
-    if (ps.tab) statusRecords = statusRecords.filter(r => valIncludes(r.platform, ps.tab));
-    const statusTitle = (ps.tab ? ps.tab + ' · ' : '') + (statusLabel ? (statusLabel + '记录') : '全部记录');
-    const backLabel = ps.tab ? '‹ 返回' + ps.tab : '‹ 返回日历';
-    const backAction = ps.tab ? `homeBackToPlatform()` : `homeBackToMain()`;
-
-    html += '<div class="home-status-head"><span class="home-status-title">' + esc(statusTitle) + '（' + statusRecords.length + '）</span><button class="btn btn-sm btn-ghost" onclick="' + backAction + '">' + esc(backLabel) + '</button></div>';
-
-    html += '<div class="toolbar" style="margin-top:4px">';
-    html += `<div class="search-box"><input type="text" placeholder="搜索标题..." value="${esc(ps.search)}" oninput="homeSearch(this.value)"><span class="search-icon">🔍</span></div>`;
-    html += `<input type="date" class="filter-select" value="${ps.dateFilter}" onchange="homeDateFilter(this.value)" style="padding:8px" placeholder="请选择日期" title="请选择日期">`;
-    html += `<button class="filter-select" onclick="homeClearFilter()" style="cursor:pointer;border:1px solid var(--c-border)">清除筛选</button>`;
-    html += '<div class="spacer"></div>';
-    html += '<button class="btn btn-primary" onclick="openAddForm(\'home\')">+ 新增记录</button>';
-    html += '</div>';
-
-    html += renderHomeStatusFilterBar();
-
-    let filteredRecords = statusRecords;
-    if (ps.search) filteredRecords = filteredRecords.filter(r => (r.title || '').toLowerCase().includes(ps.search.toLowerCase()));
-    if (ps.dateFilter) filteredRecords = filteredRecords.filter(r => (r.publishTime || '').startsWith(ps.dateFilter));
-    filteredRecords.sort((a, b) => (b.publishTime || '').localeCompare(a.publishTime || ''));
-
-    // 各平台单独记，不整合在一起
-    const platformsOrder = ['小红书', '抖音', '视频号', '公众号'];
-    const grouped = {};
-    filteredRecords.forEach(r => {
-      const plats = arrVal(r.platform);
-      if (!plats.length) { (grouped['__none__'] = grouped['__none__'] || []).push(r); }
-      else plats.forEach(p => { (grouped[p] = grouped[p] || []).push(r); });
-    });
-    const groupKeys = platformsOrder.concat(Object.keys(grouped).filter(k => !platformsOrder.includes(k) && k !== '__none__'));
-    let hasAny = false;
-    groupKeys.forEach(p => {
-      const recs = grouped[p] || [];
-      if (!recs.length) return;
-      hasAny = true;
-      const pColor = PLATFORM_COLORS[p] || '#9DC8FF';
-      html += '<div class="home-status-group">';
-      html += `<div class="home-status-group-hd"><span class="tag" style="background:${pColor}20;color:${pColor}">${esc(p)}</span><span class="home-status-group-count">${recs.length} 条</span></div>`;
-      html += '<div class="record-list">';
-      recs.forEach(r => { html += renderHomeRecordCard(r, true); });
-      html += '</div></div>';
-    });
-    if (grouped['__none__'] && grouped['__none__'].length) {
-      hasAny = true;
-      html += '<div class="home-status-group">';
-      html += `<div class="home-status-group-hd"><span class="tag">未指定平台</span><span class="home-status-group-count">${grouped['__none__'].length} 条</span></div>`;
-      html += '<div class="record-list">';
-      grouped['__none__'].forEach(r => { html += renderHomeRecordCard(r, true); });
-      html += '</div></div>';
-    }
-    if (!hasAny) {
-      html += '<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-text">暂无' + esc(statusTitle) + '记录</div></div>';
-    }
   }
 
   html += '</div>';
   body.innerHTML = html;
 }
 
-function renderHomeRecordCard(r, minimal) {
+function renderHomeRecordCard(r) {
   const platforms = arrVal(r.platform);
-  if (minimal) {
-    let html = `<div class="record-card record-card-minimal" onclick="openDetail('home','${r.id}')">`;
-    html += '<div class="record-card-body-minimal">';
-    platforms.forEach(p => {
-      const pColor = PLATFORM_COLORS[p] || '#9DC8FF';
-      html += `<span class="field"><span class="tag" style="background:${pColor}20;color:${pColor}">${esc(p)}</span></span>`;
-    });
-    const ct = arrVal(r.contentType);
-    if (ct.length) html += `<span class="field"><span class="field-label">类型:</span><span class="field-value">${esc(ct.join('、'))}</span></span>`;
-    html += `<span class="field"><span class="field-label">发布:</span><span class="field-value">${fmtDate(r.publishTime)}</span></span>`;
-    html += '<div class="record-card-actions-minimal">';
-    html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('home','${r.id}')">✏️</span>`;
-    html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('home','${r.id}')">🗑️</span>`;
-    html += '</div></div></div>';
-    return html;
-  }
-  let html = `<div class="record-card" onclick="openDetail('home','${r.id}')">`;
-  html += '<div class="record-card-header"><div class="record-card-title">' + esc(r.title || '未命名') + '</div>';
-  html += '<div class="record-card-actions">';
-  html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('home','${r.id}')">✏️</span>`;
-  html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('home','${r.id}')">🗑️</span>`;
-  html += '</div></div>';
-  html += '<div class="record-card-body">';
+  let html = `<div class="record-card record-card-minimal" onclick="openDetail('home','${r.id}')">`;
+  html += '<div class="record-card-body-minimal">';
   platforms.forEach(p => {
     const pColor = PLATFORM_COLORS[p] || '#9DC8FF';
     html += `<span class="field"><span class="tag" style="background:${pColor}20;color:${pColor}">${esc(p)}</span></span>`;
   });
-  const recStatus = (r.status === '已发布') ? '已发布' : '待发布';
-  const recStatusCls = recStatus === '已发布' ? 'tag-success' : 'tag-warning';
-  html += `<span class="field"><span class="tag ${recStatusCls}">${recStatus}</span></span>`;
-  html += `<span class="field"><span class="field-label">发布:</span><span class="field-value">${fmtDate(r.publishTime)}</span></span>`;
   const ct = arrVal(r.contentType);
   if (ct.length) html += `<span class="field"><span class="field-label">类型:</span><span class="field-value">${esc(ct.join('、'))}</span></span>`;
-  if (r.data24h_likes) html += `<span class="field"><span class="field-label">24h赞:</span><span class="field-value">${r.data24h_likes}</span></span>`;
-  if (r.link) html += `<span class="field"><a href="${esc(r.link)}" target="_blank" style="color:var(--c-primary)">查看作品 ↗</a></span>`;
-  html += '</div></div>';
+  html += `<span class="field"><span class="field-label">发布时间:</span><span class="field-value">${fmtDate(r.publishTime)}</span></span>`;
+  html += '<div class="record-card-actions-minimal">';
+  html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('home','${r.id}')">✏️</span>`;
+  html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('home','${r.id}')">🗑️</span>`;
+  html += '</div></div></div>';
   return html;
 }
 
 function enterPlatformView(tab) {
-  if (pageState.home.view === 'platform' && pageState.home.tab === tab) {
-    pageState.home.view = 'main';
+  const ps = pageState.home;
+  if (ps.view === 'platform' && ps.tab === tab && !ps.statusFilter) {
+    ps.view = 'main';
   } else {
-    pageState.home.tab = tab;
-    pageState.home.view = 'platform';
-    pageState.home.search = '';
-    pageState.home.dateFilter = '';
-    pageState.home.homePageNo = 1;
+    ps.tab = tab;
+    ps.view = 'platform';
+    ps.statusFilter = '';
+    ps.search = '';
+    ps.dateFilter = '';
+    ps.homePageNo = 1;
   }
   renderHome();
 }
-function homeBackToMain() { pageState.home.view = 'main'; renderHome(); }
-function homeBackToPlatform() { const ps = pageState.home; ps.view = 'platform'; ps.statusFilter = ''; renderHome(); }
+function homeBackToMain() { pageState.home.view = 'main'; pageState.home.statusFilter = ''; renderHome(); }
 function homeSearch(val) { pageState.home.search = val; pageState.home.homePageNo = 1; clearTimeout(_homeSearchTimer); _homeSearchTimer = setTimeout(renderHome, 200); }
 function homeDateFilter(val) { pageState.home.dateFilter = val; pageState.home.homePageNo = 1; renderHome(); }
 function homeClearFilter() { pageState.home.search = ''; pageState.home.dateFilter = ''; pageState.home.homePageNo = 1; renderHome(); }
@@ -2527,8 +2447,7 @@ function homeSetStatusFilter(s) {
   const ps = pageState.home;
   if (!ps) pageState.home = {};
   if (ps.statusFilter === s) { ps.statusFilter = ''; }
-  else { ps.statusFilter = s; ps.view = 'status'; ps.search = ''; ps.dateFilter = ''; }
-  ps.tab = ''; // v221: 全局状态视图不带平台筛选
+  else { ps.statusFilter = s; ps.search = ''; ps.dateFilter = ''; }
   ps.homePageNo = 1;
   renderHome();
 }
@@ -2536,20 +2455,19 @@ function homeSetPlatformStatusFilter(platform, s) {
   const ps = pageState.home;
   if (!ps) pageState.home = {};
   ps.tab = platform || '';
-  ps.statusFilter = s || '';
-  ps.view = 'status';
-  ps.search = '';
-  ps.dateFilter = '';
+  ps.view = 'platform';
+  // v223: 再次点击同一状态按钮则返回该平台全部记录
+  if (ps.statusFilter === s) { ps.statusFilter = ''; }
+  else { ps.statusFilter = s || ''; ps.search = ''; ps.dateFilter = ''; }
   ps.homePageNo = 1;
   renderHome();
 }
-// 全局/平台「待发布 / 已发布」筛选按钮（v221：若在平台模块内则按平台统计）
+// 平台「待发布 / 已发布」筛选按钮（v223：仅在平台模块内展示，点击已选中项返回全部）
 function renderHomeStatusFilterBar() {
   const ps = pageState.home || {};
   const allRecords = DB.list('publishRecords');
   const statusOf = (r) => (r.status === '已发布' ? '已发布' : '待发布');
-  let scopeRecords = allRecords;
-  if (ps.tab) scopeRecords = scopeRecords.filter(r => valIncludes(r.platform, ps.tab));
+  const scopeRecords = ps.tab ? allRecords.filter(r => valIncludes(r.platform, ps.tab)) : allRecords;
   const pendingCount = scopeRecords.filter(r => statusOf(r) === '待发布').length;
   const publishedCount = scopeRecords.filter(r => statusOf(r) === '已发布').length;
   const sf = ps.statusFilter;
@@ -2763,7 +2681,6 @@ function renderTimeline() {
       if (r.description) html += `<div class="timeline-event-desc">${esc(r.description)}</div>`;
       html += '<div class="timeline-event-meta">';
       html += `<span class="tag" style="background:${impInfo.color}20;color:${impInfo.color}">${esc(impInfo.label)}</span>`;
-      if (r.source) html += `<span class="timeline-event-source">来源: ${esc(r.source)}</span>`;
       const charIds = arrVal(r.characterIds);
       if (charIds.length) {
         charIds.forEach(c => html += `<span class="tag tag-info">${esc(c)}</span>`);
@@ -5010,11 +4927,8 @@ function renderQuickCheckin() {
     const thisWeek = weekKeyOf(today);
     return DB.list('lifeCheckins').some(r => r.type === t.key && (r.week || weekKeyOf(r.date)) === thisWeek);
   }).length;
-  const now = new Date();
-  const wd = ['日','一','二','三','四','五','六'];
-  const dateStr = `${now.getMonth()+1}月${now.getDate()}日 周${wd[now.getDay()]}`;
   let html = '<div class="life-quick-checkin">';
-  html += `<div class="lqc-hd"><span class="lqc-date">${dateStr}</span><span class="lqc-title">今日打卡</span><span class="lqc-count">已完成 ${doneCount}/${allDefs.length}</span></div>`;
+  html += `<div class="lqc-hd"><span class="lqc-title">今日打卡</span><span class="lqc-count">已完成 ${doneCount}/${allDefs.length}</span></div>`;
   html += '<div class="lqc-grid">';
   allDefs.forEach(t => {
     let done = false;
@@ -5471,9 +5385,12 @@ function lifeCheckinRenderModal(typeKey) {
 function renderLifeWeekOverview() {
   const v = lifeCheckinInitView();
   const today = todayStr();
-  // v222: 周版块展示当前月份的 4 周，本日所在周置顶，自上而下为第四周→第三周→第二周→第一周
+  // v223: 周版块展示当月完整的 4 个周一到周日周（均在月内），按 1-4 周编号；
+  // 本日所在周置顶，其余按 4→3→2→1 倒序排列
   const firstOfMonth = new Date(v.y, v.m, 1);
-  const firstMonday = weekMondayOf(firstOfMonth);
+  let firstMonday = weekMondayOf(firstOfMonth);
+  // 取当月第一个落在本月内的周一
+  if (firstMonday.getMonth() !== v.m) firstMonday.setDate(firstMonday.getDate() + 7);
   const weeks = [];
   for (let i = 0; i < 4; i++) {
     const mon = new Date(firstMonday);
@@ -5482,14 +5399,15 @@ function renderLifeWeekOverview() {
     for (let j = 0; j < 7; j++) { const d = new Date(mon); d.setDate(mon.getDate() + j); days.push(fmtDate(d)); }
     weeks.push({ days });
   }
+  const labels = ['第一周', '第二周', '第三周', '第四周'];
   const curIdx = weeks.findIndex(w => w.days.includes(today));
+  const defaultOrder = [3, 2, 1, 0];
   const order = curIdx >= 0
-    ? [curIdx, curIdx - 1, curIdx - 2, curIdx - 3].map(i => (i + 4) % 4)
-    : [3, 2, 1, 0];
-  const labels = ['第四周', '第三周', '第二周', '第一周'];
+    ? [curIdx, ...defaultOrder.filter(i => i !== curIdx)]
+    : defaultOrder;
   let html = '';
-  order.forEach((idx, pos) => {
-    html += renderLifeSingleWeek(labels[pos], weeks[idx].days, today);
+  order.forEach(idx => {
+    html += renderLifeSingleWeek(labels[idx], weeks[idx].days, today);
   });
   return html;
 }
