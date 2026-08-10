@@ -2736,9 +2736,8 @@ function importStoriesToTimeline() {
   html += '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'importStoryList\')">▼</button>';
   html += '<div class="combobox-dropdown" id="importStoryList">' + storyOpts + '</div>';
   html += '</div></div>';
-  const importImpColor = (TIMELINE_COLORS['红'] || {}).color || '#e74c3c';
-  html += `<div style="margin-top:12px"><div style="font-size:13px;margin-bottom:6px">重要性:</div>`;
-  html += `<select class="form-select import-importance-select" id="importImportance" style="color:${esc(importImpColor)};border-color:${esc(importImpColor)}" onchange="this.style.color=TIMELINE_COLORS[this.value]?.color||'#e74c3c';this.style.borderColor=TIMELINE_COLORS[this.value]?.color||'#e74c3c'">`;
+  html += '<div style="margin-top:12px"><div style="font-size:13px;margin-bottom:6px">重要性:</div>';
+  html += '<select class="form-select" id="importImportance">';
   Object.keys(TIMELINE_COLORS).forEach(c => {
     html += `<option value="${c}">${TIMELINE_COLORS[c].label}</option>`;
   });
