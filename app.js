@@ -4949,7 +4949,7 @@ function migrateData() {
 const LIFE_CHECKIN_DEFS = {
   deepspace: { key: 'deepspace', label: '深空打卡', icon: '🌌', period: 'day', calendar: true },
   sport: { key: 'sport', label: '运动打卡', icon: '🏃', period: 'day' },
-  massage: { key: 'massage', label: '每周按摩打卡', icon: '💆', period: 'week' },
+  massage: { key: 'massage', label: '按摩打卡', icon: '💆', period: 'week' },
   vacuum: { key: 'vacuum', label: '吸尘打卡', icon: '🧹', period: 'week' },
 };
 const LIFE_RECORD_DEFS = {
@@ -5076,7 +5076,7 @@ function renderGoalCard(t, vy, vm) {
     btnTxt = done ? '本周已打' : '打卡';
     btnDisabled = false;
   }
-  return `<div class="life-goal-card" onclick="lifeCheckinOpenCard('${t.key}')">
+  return `<div class="life-goal-card ${t.period === 'week' ? 'week-card' : ''}" onclick="lifeCheckinOpenCard('${t.key}')">
     <div class="lgc-head">
       <div class="lgc-title-wrap">
         <div class="lgc-name">${esc(t.label)}</div>
