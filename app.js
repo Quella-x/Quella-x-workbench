@@ -5020,6 +5020,21 @@ function lifeWeeklyStreak(typeKey) {
   if (!set.has(cur)) { cur = prevWeekKey(cur); if (!set.has(cur)) return 0; }
   let s = 0; while (set.has(cur)) { s++; cur = prevWeekKey(cur); } return s;
 }
+function lifeWeeklyMonthCount(typeKey, y, m) {
+  const set = new Set();
+  DB.list('lifeCheckins').filter(r => r.type === typeKey && r.week).forEach(r => {
+    const [yy, ww] = r.week.split('-W');
+    const mon = mondayFromWeek(Number(yy), Number(ww));
+    if (mon.getFullYear() === y && mon.getMonth() === m) set.add(r.week);
+  });
+  return set.size;
+}
+function lifeMonthWeekTotal(y, m) {
+  let count = 0;
+  const d = new Date(y, m, 1);
+  while (d.getMonth() === m) { if (d.getDay() === 1) count++; d.setDate(d.getDate() + 1); }
+  return count;
+}
 function renderCheckinHeatmap(typeKey, year, month) {
   const checkins = DB.list('lifeCheckins').filter(r => r.type === typeKey);
   const def = LIFE_CHECKIN_DEFS[typeKey];
@@ -5031,13 +5046,11 @@ function renderCheckinHeatmap(typeKey, year, month) {
   const today = todayStr();
   const monthStr = `${y}-${String(m + 1).padStart(2, '0')}`;
   let html = '<div class="life-heatmap">';
-  html += '<div class="life-heatmap-hd"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>';
   // leading other-month squares
   for (let i = 0; i < firstWeekday; i++) html += '<div class="hm-day other-month"></div>';
   for (let d = 1; d <= daysInMonth; d++) {
     const ds = `${monthStr}-${String(d).padStart(2, '0')}`;
     let cls = 'hm-day';
-    if (ds === today) cls += ' today';
     if (checkins.some(r => r.date === ds)) cls += def.period === 'day' ? ' done' : ' week';
     html += `<div class="${cls}" title="${ds}"></div>`;
   }
@@ -5076,6 +5089,19 @@ function renderGoalCard(t, vy, vm) {
     btnTxt = done ? '本周已打' : '打卡';
     btnDisabled = false;
   }
+  const daysInMonth = new Date(vy, vm + 1, 0).getDate();
+  const ms = `${vy}-${String(vm + 1).padStart(2, '0')}`;
+  let mpDone, mpTotal, mpLabel;
+  if (t.period === 'day') {
+    mpTotal = daysInMonth;
+    mpDone = DB.list('lifeCheckins').filter(r => r.type === t.key && (r.date || '').startsWith(ms)).length;
+    mpLabel = '本月';
+  } else {
+    mpTotal = lifeMonthWeekTotal(vy, vm);
+    mpDone = lifeWeeklyMonthCount(t.key, vy, vm);
+    mpLabel = '本月周';
+  }
+  const mpPct = mpTotal ? Math.round(mpDone / mpTotal * 100) : 0;
   return `<div class="life-goal-card ${t.period === 'week' ? 'week-card' : ''}" onclick="lifeCheckinOpenCard('${t.key}')">
     <div class="lgc-head">
       <div class="lgc-title-wrap">
@@ -5091,6 +5117,11 @@ function renderGoalCard(t, vy, vm) {
         <div class="lgc-stat"><div class="lgc-num">${rate}%</div><div class="lgc-unit">完成率</div></div>
       </div>
       <div class="lgc-heatmap">${renderCheckinHeatmap(t.key, vy, vm)}</div>
+    </div>
+    <div class="lgc-monthprog">
+      <span class="lgc-mp-label">${mpLabel}进度</span>
+      <span class="lgc-mp-num">${mpDone}/${mpTotal}</span>
+      <div class="lgc-mp-bar"><div class="lgc-mp-fill ${t.period === 'week' ? 'week' : ''}" style="width:${mpPct}%"></div></div>
     </div>
     <div class="lgc-foot">
       <span class="lgc-status ${statusCls}"><span class="lgc-dot"></span>${status}</span>

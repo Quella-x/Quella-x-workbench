@@ -1678,15 +1678,15 @@ ul,li{list-style:none}
 .lgc-head{display:flex;align-items:center;gap:12px}
 .lgc-ico{width:44px;height:44px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
 .lgc-title-wrap{flex:1;min-width:0}
-.lgc-name{font-size:16px;font-weight:700;color:var(--c-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lgc-name{font-size:17px;font-weight:700;color:var(--c-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lgc-desc{font-size:12px;color:var(--c-text-light);margin-top:2px}
 .lgc-arrow{margin-left:auto;font-size:22px;color:var(--c-text-light);font-weight:300}
-.lgc-body{display:flex;gap:14px;align-items:center;flex-wrap:nowrap}
-.lgc-stats{display:flex;gap:5px;flex:1;min-width:0;align-items:center}
-.lgc-stat{flex:0 0 auto;background:var(--c-primary-bg);border-radius:var(--radius-sm);padding:8px 6px;text-align:center;min-width:auto}
-.lgc-num{font-size:16px;font-weight:800;color:var(--c-primary-dark);line-height:1}
-.lgc-unit{font-size:9px;color:var(--c-text-light);margin-top:2px;white-space:nowrap}
-.lgc-heatmap{width:74px;flex-shrink:0}
+.lgc-body{display:flex;gap:16px;align-items:center;flex-wrap:nowrap}
+.lgc-stats{display:flex;gap:8px;flex:1;min-width:0;align-items:center}
+.lgc-stat{flex:1 1 0;background:var(--c-primary-bg);border-radius:var(--radius-sm);padding:10px 6px;text-align:center;min-width:0}
+.lgc-num{font-size:20px;font-weight:800;color:var(--c-primary-dark);line-height:1}
+.lgc-unit{font-size:11px;color:var(--c-text-light);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lgc-heatmap{width:66px;flex-shrink:0}
 .lgc-heatmap .life-heatmap{gap:2px}
 .lgc-foot{display:flex;align-items:center;justify-content:space-between;margin-top:2px}
 .lgc-status{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
@@ -1695,20 +1695,27 @@ ul,li{list-style:none}
 .lgc-status .lgc-dot{width:8px;height:8px;border-radius:50%;background:currentColor}
 .lgc-foot .btn:disabled{opacity:.55;cursor:not-allowed;background:var(--c-border);color:var(--c-text-light)}
 
-/* Heatmap: calendar-style rounded squares */
+/* Heatmap: calendar-style rounded squares (no weekday header) */
 .life-heatmap{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.life-heatmap-hd{display:contents;font-size:9px;color:var(--c-text-muted);text-align:center;line-height:1}
-.life-heatmap-hd span{padding:2px 0}
-.life-heatmap .hm-day{width:100%;aspect-ratio:1;border-radius:5px;background:var(--c-bg);border:none;box-sizing:border-box}
+.life-heatmap .hm-day{width:100%;aspect-ratio:1;border-radius:6px;background:var(--c-bg);border:none;box-sizing:border-box}
 .life-heatmap .hm-day.other-month{background:#fff}
 .life-heatmap .hm-day.done{background:var(--c-primary)}
-.life-heatmap .hm-day.week{background:var(--c-warning)}
-.life-heatmap .hm-day.today{border:1.5px solid var(--c-primary)}
+.life-heatmap .hm-day.week{background:var(--c-orange)}
 
-/* Weekly check-in cards use yellow accent */
-.life-goal-card.week-card .lgc-stat{background:rgba(250,173,20,.12)}
-.life-goal-card.week-card .lgc-num{color:var(--c-warning)}
+/* Weekly check-in cards use orange accent */
+.life-goal-card.week-card .lgc-stat{background:rgba(250,140,22,.12)}
+.life-goal-card.week-card .lgc-num{color:var(--c-orange)}
 .life-goal-card.week-card .lgc-status.done{color:var(--c-green)}
+.life-goal-card.week-card .life-heatmap .hm-day{background:rgba(250,140,22,.16)}
+.life-goal-card.week-card .life-heatmap .hm-day.other-month{background:#fff}
+
+/* Monthly progress block (1/31 style) */
+.lgc-monthprog{display:flex;align-items:center;gap:10px;margin-top:10px}
+.lgc-mp-label{font-size:12px;color:var(--c-text-light);white-space:nowrap}
+.lgc-mp-num{font-size:14px;font-weight:800;color:var(--c-primary-dark);white-space:nowrap}
+.lgc-mp-bar{flex:1;height:8px;background:var(--c-border-light);border-radius:99px;overflow:hidden}
+.lgc-mp-fill{height:100%;background:var(--c-primary);border-radius:99px;transition:width .3s}
+.lgc-mp-fill.week{background:var(--c-orange)}
 
 /* Quick check-in matrix */
 .life-quick-matrix{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
@@ -1737,7 +1744,6 @@ ul,li{list-style:none}
 .life-monthbar-txt{font-size:15px;font-weight:700;color:var(--c-text);min-width:96px;text-align:center}
 .life-monthbar .btn:disabled{opacity:.45;cursor:not-allowed}
 .life-modal-heatmap .life-heatmap{gap:6px}
-.life-modal-heatmap .life-heatmap-hd{font-size:11px}
 .life-modal-list{background:var(--c-bg);border:1px solid var(--c-border);border-radius:var(--radius);padding:8px 12px}
 .life-modal-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--c-border-light);font-size:13px;color:var(--c-text)}
 .life-modal-item:last-child{border-bottom:none}
@@ -1857,7 +1863,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=201"></script>
+<script src="app.js?v=202"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
