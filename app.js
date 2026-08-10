@@ -4952,6 +4952,50 @@ const LIFE_CHECKIN_DEFS = {
   massage: { key: 'massage', label: '按摩打卡', icon: '💆', period: 'week' },
   vacuum: { key: 'vacuum', label: '吸尘打卡', icon: '🧹', period: 'week' },
 };
+function renderQuickCheckin() {
+  const today = todayStr();
+  const allDefs = Object.values(LIFE_CHECKIN_DEFS).concat(DB.list('lifeCheckinDefs'));
+  const doneCount = allDefs.filter(t => {
+    if (t.period === 'day') return DB.list('lifeCheckins').some(r => r.type === t.key && r.date === today);
+    const thisWeek = weekKeyOf(today);
+    return DB.list('lifeCheckins').some(r => r.type === t.key && (r.week || weekKeyOf(r.date)) === thisWeek);
+  }).length;
+  let html = '<div class="life-quick-checkin">';
+  html += `<div class="lqc-hd"><span class="lqc-title">今日打卡</span><span class="lqc-count">已完成 ${doneCount}/${allDefs.length}</span></div>`;
+  html += '<div class="lqc-grid">';
+  allDefs.forEach(t => {
+    let done = false;
+    if (t.period === 'day') done = DB.list('lifeCheckins').some(r => r.type === t.key && r.date === today);
+    else { const thisWeek = weekKeyOf(today); done = DB.list('lifeCheckins').some(r => r.type === t.key && (r.week || weekKeyOf(r.date)) === thisWeek); }
+    html += `<button class="lqc-btn ${done ? 'done' : ''}" onclick="lifeQuickCheckin('${t.key}',event)">`;
+    html += `<span class="lqc-ico">${t.icon || '•'}</span>`;
+    html += `<span class="lqc-label">${esc(t.label)}</span>`;
+    html += '</button>';
+  });
+  html += '</div></div>';
+  return html;
+}
+function lifeQuickCheckin(typeKey, e) {
+  if (e) e.stopPropagation();
+  const today = todayStr();
+  const def = getCheckinDef(typeKey);
+  if (!def) return;
+  let done = false, dateStr = today;
+  if (def.period === 'day') done = DB.list('lifeCheckins').some(r => r.type === typeKey && r.date === today);
+  else {
+    const thisWeek = weekKeyOf(today);
+    done = DB.list('lifeCheckins').some(r => r.type === typeKey && (r.week || weekKeyOf(r.date)) === thisWeek);
+    dateStr = today;
+  }
+  if (done) {
+    const rec = DB.list('lifeCheckins').find(r => r.type === typeKey && r.date === dateStr);
+    if (rec) { DB.remove('lifeCheckins', rec.id); Toast.success('已取消'); }
+  } else {
+    DB.add('lifeCheckins', { type: typeKey, date: dateStr, week: weekKeyOf(dateStr), period: def.period, isMakeup: false, createdAt: new Date().toISOString() });
+    Toast.success('打卡成功');
+  }
+  renderLifeCheckin();
+}
 const LIFE_RECORD_DEFS = {
   sleep: { key: 'sleep', label: '睡眠记录', icon: '😴', fields: [
     { key: 'sleepTime', label: '入睡时间', type: 'time' },
@@ -5126,9 +5170,7 @@ function renderGoalCard(t, vy, vm) {
       <div class="lgc-heatmap">${renderCheckinHeatmap(t.key, vy, vm)}</div>
     </div>
     <div class="lgc-monthprog">
-      <span class="lgc-mp-label">${mpLabel}进度</span>
-      <span class="lgc-mp-num">${mpDone}/${mpTotal}</span>
-      <div class="lgc-mp-bar"><div class="lgc-mp-fill ${t.period === 'week' ? 'week' : ''}" style="width:${mpPct}%"></div></div>
+      <span class="lgc-mp-num ${t.period === 'week' ? 'week' : ''}">${mpDone}/${mpTotal}</span>
     </div>
     <div class="lgc-foot">
       <span class="lgc-status ${statusCls}"><span class="lgc-dot"></span>${status}</span>
@@ -5252,6 +5294,7 @@ function renderLifeCheckin() {
   const isCur = v.y === now.getFullYear() && v.m === now.getMonth();
   const pickerY = lifeCheckinPickerY != null ? lifeCheckinPickerY : v.y;
   let html = '<div class="fade-in">';
+  html += renderQuickCheckin();
   html += '<div class="life-monthbar">';
   html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinPrevMonth()">‹ 上月</button>`;
   html += `<span class="life-monthbar-txt" onclick="lifeCheckinTogglePicker()">${v.y}年${v.m + 1}月 ▾</span>`;
@@ -5305,21 +5348,22 @@ function lifeCheckinRenderModal(typeKey) {
     mpLabel = '本月周';
   }
   let html = `<div class="life-modal-body">`;
-  html += `<div class="life-modal-hd"><div><div class="lm-name">${esc(t.label)}</div><div class="lm-desc">${t.period === 'day' ? '每日打卡 · 点选日期补卡/撤销' : '每周打卡 · 点选日期补卡/撤销'}</div></div></div>`;
+  html += `<div class="life-modal-hd"><div><div class="lm-name">${esc(t.label)}<span class="lm-tag">${t.period === 'day' ? '每日打卡' : '每周打卡'}</span></div></div></div>`;
   // month nav (replaces date input)
   html += `<div class="life-modal-monthbar">`;
   html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinModalPrevMonth()">‹ 上月</button>`;
   html += `<span class="lmm-txt">${v.y}年${v.m + 1}月</span>`;
   html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinModalNextMonth()" ${isCur ? 'disabled' : ''}>下月 ›</button>`;
   html += `</div>`;
-  // heatmap (with weekday header) + right-side progress
+  // heatmap (with weekday header) + right-side progress + buttons
   html += `<div class="life-modal-hmwrap">`;
   html += `<div class="life-modal-heatmap ${t.period === 'week' ? 'week' : ''}">${renderCheckinHeatmap(typeKey, v.y, v.m, true)}</div>`;
-  html += `<div class="life-modal-prog">`;
-  html += `<div class="lmp-num ${t.period === 'week' ? 'week' : ''}">${mpDone}/${mpTotal}</div>`;
-  html += `<div class="lmp-label">${mpLabel}进度</div>`;
-  html += `<div class="lmp-bar"><div class="lmp-fill ${t.period === 'week' ? 'week' : ''}" style="width:${mpTotal ? Math.round(mpDone / mpTotal * 100) : 0}%"></div></div>`;
-  html += `</div></div>`;
+  html += `<div class="life-modal-right">`;
+  html += `<div class="life-modal-prog"><div class="lmp-num ${t.period === 'week' ? 'week' : ''}">${mpDone}/${mpTotal}</div></div>`;
+  html += `<div class="life-modal-btns">`;
+  html += `<button class="btn btn-primary" onclick="lifeCheckinModalMakeup('${typeKey}')">补卡</button>`;
+  html += `<button class="btn btn-ghost" onclick="lifeCheckinModalUndo('${typeKey}')">撤销</button>`;
+  html += `</div></div></div>`;
   html += `<div class="life-modal-sel">已选日期：${lifeCheckinSelDate}</div>`;
   // recent list
   html += `<div class="life-modal-list">`;
@@ -5327,13 +5371,12 @@ function lifeCheckinRenderModal(typeKey) {
   if (!recent.length) html += '<div class="life-empty">暂无打卡记录</div>';
   else recent.forEach(r => { html += `<div class="life-modal-item"><span>${r.date}</span><span>${r.isMakeup ? '补卡' : '已打卡'}</span></div>`; });
   html += `</div>`;
-  // foot: delete (custom only) left, buttons bottom-right
-  html += `<div class="life-modal-foot">`;
-  if (typeKey.indexOf('custom_') === 0) html += `<button class="btn btn-ghost btn-sm life-modal-del" onclick="lifeCheckinDeleteModule('${typeKey}')">删除模块</button>`;
-  html += `<div class="life-modal-foot-btns">`;
-  html += `<button class="btn btn-primary" onclick="lifeCheckinModalMakeup('${typeKey}')">补卡</button>`;
-  html += `<button class="btn btn-ghost" onclick="lifeCheckinModalUndo('${typeKey}')">撤销</button>`;
-  html += `</div></div>`;
+  // foot: delete (custom only)
+  if (typeKey.indexOf('custom_') === 0) {
+    html += `<div class="life-modal-foot">`;
+    html += `<button class="btn btn-ghost btn-sm life-modal-del" onclick="lifeCheckinDeleteModule('${typeKey}')">删除模块</button>`;
+    html += `</div>`;
+  }
   html += `</div>`;
   openModal(esc(t.label) + ' 打卡详情', html, '');
 }
