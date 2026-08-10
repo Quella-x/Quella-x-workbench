@@ -374,18 +374,15 @@ function buildFormField(f, data, moduleKey, wrap) {
     }
     const singleAttr = f.single ? ' data-single="true"' : '';
     const onClickAttr = f.single ? ' onclick="limitSingleCheckbox(this)"' : '';
-    const isImpPills = f.key === 'importance' && moduleKey === 'oc-timeline';
-    const onChangeAttr = isImpPills ? ' onchange="updateImportancePill(this)"' : '';
     const optHTML = allOpts.map(o => {
       const v = typeof o === 'string' ? o : o.value;
       const l = typeof o === 'string' ? o : o.label;
       const isCustom = typeof o === 'object' && o.custom;
       const customAttr = isCustom ? ' data-custom="true"' : '';
-      const valueAttr = isImpPills ? ` data-value="${esc(v)}"` : '';
-      return `<label class="checkbox-item ${isImpPills && selected.includes(v) ? 'selected' : ''}"${valueAttr}${customAttr}><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}${onChangeAttr}${customAttr}> ${esc(l)}</label>`;
+      return `<label class="checkbox-item ${selected.includes(v) ? 'selected' : ''}"${customAttr}><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}${customAttr}> ${esc(l)}</label>`;
     }).join('');
     const mainGroupId = 'ms_' + f.key + '_' + Math.random().toString(36).slice(2, 7);
-    let msInner = `<label class="form-label">${esc(label)}</label><div class="checkbox-group ${isImpPills ? 'importance-pills' : ''}" id="${mainGroupId}" data-key="${f.key}"${singleAttr}>${optHTML}</div>`;
+    let msInner = `<label class="form-label">${esc(label)}</label><div class="checkbox-group" id="${mainGroupId}" data-key="${f.key}"${singleAttr}>${optHTML}</div>`;
     if (f.allowCustom) {
       const customInputId = 'customAdd_' + f.key + '_' + Math.random().toString(36).slice(2, 7);
       const customPlaceholder = (moduleKey === 'oc-relations' && f.key === 'relationType') ? '请输入自定义关系类型' : '输入自定义类型后按添加';
@@ -1271,13 +1268,11 @@ MODULES['design-commission'] = {
     { key: 'paymentStatus', label: '全部支付', options: [{ value: '', label: '全部支付' }, { value: '未付', label: '未付' }, { value: '定金', label: '定金' }, { value: '尾款', label: '尾款' }, { value: '全款', label: '全款' }] },
   ],
   listFields: [
-    { label: '进度', key: 'progress', tag: true },
-    { label: '支付', key: 'paymentStatus', tag: true },
-    { label: '用途', key: 'usageType' },
+    { label: '稿件进度', key: 'progress', tag: true },
+    { label: '支付状态', key: 'paymentStatus', tag: true },
+    { label: '稿件用途', key: 'usageType' },
     { label: '制品', key: '_firstProduct' },
-    { label: '截稿', key: 'deadline', date: true },
-    { label: '交付', key: 'deliveredTime', date: true },
-    { label: '报价', key: 'quoteAmount', prefix: '¥' },
+    { label: '截稿日期', key: 'deadline', date: true },
   ],
   stats: (records) => {
     const isPaid = r => valIncludes(r.paymentStatus, '全款') || valIncludes(r.paymentStatus, '尾款');
@@ -2407,20 +2402,27 @@ function renderHome() {
 }
 
 function renderHomeRecordCard(r) {
+  let html = `<div class="record-card" onclick="openDetail('home','${r.id}')">`;
+  html += '<div class="record-card-header"><div class="record-card-title">' + esc(r.title || '未命名') + '</div>';
+  html += '<div class="record-card-actions">';
+  html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('home','${r.id}')">✏️</span>`;
+  html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('home','${r.id}')">🗑️</span>`;
+  html += '</div></div>';
+  html += '<div class="record-card-body">';
   const platforms = arrVal(r.platform);
-  let html = `<div class="record-card record-card-minimal" onclick="openDetail('home','${r.id}')">`;
-  html += '<div class="record-card-body-minimal">';
   platforms.forEach(p => {
     const pColor = PLATFORM_COLORS[p] || '#9DC8FF';
     html += `<span class="field"><span class="tag" style="background:${pColor}20;color:${pColor}">${esc(p)}</span></span>`;
   });
+  const recStatus = (r.status === '已发布') ? '已发布' : '待发布';
+  const recStatusCls = recStatus === '已发布' ? 'tag-success' : 'tag-warning';
+  html += `<span class="field"><span class="tag ${recStatusCls}">${recStatus}</span></span>`;
+  html += `<span class="field"><span class="field-label">发布:</span><span class="field-value">${fmtDate(r.publishTime)}</span></span>`;
   const ct = arrVal(r.contentType);
   if (ct.length) html += `<span class="field"><span class="field-label">类型:</span><span class="field-value">${esc(ct.join('、'))}</span></span>`;
-  html += `<span class="field"><span class="field-label">发布时间:</span><span class="field-value">${fmtDate(r.publishTime)}</span></span>`;
-  html += '<div class="record-card-actions-minimal">';
-  html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('home','${r.id}')">✏️</span>`;
-  html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('home','${r.id}')">🗑️</span>`;
-  html += '</div></div></div>';
+  if (r.data24h_likes) html += `<span class="field"><span class="field-label">24h赞:</span><span class="field-value">${r.data24h_likes}</span></span>`;
+  if (r.link) html += `<span class="field"><a href="${esc(r.link)}" target="_blank" style="color:var(--c-primary)" onclick="event.stopPropagation()">查看作品 ↗</a></span>`;
+  html += '</div></div>';
   return html;
 }
 
@@ -5289,7 +5291,7 @@ function renderLifeCheckin() {
   const pickerY = lifeCheckinPickerY != null ? lifeCheckinPickerY : v.y;
   let html = '<div class="fade-in">';
   html += renderQuickCheckin();
-  html += '<div class="life-monthbar">';
+  html += `<div class="life-monthbar ${lifeCheckinBlock === 'week' ? 'week-mode' : ''}">`;
   html += '<div class="life-monthbar-center">';
   html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinPrevMonth()">‹ 上月</button>`;
   html += `<span class="life-monthbar-txt" onclick="lifeCheckinTogglePicker()">${v.y}年${v.m + 1}月 ▾</span>`;
