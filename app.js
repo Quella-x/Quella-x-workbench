@@ -5473,9 +5473,17 @@ function lifeWeekCellClick(typeKey, dateStr) {
   renderLifeCheckin();
 }
 function lifeCheckinCellClick(typeKey, dateStr) {
-  if (dateStr > todayStr()) { Toast.warning('不能选择未来日期'); return; }
+  if (dateStr > todayStr()) { Toast.warning('不能给未来的日期打卡'); return; }
   lifeCheckinSelDate = dateStr;
+  const def = getCheckinDef(typeKey);
+  const rec = DB.list('lifeCheckins').find(r => r.type === typeKey && r.date === dateStr);
+  if (rec) { Toast.info('该日期已打卡'); }
+  else {
+    DB.add('lifeCheckins', { type: typeKey, date: dateStr, week: weekKeyOf(dateStr), period: def.period, isMakeup: dateStr < todayStr(), createdAt: new Date().toISOString() });
+    Toast.success('打卡成功');
+  }
   lifeCheckinRenderModal(typeKey);
+  renderLifeCheckin();
 }
 function lifeCheckinDo(typeKey, dateStr) {
   dateStr = dateStr || todayStr();
