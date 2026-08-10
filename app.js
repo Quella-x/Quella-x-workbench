@@ -5020,18 +5020,31 @@ function lifeWeeklyStreak(typeKey) {
   if (!set.has(cur)) { cur = prevWeekKey(cur); if (!set.has(cur)) return 0; }
   let s = 0; while (set.has(cur)) { s++; cur = prevWeekKey(cur); } return s;
 }
-function renderCheckinHeatmap(typeKey, daysBack) {
+function renderCheckinHeatmap(typeKey, year, month) {
   const checkins = DB.list('lifeCheckins').filter(r => r.type === typeKey);
   const def = LIFE_CHECKIN_DEFS[typeKey];
+  const now = new Date();
+  const y = year != null ? year : now.getFullYear();
+  const m = month != null ? month : now.getMonth();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const firstWeekday = new Date(y, m, 1).getDay();
   const today = todayStr();
-  const days = [];
-  for (let i = daysBack - 1; i >= 0; i--) days.push(addDaysStr(today, -i));
+  const monthStr = `${y}-${String(m + 1).padStart(2, '0')}`;
   let html = '<div class="life-heatmap">';
-  days.forEach(ds => {
+  html += '<div class="life-heatmap-hd"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>';
+  // leading other-month squares
+  for (let i = 0; i < firstWeekday; i++) html += '<div class="hm-day other-month"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = `${monthStr}-${String(d).padStart(2, '0')}`;
     let cls = 'hm-day';
+    if (ds === today) cls += ' today';
     if (checkins.some(r => r.date === ds)) cls += def.period === 'day' ? ' done' : ' week';
     html += `<div class="${cls}" title="${ds}"></div>`;
-  });
+  }
+  // trailing other-month squares to complete the last week
+  const total = firstWeekday + daysInMonth;
+  const rem = total % 7 === 0 ? 0 : 7 - (total % 7);
+  for (let i = 0; i < rem; i++) html += '<div class="hm-day other-month"></div>';
   html += '</div>';
   return html;
 }
@@ -5078,7 +5091,7 @@ function renderGoalCard(t) {
         <div class="lgc-stat"><div class="lgc-num">${streak}</div><div class="lgc-unit">${t.period === 'day' ? '最长连续' : '连续完成'}</div></div>
         <div class="lgc-stat"><div class="lgc-num">${rate}%</div><div class="lgc-unit">完成率</div></div>
       </div>
-      <div class="lgc-heatmap">${renderCheckinHeatmap(t.key, 28)}</div>
+      <div class="lgc-heatmap">${renderCheckinHeatmap(t.key)}</div>
     </div>
     <div class="lgc-foot">
       <span class="lgc-status ${statusCls}"><span class="lgc-dot"></span>${status}</span>
@@ -5102,7 +5115,7 @@ function lifeCheckinOpenCard(typeKey) {
   let html = `<div class="life-modal-body">`;
   html += `<div class="life-modal-hd"><span class="lm-ico">${t.icon}</span><div><div class="lm-name">${esc(t.label)}</div><div class="lm-desc">${t.period === 'day' ? '每日打卡 · 选择日期补卡' : '每周打卡 · 选择日期记录'}</div></div></div>`;
   html += `<div class="life-modal-actions"><input type="date" class="form-input" id="lc-modal-date" value="${today}" max="${today}"><button class="btn btn-primary" onclick="lifeCheckinDo('${typeKey}', $('#lc-modal-date').value);closeModal();">补打卡</button><button class="btn btn-ghost" onclick="lifeCheckinRemove('${typeKey}', $('#lc-modal-date').value)">撤销</button></div>`;
-  html += `<div class="life-modal-heatmap">${renderCheckinHeatmap(typeKey, 35)}</div>`;
+  html += `<div class="life-modal-heatmap">${renderCheckinHeatmap(typeKey)}</div>`;
   html += `<div class="life-modal-list">`;
   const recent = recs.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
   if (!recent.length) html += '<div class="life-empty">暂无打卡记录</div>';
