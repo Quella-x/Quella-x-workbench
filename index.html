@@ -195,7 +195,7 @@ ul,li{list-style:none}
 .toolbar .btn-primary{width:112px;justify-content:center}
 .view-toggle-top{
   display:flex;gap:8px;align-items:center;
-  margin-bottom:12px;/* v27: nav→toolbar 12px，与价目表 toolbar→其他说明 8px 一起形成递减 */
+  margin-bottom:8px;/* v225: 用户要求搜索框到切换按钮间距 8px */
 }
 .view-toggle-top .btn{padding:8px 16px;font-weight:700}
 .search-box{position:relative;display:flex;align-items:center}
@@ -1699,7 +1699,7 @@ ul,li{list-style:none}
 
 /* Quick check-in block */
 .life-quick-checkin{background:var(--c-primary-bg);border:1px solid var(--c-border-light);border-radius:var(--radius);padding:18px 16px;margin-bottom:14px;box-shadow:var(--shadow-sm)}
-.lqc-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.lqc-hd{display:flex;align-items:center;justify-content:flex-start;gap:10px;margin-bottom:12px}
 .lqc-title{font-size:18px;font-weight:700;color:var(--c-text)}
 .lqc-count{font-size:11px;font-weight:500;color:var(--c-text-light);background:var(--c-card);padding:2px 8px;border-radius:99px}
 .lqc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:10px}
@@ -1863,17 +1863,22 @@ ul,li{list-style:none}
 .lwm-title{font-size:15px;font-weight:700;color:var(--c-text)}
 .lwm-range{font-size:12px;font-weight:600;color:var(--c-text-light);min-width:120px;text-align:right}
 .lwm-grid{display:flex;flex-direction:column;gap:6px;padding-right:5px}
-.lwm-row{display:grid;grid-template-columns:80px repeat(7,1fr);gap:5px;align-items:center}
+.lwm-row{display:grid;grid-template-columns:70px repeat(7,1fr) 38px;gap:4px;align-items:center}
 .lwm-row-hd .lwm-day{text-align:center;font-size:11px;color:var(--c-text-muted);font-weight:600}
 .lwm-row-hd .lwm-habit{font-size:11px;color:var(--c-text-muted)}
-.lwm-habit{font-size:13px;font-weight:600;color:var(--c-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;flex-direction:column;line-height:1.25;text-align:left;padding-left:5px}
+.lwm-habit{font-size:12px;font-weight:600;color:var(--c-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;flex-direction:column;line-height:1.25;text-align:center;padding-left:0;align-items:center;justify-content:center}
 .lwm-habit .lwm-tag{font-size:10px;font-weight:400;color:var(--c-text-light)}
-.lwm-cell{aspect-ratio:1;border-radius:6px;background:var(--c-bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;box-sizing:border-box;border:1px solid var(--c-border-light);cursor:pointer}
+.lwm-tag-r{font-size:10px;font-weight:400;color:var(--c-text-light);display:flex;align-items:center;justify-content:flex-end;padding-right:2px}
+.lwm-cell{aspect-ratio:1;border-radius:4px;background:var(--c-bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;box-sizing:border-box;border:1px solid var(--c-border-light);cursor:pointer}
 .lwm-cell.done{background:var(--c-primary);border-color:var(--c-primary)}
 .lwm-cell.week{background:rgba(250,140,22,.16);border-color:rgba(250,140,22,.25)}
 .lwm-cell.week.done{background:var(--c-orange);border-color:var(--c-orange)}
 .lwm-cell.today{outline:1px solid var(--c-primary);outline-offset:-1px}
 .lwm-cell.week.today{outline-color:var(--c-orange)}
+.lwm-summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow-sm)}
+.lwm-sum-item{flex:1;min-width:100px;display:flex;flex-direction:column;gap:3px}
+.lwm-sum-label{font-size:11px;color:var(--c-text-light)}
+.lwm-sum-val{font-size:15px;font-weight:700;color:var(--c-text)}
 
 /* Daily record */
 .life-record-datebar{display:flex;align-items:center;gap:10px;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:10px 14px;margin-bottom:4px;flex-wrap:wrap}
@@ -1990,7 +1995,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=224"></script>
+<script src="app.js?v=225"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

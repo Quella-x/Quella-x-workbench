@@ -2402,26 +2402,16 @@ function renderHome() {
 }
 
 function renderHomeRecordCard(r) {
-  let html = `<div class="record-card" onclick="openDetail('home','${r.id}')">`;
-  html += '<div class="record-card-header"><div class="record-card-title">' + esc(r.title || '未命名') + '</div>';
-  html += '<div class="record-card-actions">';
-  html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('home','${r.id}')">✏️</span>`;
-  html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('home','${r.id}')">🗑️</span>`;
-  html += '</div></div>';
-  html += '<div class="record-card-body">';
+  let html = `<div class="record-card record-card-minimal" onclick="openDetail('home','${r.id}')">`;
+  html += '<div class="record-card-body-minimal">';
   const platforms = arrVal(r.platform);
   platforms.forEach(p => {
     const pColor = PLATFORM_COLORS[p] || '#9DC8FF';
-    html += `<span class="field"><span class="tag" style="background:${pColor}20;color:${pColor}">${esc(p)}</span></span>`;
+    html += `<span class="field"><span class="field-label">平台:</span><span class="tag" style="background:${pColor}20;color:${pColor}">${esc(p)}</span></span>`;
   });
-  const recStatus = (r.status === '已发布') ? '已发布' : '待发布';
-  const recStatusCls = recStatus === '已发布' ? 'tag-success' : 'tag-warning';
-  html += `<span class="field"><span class="tag ${recStatusCls}">${recStatus}</span></span>`;
-  html += `<span class="field"><span class="field-label">发布:</span><span class="field-value">${fmtDate(r.publishTime)}</span></span>`;
   const ct = arrVal(r.contentType);
-  if (ct.length) html += `<span class="field"><span class="field-label">类型:</span><span class="field-value">${esc(ct.join('、'))}</span></span>`;
-  if (r.data24h_likes) html += `<span class="field"><span class="field-label">24h赞:</span><span class="field-value">${r.data24h_likes}</span></span>`;
-  if (r.link) html += `<span class="field"><a href="${esc(r.link)}" target="_blank" style="color:var(--c-primary)" onclick="event.stopPropagation()">查看作品 ↗</a></span>`;
+  html += `<span class="field"><span class="field-label">类型:</span><span class="field-value">${esc(ct.join('、') || '-')}</span></span>`;
+  html += `<span class="field"><span class="field-label">发布时间:</span><span class="field-value">${fmtDate(r.publishTime)}</span></span>`;
   html += '</div></div>';
   return html;
 }
@@ -5385,39 +5375,38 @@ function lifeCheckinRenderModal(typeKey) {
   openModal(esc(t.label) + ' 打卡详情', html, '');
 }
 function renderLifeWeekOverview() {
-  const v = lifeCheckinInitView();
   const today = todayStr();
-  // v223: 周版块展示当月完整的 4 个周一到周日周（均在月内），按 1-4 周编号；
-  // 本日所在周置顶，其余按 4→3→2→1 倒序排列
-  const firstOfMonth = new Date(v.y, v.m, 1);
-  let firstMonday = weekMondayOf(firstOfMonth);
-  // 取当月第一个落在本月内的周一
-  if (firstMonday.getMonth() !== v.m) firstMonday.setDate(firstMonday.getDate() + 7);
-  const weeks = [];
-  for (let i = 0; i < 4; i++) {
-    const mon = new Date(firstMonday);
-    mon.setDate(firstMonday.getDate() + i * 7);
-    const days = [];
-    for (let j = 0; j < 7; j++) { const d = new Date(mon); d.setDate(mon.getDate() + j); days.push(fmtDate(d)); }
-    weeks.push({ days });
-  }
-  const labels = ['第一周', '第二周', '第三周', '第四周'];
-  const curIdx = weeks.findIndex(w => w.days.includes(today));
-  const defaultOrder = [3, 2, 1, 0];
-  const order = curIdx >= 0
-    ? [curIdx, ...defaultOrder.filter(i => i !== curIdx)]
-    : defaultOrder;
-  let html = '';
-  order.forEach(idx => {
-    html += renderLifeSingleWeek(labels[idx], weeks[idx].days, today);
-  });
-  return html;
+  const mon = weekMondayOf(parseDateStr(today));
+  const days = [];
+  for (let j = 0; j < 7; j++) { const d = new Date(mon); d.setDate(mon.getDate() + j); days.push(fmtDate(d)); }
+  return renderLifeSingleWeek('本周', days, today, true);
 }
-function renderLifeSingleWeek(label, days, today) {
+function renderLifeSingleWeek(label, days, today, withSummary) {
   const wd = ['一', '二', '三', '四', '五', '六', '日'];
   const allDefs = Object.values(LIFE_CHECKIN_DEFS).concat(DB.list('lifeCheckinDefs'));
   const checkins = DB.list('lifeCheckins');
-  let html = '<div class="life-week-module">';
+  const dayDefs = allDefs.filter(t => t.period === 'day');
+  const weekDefs = allDefs.filter(t => t.period === 'week');
+  const weekRecords = checkins.filter(r => days.includes(r.date));
+  const target = dayDefs.length * 7 + weekDefs.length;
+  const totalCount = weekRecords.length;
+  const rate = target ? Math.round(totalCount / target * 100) : 0;
+  const times = weekRecords.map(r => r.createdAt ? new Date(r.createdAt) : null).filter(d => d && !isNaN(d.getTime()));
+  let timeRange = '--';
+  if (times.length) {
+    times.sort((a, b) => a - b);
+    const fmt = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    timeRange = fmt(times[0]) + ' - ' + fmt(times[times.length - 1]);
+  }
+  let html = '';
+  if (withSummary) {
+    html += '<div class="lwm-summary">';
+    html += '<div class="lwm-sum-item"><span class="lwm-sum-label">打卡次数</span><span class="lwm-sum-val">' + totalCount + '次</span></div>';
+    html += '<div class="lwm-sum-item"><span class="lwm-sum-label">完成率</span><span class="lwm-sum-val">' + rate + '%</span></div>';
+    html += '<div class="lwm-sum-item"><span class="lwm-sum-label">日常打卡时间段</span><span class="lwm-sum-val">' + timeRange + '</span></div>';
+    html += '</div>';
+  }
+  html += '<div class="life-week-module">';
   html += '<div class="lwm-head"><div class="lwm-title">' + label + '</div>';
   html += '<span class="lwm-range">' + days[0].slice(5) + ' - ' + days[6].slice(5) + '</span></div>';
   html += '<div class="lwm-grid">';
@@ -5425,7 +5414,7 @@ function renderLifeSingleWeek(label, days, today) {
   for (let i = 0; i < 7; i++) html += '<div class="lwm-day">' + wd[i] + '</div>';
   html += '</div>';
   allDefs.forEach(t => {
-    html += '<div class="lwm-row"><div class="lwm-habit">' + esc(t.label) + '<span class="lwm-tag">' + (t.period === 'day' ? '每日' : '每周') + '</span></div>';
+    html += '<div class="lwm-row"><div class="lwm-habit">' + esc(t.label) + '</div>';
     for (let i = 0; i < 7; i++) {
       const ds = days[i];
       const done = checkins.some(r => r.type === t.key && r.date === ds);
@@ -5433,7 +5422,7 @@ function renderLifeSingleWeek(label, days, today) {
       const cls = 'lwm-cell' + (done ? ' done' : '') + (isToday ? ' today' : '') + (t.period === 'week' ? ' week' : '');
       html += '<div class="' + cls + '" title="' + ds + '" onclick="lifeWeekCellClick(\'' + t.key + '\',\'' + ds + '\')">' + (done ? '✔' : '') + '</div>';
     }
-    html += '</div>';
+    html += '<span class="lwm-tag-r">' + (t.period === 'day' ? '每日' : '每周') + '</span></div>';
   });
   html += '</div></div>';
   return html;
