@@ -2730,23 +2730,30 @@ function importStoriesToTimeline() {
     const label = (s.title || '未命名') + ' (' + fmtDate(s.createTime) + ' · ' + charNames.join('、') + ')';
     return `<div class="combobox-option" onclick="document.getElementById('importStorySelect').value='${esc(s.id)}';document.getElementById('importStoryInput').value='${esc(label)}'" data-value="${esc(s.id)}">${esc(label)}</div>`;
   }).join('');
+  html += '<div><div style="font-size:13px;margin-bottom:6px">选择故事小记:</div>';
   html += '<div class="form-row"><div class="combobox-wrapper import-story-combo">';
   html += '<input type="hidden" id="importStorySelect" class="combobox-value" value="">';
   html += '<input type="text" class="form-input combobox-input" id="importStoryInput" placeholder="选择故事小记" onfocus="showComboboxDropdown(\'importStoryList\')" onclick="showComboboxDropdown(\'importStoryList\')" oninput="filterComboboxDropdown(\'importStoryList\',this.value)">';
   html += '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'importStoryList\')">▼</button>';
   html += '<div class="combobox-dropdown" id="importStoryList">' + storyOpts + '</div>';
+  html += '</div></div></div>';
+  const impDef = '红', impDefObj = TIMELINE_COLORS[impDef];
+  const impOpts = Object.keys(TIMELINE_COLORS).map(c => {
+    const tc = TIMELINE_COLORS[c];
+    return `<div class="combobox-option" onclick="document.getElementById('importImportanceValue').value='${esc(c)}';document.getElementById('importImportanceInput').value='${esc(tc.label)}';document.getElementById('importImportanceInput').style.color='${esc(tc.color)}';document.getElementById('importImportanceInput').style.borderColor='${esc(tc.color)}'" data-value="${esc(c)}" style="color:${esc(tc.color)}">${esc(tc.label)}</div>`;
+  }).join('');
+  html += `<div style="margin-top:12px"><div style="font-size:13px;margin-bottom:6px">重要性:</div>`;
+  html += '<div class="combobox-wrapper import-importance-combo">';
+  html += `<input type="hidden" id="importImportanceValue" class="combobox-value" value="${esc(impDef)}">`;
+  html += `<input type="text" class="form-input combobox-input" id="importImportanceInput" value="${esc(impDefObj.label)}" style="color:${esc(impDefObj.color)};border-color:${esc(impDefObj.color)}" readonly onclick="showComboboxDropdown('importImportanceList')" onfocus="showComboboxDropdown('importImportanceList')">`;
+  html += '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'importImportanceList\')">▼</button>';
+  html += `<div class="combobox-dropdown" id="importImportanceList">${impOpts}</div>`;
   html += '</div></div>';
-  html += '<div style="margin-top:12px"><div style="font-size:13px;margin-bottom:6px">重要性:</div>';
-  html += '<select class="form-select" id="importImportance">';
-  Object.keys(TIMELINE_COLORS).forEach(c => {
-    html += `<option value="${c}">${TIMELINE_COLORS[c].label}</option>`;
-  });
-  html += '</select></div>';
   openModal('导入故事小记', html, [
     { label: '取消', class: 'btn-ghost', action: closeModal },
     { label: '导入', class: 'btn-primary', action: () => {
       const storyId = $('#importStorySelect').value;
-      const imp = $('#importImportance').value;
+      const imp = $('#importImportanceValue').value;
       if (!storyId) { Toast.warning('请选择故事小记'); return; }
       const story = availableStories.find(s => s.id === storyId);
       if (!story) { Toast.warning('故事不存在'); return; }
