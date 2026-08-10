@@ -1688,6 +1688,7 @@ ul,li{list-style:none}
 .lgc-unit{font-size:11px;color:var(--c-text-light);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lgc-heatmap{width:66px;flex-shrink:0}
 .lgc-heatmap .life-heatmap{gap:2px}
+.lgc-heatmap .hm-day{border-radius:3px}
 .lgc-foot{display:flex;align-items:center;justify-content:space-between;margin-top:2px}
 .lgc-status{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
 .lgc-status.done{color:var(--c-green)}
@@ -1706,8 +1707,10 @@ ul,li{list-style:none}
 .life-goal-card.week-card .lgc-stat{background:rgba(250,140,22,.12)}
 .life-goal-card.week-card .lgc-num{color:var(--c-orange)}
 .life-goal-card.week-card .lgc-status.done{color:var(--c-green)}
+.life-goal-card.week-card .lgc-mp-num{color:var(--c-orange)}
 .life-goal-card.week-card .life-heatmap .hm-day{background:rgba(250,140,22,.16)}
 .life-goal-card.week-card .life-heatmap .hm-day.other-month{background:#fff}
+.life-goal-card.week-card .life-heatmap .hm-day.week{background:var(--c-orange)}
 
 /* Monthly progress block (1/31 style) */
 .lgc-monthprog{display:flex;align-items:center;gap:10px;margin-top:10px}
@@ -1744,6 +1747,11 @@ ul,li{list-style:none}
 .life-monthbar-txt{font-size:15px;font-weight:700;color:var(--c-text);min-width:96px;text-align:center}
 .life-monthbar .btn:disabled{opacity:.45;cursor:not-allowed}
 .life-modal-heatmap .life-heatmap{gap:6px}
+.life-modal-heatmap .hm-day{cursor:pointer}
+.life-modal-heatmap .hm-day:hover{outline:1.5px solid var(--c-text-light)}
+.life-modal-heatmap.week .life-heatmap .hm-day{background:rgba(250,140,22,.16)}
+.life-modal-heatmap.week .life-heatmap .hm-day.other-month{background:#fff}
+.life-modal-heatmap.week .life-heatmap .hm-day.week{background:var(--c-orange)}
 .life-modal-list{background:var(--c-bg);border:1px solid var(--c-border);border-radius:var(--radius);padding:8px 12px}
 .life-modal-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--c-border-light);font-size:13px;color:var(--c-text)}
 .life-modal-item:last-child{border-bottom:none}
@@ -1863,7 +1871,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=202"></script>
+<script src="app.js?v=203"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

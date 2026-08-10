@@ -5052,7 +5052,7 @@ function renderCheckinHeatmap(typeKey, year, month) {
     const ds = `${monthStr}-${String(d).padStart(2, '0')}`;
     let cls = 'hm-day';
     if (checkins.some(r => r.date === ds)) cls += def.period === 'day' ? ' done' : ' week';
-    html += `<div class="${cls}" title="${ds}"></div>`;
+    html += `<div class="${cls}" title="${ds}" onclick="lifeCheckinCellClick('${typeKey}','${ds}')"></div>`;
   }
   // trailing other-month squares to complete the last week
   const total = firstWeekday + daysInMonth;
@@ -5175,14 +5175,21 @@ function lifeCheckinOpenCard(typeKey) {
   const recs = DB.list('lifeCheckins').filter(r => r.type === typeKey);
   let html = `<div class="life-modal-body">`;
   html += `<div class="life-modal-hd"><div><div class="lm-name">${esc(t.label)}</div><div class="lm-desc">${t.period === 'day' ? '每日打卡 · 选择日期补卡' : '每周打卡 · 选择日期记录'}</div></div></div>`;
-  html += `<div class="life-modal-actions"><input type="date" class="form-input" id="lc-modal-date" value="${today}" max="${today}"><button class="btn btn-primary" onclick="lifeCheckinDo('${typeKey}', $('#lc-modal-date').value);closeModal();">补打卡</button><button class="btn btn-ghost" onclick="lifeCheckinRemove('${typeKey}', $('#lc-modal-date').value)">撤销</button></div>`;
-  html += `<div class="life-modal-heatmap">${renderCheckinHeatmap(typeKey, v.y, v.m)}</div>`;
+  html += `<div class="life-modal-actions"><input type="date" class="form-input" id="lc-modal-date" value="${today}" max="${today}"><button class="btn btn-primary" onclick="lifeCheckinDo('${typeKey}', $('#lc-modal-date').value);closeModal();">补卡</button><button class="btn btn-ghost" onclick="lifeCheckinRemove('${typeKey}', $('#lc-modal-date').value)">撤销</button></div>`;
+  html += `<div class="life-modal-heatmap ${t.period === 'week' ? 'week' : ''}">${renderCheckinHeatmap(typeKey, v.y, v.m)}</div>`;
   html += `<div class="life-modal-list">`;
   const recent = recs.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
   if (!recent.length) html += '<div class="life-empty">暂无打卡记录</div>';
-  else recent.forEach(r => { html += `<div class="life-modal-item"><span>${r.date}</span><span>${r.isMakeup ? '补卡' : '打卡'}</span></div>`; });
+  else recent.forEach(r => { html += `<div class="life-modal-item"><span>${r.date}</span><span>${r.isMakeup ? '补卡' : '已打卡'}</span></div>`; });
   html += '</div></div>';
   openModal(esc(t.label) + ' 打卡详情', html, '');
+}
+function lifeCheckinCellClick(typeKey, dateStr) {
+  if (dateStr > todayStr()) { Toast.warning('不能给未来的日期打卡'); return; }
+  const has = DB.list('lifeCheckins').some(r => r.type === typeKey && r.date === dateStr);
+  if (has) lifeCheckinRemove(typeKey, dateStr);
+  else lifeCheckinDo(typeKey, dateStr);
+  lifeCheckinOpenCard(typeKey);
 }
 function lifeCheckinDo(typeKey, dateStr) {
   dateStr = dateStr || todayStr();
