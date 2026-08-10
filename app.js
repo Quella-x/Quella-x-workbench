@@ -873,13 +873,13 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     if (lifeDeepspaceDates.has(dateStr)) {
       deepTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:#9DC8FF"></span><span class="cal-day-tag-text" style="color:#5BA3F0">临空</span></span>`;
     }
-    const commTags = commTag ? `<div class="cal-day-tags home-comm-tags">${commTag}</div>` : '';
-    const deepTags = deepTag ? `<div class="cal-day-tags home-comm-tags home-deep-tags">${deepTag}</div>` : '';
     html += `<div class="cal-day${isToday ? ' today' : ''}">
       <div class="cal-date-row"><span class="cal-date">${d}</span></div>
       <div class="cal-dots">${topDots}${dayCount}</div>
-      ${commTags}
-      ${deepTags}
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags">${commTag}</div>
+        <div class="cal-tag-row home-deep-tags">${deepTag}</div>
+      </div>
     </div>`;
   }
   const totalCells = startWeekday + daysInMonth;
@@ -2546,7 +2546,7 @@ function renderPriceCalc() {
   html += '<div class="calc-page-grid">';
   // Left: Input column
   html += '<div class="calc-input-col">';
-  html += '<div class="calc-card"><div class="calc-card-title">🔧 成本参数 <span class="calc-card-hint">输入各项成本自动计算</span></div>';
+  html += '<div class="calc-card"><div class="calc-card-title price-calc-title">🔧 成本参数 <span class="calc-card-hint">输入各项成本自动计算</span></div>';
   html += '<div class="form-row"><label class="form-label">单品成本（元）</label><input type="number" class="form-input" id="calc_itemCost" value="" placeholder="0" oninput="calcPrice()"></div>';
   html += '<div class="form-row"><label class="form-label">样品成本（元）</label><input type="number" class="form-input" id="calc_sampleCost" value="" placeholder="0" oninput="calcPrice()"></div>';
   html += '<div class="form-row"><label class="form-label">人工成本（元/件）</label><input type="number" class="form-input" id="calc_laborCost" value="" placeholder="0" oninput="calcPrice()"></div>';
@@ -5198,8 +5198,6 @@ let lifeCheckinPickerY = null;
 let lifeCheckinModalView = null;
 let lifeCheckinModalKey = null;
 let lifeCheckinSelDate = null;
-let lifeCheckinModalTab = 'day';
-let lifeCheckinModalWeekOffset = 0;
 let lifeWeekOffset = 0;
 function lifeCheckinTogglePicker() {
   lifeCheckinPickerOpen = !lifeCheckinPickerOpen;
@@ -5352,8 +5350,6 @@ function lifeCheckinOpenCard(typeKey) {
   const vv = lifeCheckinInitView();
   lifeCheckinModalView = { y: vv.y, m: vv.m };
   lifeCheckinSelDate = null;
-  lifeCheckinModalTab = 'day';
-  lifeCheckinModalWeekOffset = 0;
   lifeCheckinRenderModal(typeKey);
 }
 function lifeCheckinRenderModal(typeKey) {
@@ -5379,30 +5375,21 @@ function lifeCheckinRenderModal(typeKey) {
   }
   let html = `<div class="life-modal-body">`;
   html += `<div class="life-modal-hd"><div><div class="lm-name">${esc(t.label)}<span class="lm-tag">${t.period === 'day' ? '每日打卡' : '每周打卡'}</span></div></div></div>`;
-  // day / week tab switch
-  html += `<div class="life-modal-tabs">`;
-  html += `<button class="btn btn-sm ${lifeCheckinModalTab === 'day' ? 'btn-primary' : 'btn-ghost'}" onclick="lifeCheckinSetTab('day')">日</button>`;
-  html += `<button class="btn btn-sm ${lifeCheckinModalTab === 'week' ? 'btn-primary' : 'btn-ghost'}" onclick="lifeCheckinSetTab('week')">周</button>`;
+  // month nav (replaces date input)
+  html += `<div class="life-modal-monthbar">`;
+  html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinModalPrevMonth()">‹ 上月</button>`;
+  html += `<span class="lmm-txt">${v.y}年${v.m + 1}月</span>`;
+  html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinModalNextMonth()" ${isCur ? 'disabled' : ''}>下月 ›</button>`;
   html += `</div>`;
-  if (lifeCheckinModalTab === 'day') {
-    // month nav (replaces date input)
-    html += `<div class="life-modal-monthbar">`;
-    html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinModalPrevMonth()">‹ 上月</button>`;
-    html += `<span class="lmm-txt">${v.y}年${v.m + 1}月</span>`;
-    html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinModalNextMonth()" ${isCur ? 'disabled' : ''}>下月 ›</button>`;
-    html += `</div>`;
-    // heatmap (with weekday header) + right-side progress + buttons
-    html += `<div class="life-modal-hmwrap">`;
-    html += `<div class="life-modal-heatmap ${t.period === 'week' ? 'week' : ''}">${renderCheckinHeatmap(typeKey, v.y, v.m, true)}</div>`;
-    html += `<div class="life-modal-right">`;
-    html += `<div class="life-modal-prog"><div class="lmp-num ${t.period === 'week' ? 'week' : ''}">${mpDone}/${mpTotal}</div></div>`;
-    html += `<div class="life-modal-btns">`;
-    html += `<button class="btn btn-primary" onclick="lifeCheckinModalMakeup('${typeKey}')">补卡</button>`;
-    html += `<button class="btn life-modal-undo" onclick="lifeCheckinModalUndo('${typeKey}')">撤销</button>`;
-    html += `</div></div></div>`;
-  } else {
-    html += renderCheckinWeekView(typeKey, t.period);
-  }
+  // heatmap (with weekday header) + right-side progress + buttons
+  html += `<div class="life-modal-hmwrap">`;
+  html += `<div class="life-modal-heatmap ${t.period === 'week' ? 'week' : ''}">${renderCheckinHeatmap(typeKey, v.y, v.m, true)}</div>`;
+  html += `<div class="life-modal-right">`;
+  html += `<div class="life-modal-prog"><div class="lmp-num ${t.period === 'week' ? 'week' : ''}">${mpDone}/${mpTotal}</div></div>`;
+  html += `<div class="life-modal-btns">`;
+  html += `<button class="btn btn-primary" onclick="lifeCheckinModalMakeup('${typeKey}')">补卡</button>`;
+  html += `<button class="btn life-modal-undo" onclick="lifeCheckinModalUndo('${typeKey}')">撤销</button>`;
+  html += `</div></div></div>`;
   html += `<div class="life-modal-sel">已选日期：${lifeCheckinSelDate}</div>`;
   // selected-date records (with precise check-in time)
   html += `<div class="life-modal-list">`;
@@ -5418,80 +5405,6 @@ function lifeCheckinRenderModal(typeKey) {
   }
   html += `</div>`;
   openModal(esc(t.label) + ' 打卡详情', html, '');
-}
-function lifeCheckinSetTab(tab) {
-  lifeCheckinModalTab = tab;
-  lifeCheckinRenderModal(lifeCheckinModalKey);
-}
-function lifeCheckinModalPrevWeek() {
-  lifeCheckinModalWeekOffset--;
-  lifeCheckinRenderModal(lifeCheckinModalKey);
-}
-function lifeCheckinModalNextWeek() {
-  lifeCheckinModalWeekOffset++;
-  lifeCheckinRenderModal(lifeCheckinModalKey);
-}
-function renderCheckinWeekView(typeKey, period) {
-  const today = todayStr();
-  const base = lifeCheckinSelDate ? parseDateStr(lifeCheckinSelDate) : new Date();
-  if (isNaN(base.getTime())) base = new Date();
-  const baseWeekStart = weekMondayOf(base);
-  baseWeekStart.setDate(baseWeekStart.getDate() + lifeCheckinModalWeekOffset * 7);
-  const days = [];
-  for (let i = 0; i < 7; i++) { const d = new Date(baseWeekStart); d.setDate(baseWeekStart.getDate() + i); days.push(fmtDate(d)); }
-  const wkKey = weekKeyOf(days[0]);
-  const wd = ['一', '二', '三', '四', '五', '六', '日'];
-  const checkins = DB.list('lifeCheckins');
-  const t = getCheckinDef(typeKey);
-  let html = '<div class="life-modal-weekbar">';
-  html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinModalPrevWeek()">‹ 上周</button>`;
-  html += `<span class="lmw-txt">${days[0].slice(5)} - ${days[6].slice(5)}</span>`;
-  html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinModalNextWeek()">下周 ›</button>`;
-  html += '</div>';
-  html += '<div class="life-weekview">';
-  html += '<div class="life-weekview-hd">' + wd.map(w => '<span>' + w + '</span>').join('') + '</div>';
-  html += '<div class="life-weekview-grid">';
-  if (period === 'day') {
-    let doneCount = 0;
-    for (let i = 0; i < 7; i++) {
-      const ds = days[i];
-      const isDone = checkins.some(r => r.type === typeKey && r.date === ds);
-      if (isDone) doneCount++;
-      const isToday = ds === today;
-      let cls = 'wv-day' + (isDone ? ' done' : '') + (isToday ? ' today' : '');
-      html += `<div class="${cls}" title="${ds}" onclick="lifeCheckinWeekCellClick('${typeKey}','${ds}','day')">${isDone ? '✔' : ''}</div>`;
-    }
-    html += '</div></div>';
-    html += `<div class="life-modal-sel">本周打卡：${doneCount}/7</div>`;
-  } else {
-    const isDone = checkins.some(r => r.type === typeKey && (r.week || weekKeyOf(r.date)) === wkKey);
-    for (let i = 0; i < 7; i++) {
-      const ds = days[i];
-      const isToday = ds === today;
-      let cls = 'wv-day' + (isDone ? ' week' : '') + (isToday ? ' today' : '');
-      html += `<div class="${cls}" title="${ds}" onclick="lifeCheckinWeekCellClick('${typeKey}','${ds}','week')">${isDone ? '✔' : ''}</div>`;
-    }
-    html += '</div></div>';
-    html += `<div class="life-modal-sel">${isDone ? '本周已打卡' : '本周待打卡'}</div>`;
-  }
-  return html;
-}
-function lifeCheckinWeekCellClick(typeKey, dateStr, period) {
-  if (dateStr > todayStr()) { Toast.warning('不能给未来的日期打卡'); return; }
-  lifeCheckinSelDate = dateStr;
-  const def = getCheckinDef(typeKey);
-  if (period === 'day') {
-    const rec = DB.list('lifeCheckins').find(r => r.type === typeKey && r.date === dateStr);
-    if (rec) { Toast.info('该日期已打卡'); }
-    else { DB.add('lifeCheckins', { type: typeKey, date: dateStr, week: weekKeyOf(dateStr), period: def.period, isMakeup: dateStr < todayStr(), createdAt: new Date().toISOString() }); Toast.success('打卡成功'); }
-  } else {
-    const wk = weekKeyOf(dateStr);
-    const rec = DB.list('lifeCheckins').find(r => r.type === typeKey && (r.week || weekKeyOf(r.date)) === wk);
-    if (rec) { DB.remove('lifeCheckins', rec.id); Toast.success('已撤销'); }
-    else { DB.add('lifeCheckins', { type: typeKey, date: dateStr, week: wk, period: def.period, isMakeup: dateStr < todayStr(), createdAt: new Date().toISOString() }); Toast.success('打卡成功'); }
-  }
-  lifeCheckinRenderModal(typeKey);
-  renderLifeCheckin();
 }
 function renderLifeWeekOverview() {
   const today = todayStr();
@@ -5528,7 +5441,12 @@ function renderLifeWeekOverview() {
     } else {
       const weekDone = checkins.some(r => r.type === t.key && (r.week || weekKeyOf(r.date)) === wkKey);
       html += '<div class="lwm-row"><div class="lwm-habit">' + esc(t.label) + '<span class="lwm-tag">每周</span></div>';
-      html += '<div class="lwm-weekcell ' + (weekDone ? 'done' : 'todo') + '">' + (weekDone ? '✓ 本周已打卡' : '本周待打卡') + '</div>';
+      for (let i = 0; i < 7; i++) {
+        const ds = days[i];
+        const isToday = ds === today;
+        const cls = 'lwm-cell week' + (weekDone ? ' done' : '') + (isToday ? ' today' : '');
+        html += '<div class="' + cls + '" title="' + ds + '" onclick="lifeWeekCellClick(\'' + t.key + '\',\'' + ds + '\')">' + (weekDone ? '✔' : '') + '</div>';
+      }
       html += '</div>';
     }
   });
@@ -5537,6 +5455,18 @@ function renderLifeWeekOverview() {
 }
 function lifeWeekPrev() { lifeWeekOffset--; renderLifeCheckin(); }
 function lifeWeekNext() { lifeWeekOffset++; renderLifeCheckin(); }
+function lifeWeekCellClick(typeKey, dateStr) {
+  if (dateStr > todayStr()) { Toast.warning('不能给未来的日期打卡'); return; }
+  const wk = weekKeyOf(dateStr);
+  const rec = DB.list('lifeCheckins').find(r => r.type === typeKey && (r.week || weekKeyOf(r.date)) === wk);
+  if (rec) { DB.remove('lifeCheckins', rec.id); Toast.success('已撤销'); }
+  else {
+    const def = getCheckinDef(typeKey);
+    DB.add('lifeCheckins', { type: typeKey, date: dateStr, week: wk, period: def.period, isMakeup: dateStr < todayStr(), createdAt: new Date().toISOString() });
+    Toast.success('打卡成功');
+  }
+  renderLifeCheckin();
+}
 function lifeCheckinCellClick(typeKey, dateStr) {
   if (dateStr > todayStr()) { Toast.warning('不能给未来的日期打卡'); return; }
   lifeCheckinSelDate = dateStr;
