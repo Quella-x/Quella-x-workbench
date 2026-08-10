@@ -5108,7 +5108,7 @@ function renderCheckinHeatmap(typeKey, year, month, isModal) {
   for (let d = 1; d <= daysInMonth; d++) {
     const ds = `${monthStr}-${String(d).padStart(2, '0')}`;
     let cls = 'hm-day';
-    if (doneByDate.has(ds)) cls += period === 'day' ? ' done' : ' week';
+    if (doneByDate.has(ds)) cls += period === 'day' ? ' done' : ' week done';
     if (isModal && ds === today) cls += ' today';
     if (isModal && ds === lifeCheckinSelDate) cls += ' selected';
     const click = isModal ? ` onclick="lifeCheckinCellClick('${typeKey}','${ds}')"` : '';
@@ -5436,7 +5436,7 @@ function renderLifeWeekOverview() {
         const done = checkins.some(r => r.type === t.key && r.date === ds);
         const isToday = ds === today;
         const cls = 'lwm-cell' + (done ? ' done' : '') + (isToday ? ' today' : '');
-        html += '<div class="' + cls + '">' + (done ? '✔' : '') + '</div>';
+        html += '<div class="' + cls + '" title="' + ds + '" onclick="lifeWeekCellClick(\'' + t.key + '\',\'' + ds + '\')">' + (done ? '✔' : '') + '</div>';
       }
       html += '</div>';
     } else {
