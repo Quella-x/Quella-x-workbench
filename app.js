@@ -5049,7 +5049,7 @@ function renderCheckinHeatmap(typeKey, year, month) {
   return html;
 }
 /* (v197: removed checkin summary cards & week matrix — keep only goal-list cards) */
-function renderGoalCard(t) {
+function renderGoalCard(t, vy, vm) {
   const today = todayStr();
   const recs = DB.list('lifeCheckins').filter(r => r.type === t.key);
   let total, streak, rate, status, statusCls, btnTxt, btnDisabled;
@@ -5078,7 +5078,6 @@ function renderGoalCard(t) {
   }
   return `<div class="life-goal-card" onclick="lifeCheckinOpenCard('${t.key}')">
     <div class="lgc-head">
-      <div class="lgc-ico">${t.icon}</div>
       <div class="lgc-title-wrap">
         <div class="lgc-name">${esc(t.label)}</div>
         <div class="lgc-desc">${t.period === 'day' ? '每日打卡' : '每周打卡'}</div>
@@ -5091,7 +5090,7 @@ function renderGoalCard(t) {
         <div class="lgc-stat"><div class="lgc-num">${streak}</div><div class="lgc-unit">${t.period === 'day' ? '最长连续' : '连续完成'}</div></div>
         <div class="lgc-stat"><div class="lgc-num">${rate}%</div><div class="lgc-unit">完成率</div></div>
       </div>
-      <div class="lgc-heatmap">${renderCheckinHeatmap(t.key)}</div>
+      <div class="lgc-heatmap">${renderCheckinHeatmap(t.key, vy, vm)}</div>
     </div>
     <div class="lgc-foot">
       <span class="lgc-status ${statusCls}"><span class="lgc-dot"></span>${status}</span>
@@ -5099,11 +5098,41 @@ function renderGoalCard(t) {
     </div>
   </div>`;
 }
+let lifeCheckinView = null;
+function lifeCheckinInitView() {
+  if (!lifeCheckinView) { const n = new Date(); lifeCheckinView = { y: n.getFullYear(), m: n.getMonth() }; }
+  return lifeCheckinView;
+}
+function lifeCheckinPrevMonth() {
+  lifeCheckinInitView();
+  let { y, m } = lifeCheckinView;
+  m--; if (m < 0) { m = 11; y--; }
+  lifeCheckinView = { y, m };
+  renderLifeCheckin();
+}
+function lifeCheckinNextMonth() {
+  const n = new Date();
+  const cur = { y: n.getFullYear(), m: n.getMonth() };
+  lifeCheckinInitView();
+  if (lifeCheckinView.y === cur.y && lifeCheckinView.m === cur.m) return;
+  let { y, m } = lifeCheckinView;
+  m++; if (m > 11) { m = 0; y++; }
+  lifeCheckinView = { y, m };
+  renderLifeCheckin();
+}
 function renderLifeCheckin() {
   const body = $('#mainBody');
+  const v = lifeCheckinInitView();
+  const now = new Date();
+  const isCur = v.y === now.getFullYear() && v.m === now.getMonth();
   let html = '<div class="fade-in">';
+  html += '<div class="life-monthbar">';
+  html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinPrevMonth()">‹ 上月</button>`;
+  html += `<span class="life-monthbar-txt">${v.y}年${v.m + 1}月</span>`;
+  html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinNextMonth()" ${isCur ? 'disabled' : ''}>下月 ›</button>`;
+  html += '</div>';
   html += '<div class="life-goal-grid">';
-  Object.values(LIFE_CHECKIN_DEFS).forEach(t => { html += renderGoalCard(t); });
+  Object.values(LIFE_CHECKIN_DEFS).forEach(t => { html += renderGoalCard(t, v.y, v.m); });
   html += '</div>';
   html += '</div>';
   body.innerHTML = html;
@@ -5111,11 +5140,12 @@ function renderLifeCheckin() {
 function lifeCheckinOpenCard(typeKey) {
   const t = LIFE_CHECKIN_DEFS[typeKey];
   const today = todayStr();
+  const v = lifeCheckinInitView();
   const recs = DB.list('lifeCheckins').filter(r => r.type === typeKey);
   let html = `<div class="life-modal-body">`;
-  html += `<div class="life-modal-hd"><span class="lm-ico">${t.icon}</span><div><div class="lm-name">${esc(t.label)}</div><div class="lm-desc">${t.period === 'day' ? '每日打卡 · 选择日期补卡' : '每周打卡 · 选择日期记录'}</div></div></div>`;
+  html += `<div class="life-modal-hd"><div><div class="lm-name">${esc(t.label)}</div><div class="lm-desc">${t.period === 'day' ? '每日打卡 · 选择日期补卡' : '每周打卡 · 选择日期记录'}</div></div></div>`;
   html += `<div class="life-modal-actions"><input type="date" class="form-input" id="lc-modal-date" value="${today}" max="${today}"><button class="btn btn-primary" onclick="lifeCheckinDo('${typeKey}', $('#lc-modal-date').value);closeModal();">补打卡</button><button class="btn btn-ghost" onclick="lifeCheckinRemove('${typeKey}', $('#lc-modal-date').value)">撤销</button></div>`;
-  html += `<div class="life-modal-heatmap">${renderCheckinHeatmap(typeKey)}</div>`;
+  html += `<div class="life-modal-heatmap">${renderCheckinHeatmap(typeKey, v.y, v.m)}</div>`;
   html += `<div class="life-modal-list">`;
   const recent = recs.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
   if (!recent.length) html += '<div class="life-empty">暂无打卡记录</div>';
