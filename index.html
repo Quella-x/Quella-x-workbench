@@ -1676,8 +1676,8 @@ ul,li{list-style:none}
 .lqc-hd{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .lqc-title{font-size:16px;font-weight:700;color:var(--c-text)}
 .lqc-count{font-size:13px;font-weight:600;color:var(--c-text-light);background:var(--c-card);padding:2px 10px;border-radius:99px}
-.lqc-grid{display:flex;flex-wrap:wrap;gap:10px}
-.lqc-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-width:64px;padding:10px 12px;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-card);color:var(--c-text);cursor:pointer;transition:.2s}
+.lqc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:10px}
+.lqc-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-width:0;padding:10px 12px;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-card);color:var(--c-text);cursor:pointer;transition:.2s}
 .lqc-btn:hover{border-color:var(--c-primary);transform:translateY(-1px)}
 .lqc-btn.done{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
 .lqc-ico{font-size:22px;line-height:1}
@@ -1920,7 +1920,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=205"></script>
+<script src="app.js?v=206"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

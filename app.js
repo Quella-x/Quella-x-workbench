@@ -4968,7 +4968,6 @@ function renderQuickCheckin() {
     if (t.period === 'day') done = DB.list('lifeCheckins').some(r => r.type === t.key && r.date === today);
     else { const thisWeek = weekKeyOf(today); done = DB.list('lifeCheckins').some(r => r.type === t.key && (r.week || weekKeyOf(r.date)) === thisWeek); }
     html += `<button class="lqc-btn ${done ? 'done' : ''}" onclick="lifeQuickCheckin('${t.key}',event)">`;
-    html += `<span class="lqc-ico">${t.icon || '•'}</span>`;
     html += `<span class="lqc-label">${esc(t.label)}</span>`;
     html += '</button>';
   });
@@ -5242,24 +5241,36 @@ function lifeCheckinDeleteModule(typeKey) {
 }
 function lifeCheckinAdd() {
   openModal('添加打卡', `
-    <div class="form-group">
+    <div class="form-row">
       <label class="form-label">名称</label>
       <input class="form-input" id="lc-add-name" placeholder="如 喝水、读书" maxlength="12">
     </div>
-    <div class="form-group">
+    <div class="form-row">
       <label class="form-label">类型</label>
-      <select class="form-input" id="lc-add-period">
-        <option value="day">每日打卡</option>
-        <option value="week">每周打卡</option>
-      </select>
+      <div class="combobox-wrapper">
+        <input type="text" class="form-input combobox-input" id="lc-add-period" value="每日打卡" readonly placeholder="请选择" onfocus="showComboboxDropdown('lc-add-period-cb')" onclick="showComboboxDropdown('lc-add-period-cb')">
+        <button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('lc-add-period-cb')">▼</button>
+        <div class="combobox-dropdown" id="lc-add-period-cb">
+          <div class="combobox-option" data-value="day" onclick="lifeCheckinSelPeriod('day',this)">每日打卡</div>
+          <div class="combobox-option" data-value="week" onclick="lifeCheckinSelPeriod('week',this)">每周打卡</div>
+        </div>
+      </div>
     </div>`, [
     { label: '取消', class: 'btn-ghost', action: closeModal },
     { label: '添加', class: 'btn-primary', action: lifeCheckinAddSubmit }
   ]);
 }
+function lifeCheckinSelPeriod(val, el) {
+  const input = document.getElementById('lc-add-period');
+  if (!input) return;
+  input.value = el.textContent;
+  input.dataset.val = val;
+  const dd = document.getElementById('lc-add-period-cb');
+  if (dd) dd.classList.remove('show');
+}
 function lifeCheckinAddSubmit() {
   const name = ($('#lc-add-name').value || '').trim();
-  const period = $('#lc-add-period').value;
+  const period = $('#lc-add-period').dataset.val || 'day';
   if (!name) { Toast.warning('请输入名称'); return; }
   DB.add('lifeCheckinDefs', { key: 'custom_' + uid(), label: name, period: period });
   closeModal();
@@ -5441,7 +5452,7 @@ function renderLifeRecord() {
         html += `<div class="lf-field"><label>${esc(f.label)}${f.auto ? '（自动）' : ''}</label>`;
         if (f.type === 'number') html += `<input type="number" step="0.1" id="lrf-${f.key}" value="${esc(v)}">`;
         else if (f.type === 'time') html += `<input type="time" id="lrf-${f.key}" value="${esc(v)}">`;
-        else if (f.type === 'select') html += `<select id="lrf-${f.key}">${f.options.map(o => `<option value="${o}" ${o === v ? 'selected' : ''}>${o}</option>`).join('')}</select>`;
+        else if (f.type === 'select') html += `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" id="lrf-${f.key}" value="${esc(v)}" readonly placeholder="请选择" onfocus="showComboboxDropdown('lrf-${f.key}-cb')" onclick="showComboboxDropdown('lrf-${f.key}-cb')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('lrf-${f.key}-cb')">▼</button><div class="combobox-dropdown" id="lrf-${f.key}-cb">${f.options.map(o => `<div class="combobox-option" data-value="${esc(o)}" onclick="selectComboboxOption('lrf-${f.key}-cb',this)">${esc(o)}</div>`).join('')}</div></div>`;
         else html += `<input type="text" id="lrf-${f.key}" value="${esc(v)}">`;
         html += `</div>`;
       });
