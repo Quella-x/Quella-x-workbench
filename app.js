@@ -5078,6 +5078,11 @@ function lifeMonthWeekTotal(y, m) {
   while (d.getMonth() === m) { if (d.getDay() === 1) count++; d.setDate(d.getDate() + 1); }
   return count;
 }
+function fmtHM(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
 function renderCheckinHeatmap(typeKey, year, month, isModal) {
   const checkins = DB.list('lifeCheckins').filter(r => r.type === typeKey);
   const def = getCheckinDef(typeKey);
@@ -5101,6 +5106,7 @@ function renderCheckinHeatmap(typeKey, year, month, isModal) {
     const ds = `${monthStr}-${String(d).padStart(2, '0')}`;
     let cls = 'hm-day';
     if (checkins.some(r => r.date === ds)) cls += period === 'day' ? ' done' : ' week';
+    if (isModal && ds === today) cls += ' today';
     if (isModal && ds === lifeCheckinSelDate) cls += ' selected';
     const click = isModal ? ` onclick="lifeCheckinCellClick('${typeKey}','${ds}')"` : '';
     html += `<div class="${cls}" title="${ds}"${click}></div>`;
@@ -5156,7 +5162,8 @@ function renderGoalCard(t, vy, vm) {
   return `<div class="life-goal-card ${t.period === 'week' ? 'week-card' : ''}" onclick="lifeCheckinOpenCard('${t.key}')">
     <div class="lgc-head">
       <div class="lgc-title-wrap">
-        <div class="lgc-name">${esc(t.label)}<span class="lgc-tag">${t.period === 'day' ? '每日' : '每周'}</span></div>
+        <div class="lgc-name">${esc(t.label)}</div>
+        <div class="lgc-desc">${t.period === 'day' ? '每日打卡' : '每周打卡'}</div>
       </div>
       <div class="lgc-arrow">›</div>
     </div>
@@ -5169,7 +5176,9 @@ function renderGoalCard(t, vy, vm) {
       <div class="lgc-heatmap">${renderCheckinHeatmap(t.key, vy, vm)}</div>
     </div>
     <div class="lgc-monthprog">
+      <span class="lgc-mp-label">${mpLabel}进度</span>
       <span class="lgc-mp-num ${t.period === 'week' ? 'week' : ''}">${mpDone}/${mpTotal}</span>
+      <div class="lgc-mp-bar"><div class="lgc-mp-fill ${t.period === 'week' ? 'week' : ''}" style="width:${mpPct}%"></div></div>
     </div>
     <div class="lgc-foot">
       <span class="lgc-status ${statusCls}"><span class="lgc-dot"></span>${status}</span>
@@ -5241,6 +5250,7 @@ function lifeCheckinDeleteModule(typeKey) {
 }
 function lifeCheckinAdd() {
   openModal('添加打卡', `
+    <div class="lc-add-form">
     <div class="form-row">
       <label class="form-label">名称</label>
       <input class="form-input" id="lc-add-name" placeholder="如 喝水、读书" maxlength="12">
@@ -5255,6 +5265,7 @@ function lifeCheckinAdd() {
           <div class="combobox-option" data-value="week" onclick="lifeCheckinSelPeriod('week',this)">每周打卡</div>
         </div>
       </div>
+    </div>
     </div>`, [
     { label: '取消', class: 'btn-ghost', action: closeModal },
     { label: '添加', class: 'btn-primary', action: lifeCheckinAddSubmit }
@@ -5373,14 +5384,14 @@ function lifeCheckinRenderModal(typeKey) {
   html += `<div class="life-modal-prog"><div class="lmp-num ${t.period === 'week' ? 'week' : ''}">${mpDone}/${mpTotal}</div></div>`;
   html += `<div class="life-modal-btns">`;
   html += `<button class="btn btn-primary" onclick="lifeCheckinModalMakeup('${typeKey}')">补卡</button>`;
-  html += `<button class="btn btn-ghost" onclick="lifeCheckinModalUndo('${typeKey}')">撤销</button>`;
+  html += `<button class="btn life-modal-undo" onclick="lifeCheckinModalUndo('${typeKey}')">撤销</button>`;
   html += `</div></div></div>`;
   html += `<div class="life-modal-sel">已选日期：${lifeCheckinSelDate}</div>`;
-  // recent list
+  // selected-date records (with precise check-in time)
   html += `<div class="life-modal-list">`;
-  const recent = recs.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
-  if (!recent.length) html += '<div class="life-empty">暂无打卡记录</div>';
-  else recent.forEach(r => { html += `<div class="life-modal-item"><span>${r.date}</span><span>${r.isMakeup ? '补卡' : '已打卡'}</span></div>`; });
+  const selRecs = recs.filter(r => r.date === lifeCheckinSelDate).sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+  if (!selRecs.length) html += '<div class="life-empty">该日期暂无打卡记录</div>';
+  else selRecs.forEach(r => { const tm = fmtHM(r.createdAt); html += `<div class="life-modal-item"><span>${lifeCheckinSelDate}${tm ? ' ' + tm : ''}</span><span>${r.isMakeup ? '补卡' : '已打卡'}</span></div>`; });
   html += `</div>`;
   // foot: delete (custom only)
   if (typeKey.indexOf('custom_') === 0) {
