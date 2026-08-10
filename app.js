@@ -2307,7 +2307,6 @@ function renderHome() {
   let html = '<div class="fade-in">';
 
   const statusOf = (r) => (r.status === '已发布' ? '已发布' : '待发布');
-  const pendingCount = allRecords.filter(r => statusOf(r) === '待发布').length;
 
   // Platform buttons (always visible, 4 in a row, for switching)
   // 每个平台按钮底部直接显示该平台「待发布 / 已发布」数量（待发布左、已发布右）
@@ -2327,8 +2326,7 @@ function renderHome() {
   html += '</div>';
 
   if (ps.view === 'main') {
-    // Main view: 待发布按钮（按平台分组查看）+ 日历
-    html += `<div class="home-pending-bar"><button class="home-pending-btn" onclick="homeSetStatusFilter('待发布')">📋 待发布 <b>${pendingCount}</b></button></div>`;
+    // Main view: 日历（v221：全局待发布按钮不再出现在日历视图，改到各平台模块内）
     html += '<div class="calendar" style="margin-top:4px">';
     html += '<div class="calendar-header">';
     html += `<span class="cal-title">${ps.calYear}年${ps.calMonth + 1}月</span>`;
@@ -2365,6 +2363,10 @@ function renderHome() {
     html += '</div>';
 
     html += renderHomeStatusFilterBar();
+
+    // v221: 平台模块内的「待发布」按钮，仅统计并跳转该平台待发布项
+    const pendingForTab = records.filter(r => statusOf(r) === '待发布').length;
+    html += `<div class="home-pending-bar"><button class="home-pending-btn" style="border-color:${PLATFORM_COLORS[ps.tab] || 'var(--c-orange)'};color:${PLATFORM_COLORS[ps.tab] || 'var(--c-orange)'}" onclick="homeSetPlatformStatusFilter('${ps.tab}', '待发布')">📋 ${esc(ps.tab)} 待发布 <b>${pendingForTab}</b></button></div>`;
 
     // Records
     let filteredRecords = records;
@@ -2405,10 +2407,14 @@ function renderHome() {
   } else if (ps.view === 'status') {
     // 全局状态视图：statusFilter 为空 = 全部记录；否则 待发布 / 已发布
     const statusLabel = ps.statusFilter;
-    const statusRecords = statusLabel ? allRecords.filter(r => statusOf(r) === statusLabel) : allRecords;
-    const statusTitle = statusLabel ? (statusLabel + '记录') : '全部记录';
+    let statusRecords = statusLabel ? allRecords.filter(r => statusOf(r) === statusLabel) : allRecords;
+    // v221: 若从平台模块进入，只显示该平台记录
+    if (ps.tab) statusRecords = statusRecords.filter(r => valIncludes(r.platform, ps.tab));
+    const statusTitle = (ps.tab ? ps.tab + ' · ' : '') + (statusLabel ? (statusLabel + '记录') : '全部记录');
+    const backLabel = ps.tab ? '‹ 返回' + ps.tab : '‹ 返回日历';
+    const backAction = ps.tab ? `homeBackToPlatform()` : `homeBackToMain()`;
 
-    html += '<div class="home-status-head"><span class="home-status-title">' + esc(statusTitle) + '（' + statusRecords.length + '）</span><button class="btn btn-sm btn-ghost" onclick="homeBackToMain()">‹ 返回日历</button></div>';
+    html += '<div class="home-status-head"><span class="home-status-title">' + esc(statusTitle) + '（' + statusRecords.length + '）</span><button class="btn btn-sm btn-ghost" onclick="' + backAction + '">' + esc(backLabel) + '</button></div>';
 
     html += '<div class="toolbar" style="margin-top:4px">';
     html += `<div class="search-box"><input type="text" placeholder="搜索标题..." value="${esc(ps.search)}" oninput="homeSearch(this.value)"><span class="search-icon">🔍</span></div>`;
@@ -2501,6 +2507,7 @@ function enterPlatformView(tab) {
   renderHome();
 }
 function homeBackToMain() { pageState.home.view = 'main'; renderHome(); }
+function homeBackToPlatform() { const ps = pageState.home; ps.view = 'platform'; ps.statusFilter = ''; renderHome(); }
 function homeSearch(val) { pageState.home.search = val; pageState.home.homePageNo = 1; clearTimeout(_homeSearchTimer); _homeSearchTimer = setTimeout(renderHome, 200); }
 function homeDateFilter(val) { pageState.home.dateFilter = val; pageState.home.homePageNo = 1; renderHome(); }
 function homeClearFilter() { pageState.home.search = ''; pageState.home.dateFilter = ''; pageState.home.homePageNo = 1; renderHome(); }
@@ -2510,20 +2517,36 @@ function homeSetStatusFilter(s) {
   if (!ps) pageState.home = {};
   if (ps.statusFilter === s) { ps.statusFilter = ''; }
   else { ps.statusFilter = s; ps.view = 'status'; ps.search = ''; ps.dateFilter = ''; }
+  ps.tab = ''; // v221: 全局状态视图不带平台筛选
   ps.homePageNo = 1;
   renderHome();
 }
-// 全局「待发布 / 已发布」筛选按钮（仅在记录视图即「新增记录」工具栏下方展示，不在日历视图出现）
+function homeSetPlatformStatusFilter(platform, s) {
+  const ps = pageState.home;
+  if (!ps) pageState.home = {};
+  ps.tab = platform || '';
+  ps.statusFilter = s || '';
+  ps.view = 'status';
+  ps.search = '';
+  ps.dateFilter = '';
+  ps.homePageNo = 1;
+  renderHome();
+}
+// 全局/平台「待发布 / 已发布」筛选按钮（v221：若在平台模块内则按平台统计）
 function renderHomeStatusFilterBar() {
   const ps = pageState.home || {};
   const allRecords = DB.list('publishRecords');
   const statusOf = (r) => (r.status === '已发布' ? '已发布' : '待发布');
-  const pendingCount = allRecords.filter(r => statusOf(r) === '待发布').length;
-  const publishedCount = allRecords.filter(r => statusOf(r) === '已发布').length;
+  let scopeRecords = allRecords;
+  if (ps.tab) scopeRecords = scopeRecords.filter(r => valIncludes(r.platform, ps.tab));
+  const pendingCount = scopeRecords.filter(r => statusOf(r) === '待发布').length;
+  const publishedCount = scopeRecords.filter(r => statusOf(r) === '已发布').length;
   const sf = ps.statusFilter;
+  const onPending = ps.tab ? `homeSetPlatformStatusFilter('${ps.tab}','待发布')` : `homeSetStatusFilter('待发布')`;
+  const onPublished = ps.tab ? `homeSetPlatformStatusFilter('${ps.tab}','已发布')` : `homeSetStatusFilter('已发布')`;
   let h = '<div class="home-status-filter">';
-  h += `<button class="home-status-btn ${sf === '待发布' ? 'active pending' : ''}" onclick="homeSetStatusFilter('待发布')">待发布 <b>${pendingCount}</b></button>`;
-  h += `<button class="home-status-btn ${sf === '已发布' ? 'active published' : ''}" onclick="homeSetStatusFilter('已发布')">已发布 <b>${publishedCount}</b></button>`;
+  h += `<button class="home-status-btn ${sf === '待发布' ? 'active pending' : ''}" onclick="${onPending}">待发布 <b>${pendingCount}</b></button>`;
+  h += `<button class="home-status-btn ${sf === '已发布' ? 'active published' : ''}" onclick="${onPublished}">已发布 <b>${publishedCount}</b></button>`;
   h += '</div>';
   return h;
 }
@@ -5214,7 +5237,7 @@ let lifeCheckinModalView = null;
 let lifeCheckinModalKey = null;
 let lifeCheckinSelDate = null;
 let lifeWeekOffset = 0;
-let lifeCheckinBlock = 'week';
+let lifeCheckinBlock = 'day';
 function lifeCheckinTogglePicker() {
   lifeCheckinPickerOpen = !lifeCheckinPickerOpen;
   if (lifeCheckinPickerOpen) { const vv = lifeCheckinInitView(); lifeCheckinPickerY = vv.y; }
@@ -5339,9 +5362,15 @@ function renderLifeCheckin() {
   let html = '<div class="fade-in">';
   html += renderQuickCheckin();
   html += '<div class="life-monthbar">';
+  html += '<div class="life-monthbar-center">';
   html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinPrevMonth()">‹ 上月</button>`;
   html += `<span class="life-monthbar-txt" onclick="lifeCheckinTogglePicker()">${v.y}年${v.m + 1}月 ▾</span>`;
   html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinNextMonth()" ${isCur ? 'disabled' : ''}>下月 ›</button>`;
+  html += '</div>';
+  html += '<div class="life-block-toggle">';
+  html += `<button class="lbt-btn ${lifeCheckinBlock === 'day' ? 'active' : ''}" onclick="lifeCheckinToggleBlock('day')">日</button>`;
+  html += `<button class="lbt-btn ${lifeCheckinBlock === 'week' ? 'active' : ''}" onclick="lifeCheckinToggleBlock('week')">周</button>`;
+  html += '</div>';
   html += `<div class="life-month-picker ${lifeCheckinPickerOpen ? 'show' : ''}">`;
   html += `<div class="lmp-yearbar"><button class="btn btn-ghost btn-xs" onclick="lifeCheckinPickerYear(-1)">‹</button><span>${pickerY}年</span><button class="btn btn-ghost btn-xs" onclick="lifeCheckinPickerYear(1)">›</button></div>`;
   html += '<div class="lmp-months">';
@@ -5352,10 +5381,6 @@ function renderLifeCheckin() {
   html += '</div></div>';
   html += '</div>';
   if (lifeCheckinPickerOpen) html += '<div class="life-picker-backdrop" onclick="lifeCheckinTogglePicker()"></div>';
-  html += '<div class="life-block-toggle">';
-  html += `<button class="lbt-btn ${lifeCheckinBlock === 'day' ? 'active' : ''}" onclick="lifeCheckinToggleBlock('day')">日版块</button>`;
-  html += `<button class="lbt-btn ${lifeCheckinBlock === 'week' ? 'active' : ''}" onclick="lifeCheckinToggleBlock('week')">周版块</button>`;
-  html += '</div>';
   if (lifeCheckinBlock === 'week') {
     html += renderLifeWeekOverview();
   } else {
@@ -5432,52 +5457,44 @@ function lifeCheckinRenderModal(typeKey) {
 function renderLifeWeekOverview() {
   const today = todayStr();
   const base = new Date(); base.setHours(0, 0, 0, 0);
-  const mon = weekMondayOf(base);
-  mon.setDate(mon.getDate() + lifeWeekOffset * 7);
-  const days = [];
-  for (let i = 0; i < 7; i++) { const d = new Date(mon); d.setDate(mon.getDate() + i); days.push(fmtDate(d)); }
-  const wkKey = weekKeyOf(days[0]);
+  const currentMonday = weekMondayOf(base);
+  // v221: 周版块展示最近 4 周，当前周在最上面，往下依次递减：第四周→第三周→第二周→第一周
+  const weekLabels = ['第四周', '第三周', '第二周', '第一周'];
+  let html = '';
+  for (let i = 0; i < 4; i++) {
+    const mon = new Date(currentMonday);
+    mon.setDate(currentMonday.getDate() - i * 7);
+    const days = [];
+    for (let j = 0; j < 7; j++) { const d = new Date(mon); d.setDate(mon.getDate() + j); days.push(fmtDate(d)); }
+    html += renderLifeSingleWeek(weekLabels[i], days, today);
+  }
+  return html;
+}
+function renderLifeSingleWeek(label, days, today) {
   const wd = ['一', '二', '三', '四', '五', '六', '日'];
   const allDefs = Object.values(LIFE_CHECKIN_DEFS).concat(DB.list('lifeCheckinDefs'));
   const checkins = DB.list('lifeCheckins');
   let html = '<div class="life-week-module">';
-  html += '<div class="lwm-head"><div class="lwm-title">本周概览</div><div class="lwm-nav">';
-  html += '<button class="btn" onclick="lifeWeekPrev()">‹ 上周</button>';
-  html += '<span class="lwm-range">' + days[0].slice(5) + ' - ' + days[6].slice(5) + '</span>';
-  html += '<button class="btn" onclick="lifeWeekNext()">下周 ›</button>';
-  html += '</div></div>';
+  html += '<div class="lwm-head"><div class="lwm-title">' + label + '</div>';
+  html += '<span class="lwm-range">' + days[0].slice(5) + ' - ' + days[6].slice(5) + '</span></div>';
   html += '<div class="lwm-grid">';
-  html += '<div class="lwm-row lwm-row-hd"><div class="lwm-habit">打卡项</div>';
+  html += '<div class="lwm-row lwm-row-hd"><div class="lwm-habit"></div>';
   for (let i = 0; i < 7; i++) html += '<div class="lwm-day">' + wd[i] + '</div>';
   html += '</div>';
   allDefs.forEach(t => {
-    if (t.period === 'day') {
-      html += '<div class="lwm-row"><div class="lwm-habit">' + esc(t.label) + '<span class="lwm-tag">每日</span></div>';
-      for (let i = 0; i < 7; i++) {
-        const ds = days[i];
-        const done = checkins.some(r => r.type === t.key && r.date === ds);
-        const isToday = ds === today;
-        const cls = 'lwm-cell' + (done ? ' done' : '') + (isToday ? ' today' : '');
-        html += '<div class="' + cls + '" title="' + ds + '" onclick="lifeWeekCellClick(\'' + t.key + '\',\'' + ds + '\')">' + (done ? '✔' : '') + '</div>';
-      }
-      html += '</div>';
-    } else {
-      html += '<div class="lwm-row"><div class="lwm-habit">' + esc(t.label) + '<span class="lwm-tag">每周</span></div>';
-      for (let i = 0; i < 7; i++) {
-        const ds = days[i];
-        const done = checkins.some(r => r.type === t.key && r.date === ds);
-        const isToday = ds === today;
-        const cls = 'lwm-cell week' + (done ? ' done' : '') + (isToday ? ' today' : '');
-        html += '<div class="' + cls + '" title="' + ds + '" onclick="lifeWeekCellClick(\'' + t.key + '\',\'' + ds + '\')">' + (done ? '✔' : '') + '</div>';
-      }
-      html += '</div>';
+    html += '<div class="lwm-row"><div class="lwm-habit">' + esc(t.label) + '<span class="lwm-tag">' + (t.period === 'day' ? '每日' : '每周') + '</span></div>';
+    for (let i = 0; i < 7; i++) {
+      const ds = days[i];
+      const done = checkins.some(r => r.type === t.key && r.date === ds);
+      const isToday = ds === today;
+      const cls = 'lwm-cell' + (done ? ' done' : '') + (isToday ? ' today' : '') + (t.period === 'week' ? ' week' : '');
+      html += '<div class="' + cls + '" title="' + ds + '" onclick="lifeWeekCellClick(\'' + t.key + '\',\'' + ds + '\')">' + (done ? '✔' : '') + '</div>';
     }
+    html += '</div>';
   });
   html += '</div></div>';
   return html;
 }
-function lifeWeekPrev() { lifeWeekOffset--; renderLifeCheckin(); }
-function lifeWeekNext() { lifeWeekOffset++; renderLifeCheckin(); }
 function lifeCheckinToggleBlock(mode) { lifeCheckinBlock = mode; renderLifeCheckin(); }
 function lifeWeekCellClick(typeKey, dateStr) {
   if (dateStr > todayStr()) { Toast.warning('不能给未来的日期打卡'); return; }
