@@ -2720,7 +2720,7 @@ function importStoriesToTimeline() {
   const importedTitles = new Set(timelineEvents.filter(t => t.source && t.source.startsWith('故事小记: ')).map(t => t.source));
   const availableStories = stories.filter(s => !importedTitles.has('故事小记: ' + (s.title || '')));
   if (!availableStories.length) { Toast.warning('所有故事小记都已导入过'); return; }
-  let html = '<div style="font-size:13px;margin-bottom:12px;color:var(--c-text-light)">选择要导入的故事小记：</div>';
+  let html = '<div style="font-size:13px;margin-bottom:12px;color:var(--c-text-light)">选择故事小记：</div>';
   // v228: 改为 combobox 下拉选择器，支持手动输入筛选
   const storyOpts = availableStories.map(s => {
     const charNames = arrVal(s.characterIds).map(cid => {
