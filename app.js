@@ -5089,6 +5089,7 @@ function renderCheckinHeatmap(typeKey, year, month, isModal) {
   const checkins = DB.list('lifeCheckins').filter(r => r.type === typeKey);
   const def = getCheckinDef(typeKey);
   const period = def ? def.period : 'day';
+  const doneWeeks = period === 'week' ? new Set(checkins.map(r => r.week || weekKeyOf(r.date))) : null;
   const now = new Date();
   const y = year != null ? year : now.getFullYear();
   const m = month != null ? month : now.getMonth();
@@ -5107,7 +5108,11 @@ function renderCheckinHeatmap(typeKey, year, month, isModal) {
   for (let d = 1; d <= daysInMonth; d++) {
     const ds = `${monthStr}-${String(d).padStart(2, '0')}`;
     let cls = 'hm-day';
-    if (checkins.some(r => r.date === ds)) cls += period === 'day' ? ' done' : ' week';
+    if (period === 'day') {
+      if (checkins.some(r => r.date === ds)) cls += ' done';
+    } else {
+      if (doneWeeks.has(weekKeyOf(ds))) cls += ' week';
+    }
     if (isModal && ds === today) cls += ' today';
     if (isModal && ds === lifeCheckinSelDate) cls += ' selected';
     const click = isModal ? ` onclick="lifeCheckinCellClick('${typeKey}','${ds}')"` : '';
