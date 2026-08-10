@@ -1673,13 +1673,19 @@ ul,li{list-style:none}
 
 /* Goal cards */
 .life-goal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
-.life-goal-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow-sm);cursor:pointer;transition:box-shadow .2s,transform .2s,border-color .2s;display:flex;flex-direction:column;gap:12px}
+.life-goal-add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:140px;border:2px dashed var(--c-border);border-radius:var(--radius);background:transparent;cursor:pointer;color:var(--c-text-light);transition:.2s}
+.life-goal-add:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.lga-plus{font-size:30px;line-height:1}
+.lga-txt{font-size:13px}
+.life-goal-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow-sm);cursor:pointer;transition:box-shadow .2s,transform .2s,border-color .2s;display:flex;flex-direction:column;gap:10px}
 .life-goal-card:hover{box-shadow:var(--shadow);transform:translateY(-2px);border-color:var(--c-primary-light)}
 .lgc-head{display:flex;align-items:center;gap:12px}
 .lgc-ico{width:44px;height:44px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
 .lgc-title-wrap{flex:1;min-width:0}
 .lgc-name{font-size:17px;font-weight:700;color:var(--c-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lgc-desc{font-size:12px;color:var(--c-text-light);margin-top:2px}
+.lgc-tag{display:inline-block;font-size:11px;font-weight:600;color:var(--c-text-light);margin-left:6px;padding:1px 7px;background:var(--c-primary-bg);border-radius:99px;vertical-align:middle}
+.life-goal-card.week-card .lgc-tag{background:rgba(250,140,22,.14);color:var(--c-orange)}
 .lgc-arrow{margin-left:auto;font-size:22px;color:var(--c-text-light);font-weight:300}
 .lgc-body{display:flex;gap:16px;align-items:center;flex-wrap:nowrap}
 .lgc-stats{display:flex;gap:8px;flex:1;min-width:0;align-items:center}
@@ -1713,7 +1719,7 @@ ul,li{list-style:none}
 .life-goal-card.week-card .life-heatmap .hm-day.week{background:var(--c-orange)}
 
 /* Monthly progress block (1/31 style) */
-.lgc-monthprog{display:flex;align-items:center;gap:10px;margin-top:10px}
+.lgc-monthprog{display:flex;align-items:center;gap:10px;margin-top:8px}
 .lgc-mp-label{font-size:12px;color:var(--c-text-light);white-space:nowrap}
 .lgc-mp-num{font-size:14px;font-weight:800;color:var(--c-primary-dark);white-space:nowrap}
 .lgc-mp-bar{flex:1;height:8px;background:var(--c-border-light);border-radius:99px;overflow:hidden}
@@ -1740,18 +1746,48 @@ ul,li{list-style:none}
 .life-modal-hd .lm-desc{font-size:12px;color:var(--c-text-light)}
 .life-modal-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
 .life-modal-actions input[type=date]{padding:7px 9px;font-size:14px;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:#fff}
-.life-modal-heatmap{width:100%;max-width:240px;margin-bottom:14px}
+.life-modal-heatmap{width:232px;margin-bottom:0}
 
 /* Check-in month switcher */
-.life-monthbar{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.life-monthbar-txt{font-size:15px;font-weight:700;color:var(--c-text);min-width:96px;text-align:center}
+.life-monthbar{position:relative;z-index:60;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px}
+.life-monthbar-txt{font-size:15px;font-weight:700;color:var(--c-text);min-width:96px;text-align:center;cursor:pointer;user-select:none}
+.life-monthbar-txt:hover{color:var(--c-primary)}
 .life-monthbar .btn:disabled{opacity:.45;cursor:not-allowed}
+.life-month-picker{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);z-index:61;display:none;width:248px;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px}
+.life-month-picker.show{display:block}
+.lmp-yearbar{display:flex;align-items:center;justify-content:space-between;font-weight:700;margin-bottom:10px}
+.lmp-months{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.lmp-month{padding:9px 0;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-bg);font-size:13px;cursor:pointer;color:var(--c-text)}
+.lmp-month:hover{border-color:var(--c-primary)}
+.lmp-month.sel{background:var(--c-primary);color:#fff;border-color:var(--c-primary)}
+.life-picker-backdrop{position:fixed;inset:0;z-index:50;background:transparent}
 .life-modal-heatmap .life-heatmap{gap:6px}
 .life-modal-heatmap .hm-day{cursor:pointer}
 .life-modal-heatmap .hm-day:hover{outline:1.5px solid var(--c-text-light)}
 .life-modal-heatmap.week .life-heatmap .hm-day{background:rgba(250,140,22,.16)}
 .life-modal-heatmap.week .life-heatmap .hm-day.other-month{background:#fff}
 .life-modal-heatmap.week .life-heatmap .hm-day.week{background:var(--c-orange)}
+.life-modal-monthbar{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px}
+.lmm-txt{font-size:14px;font-weight:700;color:var(--c-text);min-width:84px;text-align:center}
+.life-modal-hmwrap{display:flex;gap:18px;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap}
+.life-modal-heatmap .life-heatmap{gap:6px}
+.life-heatmap-hd{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:4px}
+.life-heatmap-hd span{text-align:center;font-size:11px;color:var(--c-text-muted)}
+.life-modal-heatmap .hm-day{cursor:pointer}
+.life-modal-heatmap .hm-day:hover{outline:1.5px solid var(--c-text-light)}
+.life-heatmap .hm-day.selected{outline:2px solid var(--c-text);outline-offset:-1px}
+.life-modal-heatmap.week .hm-day.selected{outline-color:var(--c-orange)}
+.life-modal-prog{flex:1;min-width:120px;display:flex;flex-direction:column;justify-content:center;gap:6px}
+.lmp-num{font-size:26px;font-weight:800;color:var(--c-primary-dark);line-height:1}
+.lmp-num.week{color:var(--c-orange)}
+.lmp-label{font-size:12px;color:var(--c-text-light)}
+.lmp-bar{height:8px;background:var(--c-border-light);border-radius:99px;overflow:hidden;margin-top:2px}
+.lmp-fill{height:100%;background:var(--c-primary);border-radius:99px}
+.lmp-fill.week{background:var(--c-orange)}
+.life-modal-sel{font-size:12px;color:var(--c-text-light);margin-bottom:10px}
+.life-modal-foot{display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:10px;flex-wrap:wrap}
+.life-modal-foot-btns{display:flex;gap:8px;margin-left:auto}
+.life-modal-del{color:var(--c-danger)}
 .life-modal-list{background:var(--c-bg);border:1px solid var(--c-border);border-radius:var(--radius);padding:8px 12px}
 .life-modal-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--c-border-light);font-size:13px;color:var(--c-text)}
 .life-modal-item:last-child{border-bottom:none}
@@ -1871,7 +1907,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=203"></script>
+<script src="app.js?v=204"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
