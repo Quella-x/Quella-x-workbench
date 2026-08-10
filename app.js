@@ -871,7 +871,7 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     }
     let deepTag = '';
     if (lifeDeepspaceDates.has(dateStr)) {
-      deepTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:#9DC8FF"></span><span class="cal-day-tag-text" style="color:#5BA3F0">临空</span></span>`;
+      deepTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:#9DC8FF"></span><span class="cal-day-tag-text" style="color:#5BA3F0">进入临空</span></span>`;
     }
     html += `<div class="cal-day${isToday ? ' today' : ''}">
       <div class="cal-date-row"><span class="cal-date">${d}</span></div>
@@ -1017,7 +1017,7 @@ MODULES['home'] = {
     { key: 'title', label: '作品标题', type: 'text' },
     { key: 'link', label: '作品链接', type: 'text', placeholder: '粘贴作品链接' },
     { key: 'contentType', label: '内容类型', type: 'multiselect', single: true, options: [{ value: '图文', label: '图文' }, { value: '短视频', label: '短视频' }, { value: '推文', label: '推文' }, { value: '直播', label: '直播' }] },
-    { key: 'status', label: '发布状态', type: 'multiselect', single: true, default: '待发布', options: [{ value: '待发布', label: '待发布' }, { value: '已发布', label: '已发布' }] },
+    { key: 'status', label: '发布状态', type: 'multiselect', single: true, options: [{ value: '待发布', label: '待发布' }, { value: '已发布', label: '已发布' }] },
     { section: '24小时数据' },
     { key: 'data24h_likes', label: '点赞', type: 'number', row: 'data24h' },
     { key: 'data24h_saves', label: '收藏', type: 'number', row: 'data24h' },
@@ -2307,6 +2307,7 @@ function renderHome() {
   let html = '<div class="fade-in">';
 
   const statusOf = (r) => (r.status === '已发布' ? '已发布' : '待发布');
+  const pendingCount = allRecords.filter(r => statusOf(r) === '待发布').length;
 
   // Platform buttons (always visible, 4 in a row, for switching)
   // 每个平台按钮底部直接显示该平台「待发布 / 已发布」数量（待发布左、已发布右）
@@ -2326,7 +2327,8 @@ function renderHome() {
   html += '</div>';
 
   if (ps.view === 'main') {
-    // Main view: show calendar only
+    // Main view: 待发布按钮（按平台分组查看）+ 日历
+    html += `<div class="home-pending-bar"><button class="home-pending-btn" onclick="homeSetStatusFilter('待发布')">📋 待发布 <b>${pendingCount}</b></button></div>`;
     html += '<div class="calendar" style="margin-top:4px">';
     html += '<div class="calendar-header">';
     html += `<span class="cal-title">${ps.calYear}年${ps.calMonth + 1}月</span>`;
@@ -2423,25 +2425,37 @@ function renderHome() {
     if (ps.dateFilter) filteredRecords = filteredRecords.filter(r => (r.publishTime || '').startsWith(ps.dateFilter));
     filteredRecords.sort((a, b) => (b.publishTime || '').localeCompare(a.publishTime || ''));
 
-    if (ps.homePageNo == null) ps.homePageNo = 1;
-    const homePageSize = 5;
-    const homeTotalPages = Math.ceil(filteredRecords.length / homePageSize);
-    if (ps.homePageNo > homeTotalPages) ps.homePageNo = 1;
-    const homePaged = filteredRecords.slice((ps.homePageNo - 1) * homePageSize, ps.homePageNo * homePageSize);
-
-    if (!filteredRecords.length) {
-      html += '<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-text">暂无' + esc(statusTitle) + '记录</div></div>';
-    } else {
+    // 各平台单独记，不整合在一起
+    const platformsOrder = ['小红书', '抖音', '视频号', '公众号'];
+    const grouped = {};
+    filteredRecords.forEach(r => {
+      const plats = arrVal(r.platform);
+      if (!plats.length) { (grouped['__none__'] = grouped['__none__'] || []).push(r); }
+      else plats.forEach(p => { (grouped[p] = grouped[p] || []).push(r); });
+    });
+    const groupKeys = platformsOrder.concat(Object.keys(grouped).filter(k => !platformsOrder.includes(k) && k !== '__none__'));
+    let hasAny = false;
+    groupKeys.forEach(p => {
+      const recs = grouped[p] || [];
+      if (!recs.length) return;
+      hasAny = true;
+      const pColor = PLATFORM_COLORS[p] || '#9DC8FF';
+      html += '<div class="home-status-group">';
+      html += `<div class="home-status-group-hd"><span class="tag" style="background:${pColor}20;color:${pColor}">${esc(p)}</span><span class="home-status-group-count">${recs.length} 条</span></div>`;
       html += '<div class="record-list">';
-      homePaged.forEach(r => { html += renderHomeRecordCard(r); });
-      html += '</div>';
-      if (homeTotalPages > 1) {
-        html += '<div class="pagination">';
-        html += `<button class="btn btn-sm btn-ghost" ${ps.homePageNo <= 1 ? 'disabled' : ''} onclick="homeGoPage(${ps.homePageNo - 1})">‹ 上一页</button>`;
-        html += `<span class="page-info">第 ${ps.homePageNo} / ${homeTotalPages} 页 (共 ${filteredRecords.length} 条)</span>`;
-        html += `<button class="btn btn-sm btn-ghost" ${ps.homePageNo >= homeTotalPages ? 'disabled' : ''} onclick="homeGoPage(${ps.homePageNo + 1})">下一页 ›</button>`;
-        html += '</div>';
-      }
+      recs.forEach(r => { html += renderHomeRecordCard(r); });
+      html += '</div></div>';
+    });
+    if (grouped['__none__'] && grouped['__none__'].length) {
+      hasAny = true;
+      html += '<div class="home-status-group">';
+      html += `<div class="home-status-group-hd"><span class="tag">未指定平台</span><span class="home-status-group-count">${grouped['__none__'].length} 条</span></div>`;
+      html += '<div class="record-list">';
+      grouped['__none__'].forEach(r => { html += renderHomeRecordCard(r); });
+      html += '</div></div>';
+    }
+    if (!hasAny) {
+      html += '<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-text">暂无' + esc(statusTitle) + '记录</div></div>';
     }
   }
 
@@ -5200,6 +5214,7 @@ let lifeCheckinModalView = null;
 let lifeCheckinModalKey = null;
 let lifeCheckinSelDate = null;
 let lifeWeekOffset = 0;
+let lifeCheckinBlock = 'week';
 function lifeCheckinTogglePicker() {
   lifeCheckinPickerOpen = !lifeCheckinPickerOpen;
   if (lifeCheckinPickerOpen) { const vv = lifeCheckinInitView(); lifeCheckinPickerY = vv.y; }
@@ -5337,12 +5352,19 @@ function renderLifeCheckin() {
   html += '</div></div>';
   html += '</div>';
   if (lifeCheckinPickerOpen) html += '<div class="life-picker-backdrop" onclick="lifeCheckinTogglePicker()"></div>';
-  html += renderLifeWeekOverview();
-  html += '<div class="life-goal-grid">';
-  const allDefs = Object.values(LIFE_CHECKIN_DEFS).concat(DB.list('lifeCheckinDefs'));
-  allDefs.forEach(t => { html += renderGoalCard(t, v.y, v.m); });
-  html += '<div class="life-goal-add" onclick="lifeCheckinAdd()"><div class="lga-plus">＋</div><div class="lga-txt">添加打卡</div></div>';
+  html += '<div class="life-block-toggle">';
+  html += `<button class="lbt-btn ${lifeCheckinBlock === 'day' ? 'active' : ''}" onclick="lifeCheckinToggleBlock('day')">日版块</button>`;
+  html += `<button class="lbt-btn ${lifeCheckinBlock === 'week' ? 'active' : ''}" onclick="lifeCheckinToggleBlock('week')">周版块</button>`;
   html += '</div>';
+  if (lifeCheckinBlock === 'week') {
+    html += renderLifeWeekOverview();
+  } else {
+    html += `<div class="life-goal-grid compact">`;
+    const allDefs = Object.values(LIFE_CHECKIN_DEFS).concat(DB.list('lifeCheckinDefs'));
+    allDefs.forEach(t => { html += renderGoalCard(t, v.y, v.m); });
+    html += '</div>';
+  }
+  html += '<div class="life-goal-add" onclick="lifeCheckinAdd()"><div class="lga-plus">＋</div><div class="lga-txt">添加打卡</div></div>';
   html += '</div>';
   body.innerHTML = html;
 }
@@ -5456,6 +5478,7 @@ function renderLifeWeekOverview() {
 }
 function lifeWeekPrev() { lifeWeekOffset--; renderLifeCheckin(); }
 function lifeWeekNext() { lifeWeekOffset++; renderLifeCheckin(); }
+function lifeCheckinToggleBlock(mode) { lifeCheckinBlock = mode; renderLifeCheckin(); }
 function lifeWeekCellClick(typeKey, dateStr) {
   if (dateStr > todayStr()) { Toast.warning('不能给未来的日期打卡'); return; }
   const rec = DB.list('lifeCheckins').find(r => r.type === typeKey && r.date === dateStr);
