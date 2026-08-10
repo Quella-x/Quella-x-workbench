@@ -5089,7 +5089,7 @@ function renderCheckinHeatmap(typeKey, year, month, isModal) {
   const checkins = DB.list('lifeCheckins').filter(r => r.type === typeKey);
   const def = getCheckinDef(typeKey);
   const period = def ? def.period : 'day';
-  const doneWeeks = period === 'week' ? new Set(checkins.map(r => r.week || weekKeyOf(r.date))) : null;
+  const doneByDate = new Set(checkins.map(r => r.date));
   const now = new Date();
   const y = year != null ? year : now.getFullYear();
   const m = month != null ? month : now.getMonth();
@@ -5108,11 +5108,7 @@ function renderCheckinHeatmap(typeKey, year, month, isModal) {
   for (let d = 1; d <= daysInMonth; d++) {
     const ds = `${monthStr}-${String(d).padStart(2, '0')}`;
     let cls = 'hm-day';
-    if (period === 'day') {
-      if (checkins.some(r => r.date === ds)) cls += ' done';
-    } else {
-      if (doneWeeks.has(weekKeyOf(ds))) cls += ' week';
-    }
+    if (doneByDate.has(ds)) cls += period === 'day' ? ' done' : ' week';
     if (isModal && ds === today) cls += ' today';
     if (isModal && ds === lifeCheckinSelDate) cls += ' selected';
     const click = isModal ? ` onclick="lifeCheckinCellClick('${typeKey}','${ds}')"` : '';
@@ -5444,13 +5440,13 @@ function renderLifeWeekOverview() {
       }
       html += '</div>';
     } else {
-      const weekDone = checkins.some(r => r.type === t.key && (r.week || weekKeyOf(r.date)) === wkKey);
       html += '<div class="lwm-row"><div class="lwm-habit">' + esc(t.label) + '<span class="lwm-tag">每周</span></div>';
       for (let i = 0; i < 7; i++) {
         const ds = days[i];
+        const done = checkins.some(r => r.type === t.key && r.date === ds);
         const isToday = ds === today;
-        const cls = 'lwm-cell week' + (weekDone ? ' done' : '') + (isToday ? ' today' : '');
-        html += '<div class="' + cls + '" title="' + ds + '" onclick="lifeWeekCellClick(\'' + t.key + '\',\'' + ds + '\')">' + (weekDone ? '✔' : '') + '</div>';
+        const cls = 'lwm-cell week' + (done ? ' done' : '') + (isToday ? ' today' : '');
+        html += '<div class="' + cls + '" title="' + ds + '" onclick="lifeWeekCellClick(\'' + t.key + '\',\'' + ds + '\')">' + (done ? '✔' : '') + '</div>';
       }
       html += '</div>';
     }
@@ -5462,12 +5458,11 @@ function lifeWeekPrev() { lifeWeekOffset--; renderLifeCheckin(); }
 function lifeWeekNext() { lifeWeekOffset++; renderLifeCheckin(); }
 function lifeWeekCellClick(typeKey, dateStr) {
   if (dateStr > todayStr()) { Toast.warning('不能给未来的日期打卡'); return; }
-  const wk = weekKeyOf(dateStr);
-  const rec = DB.list('lifeCheckins').find(r => r.type === typeKey && (r.week || weekKeyOf(r.date)) === wk);
+  const rec = DB.list('lifeCheckins').find(r => r.type === typeKey && r.date === dateStr);
   if (rec) { DB.remove('lifeCheckins', rec.id); Toast.success('已撤销'); }
   else {
     const def = getCheckinDef(typeKey);
-    DB.add('lifeCheckins', { type: typeKey, date: dateStr, week: wk, period: def.period, isMakeup: dateStr < todayStr(), createdAt: new Date().toISOString() });
+    DB.add('lifeCheckins', { type: typeKey, date: dateStr, week: weekKeyOf(dateStr), period: def.period, isMakeup: dateStr < todayStr(), createdAt: new Date().toISOString() });
     Toast.success('打卡成功');
   }
   renderLifeCheckin();
