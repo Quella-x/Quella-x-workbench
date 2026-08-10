@@ -2732,12 +2732,13 @@ function importStoriesToTimeline() {
   }).join('');
   html += '<div class="form-row"><div class="combobox-wrapper import-story-combo">';
   html += '<input type="hidden" id="importStorySelect" class="combobox-value" value="">';
-  html += '<input type="text" class="form-input combobox-input" id="importStoryInput" placeholder="请选择或输入故事小记" onfocus="showComboboxDropdown(\'importStoryList\')" onclick="showComboboxDropdown(\'importStoryList\')" oninput="filterComboboxDropdown(\'importStoryList\',this.value)">';
+  html += '<input type="text" class="form-input combobox-input" id="importStoryInput" placeholder="选择故事小记" onfocus="showComboboxDropdown(\'importStoryList\')" onclick="showComboboxDropdown(\'importStoryList\')" oninput="filterComboboxDropdown(\'importStoryList\',this.value)">';
   html += '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'importStoryList\')">▼</button>';
   html += '<div class="combobox-dropdown" id="importStoryList">' + storyOpts + '</div>';
   html += '</div></div>';
-  html += '<div style="margin-top:12px"><div style="font-size:13px;margin-bottom:6px">默认重要性:</div>';
-  html += '<select class="form-select" id="importImportance">';
+  const importImpColor = (TIMELINE_COLORS['红'] || {}).color || '#e74c3c';
+  html += `<div style="margin-top:12px"><div style="font-size:13px;margin-bottom:6px">重要性:</div>`;
+  html += `<select class="form-select import-importance-select" id="importImportance" style="color:${esc(importImpColor)};border-color:${esc(importImpColor)}" onchange="this.style.color=TIMELINE_COLORS[this.value]?.color||'#e74c3c';this.style.borderColor=TIMELINE_COLORS[this.value]?.color||'#e74c3c'">`;
   Object.keys(TIMELINE_COLORS).forEach(c => {
     html += `<option value="${c}">${TIMELINE_COLORS[c].label}</option>`;
   });
