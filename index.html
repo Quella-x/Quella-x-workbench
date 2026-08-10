@@ -1780,12 +1780,8 @@ ul,li{list-style:none}
 .life-picker-backdrop{position:fixed;inset:0;z-index:50;background:transparent}
 .life-modal-heatmap .life-heatmap{gap:6px}
 .life-modal-heatmap .hm-day{cursor:pointer}
-.life-modal-heatmap .life-heatmap .hm-day.today.done{background:var(--c-primary-light)}
-.life-modal-heatmap.week .life-heatmap .hm-day.today.done{background:rgba(250,140,22,.45)}
-.life-modal-heatmap .life-heatmap .hm-day.selected.done{background:var(--c-primary-light)}
-.life-modal-heatmap.week .life-heatmap .hm-day.selected.done{background:rgba(250,140,22,.45)}
-.life-modal-heatmap .life-heatmap .hm-day.selected:not(.done){outline:1px solid var(--c-primary);outline-offset:-1px}
-.life-modal-heatmap.week .life-heatmap .hm-day.selected:not(.done){outline-color:var(--c-orange)}
+.life-modal-heatmap .life-heatmap .hm-day.selected{outline:2px solid var(--c-primary);outline-offset:-2px}
+.life-modal-heatmap.week .life-heatmap .hm-day.selected{outline-color:var(--c-orange)}
 .life-modal-monthbar{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px}
 .life-modal-monthbar .btn{border:none;background:transparent;color:var(--c-text-light);font-size:14px;padding:4px 8px;box-shadow:none}
 .life-modal-monthbar .btn:hover{color:var(--c-primary);background:transparent}
@@ -1947,7 +1943,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=214"></script>
+<script src="app.js?v=215"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
