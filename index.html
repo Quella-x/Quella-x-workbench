@@ -189,7 +189,7 @@ ul,li{list-style:none}
 
 .toolbar{
   display:flex;flex-wrap:wrap;gap:8px;align-items:center;
-  margin-bottom:16px;
+  margin-bottom:14px;
 }
 .toolbar .spacer{flex:1}
 .toolbar .btn-primary{width:112px;justify-content:center}
@@ -260,7 +260,7 @@ ul,li{list-style:none}
 .record-card-minimal .record-card-title{font-size:16px;font-weight:700}
 .record-card-body-minimal{display:flex;flex-direction:column;align-items:flex-start;gap:6px 0;font-size:12px;color:var(--c-text-light)}
 .record-card-body-minimal .field{display:flex;gap:4px;align-items:center}
-.record-card-body-minimal .field-label{color:var(--c-text-muted);min-width:56px}
+.record-card-body-minimal .field-label{color:var(--c-text-muted)}
 .record-card-body-minimal .field-value{color:var(--c-text);font-weight:500}
 .record-card-actions-minimal{display:flex;gap:4px;margin-left:auto;flex-shrink:0}
 
@@ -472,6 +472,8 @@ ul,li{list-style:none}
 .checkbox-item:hover{border-color:var(--c-primary-light)}
 .checkbox-item input{margin:0;cursor:pointer}
 .checkbox-item:has(input:checked){background:var(--c-primary-bg);border-color:var(--c-primary);color:var(--c-primary);font-weight:500}
+.checkbox-item,.radio-item{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none}
+.checkbox-item:active,.radio-item:active{background:transparent !important}
 /* v29: 自定义选项删除按钮 — 小巧灰色，hover 才显示并变红 */
 .custom-opt-del{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;margin-left:4px;border-radius:50%;color:var(--c-text-light);font-size:11px;line-height:1;cursor:pointer;transition:all .15s;opacity:0}
 .checkbox-item:hover .custom-opt-del{opacity:1}
@@ -866,8 +868,8 @@ ul,li{list-style:none}
   box-shadow:0 1px 3px rgba(0,0,0,.04);
 }
 .pricelist-note-title{
-  font-size:13px;font-weight:700;color:var(--c-primary-dark);
-  margin-bottom:6px;letter-spacing:.5px;
+  font-size:18px;font-weight:700;color:var(--c-text);
+  margin-bottom:6px;
 }
 .pricelist-note-content{
   font-size:12px;color:var(--c-text-light);line-height:1.6;
@@ -1868,7 +1870,7 @@ ul,li{list-style:none}
 .lwm-row{display:grid;grid-template-columns:65px repeat(7,1fr) 34px;gap:3px;align-items:center}
 .lwm-row-hd .lwm-day{text-align:center;font-size:11px;color:var(--c-text-muted);font-weight:600}
 .lwm-row-hd .lwm-habit{font-size:11px;color:var(--c-text-muted)}
-.lwm-habit{font-size:12px;font-weight:600;color:var(--c-text);display:flex;flex-direction:row;align-items:center;justify-content:center;gap:3px;text-align:center;padding-left:0;overflow:hidden}
+.lwm-habit{font-size:12px;font-weight:600;color:var(--c-text);display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:3px;text-align:left;padding-left:5px;overflow:hidden}
 .lwm-habit-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
 .lwm-habit .lwm-tag{font-size:10px;font-weight:400;color:var(--c-text-light);white-space:nowrap;flex-shrink:0}
 .lwm-cell{aspect-ratio:1;border-radius:3px;background:var(--c-bg);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;box-sizing:border-box;border:1px solid var(--c-border-light);cursor:pointer}
@@ -1997,7 +1999,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=226"></script>
+<script src="app.js?v=227"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

@@ -2511,7 +2511,7 @@ function renderPriceCalc() {
   html += '<div class="calc-page-grid">';
   // Left: Input column
   html += '<div class="calc-input-col">';
-  html += '<div class="calc-card"><div class="calc-card-title price-calc-title">🔧 成本参数 <span class="calc-card-hint">输入各项成本自动计算</span></div>';
+  html += '<div class="calc-card"><div class="calc-card-title price-calc-title">成本参数 <span class="calc-card-hint">输入各项成本自动计算</span></div>';
   html += '<div class="form-row"><label class="form-label">单品成本（元）</label><input type="number" class="form-input" id="calc_itemCost" value="" placeholder="0" oninput="calcPrice()"></div>';
   html += '<div class="form-row"><label class="form-label">样品成本（元）</label><input type="number" class="form-input" id="calc_sampleCost" value="" placeholder="0" oninput="calcPrice()"></div>';
   html += '<div class="form-row"><label class="form-label">人工成本（元/件）</label><input type="number" class="form-input" id="calc_laborCost" value="" placeholder="0" oninput="calcPrice()"></div>';
@@ -3358,11 +3358,15 @@ function dcImportRecord(id) {
   _dcExtras = (rec.extraItems || []).map(e => ({ name: e.name || '', quantity: parseInt(e.quantity) || 1, price: parseFloat(e.price) || 0, bindSeq: e.bindSeq || 'none' }));
   // AS轮：导入接稿的修改加价
   _dcModifications = (rec.modifications || []).map(m => ({ modifyType: m.modifyType || '', modifyCount: parseInt(m.modifyCount) || 1, modifyPrice: parseFloat(m.modifyPrice) || 0, note: m.note || '' }));
+  // v227: 接稿排期「是否加急」=整单加急；制品 urgent=单项加急
+  _dcWholeOrderUrgent = (rec.isUrgent === '是') || (Array.isArray(rec.isUrgent) && rec.isUrgent.includes('是')) || (rec.isUrgent === true);
   renderDesignCalc();
   setTimeout(() => {
     const usageVal = Array.isArray(rec.usageType) ? rec.usageType[0] : rec.usageType;
     if (usageVal) { const r = document.querySelector(`input[name="dcUsage"][value="${usageVal}"]`); if (r) r.checked = true; }
     if (rec.urgentRate != null) { const ur = document.querySelector('input[data-urgent="rate"]'); if (ur) ur.value = rec.urgentRate; }
+    const tog = document.getElementById('dcWholeOrderUrgentChk');
+    if (tog) { tog.checked = _dcWholeOrderUrgent; dcSyncWholeOrderToggle(); }
     dcRecalc();
   }, 60);
 }
@@ -4211,6 +4215,7 @@ function dcUpdateQuote() {
   rec.deposit = Math.round(price * 0.5 * 100) / 100;
   rec.balance = Math.round(price * 0.5 * 100) / 100;
   rec.modifications = _dcModifications.map(m => ({ modifyType: m.modifyType, modifyCount: m.modifyCount, modifyPrice: m.modifyPrice, note: m.note }));
+  rec.isUrgent = _dcWholeOrderUrgent ? ['是'] : ['否'];
   rec.amount = finalTotal;
   DB.update('commissions', _dcImportId, rec);
   Toast.success('报价金额已更新至接稿记录');
@@ -4241,6 +4246,7 @@ function dcCreateCommission() {
     sameDesign: [], extraItems: _dcExtras.map(e => ({ name: e.name, quantity: e.quantity, price: e.price, bindSeq: e.bindSeq || 'none' })),
     modifications: _dcModifications.map(m => ({ modifyType: m.modifyType, modifyCount: m.modifyCount, modifyPrice: m.modifyPrice, note: m.note })),
     urgentRate,
+    isUrgent: _dcWholeOrderUrgent ? ['是'] : ['否'],
     quoteAmount: price, deposit: Math.round(price * 0.5 * 100) / 100, balance: Math.round(price * 0.5 * 100) / 100,
     paymentStatus: ['未付'], progress: ['待接稿'], modifyCount: 0, amount: finalTotal, notes: '由报价计算器创建',
   });
@@ -4290,11 +4296,11 @@ function renderPriceList() {
 
   // Collapsible 其他说明（v26: toolbar→其他说明 12px）
   if (notes.length) {
-    html += '<div style="margin-bottom:16px">';
+    html += '<div style="margin-bottom:10px">';
     html += '<div class="collapsible-toggle" onclick="this.classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">';
     html += '<span>📝 其他说明</span><span class="toggle-arrow">▼</span></div>';
     html += '<div class="collapsible-content">';
-    html += '<div class="pricelist-notes-panel" style="margin-top:0;margin-bottom:0">';
+    html += '<div class="pricelist-notes-panel" style="margin-top:8px;margin-bottom:8px">';
     html += '<div class="pricelist-notes-grid">';
     notes.forEach(n => {
       html += '<div class="pricelist-note-item">';
@@ -5279,6 +5285,15 @@ function lifeCheckinNextMonth() {
   lifeCheckinView = { y, m };
   renderLifeCheckin();
 }
+function lifeCheckinPrevWeek() {
+  lifeWeekOffset--;
+  renderLifeCheckin();
+}
+function lifeCheckinNextWeek() {
+  if (lifeWeekOffset >= 0) return;
+  lifeWeekOffset++;
+  renderLifeCheckin();
+}
 function renderLifeCheckin() {
   const body = $('#mainBody');
   const v = lifeCheckinInitView();
@@ -5289,9 +5304,19 @@ function renderLifeCheckin() {
   html += renderQuickCheckin();
   html += `<div class="life-monthbar ${lifeCheckinBlock === 'week' ? 'week-mode' : ''}">`;
   html += '<div class="life-monthbar-center">';
-  html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinPrevMonth()">‹ 上月</button>`;
-  html += `<span class="life-monthbar-txt" onclick="lifeCheckinTogglePicker()">${v.y}年${v.m + 1}月 ▾</span>`;
-  html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinNextMonth()" ${isCur ? 'disabled' : ''}>下月 ›</button>`;
+  if (lifeCheckinBlock === 'week') {
+    const base = weekMondayOf(parseDateStr(todayStr()));
+    base.setDate(base.getDate() + lifeWeekOffset * 7);
+    const sun = new Date(base); sun.setDate(base.getDate() + 6);
+    const weekTxt = `${base.getMonth() + 1}/${base.getDate()} - ${sun.getMonth() + 1}/${sun.getDate()}`;
+    html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinPrevWeek()">‹ 上一周</button>`;
+    html += `<span class="life-monthbar-txt">${weekTxt}</span>`;
+    html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinNextWeek()" ${lifeWeekOffset === 0 ? 'disabled' : ''}>下一周 ›</button>`;
+  } else {
+    html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinPrevMonth()">‹ 上月</button>`;
+    html += `<span class="life-monthbar-txt" onclick="lifeCheckinTogglePicker()">${v.y}年${v.m + 1}月 ▾</span>`;
+    html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinNextMonth()" ${isCur ? 'disabled' : ''}>下月 ›</button>`;
+  }
   html += '</div>';
   html += '<div class="life-block-toggle">';
   html += `<button class="lbt-btn ${lifeCheckinBlock === 'day' ? 'active' : ''}" onclick="lifeCheckinToggleBlock('day')">日</button>`;
@@ -5382,9 +5407,10 @@ function lifeCheckinRenderModal(typeKey) {
 }
 function renderLifeWeekOverview() {
   const today = todayStr();
-  const mon = weekMondayOf(parseDateStr(today));
+  const base = weekMondayOf(parseDateStr(today));
+  base.setDate(base.getDate() + lifeWeekOffset * 7);
   const days = [];
-  for (let j = 0; j < 7; j++) { const d = new Date(mon); d.setDate(mon.getDate() + j); days.push(fmtDate(d)); }
+  for (let j = 0; j < 7; j++) { const d = new Date(base); d.setDate(base.getDate() + j); days.push(fmtDate(d)); }
   return renderLifeSingleWeek('本周', days, today, true);
 }
 function renderLifeSingleWeek(label, days, today, withSummary) {
