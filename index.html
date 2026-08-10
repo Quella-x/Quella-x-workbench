@@ -1315,7 +1315,7 @@ ul,li{list-style:none}
 .calc-page-grid{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
 .calc-input-col{display:flex;flex-direction:column;gap:12px;container-type:inline-size}
 .calc-card{background:var(--c-card-bg,#fff);border:1px solid var(--c-border-light,#e8e8e8);border-radius:10px;padding:14px}
-.calc-card-title{font-size:14px;font-weight:600;color:var(--c-primary);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.calc-card-title{font-size:14px;font-weight:600;color:var(--c-text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .calc-card-hint{font-size:11px;font-weight:400;color:var(--c-text-muted)}
 .calc-mode-tabs{display:flex;gap:0;margin-bottom:8px}
 .calc-mode-tab{flex:1;padding:8px 12px;border:1px solid var(--c-border);background:var(--c-bg);font-size:13px;cursor:pointer;color:var(--c-text);transition:all .15s}
@@ -1782,10 +1782,10 @@ ul,li{list-style:none}
 .life-modal-heatmap.week .life-heatmap .hm-day{background:rgba(250,140,22,.07)}
 .life-modal-heatmap.week .life-heatmap .hm-day.other-month{background:#fff}
 .life-modal-heatmap.week .life-heatmap .hm-day.week{background:var(--c-orange)}
-.life-modal-heatmap .life-heatmap .hm-day.today:not(.done){background:var(--c-primary-light)}
-.life-modal-heatmap.week .life-heatmap .hm-day.today:not(.done){background:rgba(250,140,22,.28)}
-.life-modal-heatmap .life-heatmap .hm-day.selected{outline:2px solid #333;outline-offset:-2px}
-.life-modal-heatmap.week .life-heatmap .hm-day.selected{outline-color:var(--c-orange)}
+.life-modal-heatmap .life-heatmap .hm-day.selected.done{background:var(--c-primary-light)}
+.life-modal-heatmap.week .life-heatmap .hm-day.selected.done{background:rgba(250,140,22,.35)}
+.life-modal-heatmap .life-heatmap .hm-day.selected:not(.done){outline:1px solid var(--c-primary);outline-offset:-1px}
+.life-modal-heatmap.week .life-heatmap .hm-day.selected:not(.done){outline-color:var(--c-orange)}
 .life-modal-monthbar{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px}
 .life-modal-monthbar .btn{border:none;background:transparent;color:var(--c-text-light);font-size:14px;padding:4px 8px;box-shadow:none}
 .life-modal-monthbar .btn:hover{color:var(--c-primary);background:transparent}
@@ -1811,6 +1811,20 @@ ul,li{list-style:none}
 .lc-add-form .combobox-wrapper{width:100%}
 .life-modal-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--c-border-light);font-size:13px;color:var(--c-text)}
 .life-modal-item:last-child{border-bottom:none}
+.life-modal-tabs{display:flex;justify-content:center;gap:8px;margin-bottom:12px}
+.life-modal-weekbar{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px}
+.life-modal-weekbar .btn{border:none;background:transparent;color:var(--c-text-light);font-size:14px;padding:4px 8px;box-shadow:none}
+.life-modal-weekbar .btn:hover{color:var(--c-primary);background:transparent}
+.lmw-txt{font-size:14px;font-weight:700;color:var(--c-text);min-width:120px;text-align:center}
+.life-weekview{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.life-weekview-hd{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.life-weekview-hd span{text-align:center;font-size:11px;color:var(--c-text-muted)}
+.life-weekview-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.wv-day{aspect-ratio:1;border-radius:var(--radius);background:var(--c-bg);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;box-sizing:border-box;cursor:pointer;border:1px solid transparent}
+.wv-day.done{background:var(--c-primary);border-color:var(--c-primary)}
+.wv-day.week{background:var(--c-orange);border-color:var(--c-orange)}
+.wv-day.today{outline:2px solid var(--c-primary);outline-offset:-2px}
+.wv-day.week.today{outline-color:var(--c-orange)}
 /* 本周概览（主页面大模块） */
 .life-week-module{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow-sm);margin-bottom:14px}
 .lwm-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
@@ -1947,7 +1961,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=211"></script>
+<script src="app.js?v=212"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
