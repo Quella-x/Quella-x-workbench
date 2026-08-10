@@ -5026,7 +5026,7 @@ function renderLifeCheckin() {
   const ps = pageState['life-checkin'];
   const today = todayStr();
   let html = '<div class="fade-in">';
-  html += '<div class="life-section-title">🌿 每日打卡</div>';
+  html += '<div class="life-hero"><span class="lh-ico">🌿</span><div class="lh-text"><div class="lh-title">每日打卡</div><div class="lh-sub">日签每日坚持 · 周签每周达成</div></div></div>';
   html += '<div class="life-checkin-grid">';
   Object.values(LIFE_CHECKIN_DEFS).forEach(t => {
     const recs = DB.list('lifeCheckins').filter(r => r.type === t.key);
@@ -5036,16 +5036,15 @@ function renderLifeCheckin() {
       const monthCount = lifeDailyMonthCount(t.key);
       const statusCls = done ? 'done' : 'todo';
       const statusTxt = done ? '今日已打卡 ✓' : '今日待打卡';
-      html += `<div class="life-checkin-card">
+      html += `<div class="life-checkin-card day">
         <div class="lcc-top"><span class="lcc-icon">${t.icon}</span><span class="lcc-label">${esc(t.label)}</span><span class="lcc-period">日签</span></div>
         <div class="lcc-stats"><div class="lcc-stat"><span class="lcc-num">${streak}</span><span class="lcc-unit">连续天数</span></div><div class="lcc-stat"><span class="lcc-num">${monthCount}</span><span class="lcc-unit">本月次数</span></div></div>
-        <div class="lcc-status ${statusCls}">${statusTxt}</div>
+        <div class="lcc-status ${statusCls}"><span class="lcc-dot"></span>${statusTxt}</div>
         <div class="lcc-actions">
-          <button class="btn btn-primary lcc-btn" ${done ? 'disabled' : ''} onclick="lifeCheckinDo('${t.key}','${today}')">${done ? '今日已打卡' : '打卡'}</button>
           <input type="date" class="form-input lcc-date" id="lc-date-${t.key}" value="${today}" max="${today}">
-          <button class="btn btn-ghost" onclick="lifeCheckinDo('${t.key}', document.getElementById('lc-date-${t.key}').value)">补打卡</button>
-          <button class="btn btn-ghost" onclick="lifeCheckinRemove('${t.key}', document.getElementById('lc-date-${t.key}').value)">撤销</button>
+          <button class="btn btn-ghost btn-sm lcc-undo" onclick="lifeCheckinRemove('${t.key}', document.getElementById('lc-date-${t.key}').value)">撤销</button>
         </div>
+        <button class="btn btn-primary lcc-main-btn" ${done ? 'disabled' : ''} onclick="lifeCheckinDo('${t.key}', document.getElementById('lc-date-${t.key}').value)">${done ? '今日已打卡' : '立即打卡'}</button>
       </div>`;
     } else {
       const thisWeek = weekKeyOf(today);
@@ -5054,30 +5053,31 @@ function renderLifeCheckin() {
       const streak = lifeWeeklyStreak(t.key);
       const statusCls = weekCount > 0 ? 'done' : 'todo';
       const statusTxt = weekCount > 0 ? `本周已打卡 ${weekCount} 次` : '本周待打卡';
-      html += `<div class="life-checkin-card">
+      html += `<div class="life-checkin-card week">
         <div class="lcc-top"><span class="lcc-icon">${t.icon}</span><span class="lcc-label">${esc(t.label)}</span><span class="lcc-period">周签</span></div>
-        <div class="lcc-stats"><div class="lcc-stat"><span class="lcc-num">${completedWeeks}</span><span class="lcc-unit">已完成周数</span></div><div class="lcc-stat"><span class="lcc-num">${streak}</span><span class="lcc-unit">连续完成周数</span></div></div>
-        <div class="lcc-status ${statusCls}">${statusTxt}</div>
+        <div class="lcc-stats"><div class="lcc-stat"><span class="lcc-num">${completedWeeks}</span><span class="lcc-unit">已完成周数</span></div><div class="lcc-stat"><span class="lcc-num">${streak}</span><span class="lcc-unit">连续完成周</span></div></div>
+        <div class="lcc-status ${statusCls}"><span class="lcc-dot"></span>${statusTxt}</div>
         <div class="lcc-actions">
           <input type="date" class="form-input lcc-date" id="lc-date-${t.key}" value="${today}" max="${today}">
-          <button class="btn btn-primary lcc-btn" onclick="lifeCheckinDo('${t.key}', document.getElementById('lc-date-${t.key}').value)">打卡</button>
-          <button class="btn btn-ghost" onclick="lifeCheckinRemove('${t.key}', document.getElementById('lc-date-${t.key}').value)">撤销</button>
+          <button class="btn btn-ghost btn-sm lcc-undo" onclick="lifeCheckinRemove('${t.key}', document.getElementById('lc-date-${t.key}').value)">撤销</button>
         </div>
+        <button class="btn btn-primary lcc-main-btn" onclick="lifeCheckinDo('${t.key}', document.getElementById('lc-date-${t.key}').value)">打卡 / 补打卡</button>
       </div>`;
     }
   });
   html += '</div>';
-  html += '<div class="life-cal-wrap">';
-  html += '<div class="life-cal-head"><span>📅 打卡日历</span><div class="spacer"></div>';
+  html += '<div class="life-panel">';
+  html += '<div class="life-panel-head"><span class="lph-ico">📅</span><span class="lph-label">打卡日历</span><div class="spacer"></div>';
   html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinMonth(-1)">‹</button>`;
   html += `<span class="life-cal-title">${ps.calYear}年${ps.calMonth + 1}月</span>`;
   html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinMonth(1)">›</button>`;
   html += '</div>';
+  html += '<div class="life-panel-body">';
   html += renderLifeCheckinCalendar(ps.calYear, ps.calMonth);
   html += '<div class="life-cal-legend">';
   html += `<span class="legend-item"><span class="cal-dot" style="background:var(--c-primary)"></span>日打卡</span>`;
   html += `<span class="legend-item"><span class="life-cal-square" style="background:#ff9a3c"></span>周打卡</span>`;
-  html += '</div></div>';
+  html += '</div></div></div>';
   html += '</div>';
   body.innerHTML = html;
 }
@@ -5139,7 +5139,7 @@ function renderLifeRecord() {
   const date = ps.date;
   const all = DB.list('lifeRecords');
   let html = '<div class="fade-in">';
-  html += '<div class="life-section-title">📝 每日记录</div>';
+  html += '<div class="life-hero"><span class="lh-ico">📝</span><div class="lh-text"><div class="lh-title">每日记录</div><div class="lh-sub">睡眠 · 三餐 · 零食，逐条留痕</div></div></div>';
   html += `<div class="life-record-datebar">
     <span>📅 日期</span>
     <input type="date" class="form-input" value="${date}" max="${todayStr()}" onchange="lifeRecordSetDate(this.value)">
@@ -5161,9 +5161,10 @@ function renderLifeRecord() {
   html += '</div>';
   Object.values(LIFE_RECORD_DEFS).forEach(t => {
     const recs = all.filter(r => r.type === t.key && r.date === date).sort((a, b) => (a._ct || 0) - (b._ct || 0));
-    html += `<div class="life-record-section">
-      <div class="life-record-section-head"><span class="lrs-ico">${t.icon}</span><span class="lrs-label">${esc(t.label)}</span>
-        <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="lifeRecOpenForm('${t.key}')">+ 新增记录</button></div>`;
+    html += `<div class="life-panel">
+      <div class="life-panel-head"><span class="lph-ico">${t.icon}</span><span class="lph-label">${esc(t.label)}</span><span class="lph-count">${recs.length} 条</span>
+        <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="lifeRecOpenForm('${t.key}')">+ 新增记录</button></div>
+      <div class="life-panel-body">`;
     if (ps.formType === t.key) {
       html += `<div class="life-rec-form" id="lifeRecForm">`;
       t.fields.forEach(f => {
@@ -5178,9 +5179,10 @@ function renderLifeRecord() {
       html += `<div class="lf-field" style="flex-direction:row;gap:6px"><button class="btn btn-primary" onclick="lifeRecSave('${t.key}')">${ps.editId ? '保存修改' : '保存'}</button><button class="btn btn-ghost" onclick="lifeRecCancel()">取消</button></div>`;
       html += `</div>`;
     }
+    if (t.key === 'sleep') html += renderSleepChart(all, date);
     if (t.key === 'sleep') html += renderSleepWeekTable(all);
     if (!recs.length) {
-      html += `<div class="life-empty">暂无记录</div>`;
+      html += `<div class="life-empty">暂无${esc(t.label)}，点右上角「+ 新增记录」添加</div>`;
     } else {
       recs.forEach(r => {
         const fieldsHtml = t.fields.filter(f => f.key !== 'duration').map(f => {
@@ -5189,19 +5191,55 @@ function renderLifeRecord() {
           return `<span class="lrf"><b>${esc(f.label)}:</b> ${esc(val)}</span>`;
         }).filter(Boolean).join('');
         const dur = (t.key === 'sleep' && r.duration != null) ? `<span class="lrf"><b>睡眠时长:</b> ${Number(r.duration).toFixed(1)}h</span>` : '';
-        html += `<div class="life-rec-card">
-          <div class="life-rec-fields">${fieldsHtml}${dur}</div>
-          <div class="life-rec-actions">
+        const sub = r.time ? `🕐 ${esc(r.time)} · ${r.date}` : r.date;
+        html += `<div class="life-rec-item">
+          <div class="life-rec-main">
+            <div class="life-rec-meta">${fieldsHtml}${dur}</div>
+            <div class="life-rec-time">${sub}</div>
+          </div>
+          <div class="life-rec-ops">
             <button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('${t.key}','${r.id}')">编辑</button>
             <button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button>
           </div>
         </div>`;
       });
     }
-    html += `</div>`;
+    html += `</div></div>`;
   });
   html += '</div>';
   body.innerHTML = html;
+}
+function renderSleepChart(all, refDate) {
+  const days = [];
+  for (let i = 13; i >= 0; i--) days.push(addDaysStr(refDate, -i));
+  const sumByDay = {};
+  all.filter(r => r.type === 'sleep').forEach(r => { sumByDay[r.date] = (sumByDay[r.date] || 0) + (Number(r.duration) || 0); });
+  const vals = days.map(d => sumByDay[d] || 0);
+  const maxData = Math.max(1, ...vals.filter(v => v > 0));
+  const maxV = Math.max(8, maxData);
+  const today = todayStr();
+  const refBottom = Math.round(8 / maxV * 100);
+  let bars = `<div class="sleep-ref" style="bottom:${refBottom}px"></div>`;
+  let xlabels = '';
+  days.forEach((d, idx) => {
+    const v = vals[idx];
+    const h = Math.max(3, Math.round(v / maxV * 100));
+    const isToday = d === today;
+    const xlabel = d.slice(5).replace('-', '/');
+    bars += `<div class="sleep-bar-col">
+      ${v > 0 ? `<span class="sleep-bar-val">${Math.round(v * 10) / 10}</span>` : ''}
+      <div class="sleep-bar${isToday ? ' today' : ''}${v > 0 ? '' : ' zero'}" style="height:${h}px" title="${d} ${Math.round(v * 10) / 10}h"></div>
+    </div>`;
+    xlabels += `<div class="sleep-x-col${isToday ? ' cur' : ''}">${xlabel}</div>`;
+  });
+  const withData = vals.filter(v => v > 0);
+  const avg = withData.length ? Math.round(withData.reduce((a, b) => a + b, 0) / withData.length * 10) / 10 : null;
+  return `<div class="sleep-chart">
+    <div class="sleep-chart-head"><span class="sleep-chart-title">😴 近 14 天睡眠时长（小时）</span><span class="sleep-chart-avg">日均 ${avg != null ? avg + 'h' : '—'}</span></div>
+    <div class="sleep-chart-bars">${bars}</div>
+    <div class="sleep-chart-x">${xlabels}</div>
+    <div class="sleep-chart-foot"><span class="sch-dot"></span>橙色为今日 · 虚线为 8h 推荐睡眠</div>
+  </div>`;
 }
 function renderSleepWeekTable(all) {
   const weeks = {};
