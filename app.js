@@ -853,8 +853,9 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     const dayPlatforms = new Set();
     dayRecords.forEach(r => { arrVal(r.platform).forEach(p => dayPlatforms.add(p)); });
     [...dayPlatforms].forEach(p => { topDots += `<span class="cal-dot" style="background:${PLATFORM_COLORS[p] || '#9DC8FF'}"></span>`; });
-    // v223: 日历格恢复平台发布条数，字号再缩小
-    const dayCount = dayRecords.length > 0 ? `<span class="cal-day-count">${dayRecords.length}条</span>` : '';
+    // v226: 日历条数仅统计「已发布」的发布条数
+    const publishedDayRecords = dayRecords.filter(r => r.status === '已发布');
+    const dayCount = publishedDayRecords.length > 0 ? `<span class="cal-day-count">${publishedDayRecords.length}条</span>` : '';
     const dayComms = commissionRecords.filter(r => (r.startTime || '').startsWith(dateStr) || (r.deadline || '').startsWith(dateStr));
     const hasStart = dayComms.some(r => (r.startTime || '').startsWith(dateStr));
     const hasEnd = dayComms.some(r => (r.deadline || '').startsWith(dateStr));
@@ -2403,6 +2404,12 @@ function renderHome() {
 
 function renderHomeRecordCard(r) {
   let html = `<div class="record-card record-card-minimal" onclick="openDetail('home','${r.id}')">`;
+  html += '<div class="record-card-header">';
+  html += '<div class="record-card-title">' + esc(r.title || '未命名') + '</div>';
+  html += '<div class="record-card-actions">';
+  html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('home','${r.id}')">✏️</span>`;
+  html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('home','${r.id}')">🗑️</span>`;
+  html += '</div></div>';
   html += '<div class="record-card-body-minimal">';
   const platforms = arrVal(r.platform);
   platforms.forEach(p => {
@@ -2410,7 +2417,7 @@ function renderHomeRecordCard(r) {
     html += `<span class="field"><span class="field-label">平台:</span><span class="tag" style="background:${pColor}20;color:${pColor}">${esc(p)}</span></span>`;
   });
   const ct = arrVal(r.contentType);
-  html += `<span class="field"><span class="field-label">类型:</span><span class="field-value">${esc(ct.join('、') || '-')}</span></span>`;
+  html += `<span class="field"><span class="field-label">内容类型:</span><span class="field-value">${esc(ct.join('、') || '-')}</span></span>`;
   html += `<span class="field"><span class="field-label">发布时间:</span><span class="field-value">${fmtDate(r.publishTime)}</span></span>`;
   html += '</div></div>';
   return html;
@@ -3077,7 +3084,6 @@ function drawMindMap(chars, relations) {
     const pos = positions[c.name];
     const nodeHTML = `<div class="mindmap-node circular" style="left:${pos.x - 25}px;top:${pos.y - 25}px" onclick="navigate('oc-profiles')" title="${esc(c.name)}">` +
       `<div style="width:44px;height:44px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:${(c.name||'?').length>3?'8px':(c.name||'?').length>2?'10px':'12px'};font-weight:700;color:var(--c-primary-dark);text-align:center;word-break:break-all;overflow:hidden;padding:2px">${esc(c.name || '?')}</div>` +
-      (c.alias ? `<div class="mm-node-alias">${esc(c.alias)}</div>` : '') +
       '</div>';
     inner += nodeHTML;
   });
@@ -5394,9 +5400,15 @@ function renderLifeSingleWeek(label, days, today, withSummary) {
   const times = weekRecords.map(r => r.createdAt ? new Date(r.createdAt) : null).filter(d => d && !isNaN(d.getTime()));
   let timeRange = '--';
   if (times.length) {
-    times.sort((a, b) => a - b);
-    const fmt = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-    timeRange = fmt(times[0]) + ' - ' + fmt(times[times.length - 1]);
+    const hourCounts = {};
+    times.forEach(d => { const h = d.getHours(); hourCounts[h] = (hourCounts[h] || 0) + 1; });
+    let maxHour = -1, maxCount = 0;
+    Object.entries(hourCounts).forEach(([h, c]) => { if (c > maxCount) { maxCount = c; maxHour = +h; } });
+    if (maxHour >= 0) {
+      const pad = n => String(n).padStart(2, '0');
+      const next = (maxHour + 1) % 24;
+      timeRange = pad(maxHour) + ':00-' + pad(next) + ':00';
+    }
   }
   let html = '';
   if (withSummary) {
@@ -5414,7 +5426,7 @@ function renderLifeSingleWeek(label, days, today, withSummary) {
   for (let i = 0; i < 7; i++) html += '<div class="lwm-day">' + wd[i] + '</div>';
   html += '</div>';
   allDefs.forEach(t => {
-    html += '<div class="lwm-row"><div class="lwm-habit">' + esc(t.label) + '</div>';
+    html += '<div class="lwm-row"><div class="lwm-habit"><span class="lwm-habit-name">' + esc(t.label) + '</span><span class="lwm-tag">' + (t.period === 'day' ? '每日' : '每周') + '</span></div>';
     for (let i = 0; i < 7; i++) {
       const ds = days[i];
       const done = checkins.some(r => r.type === t.key && r.date === ds);
@@ -5422,7 +5434,7 @@ function renderLifeSingleWeek(label, days, today, withSummary) {
       const cls = 'lwm-cell' + (done ? ' done' : '') + (isToday ? ' today' : '') + (t.period === 'week' ? ' week' : '');
       html += '<div class="' + cls + '" title="' + ds + '" onclick="lifeWeekCellClick(\'' + t.key + '\',\'' + ds + '\')">' + (done ? '✔' : '') + '</div>';
     }
-    html += '<span class="lwm-tag-r">' + (t.period === 'day' ? '每日' : '每周') + '</span></div>';
+    html += '</div>';
   });
   html += '</div></div>';
   return html;
