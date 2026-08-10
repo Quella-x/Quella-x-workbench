@@ -856,8 +856,7 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     const dayPlatforms = new Set();
     dayRecords.forEach(r => { arrVal(r.platform).forEach(p => dayPlatforms.add(p)); });
     [...dayPlatforms].forEach(p => { topDots += `<span class="cal-dot" style="background:${PLATFORM_COLORS[p] || '#9DC8FF'}"></span>`; });
-    // v31: 平台发布条数挪到圆点后面（同行）；开稿/截稿/同天上调并固定位置
-    const dayCount = dayRecords.length > 0 ? `<span class="cal-day-count">${dayRecords.length}条</span>` : '';
+    // v222: 日历格内移除平台发布条数，仅保留圆点
     const dayComms = commissionRecords.filter(r => (r.startTime || '').startsWith(dateStr) || (r.deadline || '').startsWith(dateStr));
     const hasStart = dayComms.some(r => (r.startTime || '').startsWith(dateStr));
     const hasEnd = dayComms.some(r => (r.deadline || '').startsWith(dateStr));
@@ -875,7 +874,7 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     }
     html += `<div class="cal-day${isToday ? ' today' : ''}">
       <div class="cal-date-row"><span class="cal-date">${d}</span></div>
-      <div class="cal-dots">${topDots}${dayCount}</div>
+      <div class="cal-dots">${topDots}</div>
       <div class="cal-tag-rows">
         <div class="cal-tag-row home-comm-tags">${commTag}</div>
         <div class="cal-tag-row home-deep-tags">${deepTag}</div>
@@ -2364,10 +2363,6 @@ function renderHome() {
 
     html += renderHomeStatusFilterBar();
 
-    // v221: 平台模块内的「待发布」按钮，仅统计并跳转该平台待发布项
-    const pendingForTab = records.filter(r => statusOf(r) === '待发布').length;
-    html += `<div class="home-pending-bar"><button class="home-pending-btn" style="border-color:${PLATFORM_COLORS[ps.tab] || 'var(--c-orange)'};color:${PLATFORM_COLORS[ps.tab] || 'var(--c-orange)'}" onclick="homeSetPlatformStatusFilter('${ps.tab}', '待发布')">📋 ${esc(ps.tab)} 待发布 <b>${pendingForTab}</b></button></div>`;
-
     // Records
     let filteredRecords = records;
     if (ps.search) filteredRecords = filteredRecords.filter(r => (r.title || '').toLowerCase().includes(ps.search.toLowerCase()));
@@ -2449,7 +2444,7 @@ function renderHome() {
       html += '<div class="home-status-group">';
       html += `<div class="home-status-group-hd"><span class="tag" style="background:${pColor}20;color:${pColor}">${esc(p)}</span><span class="home-status-group-count">${recs.length} 条</span></div>`;
       html += '<div class="record-list">';
-      recs.forEach(r => { html += renderHomeRecordCard(r); });
+      recs.forEach(r => { html += renderHomeRecordCard(r, true); });
       html += '</div></div>';
     });
     if (grouped['__none__'] && grouped['__none__'].length) {
@@ -2457,7 +2452,7 @@ function renderHome() {
       html += '<div class="home-status-group">';
       html += `<div class="home-status-group-hd"><span class="tag">未指定平台</span><span class="home-status-group-count">${grouped['__none__'].length} 条</span></div>`;
       html += '<div class="record-list">';
-      grouped['__none__'].forEach(r => { html += renderHomeRecordCard(r); });
+      grouped['__none__'].forEach(r => { html += renderHomeRecordCard(r, true); });
       html += '</div></div>';
     }
     if (!hasAny) {
@@ -2469,7 +2464,24 @@ function renderHome() {
   body.innerHTML = html;
 }
 
-function renderHomeRecordCard(r) {
+function renderHomeRecordCard(r, minimal) {
+  const platforms = arrVal(r.platform);
+  if (minimal) {
+    let html = `<div class="record-card record-card-minimal" onclick="openDetail('home','${r.id}')">`;
+    html += '<div class="record-card-body-minimal">';
+    platforms.forEach(p => {
+      const pColor = PLATFORM_COLORS[p] || '#9DC8FF';
+      html += `<span class="field"><span class="tag" style="background:${pColor}20;color:${pColor}">${esc(p)}</span></span>`;
+    });
+    const ct = arrVal(r.contentType);
+    if (ct.length) html += `<span class="field"><span class="field-label">类型:</span><span class="field-value">${esc(ct.join('、'))}</span></span>`;
+    html += `<span class="field"><span class="field-label">发布:</span><span class="field-value">${fmtDate(r.publishTime)}</span></span>`;
+    html += '<div class="record-card-actions-minimal">';
+    html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('home','${r.id}')">✏️</span>`;
+    html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('home','${r.id}')">🗑️</span>`;
+    html += '</div></div></div>';
+    return html;
+  }
   let html = `<div class="record-card" onclick="openDetail('home','${r.id}')">`;
   html += '<div class="record-card-header"><div class="record-card-title">' + esc(r.title || '未命名') + '</div>';
   html += '<div class="record-card-actions">';
@@ -2477,7 +2489,6 @@ function renderHomeRecordCard(r) {
   html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('home','${r.id}')">🗑️</span>`;
   html += '</div></div>';
   html += '<div class="record-card-body">';
-  const platforms = arrVal(r.platform);
   platforms.forEach(p => {
     const pColor = PLATFORM_COLORS[p] || '#9DC8FF';
     html += `<span class="field"><span class="tag" style="background:${pColor}20;color:${pColor}">${esc(p)}</span></span>`;
@@ -4999,8 +5010,11 @@ function renderQuickCheckin() {
     const thisWeek = weekKeyOf(today);
     return DB.list('lifeCheckins').some(r => r.type === t.key && (r.week || weekKeyOf(r.date)) === thisWeek);
   }).length;
+  const now = new Date();
+  const wd = ['日','一','二','三','四','五','六'];
+  const dateStr = `${now.getMonth()+1}月${now.getDate()}日 周${wd[now.getDay()]}`;
   let html = '<div class="life-quick-checkin">';
-  html += `<div class="lqc-hd"><span class="lqc-title">今日打卡</span><span class="lqc-count">已完成 ${doneCount}/${allDefs.length}</span></div>`;
+  html += `<div class="lqc-hd"><span class="lqc-date">${dateStr}</span><span class="lqc-title">今日打卡</span><span class="lqc-count">已完成 ${doneCount}/${allDefs.length}</span></div>`;
   html += '<div class="lqc-grid">';
   allDefs.forEach(t => {
     let done = false;
@@ -5455,19 +5469,28 @@ function lifeCheckinRenderModal(typeKey) {
   openModal(esc(t.label) + ' 打卡详情', html, '');
 }
 function renderLifeWeekOverview() {
+  const v = lifeCheckinInitView();
   const today = todayStr();
-  const base = new Date(); base.setHours(0, 0, 0, 0);
-  const currentMonday = weekMondayOf(base);
-  // v221: 周版块展示最近 4 周，当前周在最上面，往下依次递减：第四周→第三周→第二周→第一周
-  const weekLabels = ['第四周', '第三周', '第二周', '第一周'];
-  let html = '';
+  // v222: 周版块展示当前月份的 4 周，本日所在周置顶，自上而下为第四周→第三周→第二周→第一周
+  const firstOfMonth = new Date(v.y, v.m, 1);
+  const firstMonday = weekMondayOf(firstOfMonth);
+  const weeks = [];
   for (let i = 0; i < 4; i++) {
-    const mon = new Date(currentMonday);
-    mon.setDate(currentMonday.getDate() - i * 7);
+    const mon = new Date(firstMonday);
+    mon.setDate(firstMonday.getDate() + i * 7);
     const days = [];
     for (let j = 0; j < 7; j++) { const d = new Date(mon); d.setDate(mon.getDate() + j); days.push(fmtDate(d)); }
-    html += renderLifeSingleWeek(weekLabels[i], days, today);
+    weeks.push({ days });
   }
+  const curIdx = weeks.findIndex(w => w.days.includes(today));
+  const order = curIdx >= 0
+    ? [curIdx, curIdx - 1, curIdx - 2, curIdx - 3].map(i => (i + 4) % 4)
+    : [3, 2, 1, 0];
+  const labels = ['第四周', '第三周', '第二周', '第一周'];
+  let html = '';
+  order.forEach((idx, pos) => {
+    html += renderLifeSingleWeek(labels[pos], weeks[idx].days, today);
+  });
   return html;
 }
 function renderLifeSingleWeek(label, days, today) {
