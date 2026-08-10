@@ -387,7 +387,7 @@ ul,li{list-style:none}
 .modal.lg{width:1000px}
 .modal.xl{width:1120px}
 .modal.sm{width:420px}
-.modal.import-story{height:240px}
+.modal.import-story{height:420px}
 .modal-header{
   display:flex;align-items:center;justify-content:space-between;
   padding:16px 20px;border-bottom:1px solid var(--c-border);flex-shrink:0;
@@ -1094,7 +1094,7 @@ ul,li{list-style:none}
 }
 .pricelist-menu-item{
   display:flex;justify-content:space-between;align-items:baseline;
-  padding:5px 0 5px 12px;border-bottom:1px dotted var(--c-border-light);
+  padding:5px 12px;border-bottom:1px dotted var(--c-border-light);
   font-size:13px;font-weight:500;cursor:pointer;
 }
 .pricelist-menu-item:hover{background:var(--c-primary-bg);border-radius:4px}
@@ -1875,7 +1875,7 @@ ul,li{list-style:none}
 .lwm-habit{font-size:12px;font-weight:600;color:var(--c-text);display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:1px;text-align:left;padding-left:3px;overflow:hidden}
 .lwm-habit-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}
 .lwm-habit .lwm-tag{font-size:9px;font-weight:400;color:var(--c-text-light);white-space:nowrap;flex-shrink:0;margin-left:1px}
-.lwm-cell{aspect-ratio:1;border-radius:3px;background:var(--c-bg);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;box-sizing:border-box;border:1px solid var(--c-border-light);cursor:pointer}
+.lwm-cell{width:24px;height:24px;border-radius:3px;background:var(--c-bg);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;box-sizing:border-box;border:1px solid var(--c-border-light);cursor:pointer;justify-self:center;align-self:center}
 .lwm-cell.done{background:var(--c-primary);border-color:var(--c-primary)}
 .lwm-cell.week{background:rgba(250,140,22,.16);border-color:rgba(250,140,22,.25)}
 .lwm-cell.week.done{background:var(--c-orange);border-color:var(--c-orange)}
@@ -2001,7 +2001,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=230"></script>
+<script src="app.js?v=231"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

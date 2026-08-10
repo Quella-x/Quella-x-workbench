@@ -4317,7 +4317,7 @@ function renderPriceList() {
   html += `<div class="search-box"><input type="text" placeholder="搜索制品/分类..." value="${esc(ps.search)}" oninput="onSearch('design-pricelist', this.value)"><span class="search-icon">🔍</span></div>`;
   html += '<div class="spacer"></div>';
   html += '<button class="btn btn-outline toolbar-eq" onclick="togglePriceListNotes()">📝 其他说明</button>';
-  html += '<button class="btn btn-outline toolbar-eq" onclick="openPriceListSort()">↕️ 调整排序</button>';
+  html += '<button class="btn btn-outline toolbar-eq" onclick="openPriceListSort()">↕️ 排序编辑</button>';
   html += '<button class="btn btn-primary" onclick="openAddForm(\'design-pricelist\')">+ 新增价目</button>';
   html += '</div>';
 
@@ -4325,7 +4325,7 @@ function renderPriceList() {
   if (notes.length) {
     html += '<div style="margin-bottom:10px">';
     html += '<div class="collapsible-toggle" onclick="this.classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">';
-    html += '<span>📝 其他说明</span><span class="toggle-arrow">▼</span></div>';
+    html += '<span>其他说明</span><span class="toggle-arrow">▼</span></div>';
     html += '<div class="collapsible-content">';
     html += '<div class="pricelist-notes-panel" style="margin-top:8px;margin-bottom:8px">';
     html += '<div class="pricelist-notes-grid">';
