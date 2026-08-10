@@ -387,6 +387,7 @@ ul,li{list-style:none}
 .modal.lg{width:1000px}
 .modal.xl{width:1120px}
 .modal.sm{width:420px}
+.modal.import-story{height:200px}
 .modal-header{
   display:flex;align-items:center;justify-content:space-between;
   padding:16px 20px;border-bottom:1px solid var(--c-border);flex-shrink:0;
@@ -868,7 +869,7 @@ ul,li{list-style:none}
   box-shadow:0 1px 3px rgba(0,0,0,.04);
 }
 .pricelist-note-title{
-  font-size:18px;font-weight:700;color:var(--c-text);
+  font-size:14px;font-weight:700;color:var(--c-text);
   margin-bottom:6px;
 }
 .pricelist-note-content{
@@ -1087,7 +1088,7 @@ ul,li{list-style:none}
   max-width:420px;margin:16px auto 0;
 }
 .pricelist-menu-header{
-  text-align:center;font-size:14px;font-weight:700;
+  text-align:center;font-size:18px;font-weight:700;
   letter-spacing:0;padding-bottom:6px;margin-bottom:10px;
   border-bottom:2px dashed var(--c-border);color:var(--c-text);
 }
@@ -1867,12 +1868,12 @@ ul,li{list-style:none}
 .lwm-title{font-size:15px;font-weight:700;color:var(--c-text)}
 .lwm-range{font-size:12px;font-weight:600;color:var(--c-text-light);min-width:120px;text-align:right}
 .lwm-grid{display:flex;flex-direction:column;gap:6px;padding-right:5px}
-.lwm-row{display:grid;grid-template-columns:65px repeat(7,1fr);gap:3px;align-items:center}
+.lwm-row{display:grid;grid-template-columns:85px repeat(7,1fr);gap:3px;align-items:center}
 .lwm-row-hd .lwm-day{text-align:center;font-size:11px;color:var(--c-text-muted);font-weight:600}
 .lwm-row-hd .lwm-habit{font-size:11px;color:var(--c-text-muted)}
-.lwm-habit{font-size:12px;font-weight:600;color:var(--c-text);display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:3px;text-align:left;padding-left:5px;overflow:hidden}
+.lwm-habit{font-size:12px;font-weight:600;color:var(--c-text);display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:2px;text-align:left;padding-left:5px;overflow:hidden}
 .lwm-habit-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
-.lwm-habit .lwm-tag{font-size:10px;font-weight:400;color:var(--c-text-light);white-space:nowrap;flex-shrink:0}
+.lwm-habit .lwm-tag{font-size:9px;font-weight:400;color:var(--c-text-light);white-space:nowrap;flex-shrink:0}
 .lwm-cell{aspect-ratio:1;border-radius:3px;background:var(--c-bg);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;box-sizing:border-box;border:1px solid var(--c-border-light);cursor:pointer}
 .lwm-cell.done{background:var(--c-primary);border-color:var(--c-primary)}
 .lwm-cell.week{background:rgba(250,140,22,.16);border-color:rgba(250,140,22,.25)}
@@ -1999,7 +2000,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=228"></script>
+<script src="app.js?v=229"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

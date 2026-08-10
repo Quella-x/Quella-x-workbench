@@ -2763,7 +2763,7 @@ function importStoriesToTimeline() {
       Toast.success('已导入 1 条事件');
       renderTimeline();
     }},
-  ]);
+  ], 'import-story');
 }
 
 /* ===== OC Relations — Mind Map (需求10: 箭头标明, 档案社会关系自动同步, 缩略姓名按钮) ===== */
@@ -4133,7 +4133,9 @@ function dcRecalc() {
     }
     // 折后小计：整单加急时不含加急溢价（下方独立展示）；单项/部分加急时，加急溢价已内联在明细中，折后小计含该溢价
     const flatSubtotal = whole ? afterDiscount : grandTotal;
-    r += `<div class="dc-rr total"><span>折后小计</span><span>¥${flatSubtotal.toFixed(2)}</span></div>`;
+    // v229: 没有折扣时显示“制品小计”
+    const noDiscountLabel = !discHTML && !_dcFanReduce ? '制品小计' : '折后小计';
+    r += `<div class="dc-rr total"><span>${noDiscountLabel}</span><span>¥${flatSubtotal.toFixed(2)}</span></div>`;
     r += '</div>';
   }
   if (unboundExtras.length) {
@@ -4303,7 +4305,7 @@ function renderPriceList() {
   html += '<div class="toolbar" style="margin-bottom:8px">';
   html += `<div class="search-box"><input type="text" placeholder="搜索制品/分类..." value="${esc(ps.search)}" oninput="onSearch('design-pricelist', this.value)"><span class="search-icon">🔍</span></div>`;
   html += '<div class="spacer"></div>';
-  html += '<button class="btn btn-outline toolbar-eq" onclick="togglePriceListNotes()">📝 其他说明</button>';
+  html += '<button class="btn btn-outline toolbar-eq" onclick="togglePriceListNotes()">其他说明</button>';
   html += '<button class="btn btn-outline toolbar-eq" onclick="openPriceListSort()">↕️ 调整排序</button>';
   html += '<button class="btn btn-primary" onclick="openAddForm(\'design-pricelist\')">+ 新增价目</button>';
   html += '</div>';
@@ -4312,7 +4314,7 @@ function renderPriceList() {
   if (notes.length) {
     html += '<div style="margin-bottom:10px">';
     html += '<div class="collapsible-toggle" onclick="this.classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">';
-    html += '<span>📝 其他说明</span><span class="toggle-arrow">▼</span></div>';
+    html += '<span>其他说明</span><span class="toggle-arrow">▼</span></div>';
     html += '<div class="collapsible-content">';
     html += '<div class="pricelist-notes-panel" style="margin-top:8px;margin-bottom:8px">';
     html += '<div class="pricelist-notes-grid">';
