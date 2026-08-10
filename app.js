@@ -5035,43 +5035,7 @@ function renderCheckinHeatmap(typeKey, daysBack) {
   html += '</div>';
   return html;
 }
-function renderCheckinWeekMatrix() {
-  const today = todayStr();
-  const mon = weekMondayOf(parseDateStr(today));
-  const days = [];
-  for (let i = 0; i < 7; i++) { const d = new Date(mon); d.setDate(mon.getDate() + i); days.push(fmtDate(d)); }
-  const labels = ['一','二','三','四','五','六','日'];
-  let html = '<table class="life-qm-table"><thead><tr><th>习惯</th>';
-  days.forEach((d, i) => html += `<th>${labels[i]}<br><span class="wd">${d.slice(8)}</span></th>`);
-  html += '<th>本周</th></tr></thead><tbody>';
-  Object.values(LIFE_CHECKIN_DEFS).forEach(t => {
-    const recs = DB.list('lifeCheckins').filter(r => r.type === t.key);
-    const counts = days.map(d => recs.filter(r => r.date === d).length);
-    const total = counts.reduce((a, b) => a + b, 0);
-    html += `<tr><td class="habit-cell"><span class="h-ico">${t.icon}</span>${esc(t.label)}</td>`;
-    counts.forEach(c => html += `<td>${c > 0 ? '<span class="done">✓</span>' : '<span class="count">—</span>'}</td>`);
-    html += `<td class="count">${total}</td></tr>`;
-  });
-  html += '</tbody></table>';
-  return html;
-}
-function renderLifeCheckinSummary() {
-  const today = todayStr();
-  const all = DB.list('lifeCheckins');
-  const total = all.length;
-  const todayDone = Object.values(LIFE_CHECKIN_DEFS).filter(t => {
-    if (t.period === 'day') return all.some(r => r.type === t.key && r.date === today);
-    return all.some(r => r.type === t.key && r.week === weekKeyOf(today));
-  }).length;
-  const weekDone = Object.values(LIFE_CHECKIN_DEFS).filter(t => all.some(r => r.type === t.key && r.week === weekKeyOf(today))).length;
-  const maxStreak = Math.max(0, ...Object.values(LIFE_CHECKIN_DEFS).map(t => lifeDailyStreak(t.key)));
-  return `<div class="life-summary-row">
-    <div class="life-summary-card"><div class="lsc-val">${total}</div><div class="lsc-label">累计打卡</div></div>
-    <div class="life-summary-card"><div class="lsc-val">${todayDone}</div><div class="lsc-label">今日完成</div></div>
-    <div class="life-summary-card"><div class="lsc-val">${weekDone}</div><div class="lsc-label">本周完成</div></div>
-    <div class="life-summary-card"><div class="lsc-val">${maxStreak}</div><div class="lsc-label">最长连续</div></div>
-  </div>`;
-}
+/* (v197: removed checkin summary cards & week matrix — keep only goal-list cards) */
 function renderGoalCard(t) {
   const today = todayStr();
   const recs = DB.list('lifeCheckins').filter(r => r.type === t.key);
@@ -5125,11 +5089,6 @@ function renderGoalCard(t) {
 function renderLifeCheckin() {
   const body = $('#mainBody');
   let html = '<div class="fade-in">';
-  html += '<div class="life-hero"><span class="lh-ico">🌿</span><div class="lh-text"><div class="lh-title">每日打卡</div><div class="lh-sub">目标 · 坚持 · 成长</div></div></div>';
-  html += renderLifeCheckinSummary();
-  html += '<div class="life-section-hd"><span class="lsh-ico">⚡</span><span class="lsh-label">快捷打卡</span><span class="lsh-sub">本周习惯矩阵</span></div>';
-  html += '<div class="life-week-matrix">' + renderCheckinWeekMatrix() + '</div>';
-  html += '<div class="life-section-hd"><span class="lsh-ico">🎯</span><span class="lsh-label">目标列表</span><span class="lsh-sub">点击卡片补打卡</span></div>';
   html += '<div class="life-goal-grid">';
   Object.values(LIFE_CHECKIN_DEFS).forEach(t => { html += renderGoalCard(t); });
   html += '</div>';
