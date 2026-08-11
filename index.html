@@ -1708,7 +1708,10 @@ ul,li{list-style:none}
 .lqc-hd{display:flex;align-items:center;justify-content:flex-start;gap:10px;margin-bottom:12px}
 .lqc-title{font-size:18px;font-weight:700;color:var(--c-text)}
 .lqc-count{font-size:11px;font-weight:500;color:var(--c-text-light);background:var(--c-card);padding:2px 8px;border-radius:99px}
-.lqc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,108px));gap:10px;justify-content:center}
+.lqc-count.lqc-c0{color:#e53935;background:#fdecea}
+.lqc-count.lqc-cpart{color:#f57c00;background:#fff3e0}
+.lqc-count.lqc-cfull{color:#2e7d32;background:#e8f5e9}
+.lqc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:10px}
 .lqc-btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;min-width:0;padding:15px 6px;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:#F4FCFF;color:var(--c-text);font-size:24px;font-weight:550;cursor:pointer;transition:.15s}
 .lqc-btn:hover{background:#e0f2ff;border-color:var(--c-primary-light);color:var(--c-text)}
 .lqc-btn.done{background:#e0f2ff;border-color:#e0f2ff;color:var(--c-text)}
@@ -1748,10 +1751,10 @@ ul,li{list-style:none}
 .lgc-desc{font-size:11px;font-weight:400;color:var(--c-text-light);flex-shrink:0}
 .lgc-arrow{margin-left:auto;font-size:22px;color:var(--c-text-light);font-weight:300}
 .lgc-body{display:flex;gap:16px;align-items:center;flex-wrap:nowrap}
-.lgc-stats{display:flex;gap:8px;flex:1;min-width:0;align-items:center}
-.lgc-stat{flex:1 1 0;background:var(--c-primary-bg);border-radius:var(--radius-sm);padding:10px 6px;text-align:center;min-width:0}
-.lgc-num{font-size:20px;font-weight:800;color:var(--c-primary-dark);line-height:1}
-.lgc-unit{font-size:11px;color:var(--c-text-light);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lgc-stats{display:flex;gap:8px;flex:1;min-width:0;align-items:center;margin:0 4px}
+.lgc-stat{flex:1 1 0;background:var(--c-primary-bg);border-radius:var(--radius-sm);padding:8px 4px;text-align:center;min-width:0}
+.lgc-num{font-size:17px;font-weight:800;color:var(--c-primary-dark);line-height:1}
+.lgc-unit{font-size:10px;color:var(--c-text-light);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lgc-heatmap{width:66px;flex-shrink:0}
 .lgc-heatmap .life-heatmap{gap:2px}
 .lgc-heatmap .hm-day{border-radius:3px}
@@ -2053,7 +2056,7 @@ ul,li{list-style:none}
   .lr-top-divider{margin:-10px 0}
   .lr-diet-btns{gap:6px;grid-template-columns:repeat(2,minmax(0,88px));padding:0 8px;justify-content:center}
   .lr-diet-qbtn{font-size:20px;font-weight:550;background:#F4FCFF;color:var(--c-text);padding:14px 4px}
-  .lqc-grid{gap:6px;grid-template-columns:repeat(auto-fit,minmax(0,88px));padding:0 8px;justify-content:center}
+  .lqc-grid{gap:6px;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));padding:0 8px}
   .lqc-btn{font-size:20px;font-weight:550;background:#F4FCFF;color:var(--c-text);padding:14px 4px}
   .lqc-label{font-size:20px;font-weight:550;white-space:nowrap}
   .lr-toggle-btn{font-size:15px;padding:11px}
@@ -2119,7 +2122,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=274"></script>
+<script src="app.js?v=275"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

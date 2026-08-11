@@ -4982,10 +4982,10 @@ function migrateData() {
    生活模块 · 每日打卡 / 每日记录 (v193)
    ============================================================ */
 const LIFE_CHECKIN_DEFS = {
-  deepspace: { key: 'deepspace', label: '深空打卡', icon: '🌌', period: 'day', calendar: true },
-  sport: { key: 'sport', label: '运动打卡', icon: '🏃', period: 'day' },
-  massage: { key: 'massage', label: '按摩打卡', icon: '💆', period: 'week' },
-  vacuum: { key: 'vacuum', label: '吸尘打卡', icon: '🧹', period: 'week' },
+  deepspace: { key: 'deepspace', label: '深空', icon: '🌌', period: 'day', calendar: true },
+  sport: { key: 'sport', label: '运动', icon: '🏃', period: 'day' },
+  massage: { key: 'massage', label: '按摩', icon: '💆', period: 'week' },
+  vacuum: { key: 'vacuum', label: '吸尘', icon: '🧹', period: 'week' },
 };
 function renderQuickCheckin() {
   const today = todayStr();
@@ -4996,7 +4996,9 @@ function renderQuickCheckin() {
     return DB.list('lifeCheckins').some(r => r.type === t.key && (r.week || weekKeyOf(r.date)) === thisWeek);
   }).length;
   let html = '<div class="life-quick-checkin">';
-  html += `<div class="lqc-hd"><span class="lqc-title">今日打卡</span><span class="lqc-count">已完成 ${doneCount}/${allDefs.length}</span></div>`;
+  const total = allDefs.length;
+  const countCls = doneCount === 0 ? 'lqc-c0' : (doneCount === total ? 'lqc-cfull' : 'lqc-cpart');
+  html += `<div class="lqc-hd"><span class="lqc-title">今日打卡</span><span class="lqc-count ${countCls}">已完成 ${doneCount}/${total}</span></div>`;
   html += '<div class="lqc-grid">';
   allDefs.forEach(t => {
     let done = false;
