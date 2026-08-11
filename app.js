@@ -825,12 +825,18 @@ function updateImportancePill(input) {
   });
 }
 
-// 增强 limitSingleCheckbox：单选后同步更新重要性胶囊样式
+// 增强 limitSingleCheckbox：单选后同步更新胶囊样式（用于单位单选、重要性单选等）
 function limitSingleCheckbox(cb) {
   const group = cb.closest('.checkbox-group');
   if (!group || !group.dataset.single) return;
   group.querySelectorAll('input[type="checkbox"]').forEach(c => { if (c !== cb) c.checked = false; });
+  group.querySelectorAll('.checkbox-item').forEach(item => item.classList.remove('selected'));
+  if (cb.checked) cb.closest('.checkbox-item').classList.add('selected');
   if (group.classList.contains('importance-pills')) updateImportancePill(cb);
+}
+function toggleCheckboxItem(cb) {
+  const item = cb.closest('.checkbox-item');
+  if (item) item.classList.toggle('selected', cb.checked);
 }
 /* ===== Calendar Component ===== */
 const PLATFORM_COLORS = { '小红书': '#ff2442', '抖音': '#161823', '视频号': '#fa8c16', '公众号': '#07a059' };
@@ -5637,7 +5643,7 @@ function renderDietRecordRow(r, st) {
   } else {
     info = `<span><b>餐食记录:</b> ${r.note || '—'}</span>`;
   }
-  if (r.time) info += `<span><b>${st.key === 'snack' || st.key === 'milktea' ? '享用时间' : '吃饭时间'}:</b> ${r.time}</span>`;
+  if (r.time) info += `<span><b>${st.key === 'snack' || st.key === 'milktea' || st.key === 'midnight' ? '享用时间' : '吃饭时间'}:</b> ${r.time}</span>`;
   return `<div class="lr-record-row">
     <div class="lr-record-info">${info}</div>
     <div class="lr-record-ops">
@@ -5673,7 +5679,7 @@ function renderFlavorMultiselect(selected) {
   html += `<div class="checkbox-group tag-group" id="${groupId}" data-key="flavors">`;
   allOpts.forEach(o => {
     const checked = selArr.includes(o) ? 'checked' : '';
-    html += `<label class="checkbox-item ${checked ? 'selected' : ''}"><input type="checkbox" value="${esc(o)}" ${checked}> ${esc(o)}</label>`;
+    html += `<label class="checkbox-item ${checked ? 'selected' : ''}"><input type="checkbox" value="${esc(o)}" ${checked} onclick="toggleCheckboxItem(this)"> ${esc(o)}</label>`;
   });
   html += `</div>`;
   html += `<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="form-input" id="lrf-flavors-custom" placeholder="输入自定义口味后按添加" style="flex:1;font-size:13px"><button type="button" class="btn btn-outline btn-sm" onclick="addLifeRecordFlavor(this)">添加</button><button type="button" class="btn btn-danger btn-sm" onclick="removeCheckedLifeRecordFlavors('${groupId}')">删除</button></div>`;
@@ -5976,7 +5982,7 @@ function addLifeRecordFlavor(btn) {
   if (group && !group.querySelector(`input[value="${esc(val)}"]`)) {
     const label = document.createElement('label');
     label.className = 'checkbox-item selected';
-    label.innerHTML = `<input type="checkbox" value="${esc(val)}" checked> ${esc(val)}`;
+    label.innerHTML = `<input type="checkbox" value="${esc(val)}" checked onclick="toggleCheckboxItem(this)"> ${esc(val)}`;
     group.appendChild(label);
   }
   input.value = '';
