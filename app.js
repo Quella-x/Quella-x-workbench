@@ -5602,7 +5602,7 @@ function renderSleepRing(totalHours) {
   const pct = Math.min(totalHours / 8, 1);
   const offset = circumference * (1 - pct);
   const reached = totalHours >= 8;
-  const color = reached ? 'var(--c-green)' : 'var(--c-primary)';
+  const color = '#620712';
   const statusText = reached ? '睡眠达到8小时' : '睡眠未达到8小时';
   const timeText = totalHours > 0 ? formatSleepDurationHTML(totalHours) : '—';
   return `<div class="sleep-ring-col">
