@@ -4944,6 +4944,32 @@ function migrateData() {
     });
     DB.set('lifeRecords', fixed);
   }
+
+  // v245: 每日记录拆分子类型（睡眠：夜晚/午间；饮食：早餐/午餐/晚餐/宵夜/零食/奶茶）
+  const lifeRecs = DB.list('lifeRecords');
+  let lrChanged = false;
+  const mealMap = { '早餐': 'breakfast', '午餐': 'lunch', '晚餐': 'dinner' };
+  const fixedLife = lifeRecs.map(r => {
+    if (r.subtype) return r;
+    let nr = { ...r };
+    if (nr.type === 'sleep') { nr.subtype = 'night'; }
+    else if (nr.type === 'meal') { nr.type = 'diet'; nr.subtype = mealMap[nr.mealType] || 'breakfast'; delete nr.mealType; }
+    else if (nr.type === 'snack') { nr.type = 'diet'; nr.subtype = 'snack'; }
+    lrChanged = true;
+    return nr;
+  });
+  fixedLife.forEach(r => {
+    if (r.type === 'diet' && r.subtype === 'milktea' && !Array.isArray(r.flavors)) {
+      r.flavors = r.flavors ? [String(r.flavors)] : [];
+      lrChanged = true;
+    }
+    if (r.type === 'diet' && r.subtype === 'snack' && r.qty != null && typeof r.qty !== 'number') {
+      const n = Number(String(r.qty).replace(/[^0-9.]/g, ''));
+      r.qty = isNaN(n) ? null : n;
+      lrChanged = true;
+    }
+  });
+  if (lrChanged) DB.set('lifeRecords', fixedLife);
 }
 
 /* ============================================================
@@ -4998,23 +5024,45 @@ function lifeQuickCheckin(typeKey, e) {
   }
   renderLifeCheckin();
 }
+const LIFE_RECORD_SUBTYPES = {
+  sleep: {
+    night: { key: 'night', label: '夜晚', icon: '🌙' },
+    noon: { key: 'noon', label: '午间', icon: '☀️' }
+  },
+  diet: {
+    breakfast: { key: 'breakfast', label: '早餐', icon: '🌅' },
+    lunch: { key: 'lunch', label: '午餐', icon: '☀️' },
+    dinner: { key: 'dinner', label: '晚餐', icon: '🌙' },
+    midnight: { key: 'midnight', label: '宵夜', icon: '🌃', multi: true },
+    snack: { key: 'snack', label: '零食', icon: '🍟', multi: true,
+      unitOptions: ['包','个','颗','根','袋','盒','瓶','片','粒','杯','份','条','罐','枚','把'] },
+    milktea: { key: 'milktea', label: '奶茶', icon: '🧋', multi: true,
+      flavorOptions: ['不额外加糖','三分糖','五分糖','七分糖','全糖','热','常温','正常冰','少冰','去冰','小杯','中杯','大杯'] }
+  }
+};
+function getLifeRecordSubtype(typeKey, subtypeKey) {
+  const map = LIFE_RECORD_SUBTYPES[typeKey];
+  return map ? map[subtypeKey] : null;
+}
+function lifeRecordSubtypes(typeKey) {
+  return Object.values(LIFE_RECORD_SUBTYPES[typeKey] || {});
+}
 const LIFE_RECORD_DEFS = {
   sleep: { key: 'sleep', label: '睡眠记录', icon: '😴', fields: [
     { key: 'sleepTime', label: '入睡时间', type: 'time' },
-    { key: 'wakeTime', label: '起床时间', type: 'time' },
+    { key: 'wakeTime', label: '清醒时间', type: 'time' },
     { key: 'wakeCount', label: '清醒次数', type: 'number' },
     { key: 'duration', label: '睡眠时长(小时)', type: 'number', auto: true },
   ]},
-  meal: { key: 'meal', label: '三餐记录', icon: '🍚', fields: [
-    { key: 'mealType', label: '餐次', type: 'select', options: ['早餐', '午餐', '晚餐'] },
-    { key: 'note', label: '备注（吃了什么）', type: 'text' },
+  diet: { key: 'diet', label: '饮食记录', icon: '🍚', fields: [
+    { key: 'note', label: '内容', type: 'text' },
     { key: 'time', label: '时间', type: 'time' },
-  ]},
-  snack: { key: 'snack', label: '零食记录', icon: '🍟', fields: [
-    { key: 'note', label: '零食内容', type: 'text' },
-    { key: 'qty', label: '数量备注', type: 'text' },
-    { key: 'time', label: '时间', type: 'time' },
-  ]},
+    { key: 'qty', label: '数量', type: 'number', subtype: 'snack' },
+    { key: 'unit', label: '单位', type: 'combobox', subtype: 'snack',
+      options: LIFE_RECORD_SUBTYPES.diet.snack.unitOptions },
+    { key: 'flavors', label: '口味配方', type: 'tag-multi', subtype: 'milktea',
+      options: LIFE_RECORD_SUBTYPES.diet.milktea.flavorOptions },
+  ]}
 };
 function parseDateStr(s) { const p = s.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
 function addDaysStr(s, n) { const d = parseDateStr(s); d.setDate(d.getDate() + n); return fmtDate(d); }
@@ -5530,14 +5578,289 @@ function lifeCheckinRemove(typeKey, dateStr) {
   Toast.success('已撤销');
   renderLifeCheckin();
 }
+function formatSleepDuration(hours) {
+  if (hours == null || isNaN(hours)) return '—';
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  if (h === 0 && m === 0) return '0m';
+  return (h ? h + 'h' : '') + (m ? m + 'm' : '');
+}
+function renderSleepRing(totalHours) {
+  const radius = 38;
+  const circumference = 2 * Math.PI * radius;
+  const pct = Math.min(totalHours / 8, 1);
+  const offset = circumference * (1 - pct);
+  const reached = totalHours >= 8;
+  const color = reached ? 'var(--c-green)' : 'var(--c-primary)';
+  const statusText = reached ? '睡眠时长达到8小时' : '睡眠时长不满8小时';
+  const timeText = totalHours > 0 ? formatSleepDuration(totalHours) : '—';
+  return `<div class="sleep-ring-wrap">
+    <svg class="sleep-ring" viewBox="0 0 90 90">
+      <circle class="sleep-ring-bg" cx="45" cy="45" r="${radius}"/>
+      <circle class="sleep-ring-fill" cx="45" cy="45" r="${radius}" stroke="${color}" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"/>
+    </svg>
+    <div class="sleep-ring-text">${timeText}</div>
+    <div class="sleep-ring-status">${statusText}</div>
+  </div>`;
+}
+function renderLifeRecordTopCard(all, date) {
+  const sleepRecs = all.filter(r => r.type === 'sleep' && r.date === date);
+  const night = sleepRecs.find(r => r.subtype === 'night');
+  const noon = sleepRecs.find(r => r.subtype === 'noon');
+  const nightDur = night ? Number(night.duration) || 0 : 0;
+  const noonDur = noon ? Number(noon.duration) || 0 : 0;
+  const total = nightDur + noonDur;
+  const dietSubs = lifeRecordSubtypes('diet');
+  return `<div class="lr-top-card">
+    ${renderSleepRing(total)}
+    <div class="lr-top-stats">
+      <div class="lr-top-stat"><span class="lts-label">入睡时间</span><span class="lts-val">${night && night.sleepTime ? night.sleepTime : '—'}</span></div>
+      <div class="lr-top-stat"><span class="lts-label">清醒时间</span><span class="lts-val">${night && night.wakeTime ? night.wakeTime : '—'}</span></div>
+      <div class="lr-top-stat"><span class="lts-label">清醒次数</span><span class="lts-val">${night && night.wakeCount != null ? night.wakeCount + '次' : '—'}</span></div>
+      <div class="lr-top-stat"><span class="lts-label">午休时长</span><span class="lts-val">${noonDur > 0 ? formatSleepDuration(noonDur) : '—'}</span></div>
+    </div>
+    <div class="lr-diet-btns">
+      ${dietSubs.map(st => {
+        const filled = all.some(r => r.type === 'diet' && r.subtype === st.key && r.date === date);
+        return `<button class="lr-diet-qbtn ${filled ? 'filled' : ''}" onclick="lifeRecOpenForm('diet','${st.key}')">${st.label}</button>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+function renderDietRecordRow(r, st) {
+  let info = '';
+  if (st.key === 'snack') {
+    info = `<span><b>零食记录:</b> ${r.note || '—'}</span>${r.qty != null ? `<span><b>数量:</b> ${r.qty}${r.unit || '包'}</span>` : ''}`;
+  } else if (st.key === 'milktea') {
+    const flavors = Array.isArray(r.flavors) ? r.flavors : (r.flavors ? [r.flavors] : []);
+    info = `<span><b>奶茶记录:</b> ${r.note || '—'}</span>${flavors.length ? `<span><b>口味:</b> ${flavors.join('、')}</span>` : ''}`;
+  } else {
+    info = `<span><b>餐食记录:</b> ${r.note || '—'}</span>`;
+  }
+  if (r.time) info += `<span><b>${st.key === 'snack' || st.key === 'milktea' ? '享用时间' : '吃饭时间'}:</b> ${r.time}</span>`;
+  return `<div class="lr-record-row">
+    <div class="lr-record-info">${info}</div>
+    <div class="lr-record-ops">
+      <button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('diet','${r.id}')">编辑</button>
+      <button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button>
+    </div>
+  </div>`;
+}
+function renderUnitSingleSelect(selected) {
+  const opts = LIFE_RECORD_SUBTYPES.diet.snack.unitOptions;
+  const customOpts = DB.get('customOpts_lifeRecord_snack_unit', []);
+  const allOpts = opts.concat(customOpts.filter(c => !opts.includes(c)));
+  const sel = selected || '包';
+  const groupId = 'lrf-unit-group';
+  let html = `<div class="lf-field lf-field-full"><label>单位</label>`;
+  html += `<div class="checkbox-group pill-group single-pill" id="${groupId}" data-key="unit" data-single="true">`;
+  allOpts.forEach(o => {
+    const checked = sel === o ? 'checked' : '';
+    html += `<label class="checkbox-item ${checked ? 'selected' : ''}"><input type="checkbox" value="${esc(o)}" ${checked} onclick="limitSingleCheckbox(this)"> ${esc(o)}</label>`;
+  });
+  html += `</div>`;
+  html += `<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="form-input" id="lrf-unit-custom" placeholder="输入自定义单位后按添加" style="flex:1;font-size:13px"><button type="button" class="btn btn-outline btn-sm" onclick="addLifeRecordUnit(this)">添加</button><button type="button" class="btn btn-danger btn-sm" onclick="removeCheckedLifeRecordUnits('${groupId}')">删除</button></div>`;
+  html += `</div>`;
+  return html;
+}
+function renderFlavorMultiselect(selected) {
+  const opts = LIFE_RECORD_SUBTYPES.diet.milktea.flavorOptions;
+  const customOpts = DB.get('customOpts_lifeRecord_milktea_flavors', []);
+  const allOpts = opts.concat(customOpts.filter(c => !opts.includes(c)));
+  const selArr = Array.isArray(selected) ? selected : (selected ? [selected] : []);
+  const groupId = 'lrf-flavors-group';
+  let html = `<div class="lf-field lf-field-full"><label>口味配方</label>`;
+  html += `<div class="checkbox-group tag-group" id="${groupId}" data-key="flavors">`;
+  allOpts.forEach(o => {
+    const checked = selArr.includes(o) ? 'checked' : '';
+    html += `<label class="checkbox-item ${checked ? 'selected' : ''}"><input type="checkbox" value="${esc(o)}" ${checked}> ${esc(o)}</label>`;
+  });
+  html += `</div>`;
+  html += `<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="form-input" id="lrf-flavors-custom" placeholder="输入自定义口味后按添加" style="flex:1;font-size:13px"><button type="button" class="btn btn-outline btn-sm" onclick="addLifeRecordFlavor(this)">添加</button><button type="button" class="btn btn-danger btn-sm" onclick="removeCheckedLifeRecordFlavors('${groupId}')">删除</button></div>`;
+  html += `</div>`;
+  return html;
+}
+function renderLifeRecordInlineForm(typeKey, subtypeKey) {
+  const ps = pageState['life-record'];
+  const st = getLifeRecordSubtype(typeKey, subtypeKey);
+  const values = ps.values || {};
+  let html = `<div class="life-rec-form" id="lifeRecForm">`;
+  if (typeKey === 'sleep') {
+    html += `<div class="lf-field"><label>入睡时间</label><input type="time" id="lrf-sleepTime" value="${esc(values.sleepTime || '')}"></div>`;
+    html += `<div class="lf-field"><label>清醒时间</label><input type="time" id="lrf-wakeTime" value="${esc(values.wakeTime || '')}"></div>`;
+    html += `<div class="lf-field"><label>清醒次数</label><input type="number" id="lrf-wakeCount" value="${esc(values.wakeCount != null ? values.wakeCount : '')}"></div>`;
+    html += `<div class="lf-field"><label>睡眠时长（自动）</label><input type="text" id="lrf-duration" value="${values.duration != null ? formatSleepDuration(Number(values.duration)) : ''}" readonly style="background:var(--c-primary-bg)"></div>`;
+  } else {
+    const placeholder = st.key === 'snack' ? '零食内容' : st.key === 'milktea' ? '奶茶名称' : '吃了什么';
+    html += `<div class="lf-field ${st.key === 'snack' || st.key === 'milktea' ? 'lf-field-full' : ''}"><label>内容</label><input type="text" id="lrf-note" value="${esc(values.note || '')}" placeholder="${placeholder}"></div>`;
+    if (st.key === 'snack') {
+      html += `<div class="lf-field"><label>数量</label><input type="number" step="0.1" id="lrf-qty" value="${esc(values.qty != null ? values.qty : '')}"></div>`;
+      html += renderUnitSingleSelect(values.unit);
+    }
+    if (st.key === 'milktea') html += renderFlavorMultiselect(values.flavors || []);
+    html += `<div class="lf-field"><label>时间</label><input type="time" id="lrf-time" value="${esc(values.time || '')}"></div>`;
+  }
+  html += `<div class="lf-field" style="flex-direction:row;gap:6px"><button class="btn btn-primary" onclick="lifeRecSave('${typeKey}','${subtypeKey}')">${ps.editId ? '保存修改' : '保存'}</button><button class="btn btn-ghost" onclick="lifeRecCancel()">取消</button></div>`;
+  html += `</div>`;
+  return html;
+}
+function renderSleepRecordCard(date) {
+  const all = DB.list('lifeRecords');
+  const ps = pageState['life-record'];
+  const sleepSubs = lifeRecordSubtypes('sleep');
+  let html = `<div class="lr-card">
+    <div class="lr-card-head"><span class="lr-card-title">😴 睡眠记录</span><button class="btn btn-sm btn-primary" onclick="lifeRecOpenForm('sleep','night')">+ 新增记录</button></div>
+    <div class="lr-card-body">`;
+  sleepSubs.forEach(st => {
+    const recs = all.filter(r => r.type === 'sleep' && r.subtype === st.key && r.date === date).sort((a, b) => (a._ct || 0) - (b._ct || 0));
+    html += `<div class="lr-subtype-box">
+      <div class="lr-subtype-hd"><span class="lr-subtype-name">${st.icon} ${st.label}</span></div>
+      <div class="lr-subtype-body">`;
+    if (!recs.length) {
+      html += `<div class="lr-empty-row" onclick="lifeRecOpenForm('sleep','${st.key}')">点击添加${st.label}睡眠记录</div>`;
+    } else {
+      recs.forEach(r => {
+        html += `<div class="lr-record-row">
+          <div class="lr-record-info">
+            ${r.sleepTime ? `<span><b>入睡时间:</b> ${r.sleepTime}</span>` : ''}
+            ${r.wakeTime ? `<span><b>清醒时间:</b> ${r.wakeTime}</span>` : ''}
+            ${r.duration != null ? `<span><b>睡眠时长:</b> ${formatSleepDuration(Number(r.duration))}</span>` : ''}
+            ${r.wakeCount != null ? `<span><b>清醒次数:</b> ${r.wakeCount}次</span>` : ''}
+          </div>
+          <div class="lr-record-ops">
+            <button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('sleep','${r.id}')">编辑</button>
+            <button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button>
+          </div>
+        </div>`;
+      });
+    }
+    if (ps.formType === 'sleep' && ps.subtype === st.key) html += renderLifeRecordInlineForm('sleep', st.key);
+    html += `</div></div>`;
+  });
+  html += `</div></div>`;
+  return html;
+}
+function renderDietRecordCard(date) {
+  const all = DB.list('lifeRecords');
+  const ps = pageState['life-record'];
+  const dietSubs = lifeRecordSubtypes('diet');
+  let html = `<div class="lr-card">
+    <div class="lr-card-head"><span class="lr-card-title">🍚 饮食记录</span><button class="btn btn-sm btn-primary" onclick="lifeRecOpenForm('diet','breakfast')">+ 新增记录</button></div>
+    <div class="lr-card-body">`;
+  dietSubs.forEach(st => {
+    const recs = all.filter(r => r.type === 'diet' && r.subtype === st.key && r.date === date).sort((a, b) => (a._ct || 0) - (b._ct || 0));
+    html += `<div class="lr-subtype-box">
+      <div class="lr-subtype-hd"><span class="lr-subtype-name">${st.icon} ${st.label}</span></div>
+      <div class="lr-subtype-body">`;
+    if (!recs.length) {
+      html += `<div class="lr-empty-row" onclick="lifeRecOpenForm('diet','${st.key}')">点击添加${st.label}记录</div>`;
+    } else {
+      recs.forEach(r => { html += renderDietRecordRow(r, st); });
+    }
+    if (ps.formType === 'diet' && ps.subtype === st.key) html += renderLifeRecordInlineForm('diet', st.key);
+    html += `</div></div>`;
+  });
+  html += `</div></div>`;
+  return html;
+}
+function renderSleepWeekLineChart(days) {
+  const all = DB.list('lifeRecords');
+  const vals = days.map(d => all.filter(r => r.type === 'sleep' && r.date === d).reduce((s, r) => s + (Number(r.duration) || 0), 0));
+  const maxV = Math.max(8, ...vals);
+  const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+  const pts = vals.map((v, i) => {
+    const x = i === 0 ? 5 : (i === 6 ? 95 : (i / 6 * 90 + 5));
+    const y = 100 - v / maxV * 80 - 10;
+    return `${x.toFixed(2)} ${y.toFixed(2)}`;
+  }).join(' ');
+  const circles = vals.map((v, i) => {
+    const x = i === 0 ? 5 : (i === 6 ? 95 : (i / 6 * 90 + 5));
+    const y = 100 - v / maxV * 80 - 10;
+    return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="2.5" fill="var(--c-primary)"/>`;
+  }).join('');
+  const refY = 100 - 8 / maxV * 80 - 10;
+  return `<div class="lr-line-chart">
+    <div class="lr-line-chart-head">一周睡眠折线统计 <span>日均 ${formatSleepDuration(avg)}</span></div>
+    <div class="lr-line-chart-body">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+        <polyline fill="none" stroke="var(--c-primary)" stroke-width="2" points="${pts}"/>
+        ${circles}
+        <line x1="0" y1="${refY.toFixed(2)}" x2="100" y2="${refY.toFixed(2)}" stroke="var(--c-warning)" stroke-dasharray="2,2" stroke-width="0.5"/>
+      </svg>
+    </div>
+    <div class="lr-line-chart-x">${days.map(d => `<span>${d.slice(5)}</span>`).join('')}</div>
+  </div>`;
+}
+function renderDietWeekStats(days) {
+  const all = DB.list('lifeRecords');
+  const counts = {};
+  Object.keys(LIFE_RECORD_SUBTYPES.diet).forEach(sk => counts[sk] = 0);
+  days.forEach(d => all.filter(r => r.type === 'diet' && r.date === d).forEach(r => { if (counts[r.subtype] != null) counts[r.subtype]++; }));
+  const maxCount = Math.max(1, ...Object.values(counts));
+  return `<div class="lr-diet-stats">
+    <div class="lr-diet-stats-head">一周饮食统计 <span>各餐食用次数</span></div>
+    <div class="lr-diet-stats-body">
+      ${Object.entries(LIFE_RECORD_SUBTYPES.diet).map(([sk, st]) => {
+        const count = counts[sk];
+        const h = Math.max(4, count / maxCount * 70);
+        return `<div class="lr-diet-stat"><div class="lr-diet-stat-bar" style="height:${h}px"></div><div class="lr-diet-stat-num">${count}</div><div class="lr-diet-stat-label">${st.label}</div></div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+function renderLifeRecordHistory(typeKey) {
+  const ps = pageState['life-record'];
+  const today = todayStr();
+  const base = weekMondayOf(parseDateStr(today));
+  base.setDate(base.getDate() + (ps.weekOffset || 0) * 7);
+  const days = [];
+  for (let j = 0; j < 7; j++) { const d = new Date(base); d.setDate(base.getDate() + j); days.push(fmtDate(d)); }
+  const wd = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+  const def = LIFE_RECORD_DEFS[typeKey];
+  let html = `<div class="fade-in life-record-page">`;
+  html += `<div class="lr-history-hd"><button class="btn btn-ghost btn-sm" onclick="lifeRecordToggleView('home')">‹ 返回</button><span class="lr-history-title">${def.icon} ${def.label}历史查询</span></div>`;
+  if (typeKey === 'sleep') html += renderSleepWeekLineChart(days);
+  else html += renderDietWeekStats(days);
+  html += `<div class="lr-week-grid">
+    <div class="lr-week-row lr-week-header">
+      <div class="lr-week-label"></div>
+      ${wd.map((w, i) => `<div class="lr-week-day">${w}<div class="lr-week-date">${days[i].slice(5)}</div></div>`).join('')}
+    </div>`;
+  const subKeys = typeKey === 'sleep' ? ['night', 'noon'] : Object.keys(LIFE_RECORD_SUBTYPES.diet);
+  subKeys.forEach(sk => {
+    const st = LIFE_RECORD_SUBTYPES[typeKey][sk];
+    html += `<div class="lr-week-row"><div class="lr-week-label">${st.label}</div>`;
+    days.forEach(d => {
+      const recs = DB.list('lifeRecords').filter(r => r.type === typeKey && r.subtype === sk && r.date === d);
+      if (typeKey === 'sleep') {
+        const dur = recs.reduce((s, r) => s + (Number(r.duration) || 0), 0);
+        html += `<div class="lr-week-cell ${dur > 0 ? 'done' : ''}" onclick="lifeRecordHistoryCellClick('sleep','${sk}','${d}')">${dur > 0 ? formatSleepDuration(dur) : ''}</div>`;
+      } else {
+        html += `<div class="lr-week-cell ${recs.length ? 'done' : ''}" onclick="lifeRecordHistoryCellClick('diet','${sk}','${d}')">${recs.length ? recs.length + '条' : ''}</div>`;
+      }
+    });
+    html += `</div>`;
+  });
+  html += `</div>`;
+  html += `<div class="lr-week-nav">
+    <button class="btn btn-ghost" onclick="lifeRecordHistoryPrevWeek()">‹ 上一周</button>
+    <span>${days[0].slice(5)} - ${days[6].slice(5)}</span>
+    <button class="btn btn-ghost" onclick="lifeRecordHistoryNextWeek()" ${ps.weekOffset >= 0 ? 'disabled' : ''}>下一周 ›</button>
+  </div>`;
+  html += `</div>`;
+  return html;
+}
 function renderLifeRecord() {
   const body = $('#mainBody');
-  if (!pageState['life-record']) pageState['life-record'] = { date: todayStr(), formType: null, editId: null, values: {} };
+  if (!pageState['life-record']) pageState['life-record'] = { date: todayStr(), formType: null, editId: null, values: {}, view: 'home', weekOffset: 0, subtype: null };
   const ps = pageState['life-record'];
   const date = ps.date;
+  if (ps.view === 'sleep-history' || ps.view === 'diet-history') {
+    body.innerHTML = renderLifeRecordHistory(ps.view === 'sleep-history' ? 'sleep' : 'diet');
+    return;
+  }
   const all = DB.list('lifeRecords');
-  let html = '<div class="fade-in">';
-  html += '<div class="life-hero"><span class="lh-ico">📝</span><div class="lh-text"><div class="lh-title">每日记录</div><div class="lh-sub">睡眠 · 三餐 · 零食，逐条留痕</div></div></div>';
+  let html = '<div class="fade-in life-record-page">';
   html += `<div class="life-record-datebar">
     <span>📅 日期</span>
     <input type="date" class="form-input" value="${date}" max="${todayStr()}" onchange="lifeRecordSetDate(this.value)">
@@ -5545,135 +5868,134 @@ function renderLifeRecord() {
     <button class="btn btn-ghost btn-sm" onclick="lifeRecordGoDate(-1)">‹ 前一天</button>
     <button class="btn btn-ghost btn-sm" onclick="lifeRecordGoDate(1)">后一天 ›</button>
   </div>`;
-  const sleepRecs = all.filter(r => r.type === 'sleep' && r.date === date);
-  const daySleep = sleepRecs.reduce((s, r) => s + (Number(r.duration) || 0), 0);
-  const last7 = all.filter(r => r.type === 'sleep' && r.date >= addDaysStr(date, -6) && r.date <= date);
-  const daySum7 = {};
-  last7.forEach(r => { daySum7[r.date] = (daySum7[r.date] || 0) + (Number(r.duration) || 0); });
-  const avg7 = Object.keys(daySum7).length ? Object.values(daySum7).reduce((a, b) => a + b, 0) / Object.keys(daySum7).length : null;
-  const count = all.filter(r => r.date === date).length;
-  html += '<div class="life-stat-row">';
-  html += `<div class="life-stat"><div class="ls-val">${daySleep ? Math.round(daySleep * 10) / 10 + 'h' : '—'}</div><div class="ls-label">${date.slice(5)} 睡眠时长</div></div>`;
-  html += `<div class="life-stat"><div class="ls-val">${avg7 != null ? Math.round(avg7 * 10) / 10 + 'h' : '—'}</div><div class="ls-label">近7日平均睡眠</div></div>`;
-  html += `<div class="life-stat"><div class="ls-val">${count}</div><div class="ls-label">${date.slice(5)} 记录条数</div></div>`;
-  html += '</div>';
-  Object.values(LIFE_RECORD_DEFS).forEach(t => {
-    const recs = all.filter(r => r.type === t.key && r.date === date).sort((a, b) => (a._ct || 0) - (b._ct || 0));
-    html += `<div class="life-panel">
-      <div class="life-panel-head"><span class="lph-ico">${t.icon}</span><span class="lph-label">${esc(t.label)}</span><span class="lph-count">${recs.length} 条</span>
-        <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="lifeRecOpenForm('${t.key}')">+ 新增记录</button></div>
-      <div class="life-panel-body">`;
-    if (ps.formType === t.key) {
-      html += `<div class="life-rec-form" id="lifeRecForm">`;
-      t.fields.forEach(f => {
-        const v = ps.values[f.key] != null ? ps.values[f.key] : '';
-        html += `<div class="lf-field"><label>${esc(f.label)}${f.auto ? '（自动）' : ''}</label>`;
-        if (f.type === 'number') html += `<input type="number" step="0.1" id="lrf-${f.key}" value="${esc(v)}">`;
-        else if (f.type === 'time') html += `<input type="time" id="lrf-${f.key}" value="${esc(v)}">`;
-        else if (f.type === 'select') html += `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" id="lrf-${f.key}" value="${esc(v)}" readonly placeholder="请选择" onfocus="showComboboxDropdown('lrf-${f.key}-cb')" onclick="showComboboxDropdown('lrf-${f.key}-cb')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('lrf-${f.key}-cb')">▼</button><div class="combobox-dropdown" id="lrf-${f.key}-cb">${f.options.map(o => `<div class="combobox-option" data-value="${esc(o)}" onclick="selectComboboxOption('lrf-${f.key}-cb',this)">${esc(o)}</div>`).join('')}</div></div>`;
-        else html += `<input type="text" id="lrf-${f.key}" value="${esc(v)}">`;
-        html += `</div>`;
-      });
-      html += `<div class="lf-field" style="flex-direction:row;gap:6px"><button class="btn btn-primary" onclick="lifeRecSave('${t.key}')">${ps.editId ? '保存修改' : '保存'}</button><button class="btn btn-ghost" onclick="lifeRecCancel()">取消</button></div>`;
-      html += `</div>`;
-    }
-    if (t.key === 'sleep') html += renderSleepChart(all, date);
-    if (t.key === 'sleep') html += renderSleepWeekTable(all);
-    if (!recs.length) {
-      html += `<div class="life-empty">暂无${esc(t.label)}，点右上角「+ 新增记录」添加</div>`;
-    } else {
-      recs.forEach(r => {
-        const fieldsHtml = t.fields.filter(f => f.key !== 'duration').map(f => {
-          const val = r[f.key];
-          if (val === '' || val == null) return '';
-          return `<span class="lrf"><b>${esc(f.label)}:</b> ${esc(val)}</span>`;
-        }).filter(Boolean).join('');
-        const dur = (t.key === 'sleep' && r.duration != null) ? `<span class="lrf"><b>睡眠时长:</b> ${Number(r.duration).toFixed(1)}h</span>` : '';
-        const sub = r.time ? `🕐 ${esc(r.time)} · ${r.date}` : r.date;
-        html += `<div class="life-rec-item">
-          <div class="life-rec-main">
-            <div class="life-rec-meta">${fieldsHtml}${dur}</div>
-            <div class="life-rec-time">${sub}</div>
-          </div>
-          <div class="life-rec-ops">
-            <button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('${t.key}','${r.id}')">编辑</button>
-            <button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button>
-          </div>
-        </div>`;
-      });
-    }
-    html += `</div></div>`;
-  });
+  html += renderLifeRecordTopCard(all, date);
+  html += `<div class="lr-toggle-row">
+    <button class="lr-toggle-btn ${ps.view === 'sleep-history' ? 'active' : ''}" onclick="lifeRecordToggleView('sleep-history')"><span>😴</span>睡眠记录</button>
+    <button class="lr-toggle-btn ${ps.view === 'diet-history' ? 'active' : ''}" onclick="lifeRecordToggleView('diet-history')"><span>🍚</span>饮食记录</button>
+  </div>`;
+  html += renderSleepRecordCard(date);
+  html += renderDietRecordCard(date);
   html += '</div>';
   body.innerHTML = html;
 }
-function renderSleepChart(all, refDate) {
-  const days = [];
-  for (let i = 13; i >= 0; i--) days.push(addDaysStr(refDate, -i));
-  const sumByDay = {};
-  all.filter(r => r.type === 'sleep').forEach(r => { sumByDay[r.date] = (sumByDay[r.date] || 0) + (Number(r.duration) || 0); });
-  const vals = days.map(d => sumByDay[d] || 0);
-  const maxData = Math.max(1, ...vals.filter(v => v > 0));
-  const maxV = Math.max(8, maxData);
-  const today = todayStr();
-  const refBottom = Math.round(8 / maxV * 100);
-  let bars = `<div class="sleep-ref" style="bottom:${refBottom}px"></div>`;
-  let xlabels = '';
-  days.forEach((d, idx) => {
-    const v = vals[idx];
-    const h = Math.max(3, Math.round(v / maxV * 100));
-    const isToday = d === today;
-    const xlabel = d.slice(5).replace('-', '/');
-    bars += `<div class="sleep-bar-col">
-      ${v > 0 ? `<span class="sleep-bar-val">${Math.round(v * 10) / 10}</span>` : ''}
-      <div class="sleep-bar${isToday ? ' today' : ''}${v > 0 ? '' : ' zero'}" style="height:${h}px" title="${d} ${Math.round(v * 10) / 10}h"></div>
-    </div>`;
-    xlabels += `<div class="sleep-x-col${isToday ? ' cur' : ''}">${xlabel}</div>`;
-  });
-  const withData = vals.filter(v => v > 0);
-  const avg = withData.length ? Math.round(withData.reduce((a, b) => a + b, 0) / withData.length * 10) / 10 : null;
-  return `<div class="sleep-chart">
-    <div class="sleep-chart-head"><span class="sleep-chart-title">😴 近 14 天睡眠时长（小时）</span><span class="sleep-chart-avg">日均 ${avg != null ? avg + 'h' : '—'}</span></div>
-    <div class="sleep-chart-bars">${bars}</div>
-    <div class="sleep-chart-x">${xlabels}</div>
-    <div class="sleep-chart-foot"><span class="sch-dot"></span>橙色为今日 · 虚线为 8h 推荐睡眠</div>
-  </div>`;
-}
-function renderSleepWeekTable(all) {
-  const weeks = {};
-  all.filter(r => r.type === 'sleep').forEach(r => {
-    const wk = r.week || weekKeyOf(r.date);
-    if (!weeks[wk]) weeks[wk] = { sum: 0, n: 0 };
-    weeks[wk].sum += Number(r.duration) || 0; weeks[wk].n++;
-  });
-  const keys = Object.keys(weeks).sort().slice(-8);
-  if (!keys.length) return '';
-  let html = '<div class="life-week-table"><div class="lwt-title">睡眠周统计（近 ' + keys.length + ' 周）</div><table><thead><tr><th>周</th><th>平均时长</th><th>记录次数</th></tr></thead><tbody>';
-  keys.forEach(k => {
-    const avg = weeks[k].n ? weeks[k].sum / weeks[k].n : 0;
-    html += `<tr><td>${k}</td><td>${Math.round(avg * 10) / 10}h</td><td>${weeks[k].n}</td></tr>`;
-  });
-  html += '</tbody></table></div>';
-  return html;
-}
-function lifeRecordSetDate(v) { const ps = pageState['life-record']; ps.date = v; ps.formType = null; ps.editId = null; ps.values = {}; renderLifeRecord(); }
-function lifeRecordGoDate(n) { const ps = pageState['life-record']; ps.date = addDaysStr(ps.date, n); if (ps.date > todayStr()) ps.date = todayStr(); ps.formType = null; ps.editId = null; ps.values = {}; renderLifeRecord(); }
-function lifeRecOpenForm(typeKey) { const ps = pageState['life-record']; ps.formType = typeKey; ps.editId = null; ps.values = {}; renderLifeRecord(); }
-function lifeRecCancel() { const ps = pageState['life-record']; ps.formType = null; ps.editId = null; ps.values = {}; renderLifeRecord(); }
-function lifeRecEdit(typeKey, id) { const ps = pageState['life-record']; const rec = DB.getById('lifeRecords', id); ps.formType = typeKey; ps.editId = id; ps.values = rec ? { ...rec } : {}; renderLifeRecord(); }
-function lifeRecSave(typeKey) {
+function lifeRecordSetDate(v) { const ps = pageState['life-record']; ps.date = v; ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; renderLifeRecord(); }
+function lifeRecordGoDate(n) { const ps = pageState['life-record']; ps.date = addDaysStr(ps.date, n); if (ps.date > todayStr()) ps.date = todayStr(); ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; renderLifeRecord(); }
+function lifeRecordToggleView(view) {
   const ps = pageState['life-record'];
-  const t = LIFE_RECORD_DEFS[typeKey];
-  const values = {};
-  t.fields.forEach(f => { let v = $('#lrf-' + f.key).value; if (f.type === 'number') v = v === '' ? null : Number(v); values[f.key] = v; });
-  if (typeKey === 'sleep') { const dur = sleepDurationHours(values.sleepTime, values.wakeTime); if (dur != null) values.duration = dur; }
+  if (ps.view === view) view = 'home';
+  ps.view = view;
+  ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null;
+  if (view === 'home') ps.weekOffset = 0;
+  renderLifeRecord();
+}
+function lifeRecordHistoryPrevWeek() { pageState['life-record'].weekOffset--; renderLifeRecord(); }
+function lifeRecordHistoryNextWeek() { if (pageState['life-record'].weekOffset >= 0) return; pageState['life-record'].weekOffset++; renderLifeRecord(); }
+function lifeRecordHistoryCellClick(typeKey, subtypeKey, dateStr) {
+  lifeRecordSetDate(dateStr);
+  lifeRecordToggleView('home');
+  setTimeout(() => lifeRecOpenForm(typeKey, subtypeKey), 50);
+}
+function lifeRecOpenForm(typeKey, subtypeKey) {
+  const ps = pageState['life-record'];
+  ps.formType = typeKey; ps.subtype = subtypeKey; ps.editId = null; ps.values = {};
+  renderLifeRecord();
+  setTimeout(() => { const f = document.getElementById('lifeRecForm'); if (f) f.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 50);
+}
+function lifeRecCancel() { const ps = pageState['life-record']; ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; renderLifeRecord(); }
+function lifeRecEdit(typeKey, id) { const ps = pageState['life-record']; const rec = DB.getById('lifeRecords', id); ps.formType = rec ? rec.type : typeKey; ps.subtype = rec ? rec.subtype : null; ps.editId = id; ps.values = rec ? { ...rec } : {}; renderLifeRecord(); }
+function lifeRecSave(typeKey, subtypeKey) {
+  const ps = pageState['life-record'];
+  const values = { subtype: subtypeKey };
+  if (typeKey === 'sleep') {
+    values.sleepTime = $('#lrf-sleepTime').value;
+    values.wakeTime = $('#lrf-wakeTime').value;
+    const wc = $('#lrf-wakeCount').value;
+    values.wakeCount = wc === '' ? null : Number(wc);
+    const dur = sleepDurationHours(values.sleepTime, values.wakeTime);
+    if (dur != null) values.duration = dur;
+  } else {
+    values.note = $('#lrf-note').value;
+    values.time = $('#lrf-time').value;
+    if (subtypeKey === 'snack') {
+      const q = $('#lrf-qty').value;
+      values.qty = q === '' ? null : Number(q);
+      const unitGroup = document.getElementById('lrf-unit-group');
+      values.unit = unitGroup ? (unitGroup.querySelector('input[type="checkbox"]:checked') || {}).value || '包' : '包';
+    }
+    if (subtypeKey === 'milktea') {
+      const flavorGroup = document.getElementById('lrf-flavors-group');
+      values.flavors = flavorGroup ? Array.from(flavorGroup.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value) : [];
+    }
+  }
   const rec = { type: typeKey, date: ps.date, week: weekKeyOf(ps.date), createdAt: new Date().toISOString(), ...values };
   if (ps.editId) { DB.update('lifeRecords', ps.editId, rec); Toast.success('已保存修改'); }
   else { DB.add('lifeRecords', rec); Toast.success('已添加记录'); }
-  ps.formType = null; ps.editId = null; ps.values = {};
+  ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null;
   renderLifeRecord();
 }
 function lifeRecDelete(id) { DB.remove('lifeRecords', id); Toast.success('已删除'); renderLifeRecord(); }
+function addLifeRecordUnit(btn) {
+  const input = document.getElementById('lrf-unit-custom');
+  const val = (input.value || '').trim();
+  if (!val) return;
+  const dbKey = 'customOpts_lifeRecord_snack_unit';
+  const customOpts = DB.get(dbKey, []);
+  if (!customOpts.includes(val)) { customOpts.push(val); DB.set(dbKey, customOpts); }
+  const group = document.getElementById('lrf-unit-group');
+  if (group && !group.querySelector(`input[value="${esc(val)}"]`)) {
+    const label = document.createElement('label');
+    label.className = 'checkbox-item';
+    label.innerHTML = `<input type="checkbox" value="${esc(val)}" onclick="limitSingleCheckbox(this)"> ${esc(val)}`;
+    group.appendChild(label);
+  }
+  input.value = '';
+}
+function removeCheckedLifeRecordUnits(groupId) {
+  const group = document.getElementById(groupId);
+  if (!group) return;
+  const checked = Array.from(group.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+  if (!checked.length) { Toast.warning('请勾选要删除的单位'); return; }
+  const dbKey = 'customOpts_lifeRecord_snack_unit';
+  let customOpts = DB.get(dbKey, []);
+  customOpts = customOpts.filter(v => !checked.includes(v));
+  DB.set(dbKey, customOpts);
+  group.querySelectorAll('.checkbox-item').forEach(item => {
+    const cb = item.querySelector('input[type="checkbox"]');
+    if (cb && checked.includes(cb.value)) item.remove();
+  });
+  Toast.success('已删除 ' + checked.length + ' 项');
+}
+function addLifeRecordFlavor(btn) {
+  const input = document.getElementById('lrf-flavors-custom');
+  const val = (input.value || '').trim();
+  if (!val) return;
+  const dbKey = 'customOpts_lifeRecord_milktea_flavors';
+  const customOpts = DB.get(dbKey, []);
+  if (!customOpts.includes(val)) { customOpts.push(val); DB.set(dbKey, customOpts); }
+  const group = document.getElementById('lrf-flavors-group');
+  if (group && !group.querySelector(`input[value="${esc(val)}"]`)) {
+    const label = document.createElement('label');
+    label.className = 'checkbox-item selected';
+    label.innerHTML = `<input type="checkbox" value="${esc(val)}" checked> ${esc(val)}`;
+    group.appendChild(label);
+  }
+  input.value = '';
+}
+function removeCheckedLifeRecordFlavors(groupId) {
+  const group = document.getElementById(groupId);
+  if (!group) return;
+  const checked = Array.from(group.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+  if (!checked.length) { Toast.warning('请勾选要删除的口味配方'); return; }
+  const dbKey = 'customOpts_lifeRecord_milktea_flavors';
+  let customOpts = DB.get(dbKey, []);
+  customOpts = customOpts.filter(v => !checked.includes(v));
+  DB.set(dbKey, customOpts);
+  group.querySelectorAll('.checkbox-item').forEach(item => {
+    const cb = item.querySelector('input[type="checkbox"]');
+    if (cb && checked.includes(cb.value)) item.remove();
+  });
+  Toast.success('已删除 ' + checked.length + ' 项');
+}
 
 /* ===== Init ===== */
 function init() {
