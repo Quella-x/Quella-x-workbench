@@ -1947,24 +1947,25 @@ ul,li{list-style:none}
 .lr-top-card{display:grid;grid-template-columns:minmax(0,1fr) 1px minmax(0,1fr);align-items:stretch;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:12px 0;margin-bottom:12px;box-shadow:var(--shadow-sm)}
 .lr-top-left{display:flex;align-items:center;justify-content:flex-start;gap:16px;min-width:0;overflow:hidden;padding-left:10px}
 .sleep-ring-col{flex-shrink:0;display:flex;flex-direction:column;align-items:center;align-self:flex-start;margin-left:4px}
-.sleep-ring-wrap{position:relative;width:152px;height:152px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:8px}
+.sleep-ring-wrap{position:relative;width:158px;height:158px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:8px}
 .sleep-ring{width:100%;height:100%;transform:rotate(-90deg)}
 .sleep-ring-bg{fill:none;stroke:var(--c-border-light);stroke-width:6}
 .sleep-ring-fill{fill:none;stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset .6s ease}
 .sleep-ring-text{position:absolute;font-size:28px;font-weight:600;color:var(--c-text)}
 .sleep-ring-text .dur-unit{font-size:22px}
-.sleep-ring-status{margin-top:8px;font-size:13px;color:var(--c-text-muted);white-space:nowrap;text-align:center}
+.sleep-ring-status{margin-top:8px;font-size:13px;color:var(--c-text);white-space:nowrap;text-align:center}
 .lr-top-stats{flex:1 1 0;display:flex;flex-direction:column;justify-content:center;gap:10px;min-width:0}
 .lr-top-stat{display:flex;flex-direction:column;align-items:flex-start;gap:1px}
-.lts-label{font-size:12px;color:var(--c-text-light);white-space:nowrap}
+.lts-label{font-size:12px;color:var(--c-text);white-space:nowrap}
 .lts-val{font-size:28px;font-weight:600;color:var(--c-text);line-height:1.2;letter-spacing:0px}
 .lts-val .dur-unit{font-size:18px}
 .lts-val .lts-unit{font-size:28px;font-weight:600}
 .lr-top-divider{width:1px;background:var(--c-border-light);align-self:stretch;margin:-12px 0}
 .lr-diet-btns{display:grid;grid-template-columns:repeat(2,minmax(0,108px));gap:10px;min-width:0;align-content:center;justify-content:center;padding:0 10px}
 .lr-diet-qbtn{border:1px solid var(--c-border);border-radius:var(--radius-sm);background:#F4FCFF;color:var(--c-text);font-size:24px;font-weight:550;padding:15px 6px;cursor:pointer;transition:.15s}
-.lr-diet-qbtn:hover{background:var(--c-primary-light);border-color:var(--c-primary-light);color:var(--c-text)}
-.lr-diet-qbtn.filled{background:#e0f2ff;border-color:var(--c-border);color:var(--c-text)}
+.lr-diet-qbtn:hover{background:#e0f2ff;border-color:var(--c-primary-light);color:var(--c-text)}
+.lr-diet-qbtn.filled{background:var(--c-primary-light);border-color:var(--c-primary-light);color:var(--c-text)}
+.lr-diet-qbtn.filled:hover{background:#e0f2ff;border-color:var(--c-primary-light);color:var(--c-text)}
 
 /* Toggle buttons */
 .lr-toggle-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
@@ -2039,7 +2040,7 @@ ul,li{list-style:none}
   .life-record-page{padding:0;margin:0}
   .lr-top-card{padding:10px 0}
   .lr-top-left{gap:10px;padding-left:8px}
-  .sleep-ring-wrap{width:106px;height:106px;margin-top:6px}
+  .sleep-ring-wrap{width:110px;height:110px;margin-top:6px}
   .sleep-ring-text{font-size:22px}
   .sleep-ring-text .dur-unit{font-size:18px}
   .sleep-ring-status{font-size:11px;margin-top:5px}
@@ -2115,7 +2116,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=271"></script>
+<script src="app.js?v=272"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
