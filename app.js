@@ -4986,6 +4986,9 @@ const LIFE_CHECKIN_DEFS = {
   sport: { key: 'sport', label: '运动打卡', icon: '🏃', period: 'day' },
   massage: { key: 'massage', label: '按摩打卡', icon: '💆', period: 'week' },
   vacuum: { key: 'vacuum', label: '吸尘打卡', icon: '🧹', period: 'week' },
+  earlysleep: { key: 'earlysleep', label: '早睡打卡', icon: '🌙', period: 'day' },
+  snackcheck: { key: 'snackcheck', label: '零食打卡', icon: '🍟', period: 'day' },
+  poop: { key: 'poop', label: '拉屎打卡', icon: '🚽', period: 'day' },
 };
 function renderQuickCheckin() {
   const today = todayStr();
@@ -5500,7 +5503,7 @@ function renderLifeWeekOverview() {
   base.setDate(base.getDate() + lifeWeekOffset * 7);
   const days = [];
   for (let j = 0; j < 7; j++) { const d = new Date(base); d.setDate(base.getDate() + j); days.push(fmtDate(d)); }
-  return renderLifeSingleWeek('本周', days, today, true);
+  return renderLifeSingleWeek('本周概览', days, today, true);
 }
 function renderLifeSingleWeek(label, days, today, withSummary) {
   const wd = ['一', '二', '三', '四', '五', '六', '日'];
@@ -5541,7 +5544,7 @@ function renderLifeSingleWeek(label, days, today, withSummary) {
   for (let i = 0; i < 7; i++) html += '<div class="lwm-day">' + wd[i] + '</div>';
   html += '</div>';
   allDefs.forEach(t => {
-    html += '<div class="lwm-row"><div class="lwm-habit"><span class="lwm-habit-name">' + esc(t.label) + '</span><span class="lwm-tag">' + (t.period === 'day' ? '每日' : '每周') + '</span></div>';
+    html += '<div class="lwm-row"><div class="lwm-habit"><span class="lwm-habit-name">' + esc(t.label) + '</span><span class="lwm-tag">' + (t.period === 'day' ? '每日打卡' : '每周打卡') + '</span></div>';
     for (let i = 0; i < 7; i++) {
       const ds = days[i];
       const done = checkins.some(r => r.type === t.key && r.date === ds);
@@ -5969,10 +5972,28 @@ function lifeRecSave(typeKey, subtypeKey) {
   const rec = { type: typeKey, date: ps.date, week: weekKeyOf(ps.date), createdAt: new Date().toISOString(), ...values };
   if (ps.editId) { DB.update('lifeRecords', ps.editId, rec); Toast.success('已保存修改'); }
   else { DB.add('lifeRecords', rec); Toast.success('已添加记录'); }
+  if (typeKey === 'diet' && subtypeKey === 'snack') syncSnackCheckin(ps.date);
   ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null;
   renderLifeRecord();
 }
-function lifeRecDelete(id) { DB.remove('lifeRecords', id); Toast.success('已删除'); renderLifeRecord(); }
+function syncSnackCheckin(date) {
+  const def = getCheckinDef('snackcheck');
+  if (!def) return;
+  const hasSnack = DB.list('lifeRecords').some(r => r.type === 'diet' && r.subtype === 'snack' && r.date === date);
+  const rec = DB.list('lifeCheckins').find(r => r.type === 'snackcheck' && r.date === date);
+  if (hasSnack && !rec) {
+    DB.add('lifeCheckins', { type: 'snackcheck', date: date, week: weekKeyOf(date), period: 'day', isMakeup: false, createdAt: new Date().toISOString() });
+  } else if (!hasSnack && rec) {
+    DB.remove('lifeCheckins', rec.id);
+  }
+}
+function lifeRecDelete(id) {
+  const rec = DB.getById('lifeRecords', id);
+  const date = rec ? rec.date : null;
+  DB.remove('lifeRecords', id); Toast.success('已删除');
+  if (date) syncSnackCheckin(date);
+  renderLifeRecord();
+}
 function addLifeRecordUnit(btn) {
   const input = document.getElementById('lrf-unit-custom');
   const val = (input.value || '').trim();
