@@ -5710,38 +5710,62 @@ function renderLifeRecordInlineForm(typeKey, subtypeKey) {
   html += `</div>`;
   return html;
 }
+function renderSleepRecordRows(recs) {
+  return recs.map(r => {
+    const dur = r.duration != null ? formatSleepDuration(Number(r.duration)) : '—';
+    return `<div class="lr-record-row">
+      <div class="lr-record-info lr-record-info-2col">
+        <div class="lr-info-line"><span class="lr-info-label">入睡时间:</span><span class="lr-info-val">${r.sleepTime || '—'}</span></div>
+        <div class="lr-info-line"><span class="lr-info-label">清醒时间:</span><span class="lr-info-val">${r.wakeTime || '—'}</span></div>
+        <div class="lr-info-line"><span class="lr-info-label">睡眠时长:</span><span class="lr-info-val">${dur}</span></div>
+        <div class="lr-info-line"><span class="lr-info-label">清醒次数:</span><span class="lr-info-val">${r.wakeCount != null ? r.wakeCount + '次' : '—'}</span></div>
+      </div>
+      <div class="lr-record-ops">
+        <button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('sleep','${r.id}')">编辑</button>
+        <button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderDietRecordRows(recs, st) {
+  return recs.map(r => {
+    let lines = '';
+    if (st.key === 'snack') {
+      const qtyLine = r.qty != null ? `<div class="lr-info-line"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}${r.unit || '包'}</span></div>` : '';
+      lines = `<div class="lr-info-line"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '—'}</span></div>`;
+    } else if (st.key === 'milktea') {
+      const flavors = Array.isArray(r.flavors) ? r.flavors : (r.flavors ? [r.flavors] : []);
+      const flavorTxt = flavors.length ? `（${flavors.join('、')}）` : '';
+      lines = `<div class="lr-info-line"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></div><div class="lr-info-line lr-info-full"><span class="lr-info-label">奶茶记录:</span><span class="lr-info-val">${r.note || '—'}${flavorTxt}</span></div>`;
+    } else {
+      lines = `<div class="lr-info-line"><span class="lr-info-label">${st.key === 'midnight' ? '享用时间' : '吃饭时间'}:</span><span class="lr-info-val">${r.time || '—'}</span></div><div class="lr-info-line lr-info-full"><span class="lr-info-label">餐食记录:</span><span class="lr-info-val">${r.note || '—'}</span></div>`;
+    }
+    return `<div class="lr-record-row">
+      <div class="lr-record-info lr-record-info-2col">${lines}</div>
+      <div class="lr-record-ops">
+        <button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('diet','${r.id}')">编辑</button>
+        <button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button>
+      </div>
+    </div>`;
+  }).join('');
+}
 function renderSleepRecordCard(date) {
   const all = DB.list('lifeRecords');
   const ps = pageState['life-record'];
   const sleepSubs = lifeRecordSubtypes('sleep');
   let html = `<div class="lr-card">
-    <div class="lr-card-head"><span class="lr-card-title">😴 睡眠记录</span><button class="btn btn-sm btn-primary" onclick="lifeRecOpenForm('sleep','night')">+ 新增记录</button></div>
+    <div class="lr-card-head"><span class="lr-card-title">😴 睡眠记录</span></div>
     <div class="lr-card-body">`;
   sleepSubs.forEach(st => {
     const recs = all.filter(r => r.type === 'sleep' && r.subtype === st.key && r.date === date).sort((a, b) => (a._ct || 0) - (b._ct || 0));
     html += `<div class="lr-subtype-box">
-      <div class="lr-subtype-hd"><span class="lr-subtype-name">${st.icon} ${st.label}</span></div>
-      <div class="lr-subtype-body">`;
-    if (!recs.length) {
-      html += `<div class="lr-empty-row" onclick="lifeRecOpenForm('sleep','${st.key}')">点击添加${st.label}睡眠记录</div>`;
-    } else {
-      recs.forEach(r => {
-        html += `<div class="lr-record-row">
-          <div class="lr-record-info">
-            ${r.sleepTime ? `<span><b>入睡时间:</b> ${r.sleepTime}</span>` : ''}
-            ${r.wakeTime ? `<span><b>清醒时间:</b> ${r.wakeTime}</span>` : ''}
-            ${r.duration != null ? `<span><b>睡眠时长:</b> ${formatSleepDuration(Number(r.duration))}</span>` : ''}
-            ${r.wakeCount != null ? `<span><b>清醒次数:</b> ${r.wakeCount}次</span>` : ''}
-          </div>
-          <div class="lr-record-ops">
-            <button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('sleep','${r.id}')">编辑</button>
-            <button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button>
-          </div>
-        </div>`;
-      });
-    }
-    if (ps.formType === 'sleep' && ps.subtype === st.key) html += renderLifeRecordInlineForm('sleep', st.key);
-    html += `</div></div>`;
+      <div class="lr-subtype-label">${st.label}</div>
+      <div class="lr-subtype-content">
+        ${recs.length ? renderSleepRecordRows(recs) : `<div class="lr-empty-row" onclick="lifeRecOpenForm('sleep','${st.key}')">点击添加${st.label}睡眠记录</div>`}
+        ${ps.formType === 'sleep' && ps.subtype === st.key ? renderLifeRecordInlineForm('sleep', st.key) : ''}
+      </div>
+      <button class="lr-subtype-add" onclick="lifeRecOpenForm('sleep','${st.key}')" title="新增${st.label}记录">+</button>
+    </div>`;
   });
   html += `</div></div>`;
   return html;
@@ -5751,20 +5775,18 @@ function renderDietRecordCard(date) {
   const ps = pageState['life-record'];
   const dietSubs = lifeRecordSubtypes('diet');
   let html = `<div class="lr-card">
-    <div class="lr-card-head"><span class="lr-card-title">🍚 饮食记录</span><button class="btn btn-sm btn-primary" onclick="lifeRecOpenForm('diet','breakfast')">+ 新增记录</button></div>
+    <div class="lr-card-head"><span class="lr-card-title">🍚 饮食记录</span></div>
     <div class="lr-card-body">`;
   dietSubs.forEach(st => {
     const recs = all.filter(r => r.type === 'diet' && r.subtype === st.key && r.date === date).sort((a, b) => (a._ct || 0) - (b._ct || 0));
     html += `<div class="lr-subtype-box">
-      <div class="lr-subtype-hd"><span class="lr-subtype-name">${st.icon} ${st.label}</span></div>
-      <div class="lr-subtype-body">`;
-    if (!recs.length) {
-      html += `<div class="lr-empty-row" onclick="lifeRecOpenForm('diet','${st.key}')">点击添加${st.label}记录</div>`;
-    } else {
-      recs.forEach(r => { html += renderDietRecordRow(r, st); });
-    }
-    if (ps.formType === 'diet' && ps.subtype === st.key) html += renderLifeRecordInlineForm('diet', st.key);
-    html += `</div></div>`;
+      <div class="lr-subtype-label">${st.label}</div>
+      <div class="lr-subtype-content">
+        ${recs.length ? renderDietRecordRows(recs, st) : `<div class="lr-empty-row" onclick="lifeRecOpenForm('diet','${st.key}')">点击添加${st.label}记录</div>`}
+        ${ps.formType === 'diet' && ps.subtype === st.key ? renderLifeRecordInlineForm('diet', st.key) : ''}
+      </div>
+      <button class="lr-subtype-add" onclick="lifeRecOpenForm('diet','${st.key}')" title="新增${st.label}记录">+</button>
+    </div>`;
   });
   html += `</div></div>`;
   return html;
@@ -5785,16 +5807,16 @@ function renderSleepWeekLineChart(days) {
     return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="2.5" fill="var(--c-primary)"/>`;
   }).join('');
   const refY = 100 - 8 / maxV * 80 - 10;
-  return `<div class="lr-line-chart">
-    <div class="lr-line-chart-head">一周睡眠折线统计 <span>日均 ${formatSleepDuration(avg)}</span></div>
-    <div class="lr-line-chart-body">
+  return `<div class="lr-history-stat-card">
+    <div class="lr-hsc-row"><span class="lr-hsc-title">一周睡眠折线统计</span><span class="lr-hsc-sub">日均 ${formatSleepDuration(avg)}</span></div>
+    <div class="lr-hsc-chart-body">
       <svg viewBox="0 0 100 100" preserveAspectRatio="none">
         <polyline fill="none" stroke="var(--c-primary)" stroke-width="2" points="${pts}"/>
         ${circles}
         <line x1="0" y1="${refY.toFixed(2)}" x2="100" y2="${refY.toFixed(2)}" stroke="var(--c-warning)" stroke-dasharray="2,2" stroke-width="0.5"/>
       </svg>
     </div>
-    <div class="lr-line-chart-x">${days.map(d => `<span>${d.slice(5)}</span>`).join('')}</div>
+    <div class="lr-hsc-x">${days.map(d => `<span>${d.slice(5)}</span>`).join('')}</div>
   </div>`;
 }
 function renderDietWeekStats(days) {
@@ -5803,15 +5825,40 @@ function renderDietWeekStats(days) {
   Object.keys(LIFE_RECORD_SUBTYPES.diet).forEach(sk => counts[sk] = 0);
   days.forEach(d => all.filter(r => r.type === 'diet' && r.date === d).forEach(r => { if (counts[r.subtype] != null) counts[r.subtype]++; }));
   const maxCount = Math.max(1, ...Object.values(counts));
-  return `<div class="lr-diet-stats">
-    <div class="lr-diet-stats-head">一周饮食统计 <span>各餐食用次数</span></div>
-    <div class="lr-diet-stats-body">
+  return `<div class="lr-history-stat-card">
+    <div class="lr-hsc-row"><span class="lr-hsc-title">一周饮食统计</span><span class="lr-hsc-sub">各餐食用次数</span></div>
+    <div class="lr-hsc-bar-body">
       ${Object.entries(LIFE_RECORD_SUBTYPES.diet).map(([sk, st]) => {
         const count = counts[sk];
         const h = Math.max(4, count / maxCount * 70);
-        return `<div class="lr-diet-stat"><div class="lr-diet-stat-bar" style="height:${h}px"></div><div class="lr-diet-stat-num">${count}</div><div class="lr-diet-stat-label">${st.label}</div></div>`;
+        return `<div class="lr-hsc-bar-item"><div class="lr-hsc-bar" style="height:${h}px"></div><div class="lr-hsc-bar-num">${count}</div><div class="lr-hsc-bar-label">${st.label}</div></div>`;
       }).join('')}
     </div>
+  </div>`;
+}
+function renderLifeRecordHistoryDayCard(typeKey, dateStr, wdLabel) {
+  const all = DB.list('lifeRecords');
+  const subKeys = typeKey === 'sleep' ? ['night', 'noon'] : Object.keys(LIFE_RECORD_SUBTYPES.diet);
+  const headExtra = typeKey === 'sleep'
+    ? (() => { const total = all.filter(r => r.type === 'sleep' && r.date === dateStr).reduce((s, r) => s + (Number(r.duration) || 0), 0); return total > 0 ? `睡眠 ${formatSleepDuration(total)}` : ''; })()
+    : '';
+  let body = '';
+  subKeys.forEach(sk => {
+    const st = LIFE_RECORD_SUBTYPES[typeKey][sk];
+    const recs = all.filter(r => r.type === typeKey && r.subtype === sk && r.date === dateStr).sort((a, b) => (a._ct || 0) - (b._ct || 0));
+    body += `<div class="lr-subtype-box">
+      <div class="lr-subtype-label">${st.label}</div>
+      <div class="lr-subtype-content">
+        ${recs.length
+          ? (typeKey === 'sleep' ? renderSleepRecordRows(recs) : renderDietRecordRows(recs, st))
+          : `<div class="lr-empty-row" onclick="lifeRecordHistoryCellClick('${typeKey}','${sk}','${dateStr}')">点击添加${st.label}记录</div>`}
+      </div>
+      <button class="lr-subtype-add" onclick="lifeRecordHistoryCellClick('${typeKey}','${sk}','${dateStr}')" title="新增${st.label}记录">+</button>
+    </div>`;
+  });
+  return `<div class="lr-history-day-card">
+    <div class="lr-history-day-head"><span class="lr-history-day-date">${dateStr}</span><span class="lr-history-day-wd">${wdLabel}</span>${headExtra ? `<span class="lr-history-day-extra">${headExtra}</span>` : ''}</div>
+    <div class="lr-history-day-body">${body}</div>
   </div>`;
 }
 function renderLifeRecordHistory(typeKey) {
@@ -5827,27 +5874,7 @@ function renderLifeRecordHistory(typeKey) {
   html += `<div class="lr-history-hd"><button class="btn btn-ghost btn-sm" onclick="lifeRecordToggleView('home')">‹ 返回</button><span class="lr-history-title">${def.icon} ${def.label}历史查询</span></div>`;
   if (typeKey === 'sleep') html += renderSleepWeekLineChart(days);
   else html += renderDietWeekStats(days);
-  html += `<div class="lr-week-grid">
-    <div class="lr-week-row lr-week-header">
-      <div class="lr-week-label"></div>
-      ${wd.map((w, i) => `<div class="lr-week-day">${w}<div class="lr-week-date">${days[i].slice(5)}</div></div>`).join('')}
-    </div>`;
-  const subKeys = typeKey === 'sleep' ? ['night', 'noon'] : Object.keys(LIFE_RECORD_SUBTYPES.diet);
-  subKeys.forEach(sk => {
-    const st = LIFE_RECORD_SUBTYPES[typeKey][sk];
-    html += `<div class="lr-week-row"><div class="lr-week-label">${st.label}</div>`;
-    days.forEach(d => {
-      const recs = DB.list('lifeRecords').filter(r => r.type === typeKey && r.subtype === sk && r.date === d);
-      if (typeKey === 'sleep') {
-        const dur = recs.reduce((s, r) => s + (Number(r.duration) || 0), 0);
-        html += `<div class="lr-week-cell ${dur > 0 ? 'done' : ''}" onclick="lifeRecordHistoryCellClick('sleep','${sk}','${d}')">${dur > 0 ? formatSleepDuration(dur) : ''}</div>`;
-      } else {
-        html += `<div class="lr-week-cell ${recs.length ? 'done' : ''}" onclick="lifeRecordHistoryCellClick('diet','${sk}','${d}')">${recs.length ? recs.length + '条' : ''}</div>`;
-      }
-    });
-    html += `</div>`;
-  });
-  html += `</div>`;
+  days.forEach((d, i) => { html += renderLifeRecordHistoryDayCard(typeKey, d, wd[i]); });
   html += `<div class="lr-week-nav">
     <button class="btn btn-ghost" onclick="lifeRecordHistoryPrevWeek()">‹ 上一周</button>
     <span>${days[0].slice(5)} - ${days[6].slice(5)}</span>
