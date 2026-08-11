@@ -5591,6 +5591,11 @@ function formatSleepDuration(hours) {
   if (h === 0 && m === 0) return '0m';
   return (h ? h + 'h' : '') + (m ? m + 'm' : '');
 }
+function formatSleepDurationHTML(hours) {
+  const txt = formatSleepDuration(hours);
+  if (!txt || txt === '—') return txt;
+  return txt.replace(/([hm])/g, '<span class="dur-unit">$1</span>');
+}
 function renderSleepRing(totalHours) {
   const radius = 38;
   const circumference = 2 * Math.PI * radius;
@@ -5599,7 +5604,7 @@ function renderSleepRing(totalHours) {
   const reached = totalHours >= 8;
   const color = reached ? 'var(--c-green)' : 'var(--c-primary)';
   const statusText = reached ? '睡眠时长达到8小时' : '睡眠时长不满8小时';
-  const timeText = totalHours > 0 ? formatSleepDuration(totalHours) : '—';
+  const timeText = totalHours > 0 ? formatSleepDurationHTML(totalHours) : '—';
   return `<div class="sleep-ring-col">
     <div class="sleep-ring-wrap">
       <svg class="sleep-ring" viewBox="0 0 90 90">
@@ -5626,7 +5631,7 @@ function renderLifeRecordTopCard(all, date) {
         <div class="lr-top-stat"><span class="lts-label">入睡时间</span><span class="lts-val">${night && night.sleepTime ? night.sleepTime : '—'}</span></div>
         <div class="lr-top-stat"><span class="lts-label">清醒时间</span><span class="lts-val">${night && night.wakeTime ? night.wakeTime : '—'}</span></div>
         <div class="lr-top-stat"><span class="lts-label">清醒次数</span><span class="lts-val">${night && night.wakeCount != null ? night.wakeCount + '次' : '—'}</span></div>
-        <div class="lr-top-stat"><span class="lts-label">午休时长</span><span class="lts-val">${noonDur > 0 ? formatSleepDuration(noonDur) : '—'}</span></div>
+        <div class="lr-top-stat"><span class="lts-label">午休时长</span><span class="lts-val">${noonDur > 0 ? formatSleepDurationHTML(noonDur) : '—'}</span></div>
       </div>
     </div>
     <div class="lr-top-divider"></div>
