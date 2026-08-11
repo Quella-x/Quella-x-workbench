@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>小筱工作台 · 手机预览</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{min-height:100%}
+  body{margin:0;background:#e9eef3;font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+  .header{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;flex-direction:column;align-items:center;
+    gap:6px;padding:8px 10px;background:rgba(233,238,243,.95);backdrop-filter:blur(4px);border-bottom:1px solid #d6dde4}
+  .toolbar{display:flex;gap:8px;align-items:center;color:#456;font-size:13px;flex-wrap:wrap;justify-content:center}
+  .toolbar button{cursor:pointer;border:1px solid #c7d2db;background:#fff;border-radius:8px;padding:5px 11px;font-size:13px}
+  .toolbar button.active{background:#2e7d32;color:#fff;border-color:#2e7d32}
+  .hint{color:#7a8896;font-size:11px;text-align:center;max-width:520px;line-height:1.4}
+  .stage{min-height:100vh;display:flex;justify-content:center;transition:padding .2s}
+  .phone-wrap{transform-origin:top center;transition:transform .2s}
+  .phone{position:relative;width:390px;height:844px;background:#0b0b0c;border-radius:46px;padding:12px;
+    box-shadow:0 20px 60px rgba(0,0,0,.28);transition:width .2s,height .2s}
+  .screen{position:relative;width:100%;height:100%;background:#fff;border-radius:36px;overflow:hidden;
+    display:flex;flex-direction:column}
+  .statusbar{height:32px;flex:none;background:#fff;display:flex;align-items:center;justify-content:space-between;
+    padding:0 20px;font-size:13px;color:#1a1a1a;font-weight:600}
+  .statusbar .right{display:flex;gap:6px;align-items:center;font-size:12px}
+  .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:140px;height:26px;
+    background:#0b0b0c;border-radius:0 0 16px 16px;z-index:5}
+  iframe{flex:1;width:100%;border:0;background:#fff}
+
+  /* 纯内容模式 */
+  body.content-only .header{display:none}
+  body.content-only .stage{padding-top:0;align-items:flex-start}
+  body.content-only .phone-wrap{transform:none !important;margin:0 !important}
+  body.content-only .phone{height:auto !important;background:transparent;padding:0;box-shadow:none;border-radius:0}
+  body.content-only .notch{display:none}
+  body.content-only .screen{border-radius:0;height:100vh}
+  body.content-only iframe{height:100vh}
+  .floatbar{position:fixed;right:10px;top:50%;transform:translateY(-50%);z-index:200;display:none;
+    flex-direction:column;gap:6px;padding:6px;background:rgba(255,255,255,.92);border:1px solid #c7d2db;border-radius:99px;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+  .floatbar button{cursor:pointer;border:1px solid #c7d2db;background:#fff;border-radius:99px;padding:5px 10px;font-size:12px;min-width:52px}
+  .floatbar button.active{background:#2e7d32;color:#fff;border-color:#2e7d32}
+  body.content-only .floatbar{display:flex}
+</style>
+</head>
+<body class="content-only">
+  <div class="header">
+    <div class="toolbar">
+      <span>机型：</span>
+      <button data-w="412" data-h="898" class="active">OPPO Reno16 Pro</button>
+      <button data-w="375" data-h="812">通用 375</button>
+      <button data-w="390" data-h="844">iPhone 12/13</button>
+      <button data-w="414" data-h="896">大屏 414</button>
+      <button id="toggleFrame" style="margin-left:6px;border-color:#7a8896;color:#345">隐藏手机框</button>
+    </div>
+    <div class="hint">顶部 32dp 为仿真状态栏；下方加载真实应用，布局与手机一致。点「隐藏手机框」可全屏看更多内容。</div>
+  </div>
+  <div class="stage" id="stage">
+    <div class="phone-wrap" id="wrap">
+      <div class="phone" id="phone">
+        <div class="notch"></div>
+        <div class="screen">
+          <div class="statusbar"><span id="clock">9:41</span><span class="right">📶 5G 🔋</span></div>
+          <iframe src="index.html" id="appframe"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="floatbar" id="floatbar">
+    <button data-w="412" data-h="898" class="active">OPPO</button>
+    <button data-w="375" data-h="812">375</button>
+    <button data-w="390" data-h="844">390</button>
+    <button data-w="414" data-h="896">414</button>
+    <button id="showFrame">边框</button>
+  </div>
+  <script>
+    const phone=document.getElementById('phone');
+    const wrap=document.getElementById('wrap');
+    const stage=document.getElementById('stage');
+    const body=document.body;
+    function activeWidth(){
+      const b=document.querySelector('.toolbar button[data-w].active,.floatbar button[data-w].active');
+      return b?+b.dataset.w:412;
+    }
+    function fit(){
+      if(body.classList.contains('content-only')){
+        stage.style.paddingTop='0';
+        phone.style.width=activeWidth()+'px';
+        return;
+      }
+      const hdr=document.querySelector('.header').offsetHeight;
+      stage.style.paddingTop=(hdr+10)+'px';
+      const avail=innerHeight-hdr-20;
+      const h=phone.offsetHeight;
+      const s=Math.min(1,avail/h);
+      wrap.style.transform='scale('+s+')';
+      wrap.style.marginBottom=-(h*(1-s))+'px';
+    }
+    function setSize(w,h,btn){
+      phone.style.width=w+'px';
+      phone.style.height=h+'px';
+      document.querySelectorAll('.toolbar button[data-w],.floatbar button[data-w]').forEach(x=>x.classList.remove('active'));
+      if(btn) btn.classList.add('active');
+      requestAnimationFrame(fit);
+    }
+    document.querySelectorAll('.toolbar button[data-w],.floatbar button[data-w]').forEach(b=>{
+      b.onclick=()=>setSize(+b.dataset.w,+b.dataset.h,b);
+    });
+    document.getElementById('toggleFrame').onclick=()=>{
+      body.classList.add('content-only');
+      fit();
+    };
+    document.getElementById('showFrame').onclick=()=>{
+      body.classList.remove('content-only');
+      const w=activeWidth();
+      phone.style.width=w+'px';
+      fit();
+    };
+    function tick(){const d=new Date();const h=d.getHours().toString().padStart(2,'0');
+      const m=d.getMinutes().toString().padStart(2,'0');document.getElementById('clock').textContent=h+':'+m;}
+    tick();setInterval(tick,10000);
+    window.addEventListener('resize',fit);
+    window.addEventListener('load',fit);
+    fit();
+  </script>
+</body>
+</html>
