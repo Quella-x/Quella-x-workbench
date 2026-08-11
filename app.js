@@ -4984,11 +4984,12 @@ function migrateData() {
 const LIFE_CHECKIN_DEFS = {
   deepspace: { key: 'deepspace', label: '深空打卡', icon: '🌌', period: 'day', calendar: true },
   sport: { key: 'sport', label: '运动打卡', icon: '🏃', period: 'day' },
-  massage: { key: 'massage', label: '按摩打卡', icon: '💆', period: 'week' },
-  vacuum: { key: 'vacuum', label: '吸尘打卡', icon: '🧹', period: 'week' },
   earlysleep: { key: 'earlysleep', label: '早睡打卡', icon: '🌙', period: 'day' },
   snackcheck: { key: 'snackcheck', label: '零食打卡', icon: '🍟', period: 'day' },
   poop: { key: 'poop', label: '拉屎打卡', icon: '🚽', period: 'day' },
+  massage: { key: 'massage', label: '按摩打卡', icon: '💆', period: 'week' },
+  vacuum: { key: 'vacuum', label: '吸尘打卡', icon: '🧹', period: 'week' },
+  mask: { key: 'mask', label: '面膜打卡', icon: '🧖', period: 'week' },
 };
 function renderQuickCheckin() {
   const today = todayStr();
@@ -5007,7 +5008,7 @@ function renderQuickCheckin() {
     let done = false;
     if (t.period === 'day') done = DB.list('lifeCheckins').some(r => r.type === t.key && r.date === today);
     else { const thisWeek = weekKeyOf(today); done = DB.list('lifeCheckins').some(r => r.type === t.key && (r.week || weekKeyOf(r.date)) === thisWeek); }
-    html += `<button class="lqc-btn ${done ? 'done' : ''}" onclick="lifeQuickCheckin('${t.key}',event)">`;
+    html += `<button class="lqc-btn ${t.period === 'week' ? 'lqc-weekly' : ''} ${done ? 'done' : ''}" onclick="lifeQuickCheckin('${t.key}',event)">`;
     const shortLabel = (t.label || '').replace(/打卡$/, '').slice(0, 4);
     html += `<span class="lqc-label">${esc(shortLabel)}</span>`;
     html += '</button>';
