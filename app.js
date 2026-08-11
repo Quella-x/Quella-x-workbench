@@ -5600,12 +5600,14 @@ function renderSleepRing(totalHours) {
   const color = reached ? 'var(--c-green)' : 'var(--c-primary)';
   const statusText = reached ? '睡眠时长达到8小时' : '睡眠时长不满8小时';
   const timeText = totalHours > 0 ? formatSleepDuration(totalHours) : '—';
-  return `<div class="sleep-ring-wrap">
-    <svg class="sleep-ring" viewBox="0 0 90 90">
-      <circle class="sleep-ring-bg" cx="45" cy="45" r="${radius}"/>
-      <circle class="sleep-ring-fill" cx="45" cy="45" r="${radius}" stroke="${color}" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"/>
-    </svg>
-    <div class="sleep-ring-text">${timeText}</div>
+  return `<div class="sleep-ring-col">
+    <div class="sleep-ring-wrap">
+      <svg class="sleep-ring" viewBox="0 0 90 90">
+        <circle class="sleep-ring-bg" cx="45" cy="45" r="${radius}"/>
+        <circle class="sleep-ring-fill" cx="45" cy="45" r="${radius}" stroke="${color}" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"/>
+      </svg>
+      <div class="sleep-ring-text">${timeText}</div>
+    </div>
     <div class="sleep-ring-status">${statusText}</div>
   </div>`;
 }
@@ -5627,6 +5629,7 @@ function renderLifeRecordTopCard(all, date) {
         <div class="lr-top-stat"><span class="lts-label">午休时长</span><span class="lts-val">${noonDur > 0 ? formatSleepDuration(noonDur) : '—'}</span></div>
       </div>
     </div>
+    <div class="lr-top-divider"></div>
     <div class="lr-diet-btns">
       ${dietSubs.map(st => {
         const filled = all.some(r => r.type === 'diet' && r.subtype === st.key && r.date === date);
