@@ -5894,13 +5894,6 @@ function renderLifeRecord() {
   }
   const all = DB.list('lifeRecords');
   let html = '<div class="fade-in life-record-page">';
-  html += `<div class="life-record-datebar">
-    <span>📅 日期</span>
-    <input type="date" class="form-input" value="${date}" max="${todayStr()}" onchange="lifeRecordSetDate(this.value)">
-    <div class="spacer"></div>
-    <button class="btn btn-ghost btn-sm" onclick="lifeRecordGoDate(-1)">‹ 前一天</button>
-    <button class="btn btn-ghost btn-sm" onclick="lifeRecordGoDate(1)">后一天 ›</button>
-  </div>`;
   html += renderLifeRecordTopCard(all, date);
   html += `<div class="lr-toggle-row">
     <button class="lr-toggle-btn ${ps.view === 'sleep-history' ? 'active' : ''}" onclick="lifeRecordToggleView('sleep-history')"><span>😴</span>睡眠记录</button>
