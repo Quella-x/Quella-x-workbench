@@ -5618,12 +5618,14 @@ function renderLifeRecordTopCard(all, date) {
   const total = nightDur + noonDur;
   const dietSubs = lifeRecordSubtypes('diet');
   return `<div class="lr-top-card">
-    ${renderSleepRing(total)}
-    <div class="lr-top-stats">
-      <div class="lr-top-stat"><span class="lts-label">入睡时间</span><span class="lts-val">${night && night.sleepTime ? night.sleepTime : '—'}</span></div>
-      <div class="lr-top-stat"><span class="lts-label">清醒时间</span><span class="lts-val">${night && night.wakeTime ? night.wakeTime : '—'}</span></div>
-      <div class="lr-top-stat"><span class="lts-label">清醒次数</span><span class="lts-val">${night && night.wakeCount != null ? night.wakeCount + '次' : '—'}</span></div>
-      <div class="lr-top-stat"><span class="lts-label">午休时长</span><span class="lts-val">${noonDur > 0 ? formatSleepDuration(noonDur) : '—'}</span></div>
+    <div class="lr-top-left">
+      ${renderSleepRing(total)}
+      <div class="lr-top-stats">
+        <div class="lr-top-stat"><span class="lts-label">入睡时间</span><span class="lts-val">${night && night.sleepTime ? night.sleepTime : '—'}</span></div>
+        <div class="lr-top-stat"><span class="lts-label">清醒时间</span><span class="lts-val">${night && night.wakeTime ? night.wakeTime : '—'}</span></div>
+        <div class="lr-top-stat"><span class="lts-label">清醒次数</span><span class="lts-val">${night && night.wakeCount != null ? night.wakeCount + '次' : '—'}</span></div>
+        <div class="lr-top-stat"><span class="lts-label">午休时长</span><span class="lts-val">${noonDur > 0 ? formatSleepDuration(noonDur) : '—'}</span></div>
+      </div>
     </div>
     <div class="lr-diet-btns">
       ${dietSubs.map(st => {
