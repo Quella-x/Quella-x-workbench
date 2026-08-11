@@ -2730,7 +2730,7 @@ function importStoriesToTimeline() {
     const label = (s.title || '未命名') + ' (' + fmtDate(s.createTime) + ' · ' + charNames.join('、') + ')';
     return `<div class="combobox-option" onclick="document.getElementById('importStorySelect').value='${esc(s.id)}';document.getElementById('importStoryInput').value='${esc(label)}'" data-value="${esc(s.id)}">${esc(label)}</div>`;
   }).join('');
-  html += '<div><div style="font-size:13px;margin-bottom:6px">选择故事小记:</div>';
+  html += '<div><div style="font-size:13px;margin-bottom:6px">选择故事小记</div>';
   html += '<div class="form-row"><div class="combobox-wrapper import-story-combo">';
   html += '<input type="hidden" id="importStorySelect" class="combobox-value" value="">';
   html += '<input type="text" class="form-input combobox-input" id="importStoryInput" placeholder="请选择或输入故事小记" onfocus="showComboboxDropdown(\'importStoryList\')" onclick="showComboboxDropdown(\'importStoryList\')" oninput="filterComboboxDropdown(\'importStoryList\',this.value)">';
@@ -2742,7 +2742,7 @@ function importStoriesToTimeline() {
     const tc = TIMELINE_COLORS[c];
     return `<div class="combobox-option" onclick="document.getElementById('importImportanceValue').value='${esc(c)}';document.getElementById('importImportanceInput').value='${esc(tc.label)}'" data-value="${esc(c)}">${esc(tc.label)}</div>`;
   }).join('');
-  html += `<div style="margin-top:12px"><div style="font-size:13px;margin-bottom:6px">重要性:</div>`;
+  html += `<div style="margin-top:12px"><div style="font-size:13px;margin-bottom:6px">重要性</div>`;
   html += '<div class="combobox-wrapper import-importance-combo">';
   html += `<input type="hidden" id="importImportanceValue" class="combobox-value" value="${esc(impDef)}">`;
   html += `<input type="text" class="form-input combobox-input" id="importImportanceInput" value="${esc(TIMELINE_COLORS[impDef].label)}" readonly onclick="showComboboxDropdown('importImportanceList')" onfocus="showComboboxDropdown('importImportanceList')">`;
