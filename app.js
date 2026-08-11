@@ -5630,7 +5630,7 @@ function renderLifeRecordTopCard(all, date) {
       <div class="lr-top-stats">
         <div class="lr-top-stat"><span class="lts-label">入睡时间</span><span class="lts-val">${night && night.sleepTime ? night.sleepTime : '—'}</span></div>
         <div class="lr-top-stat"><span class="lts-label">清醒时间</span><span class="lts-val">${night && night.wakeTime ? night.wakeTime : '—'}</span></div>
-        <div class="lr-top-stat"><span class="lts-label">清醒次数</span><span class="lts-val">${night && night.wakeCount != null ? night.wakeCount + '次' : '—'}</span></div>
+        <div class="lr-top-stat"><span class="lts-label">清醒次数</span><span class="lts-val">${night && night.wakeCount != null ? night.wakeCount + '<span class="lts-unit">次</span>' : '—'}</span></div>
         <div class="lr-top-stat"><span class="lts-label">午休时长</span><span class="lts-val">${noonDur > 0 ? formatSleepDurationHTML(noonDur) : '—'}</span></div>
       </div>
     </div>
