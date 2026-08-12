@@ -51,6 +51,7 @@
       <button data-w="390" data-h="844">iPhone 12/13</button>
       <button data-w="414" data-h="896">大屏 414</button>
       <button id="toggleFrame" style="margin-left:6px;border-color:#7a8896;color:#345">隐藏手机框</button>
+      <button id="hardReload" style="margin-left:6px;border-color:#e0603a;color:#e0603a;font-weight:600">🧹 强刷清缓存</button>
     </div>
     <div class="hint">顶部 32dp 为仿真状态栏；下方加载真实应用，布局与手机一致。点「隐藏手机框」可全屏看更多内容。</div>
   </div>
@@ -71,6 +72,7 @@
     <button data-w="390" data-h="844">390</button>
     <button data-w="414" data-h="896">414</button>
     <button id="showFrame">边框</button>
+    <button id="hardReloadFloat" style="border-color:#e0603a;color:#e0603a;font-weight:600">强刷</button>
   </div>
   <script>
     const phone=document.getElementById('phone');
@@ -144,6 +146,24 @@
         }
       }catch(e){}
     };
+    function hardReloadApp(){
+      const url='index.html?_t='+Date.now();
+      try{
+        const cw=frame.contentWindow;
+        if(cw && cw.navigator && cw.navigator.serviceWorker){
+          cw.navigator.serviceWorker.getRegistrations().then(regs=>{
+            regs.forEach(r=>r.unregister());
+            if(cw.caches){ cw.caches.keys().then(ks=>ks.forEach(k=>cw.caches.delete(k))); }
+            frame.src=url;
+          });
+          return;
+        }
+      }catch(e){}
+      frame.src=url;
+    }
+    document.getElementById('hardReload').onclick=hardReloadApp;
+    document.getElementById('hardReloadFloat').onclick=hardReloadApp;
+
     reloadApp(true);
 
     window.addEventListener('resize',fit);
