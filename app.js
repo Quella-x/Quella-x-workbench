@@ -5631,7 +5631,27 @@ function renderLifeRecordTopCard(all, date) {
   const noonDur = noon ? Number(noon.duration) || 0 : 0;
   const total = nightDur + noonDur;
   const dietSubs = lifeRecordSubtypes('diet');
-  return `<div class="lr-top-card"></div>`;
+  const statusText = total >= 8 ? '睡眠达到8小时' : '睡眠未达到8小时';
+  return `<div class="lr-top-card">
+    <div class="lr-top-left">
+      <div class="lr-ring-col">
+        ${renderSleepRing(total)}
+        <div class="sleep-ring-status">${statusText}</div>
+      </div>
+      <div class="lr-top-stats">
+        <div class="lr-top-stat"><span class="lts-label">入睡时间</span><span class="lts-val">${night && night.sleepTime ? night.sleepTime : '—'}</span></div>
+        <div class="lr-top-stat"><span class="lts-label">清醒时间</span><span class="lts-val">${night && night.wakeTime ? night.wakeTime : '—'}</span></div>
+        <div class="lr-top-stat"><span class="lts-label">清醒次数</span><span class="lts-val">${night && night.wakeCount != null ? night.wakeCount + '<span class="lts-unit">次</span>' : '—'}</span></div>
+        <div class="lr-top-stat"><span class="lts-label">午休时长</span><span class="lts-val">${noonDur > 0 ? formatSleepDurationHTML(noonDur) : '—'}</span></div>
+      </div>
+    </div>
+    <div class="lr-diet-btns">
+      ${dietSubs.map(st => {
+        const filled = all.some(r => r.type === 'diet' && r.subtype === st.key && r.date === date);
+        return `<button class="lr-diet-qbtn ${filled ? 'filled' : ''}" onclick="lifeRecOpenForm('diet','${st.key}')">${st.label}</button>`;
+      }).join('')}
+    </div>
+  </div>`;
 }
 function renderDietRecordRow(r, st) {
   let info = '';
