@@ -29,6 +29,14 @@
   .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:140px;height:26px;
     background:#0b0b0c;border-radius:0 0 16px 16px;z-index:5}
   iframe{flex:1;width:100%;border:0;background:#fff}
+
+  /* 全屏模式（隐藏手机框） */
+  body.content-only .stage{padding-top:0;align-items:flex-start}
+  body.content-only .phone-wrap{transform:none !important;margin:0 !important}
+  body.content-only .phone{height:auto !important;background:transparent;padding:0;box-shadow:none;border-radius:0;width:100% !important;max-width:520px}
+  body.content-only .notch{display:none}
+  body.content-only .screen{border-radius:0;height:100vh}
+  body.content-only iframe{height:100vh}
 </style>
 </head>
 <body>
@@ -39,9 +47,10 @@
       <button data-w="375" data-h="812">通用 375</button>
       <button data-w="390" data-h="844">iPhone 12/13</button>
       <button data-w="414" data-h="896">大屏 414</button>
+      <button id="toggleFrame" style="margin-left:6px;border-color:#7a8896;color:#345">隐藏手机框</button>
       <button id="hardReload" style="margin-left:6px;border-color:#e0603a;color:#e0603a;font-weight:600">🧹 强刷清缓存</button>
     </div>
-    <div class="hint">顶部 32dp 为仿真状态栏，下方为带 OPPO 边框的手机预览，布局与手机一致。</div>
+    <div class="hint">顶部 32dp 为仿真状态栏；默认显示手机框，点「隐藏手机框」可全屏，全屏时点「显示手机框」切回。</div>
     <div id="loadStatus" style="font-size:12px;color:#7a8896;min-height:18px;text-align:center;margin-top:2px"></div>
   </div>
   <div class="stage" id="stage">
@@ -66,6 +75,10 @@
     }
     function fit(){
       const hdr=document.querySelector('.header').offsetHeight;
+      if(body.classList.contains('content-only')){
+        stage.style.paddingTop='0';
+        return;
+      }
       stage.style.paddingTop=(hdr+10)+'px';
       const avail=innerHeight-hdr-20;
       const h=phone.offsetHeight;
@@ -83,6 +96,18 @@
     document.querySelectorAll('.toolbar button[data-w]').forEach(b=>{
       b.onclick=()=>setSize(+b.dataset.w,+b.dataset.h,b);
     });
+    const toggleFrameBtn=document.getElementById('toggleFrame');
+    toggleFrameBtn.onclick=()=>{
+      if(body.classList.contains('content-only')){
+        body.classList.remove('content-only');
+        phone.style.width=activeWidth()+'px';
+        toggleFrameBtn.textContent='隐藏手机框';
+      }else{
+        body.classList.add('content-only');
+        toggleFrameBtn.textContent='显示手机框';
+      }
+      requestAnimationFrame(fit);
+    };
     function tick(){const d=new Date();const h=d.getHours().toString().padStart(2,'0');
       const m=d.getMinutes().toString().padStart(2,'0');document.getElementById('clock').textContent=h+':'+m;}
     tick();setInterval(tick,10000);
