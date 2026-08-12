@@ -30,14 +30,20 @@
     background:#0b0b0c;border-radius:0 0 16px 16px;z-index:5}
   iframe{flex:1;width:100%;border:0;background:#fff}
 
-  /* 全屏模式（隐藏手机框） */
+  :root{--phone-width:412px}
+
+  /* 全屏模式（隐藏手机框）：固定机型宽度、隐藏预览工具栏与仿真状态栏 */
+  body.content-only .header{display:none}
   body.content-only .stage{padding-top:0;align-items:flex-start}
-  body.content-only .phone-wrap{transform:none !important;margin:0 !important;width:100% !important;max-width:none !important}
-  body.content-only .phone{height:100vh !important;background:transparent;padding:0;box-shadow:none;border-radius:0;width:100vw !important;max-width:none !important}
+  body.content-only .phone-wrap{transform:none !important;margin:0 !important;width:auto !important;max-width:none !important}
+  body.content-only .phone{width:var(--phone-width) !important;height:100vh !important;background:transparent;padding:0;box-shadow:none;border-radius:0;max-width:none !important}
   body.content-only .notch{display:none}
+  body.content-only .statusbar{display:none}
   body.content-only .screen{border-radius:0;height:100%}
   body.content-only iframe{height:100%}
+  body.content-only .exit-frame{display:block}
 
+  .exit-frame{display:none;position:fixed;top:8px;right:8px;z-index:200;cursor:pointer;border:1px solid #c7d2db;background:#fff;border-radius:8px;padding:6px 10px;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
   .diag{color:#c33;font-size:12px;text-align:center;max-width:520px;line-height:1.5;margin-top:4px}
   .diag a{color:#2e7d32;text-decoration:underline;cursor:pointer}
 </style>
@@ -57,6 +63,7 @@
     <div id="loadStatus" style="font-size:12px;color:#7a8896;min-height:18px;text-align:center;margin-top:2px"></div>
     <div id="diag" class="diag" style="display:none"></div>
   </div>
+  <button id="exitFrame" class="exit-frame" title="显示手机框">📱 显示手机框</button>
   <div class="stage" id="stage">
     <div class="phone-wrap" id="wrap">
       <div class="phone" id="phone">
@@ -80,6 +87,8 @@
       const sep=location.search?'&':'?';
       try{ location.replace(location.href+sep+'_refreshed=1&_t='+Date.now()); }catch(e){}
     }
+    // 初始化 CSS 变量为当前机型宽度，供 content-only 模式使用
+    document.documentElement.style.setProperty('--phone-width', activeWidth()+'px');
     function activeWidth(){
       const b=document.querySelector('.toolbar button[data-w].active');
       return b?+b.dataset.w:412;
@@ -98,9 +107,11 @@
       wrap.style.marginBottom=-(h*(1-s))+'px';
     }
     function setSize(w,h,btn){
-      if(body.classList.contains('content-only')) return;
-      phone.style.width=w+'px';
-      phone.style.height=h+'px';
+      document.documentElement.style.setProperty('--phone-width', w+'px');
+      if(!body.classList.contains('content-only')){
+        phone.style.width=w+'px';
+        phone.style.height=h+'px';
+      }
       document.querySelectorAll('.toolbar button[data-w]').forEach(x=>x.classList.remove('active'));
       if(btn) btn.classList.add('active');
       requestAnimationFrame(fit);
@@ -123,11 +134,23 @@
       }
       requestAnimationFrame(fit);
     };
+    document.getElementById('exitFrame').onclick=()=>{
+      body.classList.remove('content-only');
+      phone.style.width=activeWidth()+'px';
+      phone.style.height=(document.querySelector('.toolbar button[data-w].active')?.dataset.h||898)+'px';
+      toggleFrameBtn.textContent='隐藏手机框';
+      requestAnimationFrame(fit);
+    };
+    document.addEventListener('keydown',e=>{
+      if(e.key==='Escape' && body.classList.contains('content-only')){
+        document.getElementById('exitFrame').click();
+      }
+    });
     function tick(){const d=new Date();const h=d.getHours().toString().padStart(2,'0');
       const m=d.getMinutes().toString().padStart(2,'0');document.getElementById('clock').textContent=h+':'+m;}
     tick();setInterval(tick,10000);
 
-    const APP_VERSION=305;
+    const APP_VERSION=306;
     const frame=document.getElementById('appframe');
     let loadTimer=null;
     function clearSwFromWindow(w){
