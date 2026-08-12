@@ -61,7 +61,7 @@
         <div class="notch"></div>
         <div class="screen">
           <div class="statusbar"><span id="clock">9:41</span><span class="right">📶 5G 🔋</span></div>
-          <iframe src="index.html?_t=" id="appframe"></iframe>
+          <iframe src="about:blank" id="appframe"></iframe>
         </div>
       </div>
     </div>
@@ -122,49 +122,45 @@
     tick();setInterval(tick,10000);
 
     const frame=document.getElementById('appframe');
-    function reloadApp(clearCache){
-      const url='index.html?_t='+Date.now();
-      if(clearCache){
+    function clearSwFromWindow(w){
+      return new Promise(resolve=>{
         try{
-          const cw=frame.contentWindow;
-          if(cw && cw.navigator && cw.navigator.serviceWorker){
-            cw.navigator.serviceWorker.getRegistrations().then(regs=>{
+          if(w && w.navigator && w.navigator.serviceWorker){
+            w.navigator.serviceWorker.getRegistrations().then(regs=>{
               regs.forEach(r=>r.unregister());
-              frame.src=url;
-            });
-            return;
+              resolve(regs.length);
+            }).catch(()=>resolve(0));
+          }else{
+            resolve(0);
           }
-        }catch(e){}
-      }
-      frame.src=url;
+        }catch(e){ resolve(0); }
+      });
     }
-    frame.onload=()=>{
-      try{
-        const cw=frame.contentWindow;
-        if(cw && cw.navigator && cw.navigator.serviceWorker){
-          cw.navigator.serviceWorker.getRegistrations().then(regs=>regs.forEach(r=>r.unregister()));
-        }
-      }catch(e){}
-    };
-    function hardReloadApp(){
+    function clearCachesFromWindow(w){
+      return new Promise(resolve=>{
+        try{
+          if(w && w.caches){
+            w.caches.keys().then(ks=>{
+              Promise.all(ks.map(k=>w.caches.delete(k))).then(()=>resolve(ks.length));
+            }).catch(()=>resolve(0));
+          }else{
+            resolve(0);
+          }
+        }catch(e){ resolve(0); }
+      });
+    }
+    async function hardReloadApp(){
       const url='index.html?_t='+Date.now();
-      try{
-        const cw=frame.contentWindow;
-        if(cw && cw.navigator && cw.navigator.serviceWorker){
-          cw.navigator.serviceWorker.getRegistrations().then(regs=>{
-            regs.forEach(r=>r.unregister());
-            if(cw.caches){ cw.caches.keys().then(ks=>ks.forEach(k=>cw.caches.delete(k))); }
-            frame.src=url;
-          });
-          return;
-        }
-      }catch(e){}
+      await clearSwFromWindow(window);
+      await clearSwFromWindow(frame.contentWindow);
+      await clearCachesFromWindow(window);
+      await clearCachesFromWindow(frame.contentWindow);
       frame.src=url;
     }
     document.getElementById('hardReload').onclick=hardReloadApp;
     document.getElementById('hardReloadFloat').onclick=hardReloadApp;
 
-    reloadApp(true);
+    hardReloadApp();
 
     window.addEventListener('resize',fit);
     window.addEventListener('load',fit);
