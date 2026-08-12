@@ -32,11 +32,14 @@
 
   /* 全屏模式（隐藏手机框） */
   body.content-only .stage{padding-top:0;align-items:flex-start}
-  body.content-only .phone-wrap{transform:none !important;margin:0 !important}
-  body.content-only .phone{height:auto !important;background:transparent;padding:0;box-shadow:none;border-radius:0;width:100% !important;max-width:none}
+  body.content-only .phone-wrap{transform:none !important;margin:0 !important;width:100% !important;max-width:none !important}
+  body.content-only .phone{height:100vh !important;background:transparent;padding:0;box-shadow:none;border-radius:0;width:100vw !important;max-width:none !important}
   body.content-only .notch{display:none}
-  body.content-only .screen{border-radius:0;height:100vh}
-  body.content-only iframe{height:100vh}
+  body.content-only .screen{border-radius:0;height:100%}
+  body.content-only iframe{height:100%}
+
+  .diag{color:#c33;font-size:12px;text-align:center;max-width:520px;line-height:1.5;margin-top:4px}
+  .diag a{color:#2e7d32;text-decoration:underline;cursor:pointer}
 </style>
 </head>
 <body>
@@ -52,6 +55,7 @@
     </div>
     <div class="hint">顶部 32dp 为仿真状态栏；默认显示手机框，点「隐藏手机框」可全屏，全屏时点「显示手机框」切回。</div>
     <div id="loadStatus" style="font-size:12px;color:#7a8896;min-height:18px;text-align:center;margin-top:2px"></div>
+    <div id="diag" class="diag" style="display:none"></div>
   </div>
   <div class="stage" id="stage">
     <div class="phone-wrap" id="wrap">
@@ -59,7 +63,7 @@
         <div class="notch"></div>
         <div class="screen">
           <div class="statusbar"><span id="clock">9:41</span><span class="right">📶 5G 🔋</span></div>
-          <iframe src="about:blank" id="appframe"></iframe>
+          <iframe src="about:blank" id="appframe" allow="fullscreen"></iframe>
         </div>
       </div>
     </div>
@@ -69,6 +73,7 @@
     const wrap=document.getElementById('wrap');
     const stage=document.getElementById('stage');
     const body=document.body;
+    const diag=document.getElementById('diag');
     // 保险：默认强制显示手机框；并尝试绕过 file:// 协议的顽固缓存
     body.classList.remove('content-only');
     if(location.protocol==='file:' && !/[?&]_refreshed=1/.test(location.search)){
@@ -93,6 +98,7 @@
       wrap.style.marginBottom=-(h*(1-s))+'px';
     }
     function setSize(w,h,btn){
+      if(body.classList.contains('content-only')) return;
       phone.style.width=w+'px';
       phone.style.height=h+'px';
       document.querySelectorAll('.toolbar button[data-w]').forEach(x=>x.classList.remove('active'));
@@ -107,9 +113,12 @@
       if(body.classList.contains('content-only')){
         body.classList.remove('content-only');
         phone.style.width=activeWidth()+'px';
+        phone.style.height=(document.querySelector('.toolbar button[data-w].active')?.dataset.h||898)+'px';
         toggleFrameBtn.textContent='隐藏手机框';
       }else{
         body.classList.add('content-only');
+        phone.style.width='';
+        phone.style.height='';
         toggleFrameBtn.textContent='显示手机框';
       }
       requestAnimationFrame(fit);
@@ -118,8 +127,9 @@
       const m=d.getMinutes().toString().padStart(2,'0');document.getElementById('clock').textContent=h+':'+m;}
     tick();setInterval(tick,10000);
 
-    const APP_VERSION=304;
+    const APP_VERSION=305;
     const frame=document.getElementById('appframe');
+    let loadTimer=null;
     function clearSwFromWindow(w){
       return new Promise(resolve=>{
         try{
@@ -155,7 +165,17 @@
       el.textContent=msg;
       el.style.color=type==='err'?'#c33':(type==='ok'?'#2e7d32':'#7a8896');
     }
+    function showDiag(html){
+      if(!diag) return;
+      diag.style.display='block';
+      diag.innerHTML=html;
+    }
+    function hideDiag(){
+      if(!diag) return;
+      diag.style.display='none';
+    }
     async function hardReloadApp(){
+      hideDiag();
       setStatus('正在清除缓存…');
       const url='index.html?preview=1&v='+APP_VERSION+'&_t='+Date.now();
       await clearSwFromWindow(window);
@@ -163,6 +183,11 @@
       await clearCachesFromWindow(window);
       await clearCachesFromWindow(frame.contentWindow);
       setStatus('正在加载应用…');
+      if(loadTimer) clearTimeout(loadTimer);
+      loadTimer=setTimeout(()=>{
+        setStatus('加载超时，请点「强刷清缓存」重试','err');
+        showDiag('本地 file:// 预览容易被浏览器缓存/安全策略影响，建议优先使用线上链接。');
+      },5000);
       frame.src=url;
     }
     document.getElementById('hardReload').onclick=hardReloadApp;
@@ -172,8 +197,12 @@
       const d=e.data||{};
       if(d.type==='preview-error'){
         setStatus('iframe 报错：'+d.msg,'err');
+        if(loadTimer){clearTimeout(loadTimer);loadTimer=null;}
       }else if(d.type==='preview-log'){
         console.log('[app]',d.msg);
+      }else if(d.type==='preview-ready'){
+        setStatus('应用已加载','ok');
+        if(loadTimer){clearTimeout(loadTimer);loadTimer=null;}
       }
     });
     frame.onload=()=>{
@@ -181,6 +210,7 @@
         const cw=frame.contentWindow;
         if(cw && cw.location && cw.location.href && cw.location.href!=='about:blank'){
           setStatus('应用已加载','ok');
+          if(loadTimer){clearTimeout(loadTimer);loadTimer=null;}
         }
       }catch(e){}
     };
