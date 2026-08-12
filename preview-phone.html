@@ -33,7 +33,7 @@
   /* 全屏模式（隐藏手机框） */
   body.content-only .stage{padding-top:0;align-items:flex-start}
   body.content-only .phone-wrap{transform:none !important;margin:0 !important}
-  body.content-only .phone{height:auto !important;background:transparent;padding:0;box-shadow:none;border-radius:0;width:100% !important;max-width:520px}
+  body.content-only .phone{height:auto !important;background:transparent;padding:0;box-shadow:none;border-radius:0;width:100% !important;max-width:none}
   body.content-only .notch{display:none}
   body.content-only .screen{border-radius:0;height:100vh}
   body.content-only iframe{height:100vh}
@@ -69,6 +69,12 @@
     const wrap=document.getElementById('wrap');
     const stage=document.getElementById('stage');
     const body=document.body;
+    // 保险：默认强制显示手机框；并尝试绕过 file:// 协议的顽固缓存
+    body.classList.remove('content-only');
+    if(location.protocol==='file:' && !/[?&]_refreshed=1/.test(location.search)){
+      const sep=location.search?'&':'?';
+      try{ location.replace(location.href+sep+'_refreshed=1&_t='+Date.now()); }catch(e){}
+    }
     function activeWidth(){
       const b=document.querySelector('.toolbar button[data-w].active');
       return b?+b.dataset.w:412;
@@ -112,7 +118,7 @@
       const m=d.getMinutes().toString().padStart(2,'0');document.getElementById('clock').textContent=h+':'+m;}
     tick();setInterval(tick,10000);
 
-    const APP_VERSION=303;
+    const APP_VERSION=304;
     const frame=document.getElementById('appframe');
     function clearSwFromWindow(w){
       return new Promise(resolve=>{
