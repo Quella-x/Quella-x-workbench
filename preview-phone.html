@@ -29,20 +29,6 @@
   .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:140px;height:26px;
     background:#0b0b0c;border-radius:0 0 16px 16px;z-index:5}
   iframe{flex:1;width:100%;border:0;background:#fff}
-
-  /* 纯内容模式 */
-  body.content-only .header{display:none}
-  body.content-only .stage{padding-top:0;align-items:flex-start}
-  body.content-only .phone-wrap{transform:none !important;margin:0 !important}
-  body.content-only .phone{height:auto !important;background:transparent;padding:0;box-shadow:none;border-radius:0}
-  body.content-only .notch{display:none}
-  body.content-only .screen{border-radius:0;height:100vh}
-  body.content-only iframe{height:100vh}
-  .floatbar{position:fixed;right:10px;top:50%;transform:translateY(-50%);z-index:200;display:none;
-    flex-direction:column;gap:6px;padding:6px;background:rgba(255,255,255,.92);border:1px solid #c7d2db;border-radius:99px;box-shadow:0 4px 14px rgba(0,0,0,.12)}
-  .floatbar button{cursor:pointer;border:1px solid #c7d2db;background:#fff;border-radius:99px;padding:5px 10px;font-size:12px;min-width:52px}
-  .floatbar button.active{background:#2e7d32;color:#fff;border-color:#2e7d32}
-  body.content-only .floatbar{display:flex}
 </style>
 </head>
 <body>
@@ -53,10 +39,9 @@
       <button data-w="375" data-h="812">通用 375</button>
       <button data-w="390" data-h="844">iPhone 12/13</button>
       <button data-w="414" data-h="896">大屏 414</button>
-      <button id="toggleFrame" style="margin-left:6px;border-color:#7a8896;color:#345">隐藏手机框</button>
       <button id="hardReload" style="margin-left:6px;border-color:#e0603a;color:#e0603a;font-weight:600">🧹 强刷清缓存</button>
     </div>
-    <div class="hint">顶部 32dp 为仿真状态栏；下方加载真实应用，布局与手机一致。点「隐藏手机框」可全屏看更多内容。</div>
+    <div class="hint">顶部 32dp 为仿真状态栏，下方为带 OPPO 边框的手机预览，布局与手机一致。</div>
     <div id="loadStatus" style="font-size:12px;color:#7a8896;min-height:18px;text-align:center;margin-top:2px"></div>
   </div>
   <div class="stage" id="stage">
@@ -70,31 +55,16 @@
       </div>
     </div>
   </div>
-  <div class="floatbar" id="floatbar">
-    <button data-w="412" data-h="898" class="active">OPPO</button>
-    <button data-w="375" data-h="812">375</button>
-    <button data-w="390" data-h="844">390</button>
-    <button data-w="414" data-h="896">414</button>
-    <button id="showFrame">边框</button>
-    <button id="hardReloadFloat" style="border-color:#e0603a;color:#e0603a;font-weight:600">强刷</button>
-  </div>
   <script>
     const phone=document.getElementById('phone');
     const wrap=document.getElementById('wrap');
     const stage=document.getElementById('stage');
     const body=document.body;
-    // 默认强制手机模式（显示手机框）；仅当 URL 显式带 ?frame=0 时才进入全屏
-    if(!/[?&]frame=0\b/.test(location.search)){ body.classList.remove('content-only'); }
     function activeWidth(){
-      const b=document.querySelector('.toolbar button[data-w].active,.floatbar button[data-w].active');
+      const b=document.querySelector('.toolbar button[data-w].active');
       return b?+b.dataset.w:412;
     }
     function fit(){
-      if(body.classList.contains('content-only')){
-        stage.style.paddingTop='0';
-        phone.style.width=activeWidth()+'px';
-        return;
-      }
       const hdr=document.querySelector('.header').offsetHeight;
       stage.style.paddingTop=(hdr+10)+'px';
       const avail=innerHeight-hdr-20;
@@ -106,23 +76,13 @@
     function setSize(w,h,btn){
       phone.style.width=w+'px';
       phone.style.height=h+'px';
-      document.querySelectorAll('.toolbar button[data-w],.floatbar button[data-w]').forEach(x=>x.classList.remove('active'));
+      document.querySelectorAll('.toolbar button[data-w]').forEach(x=>x.classList.remove('active'));
       if(btn) btn.classList.add('active');
       requestAnimationFrame(fit);
     }
-    document.querySelectorAll('.toolbar button[data-w],.floatbar button[data-w]').forEach(b=>{
+    document.querySelectorAll('.toolbar button[data-w]').forEach(b=>{
       b.onclick=()=>setSize(+b.dataset.w,+b.dataset.h,b);
     });
-    document.getElementById('toggleFrame').onclick=()=>{
-      body.classList.add('content-only');
-      fit();
-    };
-    document.getElementById('showFrame').onclick=()=>{
-      body.classList.remove('content-only');
-      const w=activeWidth();
-      phone.style.width=w+'px';
-      fit();
-    };
     function tick(){const d=new Date();const h=d.getHours().toString().padStart(2,'0');
       const m=d.getMinutes().toString().padStart(2,'0');document.getElementById('clock').textContent=h+':'+m;}
     tick();setInterval(tick,10000);
@@ -174,7 +134,6 @@
       frame.src=url;
     }
     document.getElementById('hardReload').onclick=hardReloadApp;
-    document.getElementById('hardReloadFloat').onclick=hardReloadApp;
 
     window.addEventListener('message',e=>{
       if(e.source!==frame.contentWindow) return;
