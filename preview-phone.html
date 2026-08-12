@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>小筱工作台 · 手机预览</title>
 <style>
   *{box-sizing:border-box}
@@ -80,6 +83,8 @@
     const wrap=document.getElementById('wrap');
     const stage=document.getElementById('stage');
     const body=document.body;
+    // 默认强制手机模式（显示手机框）；仅当 URL 显式带 ?frame=0 时才进入全屏
+    if(!/[?&]frame=0\b/.test(location.search)){ body.classList.remove('content-only'); }
     function activeWidth(){
       const b=document.querySelector('.toolbar button[data-w].active,.floatbar button[data-w].active');
       return b?+b.dataset.w:412;
