@@ -60,7 +60,7 @@
         <div class="notch"></div>
         <div class="screen">
           <div class="statusbar"><span id="clock">9:41</span><span class="right">📶 5G 🔋</span></div>
-          <iframe src="index.html" id="appframe"></iframe>
+          <iframe src="index.html?_t=" id="appframe"></iframe>
         </div>
       </div>
     </div>
@@ -118,6 +118,34 @@
     function tick(){const d=new Date();const h=d.getHours().toString().padStart(2,'0');
       const m=d.getMinutes().toString().padStart(2,'0');document.getElementById('clock').textContent=h+':'+m;}
     tick();setInterval(tick,10000);
+
+    const frame=document.getElementById('appframe');
+    function reloadApp(clearCache){
+      const url='index.html?_t='+Date.now();
+      if(clearCache){
+        try{
+          const cw=frame.contentWindow;
+          if(cw && cw.navigator && cw.navigator.serviceWorker){
+            cw.navigator.serviceWorker.getRegistrations().then(regs=>{
+              regs.forEach(r=>r.unregister());
+              frame.src=url;
+            });
+            return;
+          }
+        }catch(e){}
+      }
+      frame.src=url;
+    }
+    frame.onload=()=>{
+      try{
+        const cw=frame.contentWindow;
+        if(cw && cw.navigator && cw.navigator.serviceWorker){
+          cw.navigator.serviceWorker.getRegistrations().then(regs=>regs.forEach(r=>r.unregister()));
+        }
+      }catch(e){}
+    };
+    reloadApp(true);
+
     window.addEventListener('resize',fit);
     window.addEventListener('load',fit);
     fit();
