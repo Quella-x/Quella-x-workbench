@@ -112,6 +112,7 @@
       const m=d.getMinutes().toString().padStart(2,'0');document.getElementById('clock').textContent=h+':'+m;}
     tick();setInterval(tick,10000);
 
+    const APP_VERSION=303;
     const frame=document.getElementById('appframe');
     function clearSwFromWindow(w){
       return new Promise(resolve=>{
@@ -150,7 +151,7 @@
     }
     async function hardReloadApp(){
       setStatus('正在清除缓存…');
-      const url='index.html?_t='+Date.now()+'&preview=1';
+      const url='index.html?preview=1&v='+APP_VERSION+'&_t='+Date.now();
       await clearSwFromWindow(window);
       await clearSwFromWindow(frame.contentWindow);
       await clearCachesFromWindow(window);
