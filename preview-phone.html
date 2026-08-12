@@ -54,6 +54,7 @@
       <button id="hardReload" style="margin-left:6px;border-color:#e0603a;color:#e0603a;font-weight:600">🧹 强刷清缓存</button>
     </div>
     <div class="hint">顶部 32dp 为仿真状态栏；下方加载真实应用，布局与手机一致。点「隐藏手机框」可全屏看更多内容。</div>
+    <div id="loadStatus" style="font-size:12px;color:#7a8896;min-height:18px;text-align:center;margin-top:2px"></div>
   </div>
   <div class="stage" id="stage">
     <div class="phone-wrap" id="wrap">
@@ -149,16 +150,44 @@
         }catch(e){ resolve(0); }
       });
     }
+    let loadStatus='';
+    function setStatus(msg,type){
+      loadStatus=msg;
+      const el=document.getElementById('loadStatus');
+      if(!el) return;
+      el.textContent=msg;
+      el.style.color=type==='err'?'#c33':(type==='ok'?'#2e7d32':'#7a8896');
+    }
     async function hardReloadApp(){
-      const url='index.html?_t='+Date.now();
+      setStatus('正在清除缓存…');
+      const url='index.html?_t='+Date.now()+'&preview=1';
       await clearSwFromWindow(window);
       await clearSwFromWindow(frame.contentWindow);
       await clearCachesFromWindow(window);
       await clearCachesFromWindow(frame.contentWindow);
+      setStatus('正在加载应用…');
       frame.src=url;
     }
     document.getElementById('hardReload').onclick=hardReloadApp;
     document.getElementById('hardReloadFloat').onclick=hardReloadApp;
+
+    window.addEventListener('message',e=>{
+      if(e.source!==frame.contentWindow) return;
+      const d=e.data||{};
+      if(d.type==='preview-error'){
+        setStatus('iframe 报错：'+d.msg,'err');
+      }else if(d.type==='preview-log'){
+        console.log('[app]',d.msg);
+      }
+    });
+    frame.onload=()=>{
+      try{
+        const cw=frame.contentWindow;
+        if(cw && cw.location && cw.location.href && cw.location.href!=='about:blank'){
+          setStatus('应用已加载','ok');
+        }
+      }catch(e){}
+    };
 
     hardReloadApp();
 

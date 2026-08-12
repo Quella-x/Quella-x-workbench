@@ -2076,6 +2076,27 @@ ul,li{list-style:none}
   .lr-hsc-title{font-size:14px}
 }
 </style>
+<script>
+  (function(){
+    if(window.parent===window) return;
+    var q=location.search||'';
+    if(q.indexOf('preview=1')===-1) return;
+    function post(t,msg){
+      try{ window.parent.postMessage({type:t,msg:msg},'*'); }catch(e){}
+    }
+    window.addEventListener('error',function(e){
+      post('preview-error',(e.message||'error')+' @ '+(e.filename||'')+':'+(e.lineno||0));
+    });
+    window.addEventListener('unhandledrejection',function(e){
+      post('preview-error','Unhandled rejection: '+(e.reason&&e.reason.message?e.reason.message:String(e.reason)));
+    });
+    var orig=console.log;
+    console.log=function(){
+      post('preview-log',Array.from(arguments).map(String).join(' '));
+      return orig.apply(console,arguments);
+    };
+  })();
+</script>
 </head>
 <body>
 <div id="app">
@@ -2126,13 +2147,16 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=299"></script>
+<script src="app.js?v=300"></script>
 <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js').catch(function () {});
-    });
-  }
+  (function () {
+    var isPreview = location.search.indexOf('preview=1') !== -1;
+    if (!isPreview && 'serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function () {});
+      });
+    }
+  })();
 </script>
 </body>
 </html>
