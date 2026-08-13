@@ -5631,12 +5631,10 @@ function renderLifeRecordTopCard(all, date) {
   const noonDur = noon ? Number(noon.duration) || 0 : 0;
   const total = nightDur + noonDur;
   const dietSubs = lifeRecordSubtypes('diet');
-  const statusText = total >= 8 ? '睡眠达到8小时' : '睡眠未达到8小时';
   return `<div class="lr-top-card">
     <div class="lr-top-left">
       <div class="lr-ring-col">
         ${renderSleepRing(total)}
-        <div class="sleep-ring-status">${statusText}</div>
       </div>
       <div class="lr-top-stats">
         <div class="lr-top-stat"><span class="lts-label">入睡时间</span><span class="lts-val">${night && night.sleepTime ? night.sleepTime : '—'}</span></div>
