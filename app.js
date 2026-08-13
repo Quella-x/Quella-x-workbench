@@ -5736,41 +5736,53 @@ function renderLifeRecordSubtypeSelect(typeKey, selected) {
 }
 function renderSizeSingleSelect(selected) {
   const opts = LIFE_RECORD_SUBTYPES.diet.milktea.sizeOptions;
+  const customOpts = DB.get('customOpts_lifeRecord_milktea_size', []);
+  const allOpts = opts.concat(customOpts.filter(c => !opts.includes(c)));
   const sel = selected || opts[0];
   const groupId = 'lrf-size-group';
   let html = `<div class="form-row"><label class="form-label">规格</label>`;
   html += `<div class="checkbox-group pill-group single-pill" id="${groupId}" data-key="size" data-single="true">`;
-  opts.forEach(o => {
+  allOpts.forEach(o => {
     const checked = sel === o ? 'checked' : '';
     html += `<label class="checkbox-item ${checked ? 'selected' : ''}"><input type="checkbox" value="${esc(o)}" ${checked} onclick="limitSingleCheckbox(this)"> ${esc(o)}</label>`;
   });
-  html += `</div></div>`;
+  html += `</div>`;
+  html += `<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="form-input" id="lrf-size-custom" placeholder="输入自定义规格后按添加" style="flex:1;font-size:13px"><button type="button" class="btn btn-outline btn-sm" onclick="addLifeRecordSize(this)">添加</button><button type="button" class="btn btn-danger btn-sm" onclick="removeCheckedLifeRecordSizes('${groupId}')">删除</button></div>`;
+  html += `</div>`;
   return html;
 }
 function renderSugarSingleSelect(selected) {
   const opts = LIFE_RECORD_SUBTYPES.diet.milktea.sugarOptions;
+  const customOpts = DB.get('customOpts_lifeRecord_milktea_sugar', []);
+  const allOpts = opts.concat(customOpts.filter(c => !opts.includes(c)));
   const sel = selected || opts[0];
   const groupId = 'lrf-sugar-group';
   let html = `<div class="form-row"><label class="form-label">糖分</label>`;
   html += `<div class="checkbox-group pill-group single-pill" id="${groupId}" data-key="sugar" data-single="true">`;
-  opts.forEach(o => {
+  allOpts.forEach(o => {
     const checked = sel === o ? 'checked' : '';
     html += `<label class="checkbox-item ${checked ? 'selected' : ''}"><input type="checkbox" value="${esc(o)}" ${checked} onclick="limitSingleCheckbox(this)"> ${esc(o)}</label>`;
   });
-  html += `</div></div>`;
+  html += `</div>`;
+  html += `<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="form-input" id="lrf-sugar-custom" placeholder="输入自定义糖分后按添加" style="flex:1;font-size:13px"><button type="button" class="btn btn-outline btn-sm" onclick="addLifeRecordSugar(this)">添加</button><button type="button" class="btn btn-danger btn-sm" onclick="removeCheckedLifeRecordSugars('${groupId}')">删除</button></div>`;
+  html += `</div>`;
   return html;
 }
 function renderTemperatureSingleSelect(selected) {
   const opts = LIFE_RECORD_SUBTYPES.diet.milktea.temperatureOptions;
+  const customOpts = DB.get('customOpts_lifeRecord_milktea_temperature', []);
+  const allOpts = opts.concat(customOpts.filter(c => !opts.includes(c)));
   const sel = selected || opts[0];
   const groupId = 'lrf-temperature-group';
   let html = `<div class="form-row"><label class="form-label">温度</label>`;
   html += `<div class="checkbox-group pill-group single-pill" id="${groupId}" data-key="temperature" data-single="true">`;
-  opts.forEach(o => {
+  allOpts.forEach(o => {
     const checked = sel === o ? 'checked' : '';
     html += `<label class="checkbox-item ${checked ? 'selected' : ''}"><input type="checkbox" value="${esc(o)}" ${checked} onclick="limitSingleCheckbox(this)"> ${esc(o)}</label>`;
   });
-  html += `</div></div>`;
+  html += `</div>`;
+  html += `<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="form-input" id="lrf-temperature-custom" placeholder="输入自定义温度后按添加" style="flex:1;font-size:13px"><button type="button" class="btn btn-outline btn-sm" onclick="addLifeRecordTemperature(this)">添加</button><button type="button" class="btn btn-danger btn-sm" onclick="removeCheckedLifeRecordTemperatures('${groupId}')">删除</button></div>`;
+  html += `</div>`;
   return html;
 }
 function renderLifeRecordModalBody(typeKey, subtypeKey, values) {
@@ -5854,24 +5866,21 @@ function renderSleepRecordRows(recs) {
     const dur = r.duration != null ? formatSleepDuration(Number(r.duration)) : '—';
     return `<div class="lr-record-row">
       <div class="lr-record-info lr-record-info-2col">
-        <div class="lr-info-line"><span class="lr-info-label">入睡时间:</span><span class="lr-info-val">${r.sleepTime || '—'}</span></div>
+        <div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">入睡时间:</span><span class="lr-info-val">${r.sleepTime || '—'}</span></span><div class="lr-record-ops"><button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('sleep','${r.id}')">编辑</button><button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button></div></div>
         <div class="lr-info-line"><span class="lr-info-label">清醒时间:</span><span class="lr-info-val">${r.wakeTime || '—'}</span></div>
         <div class="lr-info-line"><span class="lr-info-label">睡眠时长:</span><span class="lr-info-val">${dur}</span></div>
         <div class="lr-info-line"><span class="lr-info-label">清醒次数:</span><span class="lr-info-val">${r.wakeCount != null ? r.wakeCount + '次' : '—'}</span></div>
-      </div>
-      <div class="lr-record-ops">
-        <button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('sleep','${r.id}')">编辑</button>
-        <button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button>
       </div>
     </div>`;
   }).join('');
 }
 function renderDietRecordRows(recs, st) {
   return recs.map(r => {
+    const opsHtml = `<div class="lr-record-ops"><button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('diet','${r.id}')">编辑</button><button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button></div>`;
     let lines = '';
     if (st.key === 'snack') {
       const qtyLine = r.qty != null ? `<div class="lr-info-line"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}${r.unit || '包'}</span></div>` : '';
-      lines = `<div class="lr-info-line"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '—'}</span></div>`;
+      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></span>${opsHtml}</div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '—'}</span></div>`;
     } else if (st.key === 'milktea') {
       const extras = [];
       if (r.size) extras.push(r.size);
@@ -5880,16 +5889,12 @@ function renderDietRecordRows(recs, st) {
       const flavors = Array.isArray(r.flavors) ? r.flavors : (r.flavors ? [r.flavors] : []);
       if (flavors.length) extras.push('小料:' + flavors.join('、'));
       const extraTxt = extras.length ? `（${extras.join(' / ')}）` : '';
-      lines = `<div class="lr-info-line"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></div><div class="lr-info-line lr-info-full"><span class="lr-info-label">奶茶记录:</span><span class="lr-info-val">${r.note || '—'}${extraTxt}</span></div>`;
+      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">奶茶记录:</span><span class="lr-info-val">${r.note || '—'}${extraTxt}</span></div>`;
     } else {
-      lines = `<div class="lr-info-line"><span class="lr-info-label">${st.key === 'midnight' ? '享用时间' : '吃饭时间'}:</span><span class="lr-info-val">${r.time || '—'}</span></div><div class="lr-info-line lr-info-full"><span class="lr-info-label">餐食记录:</span><span class="lr-info-val">${r.note || '—'}</span></div>`;
+      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">${st.key === 'midnight' ? '享用时间' : '吃饭时间'}:</span><span class="lr-info-val">${r.time || '—'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">餐食记录:</span><span class="lr-info-val">${r.note || '—'}</span></div>`;
     }
     return `<div class="lr-record-row">
       <div class="lr-record-info lr-record-info-2col">${lines}</div>
-      <div class="lr-record-ops">
-        <button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('diet','${r.id}')">编辑</button>
-        <button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button>
-      </div>
     </div>`;
   }).join('');
 }
@@ -6182,6 +6187,99 @@ function removeCheckedLifeRecordFlavors(groupId) {
   const checked = Array.from(group.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
   if (!checked.length) { Toast.warning('请勾选要删除的小料'); return; }
   const dbKey = 'customOpts_lifeRecord_milktea_flavors';
+  let customOpts = DB.get(dbKey, []);
+  customOpts = customOpts.filter(v => !checked.includes(v));
+  DB.set(dbKey, customOpts);
+  group.querySelectorAll('.checkbox-item').forEach(item => {
+    const cb = item.querySelector('input[type="checkbox"]');
+    if (cb && checked.includes(cb.value)) item.remove();
+  });
+  Toast.success('已删除 ' + checked.length + ' 项');
+}
+function addLifeRecordSize(btn) {
+  const input = document.getElementById('lrf-size-custom');
+  const val = (input.value || '').trim();
+  if (!val) return;
+  const dbKey = 'customOpts_lifeRecord_milktea_size';
+  const customOpts = DB.get(dbKey, []);
+  if (!customOpts.includes(val)) { customOpts.push(val); DB.set(dbKey, customOpts); }
+  const group = document.getElementById('lrf-size-group');
+  if (group && !group.querySelector(`input[value="${esc(val)}"]`)) {
+    const label = document.createElement('label');
+    label.className = 'checkbox-item';
+    label.innerHTML = `<input type="checkbox" value="${esc(val)}" onclick="limitSingleCheckbox(this)"> ${esc(val)}`;
+    group.appendChild(label);
+  }
+  input.value = '';
+}
+function removeCheckedLifeRecordSizes(groupId) {
+  const group = document.getElementById(groupId);
+  if (!group) return;
+  const checked = Array.from(group.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+  if (!checked.length) { Toast.warning('请勾选要删除的规格'); return; }
+  const dbKey = 'customOpts_lifeRecord_milktea_size';
+  let customOpts = DB.get(dbKey, []);
+  customOpts = customOpts.filter(v => !checked.includes(v));
+  DB.set(dbKey, customOpts);
+  group.querySelectorAll('.checkbox-item').forEach(item => {
+    const cb = item.querySelector('input[type="checkbox"]');
+    if (cb && checked.includes(cb.value)) item.remove();
+  });
+  Toast.success('已删除 ' + checked.length + ' 项');
+}
+function addLifeRecordSugar(btn) {
+  const input = document.getElementById('lrf-sugar-custom');
+  const val = (input.value || '').trim();
+  if (!val) return;
+  const dbKey = 'customOpts_lifeRecord_milktea_sugar';
+  const customOpts = DB.get(dbKey, []);
+  if (!customOpts.includes(val)) { customOpts.push(val); DB.set(dbKey, customOpts); }
+  const group = document.getElementById('lrf-sugar-group');
+  if (group && !group.querySelector(`input[value="${esc(val)}"]`)) {
+    const label = document.createElement('label');
+    label.className = 'checkbox-item';
+    label.innerHTML = `<input type="checkbox" value="${esc(val)}" onclick="limitSingleCheckbox(this)"> ${esc(val)}`;
+    group.appendChild(label);
+  }
+  input.value = '';
+}
+function removeCheckedLifeRecordSugars(groupId) {
+  const group = document.getElementById(groupId);
+  if (!group) return;
+  const checked = Array.from(group.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+  if (!checked.length) { Toast.warning('请勾选要删除的糖分'); return; }
+  const dbKey = 'customOpts_lifeRecord_milktea_sugar';
+  let customOpts = DB.get(dbKey, []);
+  customOpts = customOpts.filter(v => !checked.includes(v));
+  DB.set(dbKey, customOpts);
+  group.querySelectorAll('.checkbox-item').forEach(item => {
+    const cb = item.querySelector('input[type="checkbox"]');
+    if (cb && checked.includes(cb.value)) item.remove();
+  });
+  Toast.success('已删除 ' + checked.length + ' 项');
+}
+function addLifeRecordTemperature(btn) {
+  const input = document.getElementById('lrf-temperature-custom');
+  const val = (input.value || '').trim();
+  if (!val) return;
+  const dbKey = 'customOpts_lifeRecord_milktea_temperature';
+  const customOpts = DB.get(dbKey, []);
+  if (!customOpts.includes(val)) { customOpts.push(val); DB.set(dbKey, customOpts); }
+  const group = document.getElementById('lrf-temperature-group');
+  if (group && !group.querySelector(`input[value="${esc(val)}"]`)) {
+    const label = document.createElement('label');
+    label.className = 'checkbox-item';
+    label.innerHTML = `<input type="checkbox" value="${esc(val)}" onclick="limitSingleCheckbox(this)"> ${esc(val)}`;
+    group.appendChild(label);
+  }
+  input.value = '';
+}
+function removeCheckedLifeRecordTemperatures(groupId) {
+  const group = document.getElementById(groupId);
+  if (!group) return;
+  const checked = Array.from(group.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+  if (!checked.length) { Toast.warning('请勾选要删除的温度'); return; }
+  const dbKey = 'customOpts_lifeRecord_milktea_temperature';
   let customOpts = DB.get(dbKey, []);
   customOpts = customOpts.filter(v => !checked.includes(v));
   DB.set(dbKey, customOpts);
