@@ -1988,7 +1988,7 @@ ul,li{list-style:none}
 .lr-card-head{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--c-primary-bg);border-bottom:1px solid var(--c-border-light)}
 .lr-card-title{font-weight:700;font-size:14px;color:var(--c-text);flex:1}
 .lr-card-body{padding:10px 12px}
-.lr-subtype-box{display:flex;align-items:center;gap:10px;border:1px solid var(--c-border-light);border-radius:var(--radius-sm);background:var(--c-bg);margin-bottom:10px;padding:14px 12px;position:relative}
+.lr-subtype-box{display:flex;align-items:flex-start;gap:10px;border:1px solid var(--c-border-light);border-radius:var(--radius-sm);background:var(--c-bg);margin-bottom:10px;padding:14px 12px;position:relative}
 .lr-subtype-box:last-child{margin-bottom:0}
 .lr-subtype-label{flex-shrink:0;width:44px;font-size:18px;font-weight:700;color:var(--c-text);line-height:1.2;text-align:center}
 .lr-subtype-content{flex:1;min-width:0}
@@ -2014,10 +2014,9 @@ ul,li{list-style:none}
 .lr-info-full{grid-column:1 / -1;white-space:normal;word-break:break-word}
 .lr-info-full .lr-info-val{white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word}
 .lr-record-ops{display:flex;gap:1px;flex-shrink:0;align-items:center}
-.lr-record-ops .btn{padding:2px 7px;font-size:14px;line-height:1.2;border-radius:var(--radius-sm)}
-.lr-corner-tag{display:inline-flex;align-items:center;gap:2px;font-size:11px;font-weight:500;color:var(--c-primary);background:var(--c-primary-bg);border:1px solid var(--c-primary-light);border-radius:var(--radius-sm);padding:1px 5px;line-height:1.2;vertical-align:middle;white-space:nowrap}
-.lr-corner-tag+.lr-corner-tag{margin-left:3px}
-.lr-info-val .lr-corner-tag{font-weight:500}
+.lr-record-ops .btn{padding:2px 7px;font-size:12px;line-height:1.2;border-radius:var(--radius-sm)}
+.lr-size-note{font-size:11px;color:var(--c-text-light);white-space:nowrap}
+.lr-info-val .lr-size-note{font-weight:500}
 
 /* Inline form tweaks */
 .lf-field-full{width:100%;min-width:100%}
@@ -2048,7 +2047,7 @@ ul,li{list-style:none}
 .lr-history-day-wd{font-size:12px;color:var(--c-text-light);font-weight:500}
 .lr-history-day-extra{margin-left:auto;font-size:13px;font-weight:700;color:var(--c-primary-dark)}
 .lr-history-day-body{padding:10px 12px}
-.lr-week-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:10px 12px}
+.lr-week-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px}
 
 @media (max-width:640px){
   .life-goal-grid{grid-template-columns:1fr}
@@ -2088,8 +2087,8 @@ ul,li{list-style:none}
   .lr-record-info-2col{grid-template-columns:1fr 1fr;gap:4px 10px}
   .lr-info-label{font-size:11px}
   .lr-info-val{font-size:13px}
-  .lr-record-ops .btn{padding:1px 6px;font-size:13px}
-  .lr-corner-tag{font-size:10px;padding:1px 4px}
+  .lr-record-ops .btn{padding:1px 6px;font-size:11px}
+  .lr-size-note{font-size:10px}
   .lr-history-stat-card{padding:8px}
   .lr-hsc-title{font-size:14px}
 }
@@ -2170,7 +2169,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=331"></script>
+<script src="app.js?v=332"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

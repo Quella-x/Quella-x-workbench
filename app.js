@@ -5866,11 +5866,12 @@ function renderSleepRecordRows(recs) {
     const dur = r.duration != null ? formatSleepDuration(Number(r.duration)) : '—';
     return `<div class="lr-record-row">
       <div class="lr-record-info lr-record-info-2col">
-        <div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">入睡时间:</span><span class="lr-info-val">${r.sleepTime || '—'}</span></span><div class="lr-record-ops"><button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('sleep','${r.id}')">编辑</button><button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button></div></div>
+        <div class="lr-info-line"><span class="lr-info-label">入睡时间:</span><span class="lr-info-val">${r.sleepTime || '—'}</span></div>
         <div class="lr-info-line"><span class="lr-info-label">清醒时间:</span><span class="lr-info-val">${r.wakeTime || '—'}</span></div>
         <div class="lr-info-line"><span class="lr-info-label">睡眠时长:</span><span class="lr-info-val">${dur}</span></div>
         <div class="lr-info-line"><span class="lr-info-label">清醒次数:</span><span class="lr-info-val">${r.wakeCount != null ? r.wakeCount + '次' : '—'}</span></div>
       </div>
+      <div class="lr-record-ops"><button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('sleep','${r.id}')">编辑</button><button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button></div>
     </div>`;
   }).join('');
 }
@@ -5878,23 +5879,26 @@ function renderDietRecordRows(recs, st) {
   return recs.map(r => {
     const opsHtml = `<div class="lr-record-ops"><button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('diet','${r.id}')">编辑</button><button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button></div>`;
     let lines = '';
+    let trailingOps = '';
     if (st.key === 'snack') {
-      const qtyTag = (r.qty != null || r.unit) ? `<span class="lr-corner-tag">${r.qty != null ? r.qty : ''}${r.unit || '包'}</span>` : '';
-      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '—'}${qtyTag}</span></div>`;
+      const unitNote = r.unit ? `<span class="lr-size-note">（${esc(r.unit)}）</span>` : '';
+      const qtyLine = r.qty != null ? `<div class="lr-info-line"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}</span></div>` : '';
+      lines = `<div class="lr-info-line"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '—'}${unitNote}</span></div>`;
+      trailingOps = opsHtml;
     } else if (st.key === 'milktea') {
-      const tags = [];
-      if (r.size) tags.push(`<span class="lr-corner-tag">${esc(r.size)}</span>`);
-      if (r.sugar) tags.push(`<span class="lr-corner-tag">${esc(r.sugar)}</span>`);
-      if (r.temperature) tags.push(`<span class="lr-corner-tag">${esc(r.temperature)}</span>`);
+      const notes = [];
+      if (r.size) notes.push(r.size);
+      if (r.sugar) notes.push(r.sugar);
+      if (r.temperature) notes.push(r.temperature);
       const flavors = Array.isArray(r.flavors) ? r.flavors : (r.flavors ? [r.flavors] : []);
-      flavors.forEach(f => tags.push(`<span class="lr-corner-tag">+${esc(f)}</span>`));
-      const tagsHtml = tags.length ? ' ' + tags.join('') : '';
-      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">奶茶记录:</span><span class="lr-info-val">${r.note || '—'}${tagsHtml}</span></div>`;
+      flavors.forEach(f => notes.push('+' + f));
+      const noteHtml = notes.length ? `<span class="lr-size-note">（${notes.map(x => esc(x)).join(' / ')}）</span>` : '';
+      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">奶茶记录:</span><span class="lr-info-val">${r.note || '—'}${noteHtml}</span></div>`;
     } else {
       lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">${st.key === 'midnight' ? '享用时间' : '吃饭时间'}:</span><span class="lr-info-val">${r.time || '—'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">餐食记录:</span><span class="lr-info-val">${r.note || '—'}</span></div>`;
     }
     return `<div class="lr-record-row">
-      <div class="lr-record-info lr-record-info-2col">${lines}</div>
+      <div class="lr-record-info lr-record-info-2col">${lines}</div>${trailingOps}
     </div>`;
   }).join('');
 }
@@ -6012,14 +6016,14 @@ function renderLifeRecordHistory(typeKey) {
   for (let j = 0; j < 7; j++) { const d = new Date(base); d.setDate(base.getDate() + j); days.push(fmtDate(d)); }
   const wd = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
   const def = LIFE_RECORD_DEFS[typeKey];
-  let html = `<div class="lr-history-hd"><button class="btn btn-ghost btn-sm" onclick="lifeRecordToggleView('home')">‹ 返回</button><span class="lr-history-title">${def.icon} ${def.label}</span></div>`;
+  let html = `<div class="lr-history-hd"><button class="btn btn-ghost btn-sm" onclick="lifeRecordToggleView('home')">‹ 返回</button></div>`;
   if (typeKey === 'sleep') html += renderSleepWeekLineChart(days);
   else html += renderDietWeekStats(days);
   days.forEach((d, i) => { html += renderLifeRecordHistoryDayCard(typeKey, d, wd[i]); });
   html += `<div class="lr-week-nav">
-    <button class="btn btn-ghost" onclick="lifeRecordHistoryPrevWeek()">‹ 上一周</button>
-    <span>${days[0].slice(5)} - ${days[6].slice(5)}</span>
-    <button class="btn btn-ghost" onclick="lifeRecordHistoryNextWeek()" ${ps.weekOffset >= 0 ? 'disabled' : ''}>下一周 ›</button>
+    <button class="page-link" onclick="lifeRecordHistoryPrevWeek()">‹ 上一周</button>
+    <span class="page-info">${days[0].slice(5)} - ${days[6].slice(5)}</span>
+    <button class="page-link" onclick="lifeRecordHistoryNextWeek()" ${ps.weekOffset >= 0 ? 'disabled' : ''}>下一周 ›</button>
   </div>`;
   return html;
 }
