@@ -1225,7 +1225,9 @@ ul,li{list-style:none}
   padding:16px 0 4px;
 }
 .pagination .page-info{font-size:13px;color:var(--c-text-muted)}
-.pagination .btn:disabled{opacity:.4;cursor:not-allowed}
+.pagination .page-link{background:transparent;border:none;color:var(--c-text-light);font-size:13px;padding:4px 8px;cursor:pointer;transition:all .2s}
+.pagination .page-link:hover{color:var(--c-primary)}
+.pagination .page-link:disabled{color:var(--c-text-muted);opacity:.5;cursor:not-allowed}
 
 /* ===== Custom Combobox Dropdown ===== */
 .combobox-wrapper{position:relative;display:inline-block;width:100%}
@@ -2007,19 +2009,23 @@ ul,li{list-style:none}
 .lr-info-line-head{grid-column:1 / -1;display:flex;align-items:center;gap:6px}
 .lr-info-line-head .lr-info-main{flex:1;min-width:0;display:flex;align-items:baseline;gap:4px}
 .lr-info-line-head .lr-record-ops{margin-left:auto;flex-shrink:0}
-.lr-info-label{font-size:14px;color:var(--c-text-light);font-weight:500;white-space:nowrap}
+.lr-info-label{font-size:12px;color:var(--c-text-light);font-weight:500;white-space:nowrap}
 .lr-info-val{font-size:14px;color:var(--c-text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lr-info-full{grid-column:1 / -1;white-space:normal;word-break:break-word}
 .lr-info-full .lr-info-val{white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word}
 .lr-record-ops{display:flex;gap:1px;flex-shrink:0;align-items:center}
 .lr-record-ops .btn{padding:2px 7px;font-size:14px;line-height:1.2;border-radius:var(--radius-sm)}
+.lr-corner-tag{display:inline-flex;align-items:center;gap:2px;font-size:11px;font-weight:500;color:var(--c-primary);background:var(--c-primary-bg);border:1px solid var(--c-primary-light);border-radius:var(--radius-sm);padding:1px 5px;line-height:1.2;vertical-align:middle;white-space:nowrap}
+.lr-corner-tag+.lr-corner-tag{margin-left:3px}
+.lr-info-val .lr-corner-tag{font-weight:500}
 
 /* Inline form tweaks */
 .lf-field-full{width:100%;min-width:100%}
-.life-rec-form .pill-group,.life-rec-form .tag-group{display:flex;flex-wrap:wrap;gap:6px}
-.life-rec-form .pill-group .checkbox-item,.life-rec-form .tag-group .checkbox-item{font-size:12px;padding:4px 10px;border-radius:99px;border:1px solid var(--c-border);background:var(--c-card);color:var(--c-text);cursor:pointer;user-select:none}
-.life-rec-form .pill-group .checkbox-item.selected,.life-rec-form .tag-group .checkbox-item.selected{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
-.life-rec-form .pill-group .checkbox-item input,.life-rec-form .tag-group .checkbox-item input{position:absolute;opacity:0}
+.life-rec-form .pill-group,.life-rec-form .tag-group{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.life-rec-form .pill-group .checkbox-item,.life-rec-form .tag-group .checkbox-item{display:inline-flex;align-items:center;gap:5px;font-size:13px;padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--c-border);background:#fff;color:var(--c-text);cursor:pointer;user-select:none;transition:all .2s}
+.life-rec-form .pill-group .checkbox-item:hover,.life-rec-form .tag-group .checkbox-item:hover{border-color:var(--c-primary-light)}
+.life-rec-form .pill-group .checkbox-item input,.life-rec-form .tag-group .checkbox-item input{margin:0;cursor:pointer}
+.life-rec-form .pill-group .checkbox-item.selected,.life-rec-form .tag-group .checkbox-item.selected,.life-rec-form .pill-group .checkbox-item:has(input:checked),.life-rec-form .tag-group .checkbox-item:has(input:checked){background:var(--c-primary-bg);border-color:var(--c-primary);color:var(--c-primary);font-weight:500}
 
 /* History view */
 .lr-history-hd{display:flex;align-items:center;gap:10px;margin-bottom:12px}
@@ -2080,9 +2086,10 @@ ul,li{list-style:none}
   .lr-subtype-label{width:36px;font-size:16px}
   .lr-subtype-add{width:24px;height:24px;font-size:16px}
   .lr-record-info-2col{grid-template-columns:1fr 1fr;gap:4px 10px}
-  .lr-info-label{font-size:13px}
+  .lr-info-label{font-size:11px}
   .lr-info-val{font-size:13px}
   .lr-record-ops .btn{padding:1px 6px;font-size:13px}
+  .lr-corner-tag{font-size:10px;padding:1px 4px}
   .lr-history-stat-card{padding:8px}
   .lr-hsc-title{font-size:14px}
 }
@@ -2163,7 +2170,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=330"></script>
+<script src="app.js?v=331"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

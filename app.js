@@ -1764,9 +1764,9 @@ function renderListPage(pageKey, mod) {
     // Pagination controls
     if (totalPages > 1) {
       html += '<div class="pagination">';
-      html += `<button class="btn btn-sm btn-ghost" ${pageNo <= 1 ? 'disabled' : ''} onclick="goPage('${pageKey}',${pageNo - 1})">‹ 上一页</button>`;
+      html += `<button class="page-link" ${pageNo <= 1 ? 'disabled' : ''} onclick="goPage('${pageKey}',${pageNo - 1})">‹ 上一页</button>`;
       html += `<span class="page-info">第 ${pageNo} / ${totalPages} 页 (共 ${records.length} 条)</span>`;
-      html += `<button class="btn btn-sm btn-ghost" ${pageNo >= totalPages ? 'disabled' : ''} onclick="goPage('${pageKey}',${pageNo + 1})">下一页 ›</button>`;
+      html += `<button class="page-link" ${pageNo >= totalPages ? 'disabled' : ''} onclick="goPage('${pageKey}',${pageNo + 1})">下一页 ›</button>`;
       html += '</div>';
     }
   }
@@ -2394,9 +2394,9 @@ function renderHome() {
       html += '</div>';
       if (homeTotalPages > 1) {
         html += '<div class="pagination">';
-        html += `<button class="btn btn-sm btn-ghost" ${ps.homePageNo <= 1 ? 'disabled' : ''} onclick="homeGoPage(${ps.homePageNo - 1})">‹ 上一页</button>`;
+        html += `<button class="page-link" ${ps.homePageNo <= 1 ? 'disabled' : ''} onclick="homeGoPage(${ps.homePageNo - 1})">‹ 上一页</button>`;
         html += `<span class="page-info">第 ${ps.homePageNo} / ${homeTotalPages} 页 (共 ${filteredRecords.length} 条)</span>`;
-        html += `<button class="btn btn-sm btn-ghost" ${ps.homePageNo >= homeTotalPages ? 'disabled' : ''} onclick="homeGoPage(${ps.homePageNo + 1})">下一页 ›</button>`;
+        html += `<button class="page-link" ${ps.homePageNo >= homeTotalPages ? 'disabled' : ''} onclick="homeGoPage(${ps.homePageNo + 1})">下一页 ›</button>`;
         html += '</div>';
       }
     }
@@ -2860,9 +2860,9 @@ function renderRelations() {
       html += '</div>';
       if (totalPages > 1) {
         html += '<div class="pagination">';
-        html += `<button class="btn btn-sm btn-ghost" ${pageNo <= 1 ? 'disabled' : ''} onclick="goRelationPage(${pageNo - 1})">‹ 上一页</button>`;
+        html += `<button class="page-link" ${pageNo <= 1 ? 'disabled' : ''} onclick="goRelationPage(${pageNo - 1})">‹ 上一页</button>`;
         html += `<span class="page-info">第 ${pageNo} / ${totalPages} 页 (共 ${relations.length} 条)</span>`;
-        html += `<button class="btn btn-sm btn-ghost" ${pageNo >= totalPages ? 'disabled' : ''} onclick="goRelationPage(${pageNo + 1})">下一页 ›</button>`;
+        html += `<button class="page-link" ${pageNo >= totalPages ? 'disabled' : ''} onclick="goRelationPage(${pageNo + 1})">下一页 ›</button>`;
         html += '</div>';
       }
     }
@@ -5879,17 +5879,17 @@ function renderDietRecordRows(recs, st) {
     const opsHtml = `<div class="lr-record-ops"><button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('diet','${r.id}')">编辑</button><button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button></div>`;
     let lines = '';
     if (st.key === 'snack') {
-      const qtyLine = r.qty != null ? `<div class="lr-info-line"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}${r.unit || '包'}</span></div>` : '';
-      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></span>${opsHtml}</div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '—'}</span></div>`;
+      const qtyTag = (r.qty != null || r.unit) ? `<span class="lr-corner-tag">${r.qty != null ? r.qty : ''}${r.unit || '包'}</span>` : '';
+      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '—'}${qtyTag}</span></div>`;
     } else if (st.key === 'milktea') {
-      const extras = [];
-      if (r.size) extras.push(r.size);
-      if (r.sugar) extras.push(r.sugar);
-      if (r.temperature) extras.push(r.temperature);
+      const tags = [];
+      if (r.size) tags.push(`<span class="lr-corner-tag">${esc(r.size)}</span>`);
+      if (r.sugar) tags.push(`<span class="lr-corner-tag">${esc(r.sugar)}</span>`);
+      if (r.temperature) tags.push(`<span class="lr-corner-tag">${esc(r.temperature)}</span>`);
       const flavors = Array.isArray(r.flavors) ? r.flavors : (r.flavors ? [r.flavors] : []);
-      if (flavors.length) extras.push('小料:' + flavors.join('、'));
-      const extraTxt = extras.length ? `（${extras.join(' / ')}）` : '';
-      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">奶茶记录:</span><span class="lr-info-val">${r.note || '—'}${extraTxt}</span></div>`;
+      flavors.forEach(f => tags.push(`<span class="lr-corner-tag">+${esc(f)}</span>`));
+      const tagsHtml = tags.length ? ' ' + tags.join('') : '';
+      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">奶茶记录:</span><span class="lr-info-val">${r.note || '—'}${tagsHtml}</span></div>`;
     } else {
       lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">${st.key === 'midnight' ? '享用时间' : '吃饭时间'}:</span><span class="lr-info-val">${r.time || '—'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">餐食记录:</span><span class="lr-info-val">${r.note || '—'}</span></div>`;
     }
@@ -6012,7 +6012,7 @@ function renderLifeRecordHistory(typeKey) {
   for (let j = 0; j < 7; j++) { const d = new Date(base); d.setDate(base.getDate() + j); days.push(fmtDate(d)); }
   const wd = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
   const def = LIFE_RECORD_DEFS[typeKey];
-  let html = `<div class="lr-history-hd"><button class="btn btn-ghost btn-sm" onclick="lifeRecordToggleView('home')">‹ 返回</button><span class="lr-history-title">${def.icon} ${def.label}历史查询</span></div>`;
+  let html = `<div class="lr-history-hd"><button class="btn btn-ghost btn-sm" onclick="lifeRecordToggleView('home')">‹ 返回</button><span class="lr-history-title">${def.icon} ${def.label}</span></div>`;
   if (typeKey === 'sleep') html += renderSleepWeekLineChart(days);
   else html += renderDietWeekStats(days);
   days.forEach((d, i) => { html += renderLifeRecordHistoryDayCard(typeKey, d, wd[i]); });
@@ -6032,8 +6032,8 @@ function renderLifeRecord() {
   let html = '<div class="fade-in life-record-page">';
   html += renderLifeRecordTopCard(all, date);
   html += `<div class="lr-toggle-row">
-    <button class="lr-toggle-btn ${ps.view === 'sleep-history' ? 'active' : ''}" onclick="lifeRecordToggleView('sleep-history')"><span>😴</span>睡眠记录</button>
-    <button class="lr-toggle-btn ${ps.view === 'diet-history' ? 'active' : ''}" onclick="lifeRecordToggleView('diet-history')"><span>🍚</span>饮食记录</button>
+    <button class="lr-toggle-btn ${ps.view === 'sleep-history' ? 'active' : ''}" onclick="lifeRecordToggleView('sleep-history')">睡眠记录</button>
+    <button class="lr-toggle-btn ${ps.view === 'diet-history' ? 'active' : ''}" onclick="lifeRecordToggleView('diet-history')">饮食记录</button>
   </div>`;
   if (ps.view === 'sleep-history' || ps.view === 'diet-history') {
     html += renderLifeRecordHistory(ps.view === 'sleep-history' ? 'sleep' : 'diet');
