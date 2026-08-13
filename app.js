@@ -1514,6 +1514,7 @@ const TWO_COL_MODULES = ['groupbuy-factories', 'design-inspiration', 'oc-profile
 
 /* ===== Router ===== */
 function navigate(page) {
+  if (page === 'life-record' && currentPage === 'life-record') page = 'life-checkin';
   currentPage = page;
   DB.set('ui_state', { sidebarCollapsed: $('#sidebar').classList.contains('collapsed'), lastPage: page });
   $('#pageTitle').textContent = PAGE_TITLES[page] || page;
@@ -5912,6 +5913,7 @@ function renderLifeRecord() {
   }
   const all = DB.list('lifeRecords');
   let html = '<div class="fade-in life-record-page">';
+  html += renderQuickCheckin();
   html += renderLifeRecordTopCard(all, date);
   html += `<div class="lr-toggle-row">
     <button class="lr-toggle-btn ${ps.view === 'sleep-history' ? 'active' : ''}" onclick="lifeRecordToggleView('sleep-history')"><span>😴</span>睡眠记录</button>
