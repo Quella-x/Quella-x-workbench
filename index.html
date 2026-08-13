@@ -1995,7 +1995,7 @@ ul,li{list-style:none}
 .lr-head-add{flex-shrink:0;padding:6px 14px;border-radius:var(--radius-sm);border:1px solid var(--c-primary);background:var(--c-primary);color:#fff;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;line-height:1}
 .lr-head-add:hover{background:var(--c-primary-dark)}
 .lr-card-head .lr-head-add{display:flex;align-items:center;gap:4px}
-.lr-head-add::before{content:'+';font-size:16px;font-weight:500;line-height:1}
+.lr-head-add::before{content:'+';font-size:16px;font-weight:500;line-height:1;display:inline-flex;align-items:center;justify-content:center;align-self:center;transform:translateY(-1px)}
 .lr-empty-row{color:var(--c-text-muted);font-size:13px;padding:10px 0;cursor:pointer}
 .lr-empty-row:hover{color:var(--c-primary)}
 .lr-record-row{display:flex;align-items:flex-start;gap:10px;padding:14px 0;border-bottom:1px dashed var(--c-border-light)}
@@ -2012,7 +2012,7 @@ ul,li{list-style:none}
 .lr-info-full{grid-column:1 / -1;white-space:normal;word-break:break-word}
 .lr-info-full .lr-info-val{white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word}
 .lr-record-ops{display:flex;gap:2px;flex-shrink:0;align-items:center}
-.lr-record-ops .btn{padding:2px 7px;font-size:11px;line-height:1.2;border-radius:var(--radius-sm)}
+.lr-record-ops .btn{padding:2px 7px;font-size:12px;line-height:1.2;border-radius:var(--radius-sm)}
 
 /* Inline form tweaks */
 .lf-field-full{width:100%;min-width:100%}
@@ -2082,7 +2082,7 @@ ul,li{list-style:none}
   .lr-record-info-2col{grid-template-columns:1fr 1fr;gap:4px 10px}
   .lr-info-label{font-size:11px}
   .lr-info-val{font-size:12px}
-  .lr-record-ops .btn{padding:1px 6px;font-size:10px}
+  .lr-record-ops .btn{padding:1px 6px;font-size:11px}
   .lr-history-stat-card{padding:8px}
   .lr-hsc-title{font-size:14px}
 }
@@ -2163,7 +2163,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=328"></script>
+<script src="app.js?v=329"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

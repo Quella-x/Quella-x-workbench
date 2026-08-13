@@ -5866,11 +5866,12 @@ function renderSleepRecordRows(recs) {
     const dur = r.duration != null ? formatSleepDuration(Number(r.duration)) : '—';
     return `<div class="lr-record-row">
       <div class="lr-record-info lr-record-info-2col">
-        <div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">入睡时间:</span><span class="lr-info-val">${r.sleepTime || '—'}</span></span><div class="lr-record-ops"><button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('sleep','${r.id}')">编辑</button><button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button></div></div>
+        <div class="lr-info-line"><span class="lr-info-label">入睡时间:</span><span class="lr-info-val">${r.sleepTime || '—'}</span></div>
         <div class="lr-info-line"><span class="lr-info-label">清醒时间:</span><span class="lr-info-val">${r.wakeTime || '—'}</span></div>
         <div class="lr-info-line"><span class="lr-info-label">睡眠时长:</span><span class="lr-info-val">${dur}</span></div>
         <div class="lr-info-line"><span class="lr-info-label">清醒次数:</span><span class="lr-info-val">${r.wakeCount != null ? r.wakeCount + '次' : '—'}</span></div>
       </div>
+      <div class="lr-record-ops"><button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('sleep','${r.id}')">编辑</button><button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button></div>
     </div>`;
   }).join('');
 }
@@ -5878,9 +5879,11 @@ function renderDietRecordRows(recs, st) {
   return recs.map(r => {
     const opsHtml = `<div class="lr-record-ops"><button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('diet','${r.id}')">编辑</button><button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button></div>`;
     let lines = '';
+    let trailingOps = '';
     if (st.key === 'snack') {
       const qtyLine = r.qty != null ? `<div class="lr-info-line"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}${r.unit || '包'}</span></div>` : '';
-      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></span>${opsHtml}</div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '—'}</span></div>`;
+      lines = `<div class="lr-info-line"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '—'}</span></div>`;
+      trailingOps = opsHtml;
     } else if (st.key === 'milktea') {
       const extras = [];
       if (r.size) extras.push(r.size);
@@ -5894,7 +5897,7 @@ function renderDietRecordRows(recs, st) {
       lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">${st.key === 'midnight' ? '享用时间' : '吃饭时间'}:</span><span class="lr-info-val">${r.time || '—'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">餐食记录:</span><span class="lr-info-val">${r.note || '—'}</span></div>`;
     }
     return `<div class="lr-record-row">
-      <div class="lr-record-info lr-record-info-2col">${lines}</div>
+      <div class="lr-record-info lr-record-info-2col">${lines}</div>${trailingOps}
     </div>`;
   }).join('');
 }
