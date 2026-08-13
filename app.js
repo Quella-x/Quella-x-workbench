@@ -5913,7 +5913,6 @@ function renderLifeRecord() {
   }
   const all = DB.list('lifeRecords');
   let html = '<div class="fade-in life-record-page">';
-  html += renderQuickCheckin();
   html += renderLifeRecordTopCard(all, date);
   html += `<div class="lr-toggle-row">
     <button class="lr-toggle-btn ${ps.view === 'sleep-history' ? 'active' : ''}" onclick="lifeRecordToggleView('sleep-history')"><span>😴</span>睡眠记录</button>
