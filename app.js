@@ -740,10 +740,15 @@ function selectComboboxOption(id, el) {
   const wrapper = el.closest('.combobox-wrapper');
   if (!wrapper) return;
   const input = wrapper.querySelector('.combobox-input');
+  const hidden = wrapper.querySelector('.combobox-value');
   if (input) {
-    input.value = el.dataset.value || el.textContent;
+    input.value = el.textContent;
     input.dispatchEvent(new Event('input', { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  if (hidden) {
+    hidden.value = el.dataset.value || '';
+    hidden.dispatchEvent(new Event('change', { bubbles: true }));
   }
   document.getElementById(id).classList.remove('show');
 }
@@ -5048,9 +5053,12 @@ const LIFE_RECORD_SUBTYPES = {
     dinner: { key: 'dinner', label: '晚餐', icon: '🌙' },
     midnight: { key: 'midnight', label: '宵夜', icon: '🌃', multi: true },
     snack: { key: 'snack', label: '零食', icon: '🍟', multi: true,
-      unitOptions: ['包','个','颗','根','袋','盒','瓶','片','粒','杯','份','条','罐','枚','把'] },
+      unitOptions: ['包','个','颗','根','袋','盒','瓶','片','粒','份','条','罐','把'] },
     milktea: { key: 'milktea', label: '奶茶', icon: '🧋', multi: true,
-      flavorOptions: ['不额外加糖','三分糖','五分糖','七分糖','全糖','热','常温','正常冰','少冰','去冰','小杯','中杯','大杯'] }
+      sizeOptions: ['mini杯','小杯','中杯','标准杯','大杯','超大杯'],
+      sugarOptions: ['不另外加糖','三分糖','五分糖','七分糖','微糖','半糖','标准糖','全糖'],
+      temperatureOptions: ['热','常温','标准冰','少冰','去冰','多冰'],
+      flavorOptions: ['珍珠','椰果','布丁','红豆','芋圆','燕麦','奶盖','芝士','仙草','寒天'] }
   }
 };
 function getLifeRecordSubtype(typeKey, subtypeKey) {
@@ -5656,8 +5664,13 @@ function renderDietRecordRow(r, st) {
   if (st.key === 'snack') {
     info = `<span><b>零食记录:</b> ${r.note || '—'}</span>${r.qty != null ? `<span><b>数量:</b> ${r.qty}${r.unit || '包'}</span>` : ''}`;
   } else if (st.key === 'milktea') {
+    const extras = [];
+    if (r.size) extras.push(r.size);
+    if (r.sugar) extras.push(r.sugar);
+    if (r.temperature) extras.push(r.temperature);
     const flavors = Array.isArray(r.flavors) ? r.flavors : (r.flavors ? [r.flavors] : []);
-    info = `<span><b>奶茶记录:</b> ${r.note || '—'}</span>${flavors.length ? `<span><b>口味:</b> ${flavors.join('、')}</span>` : ''}`;
+    if (flavors.length) extras.push(flavors.join('、'));
+    info = `<span><b>奶茶记录:</b> ${r.note || '—'}</span>${extras.length ? `<span><b>配置:</b> ${extras.join(' / ')}</span>` : ''}`;
   } else {
     info = `<span><b>餐食记录:</b> ${r.note || '—'}</span>`;
   }
@@ -5704,29 +5717,132 @@ function renderFlavorMultiselect(selected) {
   html += `</div>`;
   return html;
 }
-function renderLifeRecordInlineForm(typeKey, subtypeKey) {
-  const ps = pageState['life-record'];
-  const st = getLifeRecordSubtype(typeKey, subtypeKey);
-  const values = ps.values || {};
-  let html = `<div class="life-rec-form" id="lifeRecForm">`;
+function renderComboboxHTML(id, value, options) {
+  const selected = options.find(o => o.value === value) || options[0];
+  let html = `<div class="combobox-wrapper lf-combobox">`;
+  html += `<input type="text" class="form-input combobox-input" value="${esc(selected.label)}" placeholder="请选择" readonly onfocus="showComboboxDropdown('${id}-dropdown')" onclick="showComboboxDropdown('${id}-dropdown')">`;
+  html += `<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}-dropdown')">▼</button>`;
+  html += `<input type="hidden" class="combobox-value" id="${id}" value="${esc(selected.value)}">`;
+  html += `<div class="combobox-dropdown" id="${id}-dropdown">`;
+  options.forEach(o => {
+    html += `<div class="combobox-option ${o.value === selected.value ? 'selected' : ''}" data-value="${esc(o.value)}" onclick="selectComboboxOption('${id}-dropdown', this); lifeRecordModalOnSubtypeChange()">${esc(o.label)}</div>`;
+  });
+  html += `</div></div>`;
+  return html;
+}
+function renderLifeRecordSubtypeSelect(typeKey, selected) {
+  const options = lifeRecordSubtypes(typeKey).map(st => ({ value: st.key, label: st.label }));
+  return renderComboboxHTML('lrf-subtype', selected, options);
+}
+function renderSizeSingleSelect(selected) {
+  const opts = LIFE_RECORD_SUBTYPES.diet.milktea.sizeOptions;
+  const sel = selected || opts[0];
+  const groupId = 'lrf-size-group';
+  let html = `<div class="lf-field lf-field-full"><label>规格</label>`;
+  html += `<div class="checkbox-group pill-group single-pill" id="${groupId}" data-key="size" data-single="true">`;
+  opts.forEach(o => {
+    const checked = sel === o ? 'checked' : '';
+    html += `<label class="checkbox-item ${checked ? 'selected' : ''}"><input type="checkbox" value="${esc(o)}" ${checked} onclick="limitSingleCheckbox(this)"> ${esc(o)}</label>`;
+  });
+  html += `</div></div>`;
+  return html;
+}
+function renderSugarSingleSelect(selected) {
+  const opts = LIFE_RECORD_SUBTYPES.diet.milktea.sugarOptions;
+  const sel = selected || opts[0];
+  const groupId = 'lrf-sugar-group';
+  let html = `<div class="lf-field lf-field-full"><label>糖分</label>`;
+  html += `<div class="checkbox-group pill-group single-pill" id="${groupId}" data-key="sugar" data-single="true">`;
+  opts.forEach(o => {
+    const checked = sel === o ? 'checked' : '';
+    html += `<label class="checkbox-item ${checked ? 'selected' : ''}"><input type="checkbox" value="${esc(o)}" ${checked} onclick="limitSingleCheckbox(this)"> ${esc(o)}</label>`;
+  });
+  html += `</div></div>`;
+  return html;
+}
+function renderTemperatureSingleSelect(selected) {
+  const opts = LIFE_RECORD_SUBTYPES.diet.milktea.temperatureOptions;
+  const sel = selected || opts[0];
+  const groupId = 'lrf-temperature-group';
+  let html = `<div class="lf-field lf-field-full"><label>温度</label>`;
+  html += `<div class="checkbox-group pill-group single-pill" id="${groupId}" data-key="temperature" data-single="true">`;
+  opts.forEach(o => {
+    const checked = sel === o ? 'checked' : '';
+    html += `<label class="checkbox-item ${checked ? 'selected' : ''}"><input type="checkbox" value="${esc(o)}" ${checked} onclick="limitSingleCheckbox(this)"> ${esc(o)}</label>`;
+  });
+  html += `</div></div>`;
+  return html;
+}
+function renderLifeRecordModalBody(typeKey, subtypeKey, values) {
+  let html = `<div class="life-rec-form" id="lifeRecForm"><input type="hidden" id="lrf-type" value="${typeKey}">`;
+  html += `<div class="lf-field lf-field-full"><label>记录项</label>${renderLifeRecordSubtypeSelect(typeKey, subtypeKey)}</div>`;
   if (typeKey === 'sleep') {
-    html += `<div class="lf-field"><label>入睡时间</label><input type="time" id="lrf-sleepTime" value="${esc(values.sleepTime || '')}"></div>`;
-    html += `<div class="lf-field"><label>清醒时间</label><input type="time" id="lrf-wakeTime" value="${esc(values.wakeTime || '')}"></div>`;
-    html += `<div class="lf-field"><label>清醒次数</label><input type="number" id="lrf-wakeCount" value="${esc(values.wakeCount != null ? values.wakeCount : '')}"></div>`;
-    html += `<div class="lf-field"><label>睡眠时长（自动）</label><input type="text" id="lrf-duration" value="${values.duration != null ? formatSleepDuration(Number(values.duration)) : ''}" readonly style="background:var(--c-primary-bg)"></div>`;
+    html += `<div class="lf-field"><label>入睡时间</label><input type="time" class="form-input" id="lrf-sleepTime" value="${esc(values.sleepTime || '')}" oninput="lifeRecordModalCalcDuration()"></div>`;
+    html += `<div class="lf-field"><label>清醒时间</label><input type="time" class="form-input" id="lrf-wakeTime" value="${esc(values.wakeTime || '')}" oninput="lifeRecordModalCalcDuration()"></div>`;
+    html += `<div class="lf-field"><label>睡眠时长（自动）</label><input type="text" class="form-input" id="lrf-duration" value="${values.duration != null ? formatSleepDuration(Number(values.duration)) : ''}" readonly style="background:var(--c-primary-bg)"></div>`;
+    html += `<div class="lf-field"><label>清醒次数</label><input type="number" class="form-input" id="lrf-wakeCount" value="${esc(values.wakeCount != null ? values.wakeCount : '')}"></div>`;
   } else {
-    const placeholder = st.key === 'snack' ? '零食内容' : st.key === 'milktea' ? '奶茶名称' : '吃了什么';
-    html += `<div class="lf-field ${st.key === 'snack' || st.key === 'milktea' ? 'lf-field-full' : ''}"><label>内容</label><input type="text" id="lrf-note" value="${esc(values.note || '')}" placeholder="${placeholder}"></div>`;
-    if (st.key === 'snack') {
-      html += `<div class="lf-field"><label>数量</label><input type="number" step="0.1" id="lrf-qty" value="${esc(values.qty != null ? values.qty : '')}"></div>`;
-      html += renderUnitSingleSelect(values.unit);
-    }
-    if (st.key === 'milktea') html += renderFlavorMultiselect(values.flavors || []);
-    html += `<div class="lf-field"><label>时间</label><input type="time" id="lrf-time" value="${esc(values.time || '')}"></div>`;
+    const isEnjoyTime = ['midnight','snack','milktea'].includes(subtypeKey);
+    html += `<div class="lf-field"><label id="lrf-time-label">${isEnjoyTime ? '享用时间' : '吃饭时间'}</label><input type="time" class="form-input" id="lrf-time" value="${esc(values.time || '')}"></div>`;
+    const noteLabel = subtypeKey === 'snack' ? '零食记录' : subtypeKey === 'milktea' ? '奶茶记录' : '餐食记录';
+    const placeholder = subtypeKey === 'snack' ? '吃了什么零食' : subtypeKey === 'milktea' ? '奶茶名称/店铺' : '吃了什么';
+    html += `<div class="lf-field lf-field-full"><label id="lrf-note-label">${noteLabel}</label><input type="text" class="form-input" id="lrf-note" value="${esc(values.note || '')}" placeholder="${placeholder}"></div>`;
+    html += `<div class="lrf-snack-fields" style="${subtypeKey === 'snack' ? '' : 'display:none'}">`;
+    html += `<div class="lf-field"><label>数量</label><input type="number" class="form-input" step="0.1" id="lrf-qty" value="${esc(values.qty != null ? values.qty : '')}"></div>`;
+    html += renderUnitSingleSelect(values.unit);
+    html += `</div>`;
+    html += `<div class="lrf-milktea-fields" style="${subtypeKey === 'milktea' ? '' : 'display:none'}">`;
+    html += renderSizeSingleSelect(values.size);
+    html += renderSugarSingleSelect(values.sugar);
+    html += renderTemperatureSingleSelect(values.temperature);
+    html += renderFlavorMultiselect(values.flavors || []);
+    html += `</div>`;
   }
-  html += `<div class="lf-field" style="flex-direction:row;gap:6px"><button class="btn btn-primary" onclick="lifeRecSave('${typeKey}','${subtypeKey}')">${ps.editId ? '保存修改' : '保存'}</button><button class="btn btn-ghost" onclick="lifeRecCancel()">取消</button></div>`;
   html += `</div>`;
   return html;
+}
+function lifeRecordModalOnSubtypeChange() {
+  const typeKey = (document.getElementById('lrf-type') || {}).value || 'diet';
+  const subtypeKey = (document.getElementById('lrf-subtype') || {}).value;
+  if (!subtypeKey) return;
+  if (typeKey === 'diet') {
+    const isEnjoyTime = ['midnight','snack','milktea'].includes(subtypeKey);
+    const timeLabel = document.getElementById('lrf-time-label');
+    if (timeLabel) timeLabel.textContent = isEnjoyTime ? '享用时间' : '吃饭时间';
+    const noteLabel = document.getElementById('lrf-note-label');
+    if (noteLabel) noteLabel.textContent = subtypeKey === 'snack' ? '零食记录' : subtypeKey === 'milktea' ? '奶茶记录' : '餐食记录';
+    const noteInput = document.getElementById('lrf-note');
+    if (noteInput) noteInput.placeholder = subtypeKey === 'snack' ? '吃了什么零食' : subtypeKey === 'milktea' ? '奶茶名称/店铺' : '吃了什么';
+    const snackFields = document.querySelector('.lrf-snack-fields');
+    if (snackFields) snackFields.style.display = subtypeKey === 'snack' ? '' : 'none';
+    const milkteaFields = document.querySelector('.lrf-milktea-fields');
+    if (milkteaFields) milkteaFields.style.display = subtypeKey === 'milktea' ? '' : 'none';
+  }
+}
+function lifeRecordModalCalcDuration() {
+  const sleepTime = document.getElementById('lrf-sleepTime');
+  const wakeTime = document.getElementById('lrf-wakeTime');
+  const durEl = document.getElementById('lrf-duration');
+  if (!sleepTime || !wakeTime || !durEl) return;
+  const dur = sleepDurationHours(sleepTime.value, wakeTime.value);
+  durEl.value = dur != null ? formatSleepDuration(dur) : '';
+}
+function openLifeRecordModal(typeKey, subtypeKey, editId) {
+  const rec = editId ? DB.getById('lifeRecords', editId) : null;
+  let values = rec ? { ...rec } : {};
+  if (typeKey === 'diet' && subtypeKey === 'milktea' && Array.isArray(values.flavors)) {
+    const defs = LIFE_RECORD_SUBTYPES.diet.milktea;
+    if (!values.size) { const v = values.flavors.find(f => defs.sizeOptions.includes(f)); if (v) { values.size = v; values.flavors = values.flavors.filter(f => f !== v); } }
+    if (!values.sugar) { const v = values.flavors.find(f => defs.sugarOptions.includes(f)); if (v) { values.sugar = v; values.flavors = values.flavors.filter(f => f !== v); } }
+    if (!values.temperature) { const v = values.flavors.find(f => defs.temperatureOptions.includes(f)); if (v) { values.temperature = v; values.flavors = values.flavors.filter(f => f !== v); } }
+  }
+  const st = getLifeRecordSubtype(typeKey, subtypeKey);
+  const title = (rec ? '编辑' : '新增') + (st ? st.label : '') + (typeKey === 'sleep' ? '睡眠' : '') + '记录';
+  const body = renderLifeRecordModalBody(typeKey, subtypeKey, values);
+  openModal(title, body, [
+    { label: rec ? '保存修改' : '保存', class: 'btn-primary', action: () => lifeRecSave(typeKey) },
+    { label: '取消', class: 'btn-ghost', action: closeModal }
+  ]);
 }
 function renderSleepRecordRows(recs) {
   return recs.map(r => {
@@ -5752,9 +5868,14 @@ function renderDietRecordRows(recs, st) {
       const qtyLine = r.qty != null ? `<div class="lr-info-line"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}${r.unit || '包'}</span></div>` : '';
       lines = `<div class="lr-info-line"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '—'}</span></div>`;
     } else if (st.key === 'milktea') {
+      const extras = [];
+      if (r.size) extras.push(r.size);
+      if (r.sugar) extras.push(r.sugar);
+      if (r.temperature) extras.push(r.temperature);
       const flavors = Array.isArray(r.flavors) ? r.flavors : (r.flavors ? [r.flavors] : []);
-      const flavorTxt = flavors.length ? `（${flavors.join('、')}）` : '';
-      lines = `<div class="lr-info-line"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></div><div class="lr-info-line lr-info-full"><span class="lr-info-label">奶茶记录:</span><span class="lr-info-val">${r.note || '—'}${flavorTxt}</span></div>`;
+      if (flavors.length) extras.push(flavors.join('、'));
+      const extraTxt = extras.length ? `（${extras.join(' / ')}）` : '';
+      lines = `<div class="lr-info-line"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></div><div class="lr-info-line lr-info-full"><span class="lr-info-label">奶茶记录:</span><span class="lr-info-val">${r.note || '—'}${extraTxt}</span></div>`;
     } else {
       lines = `<div class="lr-info-line"><span class="lr-info-label">${st.key === 'midnight' ? '享用时间' : '吃饭时间'}:</span><span class="lr-info-val">${r.time || '—'}</span></div><div class="lr-info-line lr-info-full"><span class="lr-info-label">餐食记录:</span><span class="lr-info-val">${r.note || '—'}</span></div>`;
     }
@@ -5769,10 +5890,9 @@ function renderDietRecordRows(recs, st) {
 }
 function renderSleepRecordCard(date) {
   const all = DB.list('lifeRecords');
-  const ps = pageState['life-record'];
   const sleepSubs = lifeRecordSubtypes('sleep');
   let html = `<div class="lr-card">
-    <div class="lr-card-head"><span class="lr-card-title">😴 睡眠记录</span></div>
+    <div class="lr-card-head"><span class="lr-card-title">😴 睡眠记录</span><button class="lr-head-add" onclick="lifeRecOpenForm('sleep','night')" title="新增睡眠记录">+</button></div>
     <div class="lr-card-body">`;
   sleepSubs.forEach(st => {
     const recs = all.filter(r => r.type === 'sleep' && r.subtype === st.key && r.date === date).sort((a, b) => (a._ct || 0) - (b._ct || 0));
@@ -5780,9 +5900,7 @@ function renderSleepRecordCard(date) {
       <div class="lr-subtype-label">${st.label}</div>
       <div class="lr-subtype-content">
         ${recs.length ? renderSleepRecordRows(recs) : `<div class="lr-empty-row" onclick="lifeRecOpenForm('sleep','${st.key}')">点击添加${st.label}睡眠记录</div>`}
-        ${ps.formType === 'sleep' && ps.subtype === st.key ? renderLifeRecordInlineForm('sleep', st.key) : ''}
       </div>
-      <button class="lr-subtype-add" onclick="lifeRecOpenForm('sleep','${st.key}')" title="新增${st.label}记录">+</button>
     </div>`;
   });
   html += `</div></div>`;
@@ -5790,10 +5908,9 @@ function renderSleepRecordCard(date) {
 }
 function renderDietRecordCard(date) {
   const all = DB.list('lifeRecords');
-  const ps = pageState['life-record'];
   const dietSubs = lifeRecordSubtypes('diet');
   let html = `<div class="lr-card">
-    <div class="lr-card-head"><span class="lr-card-title">🍚 饮食记录</span></div>
+    <div class="lr-card-head"><span class="lr-card-title">🍚 饮食记录</span><button class="lr-head-add" onclick="lifeRecOpenForm('diet','breakfast')" title="新增饮食记录">+</button></div>
     <div class="lr-card-body">`;
   dietSubs.forEach(st => {
     const recs = all.filter(r => r.type === 'diet' && r.subtype === st.key && r.date === date).sort((a, b) => (a._ct || 0) - (b._ct || 0));
@@ -5801,9 +5918,7 @@ function renderDietRecordCard(date) {
       <div class="lr-subtype-label">${st.label}</div>
       <div class="lr-subtype-content">
         ${recs.length ? renderDietRecordRows(recs, st) : `<div class="lr-empty-row" onclick="lifeRecOpenForm('diet','${st.key}')">点击添加${st.label}记录</div>`}
-        ${ps.formType === 'diet' && ps.subtype === st.key ? renderLifeRecordInlineForm('diet', st.key) : ''}
       </div>
-      <button class="lr-subtype-add" onclick="lifeRecOpenForm('diet','${st.key}')" title="新增${st.label}记录">+</button>
     </div>`;
   });
   html += `</div></div>`;
@@ -5871,7 +5986,6 @@ function renderLifeRecordHistoryDayCard(typeKey, dateStr, wdLabel) {
           ? (typeKey === 'sleep' ? renderSleepRecordRows(recs) : renderDietRecordRows(recs, st))
           : `<div class="lr-empty-row" onclick="lifeRecordHistoryCellClick('${typeKey}','${sk}','${dateStr}')">点击添加${st.label}记录</div>`}
       </div>
-      <button class="lr-subtype-add" onclick="lifeRecordHistoryCellClick('${typeKey}','${sk}','${dateStr}')" title="新增${st.label}记录">+</button>
     </div>`;
   });
   return `<div class="lr-history-day-card">
@@ -5940,31 +6054,46 @@ function lifeRecordHistoryCellClick(typeKey, subtypeKey, dateStr) {
 function lifeRecOpenForm(typeKey, subtypeKey) {
   const ps = pageState['life-record'];
   ps.formType = typeKey; ps.subtype = subtypeKey; ps.editId = null; ps.values = {};
-  renderLifeRecord();
-  setTimeout(() => { const f = document.getElementById('lifeRecForm'); if (f) f.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 50);
+  openLifeRecordModal(typeKey, subtypeKey, null);
 }
-function lifeRecCancel() { const ps = pageState['life-record']; ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; renderLifeRecord(); }
-function lifeRecEdit(typeKey, id) { const ps = pageState['life-record']; const rec = DB.getById('lifeRecords', id); ps.formType = rec ? rec.type : typeKey; ps.subtype = rec ? rec.subtype : null; ps.editId = id; ps.values = rec ? { ...rec } : {}; renderLifeRecord(); }
-function lifeRecSave(typeKey, subtypeKey) {
+function lifeRecCancel() { const ps = pageState['life-record']; ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; closeModal(); }
+function lifeRecEdit(typeKey, id) {
   const ps = pageState['life-record'];
+  const rec = DB.getById('lifeRecords', id);
+  ps.formType = rec ? rec.type : typeKey;
+  ps.subtype = rec ? rec.subtype : null;
+  ps.editId = id;
+  ps.values = rec ? { ...rec } : {};
+  openLifeRecordModal(ps.formType, ps.subtype, id);
+}
+function lifeRecSave(typeKey) {
+  const ps = pageState['life-record'];
+  const subtypeEl = document.getElementById('lrf-subtype');
+  const subtypeKey = subtypeEl ? subtypeEl.value : ps.subtype;
   const values = { subtype: subtypeKey };
   if (typeKey === 'sleep') {
-    values.sleepTime = $('#lrf-sleepTime').value;
-    values.wakeTime = $('#lrf-wakeTime').value;
-    const wc = $('#lrf-wakeCount').value;
+    values.sleepTime = document.getElementById('lrf-sleepTime').value;
+    values.wakeTime = document.getElementById('lrf-wakeTime').value;
+    const wc = document.getElementById('lrf-wakeCount').value;
     values.wakeCount = wc === '' ? null : Number(wc);
     const dur = sleepDurationHours(values.sleepTime, values.wakeTime);
     if (dur != null) values.duration = dur;
   } else {
-    values.note = $('#lrf-note').value;
-    values.time = $('#lrf-time').value;
+    values.note = document.getElementById('lrf-note').value;
+    values.time = document.getElementById('lrf-time').value;
     if (subtypeKey === 'snack') {
-      const q = $('#lrf-qty').value;
+      const q = document.getElementById('lrf-qty').value;
       values.qty = q === '' ? null : Number(q);
       const unitGroup = document.getElementById('lrf-unit-group');
       values.unit = unitGroup ? (unitGroup.querySelector('input[type="checkbox"]:checked') || {}).value || '包' : '包';
     }
     if (subtypeKey === 'milktea') {
+      const sizeGroup = document.getElementById('lrf-size-group');
+      values.size = sizeGroup ? (sizeGroup.querySelector('input[type="checkbox"]:checked') || {}).value || null : null;
+      const sugarGroup = document.getElementById('lrf-sugar-group');
+      values.sugar = sugarGroup ? (sugarGroup.querySelector('input[type="checkbox"]:checked') || {}).value || null : null;
+      const tempGroup = document.getElementById('lrf-temperature-group');
+      values.temperature = tempGroup ? (tempGroup.querySelector('input[type="checkbox"]:checked') || {}).value || null : null;
       const flavorGroup = document.getElementById('lrf-flavors-group');
       values.flavors = flavorGroup ? Array.from(flavorGroup.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value) : [];
     }
@@ -5974,6 +6103,7 @@ function lifeRecSave(typeKey, subtypeKey) {
   else { DB.add('lifeRecords', rec); Toast.success('已添加记录'); }
   if (typeKey === 'diet' && subtypeKey === 'snack') syncSnackCheckin(ps.date);
   ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null;
+  closeModal();
   renderLifeRecord();
 }
 function syncSnackCheckin(date) {
