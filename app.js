@@ -1514,7 +1514,6 @@ const TWO_COL_MODULES = ['groupbuy-factories', 'design-inspiration', 'oc-profile
 
 /* ===== Router ===== */
 function navigate(page) {
-  if (page === 'life-record' && currentPage === 'life-record') page = 'life-checkin';
   currentPage = page;
   DB.set('ui_state', { sidebarCollapsed: $('#sidebar').classList.contains('collapsed'), lastPage: page });
   $('#pageTitle').textContent = PAGE_TITLES[page] || page;
@@ -5889,8 +5888,7 @@ function renderLifeRecordHistory(typeKey) {
   for (let j = 0; j < 7; j++) { const d = new Date(base); d.setDate(base.getDate() + j); days.push(fmtDate(d)); }
   const wd = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
   const def = LIFE_RECORD_DEFS[typeKey];
-  let html = `<div class="fade-in life-record-page">`;
-  html += `<div class="lr-history-hd"><button class="btn btn-ghost btn-sm" onclick="lifeRecordToggleView('home')">‹ 返回</button><span class="lr-history-title">${def.icon} ${def.label}历史查询</span></div>`;
+  let html = `<div class="lr-history-hd"><button class="btn btn-ghost btn-sm" onclick="lifeRecordToggleView('home')">‹ 返回</button><span class="lr-history-title">${def.icon} ${def.label}历史查询</span></div>`;
   if (typeKey === 'sleep') html += renderSleepWeekLineChart(days);
   else html += renderDietWeekStats(days);
   days.forEach((d, i) => { html += renderLifeRecordHistoryDayCard(typeKey, d, wd[i]); });
@@ -5899,7 +5897,6 @@ function renderLifeRecordHistory(typeKey) {
     <span>${days[0].slice(5)} - ${days[6].slice(5)}</span>
     <button class="btn btn-ghost" onclick="lifeRecordHistoryNextWeek()" ${ps.weekOffset >= 0 ? 'disabled' : ''}>下一周 ›</button>
   </div>`;
-  html += `</div>`;
   return html;
 }
 function renderLifeRecord() {
@@ -5907,10 +5904,6 @@ function renderLifeRecord() {
   if (!pageState['life-record']) pageState['life-record'] = { date: todayStr(), formType: null, editId: null, values: {}, view: 'home', weekOffset: 0, subtype: null };
   const ps = pageState['life-record'];
   const date = ps.date;
-  if (ps.view === 'sleep-history' || ps.view === 'diet-history') {
-    body.innerHTML = renderLifeRecordHistory(ps.view === 'sleep-history' ? 'sleep' : 'diet');
-    return;
-  }
   const all = DB.list('lifeRecords');
   let html = '<div class="fade-in life-record-page">';
   html += renderLifeRecordTopCard(all, date);
@@ -5918,8 +5911,12 @@ function renderLifeRecord() {
     <button class="lr-toggle-btn ${ps.view === 'sleep-history' ? 'active' : ''}" onclick="lifeRecordToggleView('sleep-history')"><span>😴</span>睡眠记录</button>
     <button class="lr-toggle-btn ${ps.view === 'diet-history' ? 'active' : ''}" onclick="lifeRecordToggleView('diet-history')"><span>🍚</span>饮食记录</button>
   </div>`;
-  html += renderSleepRecordCard(date);
-  html += renderDietRecordCard(date);
+  if (ps.view === 'sleep-history' || ps.view === 'diet-history') {
+    html += renderLifeRecordHistory(ps.view === 'sleep-history' ? 'sleep' : 'diet');
+  } else {
+    html += renderSleepRecordCard(date);
+    html += renderDietRecordCard(date);
+  }
   html += '</div>';
   body.innerHTML = html;
 }
