@@ -6014,44 +6014,48 @@ function renderDietRecordCard(date) {
 }
 function renderSleepWeekLineChart(days) {
   const all = DB.list('lifeRecords');
+  const wdLabels = ['周日','周六','周五','周四','周三','周二','周一']; // days 已是倒序（周日→周一）
   const vals = days.map(d => all.filter(r => r.type === 'sleep' && r.date === d).reduce((s, r) => s + (Number(r.duration) || 0), 0));
   const maxV = Math.max(8, ...vals);
   const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-  const pts = vals.map((v, i) => {
-    const x = i === 0 ? 5 : (i === 6 ? 95 : (i / 6 * 90 + 5));
-    const y = 100 - v / maxV * 80 - 10;
-    return `${x.toFixed(2)} ${y.toFixed(2)}`;
-  }).join(' ');
-  const circles = vals.map((v, i) => {
-    const x = i === 0 ? 5 : (i === 6 ? 95 : (i / 6 * 90 + 5));
-    const y = 100 - v / maxV * 80 - 10;
-    return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="2.5" fill="var(--c-primary)"/>`;
+  const W = 680, H = 240, PAD = 30, TOP = 32;
+  const chartH = H - PAD - TOP;
+  const xOf = i => (W - 1) * i / 6;
+  const yOf = v => TOP + chartH * (1 - v / maxV);
+  const pts = vals.map((v, i) => `${xOf(i).toFixed(1)} ${yOf(v).toFixed(1)}`).join(' ');
+  const lineColor = '#2A9D8F';
+  const points = vals.map((v, i) => {
+    const x = xOf(i), y = yOf(v);
+    const label = formatSleepDuration(v);
+    return `<g class="lr-hsc-point"><text x="${x}" y="${(y - 12).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="700" fill="${lineColor}">${label}</text><circle cx="${x}" cy="${y}" r="5" fill="#fff" stroke="${lineColor}" stroke-width="2"/></g>`;
   }).join('');
-  const refY = 100 - 8 / maxV * 80 - 10;
   return `<div class="lr-history-stat-card">
-    <div class="lr-hsc-row"><span class="lr-hsc-title">一周睡眠折线统计</span><span class="lr-hsc-sub">日均 ${formatSleepDuration(avg)}</span></div>
-    <div class="lr-hsc-chart-body">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-        <polyline fill="none" stroke="var(--c-primary)" stroke-width="2" points="${pts}"/>
-        ${circles}
-        <line x1="0" y1="${refY.toFixed(2)}" x2="100" y2="${refY.toFixed(2)}" stroke="var(--c-warning)" stroke-dasharray="2,2" stroke-width="0.5"/>
+    <div class="lr-hsc-row"><span class="lr-hsc-title">一周睡眠记录</span><span class="lr-hsc-sub">日均 ${formatSleepDuration(avg)}</span></div>
+    <div class="lr-hsc-chart-body" style="height:180px">
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+        <polyline fill="none" stroke="${lineColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${pts}"/>
+        ${points}
       </svg>
     </div>
-    <div class="lr-hsc-x">${days.map(d => `<span>${d.slice(5)}</span>`).join('')}</div>
+    <div class="lr-hsc-x">${days.map((d, i) => `<span>${wdLabels[i] || d.slice(5)}</span>`).join('')}</div>
   </div>`;
 }
 function renderDietWeekStats(days) {
   const all = DB.list('lifeRecords');
-  const counts = {};
-  Object.keys(LIFE_RECORD_SUBTYPES.diet).forEach(sk => counts[sk] = 0);
-  days.forEach(d => all.filter(r => r.type === 'diet' && r.date === d).forEach(r => { if (counts[r.subtype] != null) counts[r.subtype]++; }));
+  let totalCount = 0, activeDays = 0, maxStreak = 0, curStreak = 0;
+  days.forEach(d => {
+    const dayCount = all.filter(r => r.type === 'diet' && r.date === d).length;
+    totalCount += dayCount;
+    if (dayCount > 0) { activeDays++; curStreak++; maxStreak = Math.max(maxStreak, curStreak); }
+    else { curStreak = 0; }
+  });
+  const rate = Math.round(activeDays / 7 * 100);
   return `<div class="lr-history-stat-card">
-    <div class="lr-hsc-row"><span class="lr-hsc-title">一周饮食统计</span><span class="lr-hsc-sub">各餐食用次数</span></div>
-    <div class="lr-hsc-diet-grid">
-      ${Object.entries(LIFE_RECORD_SUBTYPES.diet).map(([sk, st]) => {
-        const count = counts[sk];
-        return `<div class="lr-hsc-diet-item"><span class="lr-hsc-diet-label">${st.label}</span><span class="lr-hsc-diet-count">${count}次</span></div>`;
-      }).join('')}
+    <div class="lr-hsc-row"><span class="lr-hsc-title">一周饮食统计</span><span class="lr-hsc-sub">${days[0].slice(5)} - ${days[6].slice(5)}</span></div>
+    <div class="lr-hsc-metrics">
+      <div class="lr-hsc-metric"><div class="lr-hsc-metric-val">${totalCount}</div><div class="lr-hsc-metric-label">累计记录数</div></div>
+      <div class="lr-hsc-metric"><div class="lr-hsc-metric-val">${maxStreak}<small>天</small></div><div class="lr-hsc-metric-label">最长连续</div></div>
+      <div class="lr-hsc-metric"><div class="lr-hsc-metric-val">${rate}<small>%</small></div><div class="lr-hsc-metric-label">本周完成率</div></div>
     </div>
   </div>`;
 }
