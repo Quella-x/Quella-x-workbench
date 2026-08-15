@@ -6089,11 +6089,14 @@ function renderLifeRecordHistory(typeKey) {
   const days = [];
   for (let j = 0; j < 7; j++) { const d = new Date(base); d.setDate(base.getDate() + j); days.push(fmtDate(d)); }
   const wd = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+  // v353: 历史页日卡片整体倒序（周日→周一），与「最新在前」习惯一致；周图表同步倒序以保持对齐
+  const daysRev = days.slice().reverse();
+  const wdRev = wd.slice().reverse();
   const def = LIFE_RECORD_DEFS[typeKey];
   let html = '';
-  if (typeKey === 'sleep') html += renderSleepWeekLineChart(days);
-  else html += renderDietWeekStats(days);
-  days.forEach((d, i) => { html += renderLifeRecordHistoryDayCard(typeKey, d, wd[i]); });
+  if (typeKey === 'sleep') html += renderSleepWeekLineChart(daysRev);
+  else html += renderDietWeekStats(daysRev);
+  daysRev.forEach((d, i) => { html += renderLifeRecordHistoryDayCard(typeKey, d, wdRev[i]); });
   html += `<div class="lr-week-nav">
     <button class="page-link" onclick="lifeRecordHistoryPrevWeek()">‹ 上一周</button>
     <span class="page-info">${days[0].slice(5)} - ${days[6].slice(5)}</span>
