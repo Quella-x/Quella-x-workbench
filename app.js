@@ -3892,9 +3892,10 @@ function dcRecalc() {
       if (catCount >= 9) { setRate = set9Rate; setLabel = `≥9种品类`; }
       else if (catCount >= 4) { setRate = set4Rate; setLabel = `≥4种品类`; }
       const groupDiscounted = groupSubtotal * setRate;
+      const isAllUrgent = items.length > 0 && items.every(d => d.actualUrgent);
       productsTotal += groupDiscounted;
       g.items.forEach(e => { itemGroupRate[e.i] = setRate; });
-      groupDetails.push({ patternId: g.label, isManual: g.isManual, items, groupSubtotal, catCount, setRate, setLabel, groupDiscounted });
+      groupDetails.push({ patternId: g.label, isManual: g.isManual, items, groupSubtotal, catCount, setRate, setLabel, groupDiscounted, isAllUrgent });
     });
     noPatternIdx.forEach(i => { productsTotal += productDetails[i].lt; });
   } else {
@@ -4018,7 +4019,18 @@ function dcRecalc() {
     if (_dcWholeOrderUrgent) {
       grandTotal = afterDiscount * urgentRate;
     } else {
-      const urgentPremium = prodUrgentBase * (urgentRate - 1);
+      let urgentPremium = prodUrgentBase * (urgentRate - 1);
+      // 全加急分组：加急溢价基于分组折扣后总额（含绑定加价），与组内「SET加急 ×倍率」语义一致
+      groupDetails.forEach(g => {
+        if (g.isAllUrgent) {
+          const groupBound = g.items.reduce((s, d) => {
+            const boundLt = (boundMap[d.idx] || []).reduce((ss, ex) => ss + ex.lt * ex.groupRate, 0);
+            return s + boundLt;
+          }, 0);
+          const groupWithBound = g.groupDiscounted + groupBound;
+          urgentPremium += (groupWithBound - g.groupSubtotal) * (urgentRate - 1);
+        }
+      });
       grandTotal = afterDiscount + urgentPremium;
     }
   }
@@ -4087,8 +4099,8 @@ function dcRecalc() {
         groupWithBound += base;
         if (d.actualUrgent) groupUrgentWB += d.lt;  // 单制品加急溢价仅基于制品原价，不含绑定加价
       });
-      // 整单加急：组内不含加急；否则按组内加急原价上浮溢价
-      const groupDisplay = whole ? groupWithBound : (groupWithBound + groupUrgentWB * (urgentRate - 1));
+      // 整单加急或组内全加急：分组折扣后整体（含绑定加价）乘加急倍率；否则按组内加急原价上浮溢价
+      const groupDisplay = (whole || g.isAllUrgent) ? (groupWithBound * urgentRate) : (groupWithBound + groupUrgentWB * (urgentRate - 1));
       // SET优惠（行下方接加急/小计）
       if (g.setRate < 1.0) {
         r += `<div class="dc-rr promo promo-first"><span>SET优惠：${esc(g.setLabel)}</span><span>×${g.setRate}</span></div>`;
@@ -4127,7 +4139,8 @@ function dcRecalc() {
         groupWithBound += base;
         if (d.actualUrgent) groupUrgentWB += d.lt;  // 单制品加急溢价仅基于制品原价，不含绑定加价
       });
-      const groupDisplay = whole ? groupWithBound : (groupWithBound + groupUrgentWB * (urgentRate - 1));
+      const noPatternAllUrgent = noPatternItems.length > 0 && noPatternItems.every(d => d.actualUrgent);
+      const groupDisplay = (whole || noPatternAllUrgent) ? (groupWithBound * urgentRate) : (groupWithBound + groupUrgentWB * (urgentRate - 1));
       if (showInlineUrgent && urgentSeqs.length) {
         r += `<div class="dc-rr promo promo-first"><span>加急：${urgentSeqs.map(pad2).join('、')}</span><span>×${urgentRate}</span></div>`;
       }
