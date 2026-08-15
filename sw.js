@@ -1,5 +1,5 @@
 /* Service Worker — 小筱工作台 PWA 离线壳 */
-const CACHE = 'xiao-workbench-v343';
+const CACHE = 'xiao-workbench-v344';
 const ASSETS = [
   './',
   'index.html',
