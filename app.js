@@ -5804,7 +5804,7 @@ function renderSizeSingleSelect(selected) {
   const opts = LIFE_RECORD_SUBTYPES.diet.milktea.sizeOptions;
   const customOpts = DB.get('customOpts_lifeRecord_milktea_size', []);
   const allOpts = opts.concat(customOpts.filter(c => !opts.includes(c)));
-  const sel = selected || opts[0];
+  const sel = selected || '标准杯';
   const groupId = 'lrf-size-group';
   let html = `<div class="form-row"><label class="form-label">规格</label>`;
   html += `<div class="checkbox-group pill-group single-pill" id="${groupId}" data-key="size" data-single="true">`;
@@ -5821,7 +5821,7 @@ function renderSugarSingleSelect(selected) {
   const opts = LIFE_RECORD_SUBTYPES.diet.milktea.sugarOptions;
   const customOpts = DB.get('customOpts_lifeRecord_milktea_sugar', []);
   const allOpts = opts.concat(customOpts.filter(c => !opts.includes(c)));
-  const sel = selected || opts[0];
+  const sel = selected || '三分糖';
   const groupId = 'lrf-sugar-group';
   let html = `<div class="form-row"><label class="form-label">糖分</label>`;
   html += `<div class="checkbox-group pill-group single-pill" id="${groupId}" data-key="sugar" data-single="true">`;
@@ -5838,7 +5838,7 @@ function renderTemperatureSingleSelect(selected) {
   const opts = LIFE_RECORD_SUBTYPES.diet.milktea.temperatureOptions;
   const customOpts = DB.get('customOpts_lifeRecord_milktea_temperature', []);
   const allOpts = opts.concat(customOpts.filter(c => !opts.includes(c)));
-  const sel = selected || opts[0];
+  const sel = selected || '去冰';
   const groupId = 'lrf-temperature-group';
   let html = `<div class="form-row"><label class="form-label">温度</label>`;
   html += `<div class="checkbox-group pill-group single-pill" id="${groupId}" data-key="temperature" data-single="true">`;
