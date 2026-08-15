@@ -5105,6 +5105,34 @@ function weekKeyOf(s) {
   return y + '-W' + String(w).padStart(2, '0');
 }
 function prevWeekKey(wk) { const [y, w] = wk.split('-W'); const m = mondayFromWeek(Number(y), Number(w)); m.setDate(m.getDate() - 7); return weekKeyOf(fmtDate(m)); }
+function normalizeTime(v) {
+  if (!v || typeof v !== 'string') return v;
+  const s = v.trim();
+  if (!s) return s;
+  const colonMatch = s.match(/^(\d{1,2})[:：\.](\d{1,2})$/);
+  if (colonMatch) {
+    let h = parseInt(colonMatch[1], 10);
+    let m = parseInt(colonMatch[2], 10);
+    if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+      return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    }
+  }
+  const digits = s.replace(/\D/g, '');
+  if (/^\d{3,4}$/.test(digits)) {
+    let h, m;
+    if (digits.length === 3) {
+      h = parseInt(digits[0], 10);
+      m = parseInt(digits.slice(1), 10);
+    } else {
+      h = parseInt(digits.slice(0, 2), 10);
+      m = parseInt(digits.slice(2), 10);
+    }
+    if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+      return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    }
+  }
+  return s;
+}
 function sleepDurationHours(sleepTime, wakeTime) {
   if (!sleepTime || !wakeTime) return null;
   const [sh, sm] = sleepTime.split(':').map(Number);
@@ -6081,15 +6109,15 @@ function lifeRecSave(typeKey) {
   const subtypeKey = subtypeEl ? subtypeEl.value : ps.subtype;
   const values = { subtype: subtypeKey };
   if (typeKey === 'sleep') {
-    values.sleepTime = document.getElementById('lrf-sleepTime').value;
-    values.wakeTime = document.getElementById('lrf-wakeTime').value;
+    values.sleepTime = normalizeTime(document.getElementById('lrf-sleepTime').value);
+    values.wakeTime = normalizeTime(document.getElementById('lrf-wakeTime').value);
     const wc = document.getElementById('lrf-wakeCount').value;
     values.wakeCount = wc === '' ? null : Number(wc);
     const dur = sleepDurationHours(values.sleepTime, values.wakeTime);
     if (dur != null) values.duration = dur;
   } else {
     values.note = document.getElementById('lrf-note').value;
-    values.time = document.getElementById('lrf-time').value;
+    values.time = normalizeTime(document.getElementById('lrf-time').value);
     if (subtypeKey === 'snack') {
       const q = document.getElementById('lrf-qty').value;
       values.qty = q === '' ? null : Number(q);
