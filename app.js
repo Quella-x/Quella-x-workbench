@@ -5789,13 +5789,13 @@ function renderLifeRecordModalBody(typeKey, subtypeKey, values) {
   let html = `<div class="life-rec-form" id="lifeRecForm"><input type="hidden" id="lrf-type" value="${typeKey}">`;
   html += `<div class="form-row"><label class="form-label">记录项</label>${renderLifeRecordSubtypeSelect(typeKey, subtypeKey)}</div>`;
   if (typeKey === 'sleep') {
-    html += `<div class="form-row"><label class="form-label">入睡时间</label><input type="text" class="form-input" id="lrf-sleepTime" value="${esc(values.sleepTime || '')}" placeholder="HH:MM" maxlength="5" oninput="lifeRecordModalTimeInput(this);lifeRecordModalCalcDuration()"></div>`;
-    html += `<div class="form-row"><label class="form-label">清醒时间</label><input type="text" class="form-input" id="lrf-wakeTime" value="${esc(values.wakeTime || '')}" placeholder="HH:MM" maxlength="5" oninput="lifeRecordModalTimeInput(this);lifeRecordModalCalcDuration()"></div>`;
+    html += `<div class="form-row"><label class="form-label">入睡时间</label><input type="text" class="form-input" id="lrf-sleepTime" value="${esc(values.sleepTime || '')}" placeholder="HH:MM" oninput="lifeRecordModalCalcDuration()"></div>`;
+    html += `<div class="form-row"><label class="form-label">清醒时间</label><input type="text" class="form-input" id="lrf-wakeTime" value="${esc(values.wakeTime || '')}" placeholder="HH:MM" oninput="lifeRecordModalCalcDuration()"></div>`;
     html += `<div class="form-row"><label class="form-label">睡眠时长（自动）</label><input type="text" class="form-input" id="lrf-duration" value="${values.duration != null ? formatSleepDuration(Number(values.duration)) : ''}" readonly style="background:var(--c-primary-bg);cursor:default"></div>`;
     html += `<div class="form-row"><label class="form-label">清醒次数</label><input type="number" class="form-input" id="lrf-wakeCount" value="${esc(values.wakeCount != null ? values.wakeCount : '')}"></div>`;
   } else {
     const isEnjoyTime = ['midnight','snack','milktea'].includes(subtypeKey);
-    html += `<div class="form-row"><label class="form-label" id="lrf-time-label">${isEnjoyTime ? '享用时间' : '吃饭时间'}</label><input type="text" class="form-input" id="lrf-time" value="${esc(values.time || '')}" placeholder="HH:MM" maxlength="5" oninput="lifeRecordModalTimeInput(this)"></div>`;
+    html += `<div class="form-row"><label class="form-label" id="lrf-time-label">${isEnjoyTime ? '享用时间' : '吃饭时间'}</label><input type="text" class="form-input" id="lrf-time" value="${esc(values.time || '')}" placeholder="HH:MM"></div>`;
     const noteLabel = subtypeKey === 'snack' ? '零食记录' : subtypeKey === 'milktea' ? '奶茶记录' : '餐食记录';
     const placeholder = subtypeKey === 'snack' ? '吃了什么零食' : subtypeKey === 'milktea' ? '奶茶名称/店铺' : '吃了什么';
     html += `<div class="form-row"><label class="form-label" id="lrf-note-label">${noteLabel}</label><input type="text" class="form-input" id="lrf-note" value="${esc(values.note || '')}" placeholder="${placeholder}"></div>`;
@@ -5830,11 +5830,6 @@ function lifeRecordModalOnSubtypeChange() {
     const milkteaFields = document.querySelector('.lrf-milktea-fields');
     if (milkteaFields) milkteaFields.style.display = subtypeKey === 'milktea' ? '' : 'none';
   }
-}
-function lifeRecordModalTimeInput(el) {
-  let v = el.value.replace(/[^0-9]/g, '').slice(0, 4);
-  if (v.length >= 2) v = v.slice(0, 2) + ':' + v.slice(2);
-  if (el.value !== v) el.value = v;
 }
 function lifeRecordModalCalcDuration() {
   const sleepTime = document.getElementById('lrf-sleepTime');
