@@ -5117,6 +5117,44 @@ function normalizeTime(v) {
       return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
     }
   }
+  // 中文时间词：两点半、一点、三点一刻、十二点整、零点半
+  const cnHourMap = {
+    '零':0,'一':1,'二':2,'两':2,'三':3,'四':4,'五':5,
+    '六':6,'七':7,'八':8,'九':9,'十':10,'十一':11,'十二':12
+  };
+  const pointIdx = s.indexOf('点');
+  if (pointIdx !== -1) {
+    const hourStr = s.slice(0, pointIdx).trim();
+    const minuteStr = s.slice(pointIdx + 1).trim();
+    let h = null;
+    if (/^\d{1,2}$/.test(hourStr)) {
+      h = parseInt(hourStr, 10);
+    } else if (cnHourMap[hourStr] !== undefined) {
+      h = cnHourMap[hourStr];
+    }
+    if (h !== null && h >= 0 && h <= 23) {
+      let m = 0;
+      if (!minuteStr || minuteStr === '整' || minuteStr === '正') {
+        m = 0;
+      } else if (minuteStr === '半') {
+        m = 30;
+      } else if (minuteStr === '一刻') {
+        m = 15;
+      } else if (minuteStr === '三刻') {
+        m = 45;
+      } else {
+        const mDigits = minuteStr.replace(/\D/g, '');
+        if (/^\d{1,2}$/.test(mDigits)) {
+          m = parseInt(mDigits, 10);
+        } else {
+          return s;
+        }
+      }
+      if (m >= 0 && m <= 59) {
+        return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+      }
+    }
+  }
   const digits = s.replace(/\D/g, '');
   if (/^\d{3,4}$/.test(digits)) {
     let h, m;
