@@ -6016,7 +6016,7 @@ function renderLifeRecordHistory(typeKey) {
   for (let j = 0; j < 7; j++) { const d = new Date(base); d.setDate(base.getDate() + j); days.push(fmtDate(d)); }
   const wd = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
   const def = LIFE_RECORD_DEFS[typeKey];
-  let html = `<div class="lr-history-hd"><button class="btn btn-ghost btn-sm" onclick="lifeRecordToggleView('home')">‹ 返回</button></div>`;
+  let html = '';
   if (typeKey === 'sleep') html += renderSleepWeekLineChart(days);
   else html += renderDietWeekStats(days);
   days.forEach((d, i) => { html += renderLifeRecordHistoryDayCard(typeKey, d, wd[i]); });
