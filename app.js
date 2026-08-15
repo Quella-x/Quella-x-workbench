@@ -4099,8 +4099,8 @@ function dcRecalc() {
         groupWithBound += base;
         if (d.actualUrgent) groupUrgentWB += d.lt;  // 单制品加急溢价仅基于制品原价，不含绑定加价
       });
-      // 整单加急或组内全加急：分组折扣后整体（含绑定加价）乘加急倍率；否则按组内加急原价上浮溢价
-      const groupDisplay = (whole || g.isAllUrgent) ? (groupWithBound * urgentRate) : (groupWithBound + groupUrgentWB * (urgentRate - 1));
+      // 折后小计仅显示 SET 折扣后金额（含绑定加价），加急部分在组内或底部加急块单独展示
+      const groupDisplay = groupWithBound;
       // SET优惠（行下方接加急/小计）
       if (g.setRate < 1.0) {
         r += `<div class="dc-rr promo promo-first"><span>SET优惠：${esc(g.setLabel)}</span><span>×${g.setRate}</span></div>`;
@@ -4139,8 +4139,8 @@ function dcRecalc() {
         groupWithBound += base;
         if (d.actualUrgent) groupUrgentWB += d.lt;  // 单制品加急溢价仅基于制品原价，不含绑定加价
       });
-      const noPatternAllUrgent = noPatternItems.length > 0 && noPatternItems.every(d => d.actualUrgent);
-      const groupDisplay = (whole || noPatternAllUrgent) ? (groupWithBound * urgentRate) : (groupWithBound + groupUrgentWB * (urgentRate - 1));
+      // 金额仅显示折扣后金额（含绑定加价），加急部分在组内或底部加急块单独展示
+      const groupDisplay = groupWithBound;
       if (showInlineUrgent && urgentSeqs.length) {
         r += `<div class="dc-rr promo promo-first"><span>加急：${urgentSeqs.map(pad2).join('、')}</span><span>×${urgentRate}</span></div>`;
       }
