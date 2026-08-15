@@ -2040,6 +2040,9 @@ ul,li{list-style:none}
 .lr-hsc-bar{width:20px;max-width:80%;background:linear-gradient(180deg,var(--c-primary),var(--c-primary-dark));border-radius:4px 4px 0 0;min-height:4px}
 .lr-hsc-bar-num{font-size:13px;font-weight:800;color:var(--c-text)}
 .lr-hsc-bar-label{font-size:11px;color:var(--c-text-light);white-space:nowrap}
+.lr-hsc-diet-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 12px;padding:4px 2px}
+.lr-hsc-diet-item{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--c-text)}
+.lr-hsc-diet-count{font-weight:700;color:var(--c-primary)}
 .lr-history-day-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-bottom:12px;overflow:hidden}
 .lr-history-day-head{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--c-primary-bg);border-bottom:1px solid var(--c-border-light)}
 .lr-history-day-date{font-size:14px;font-weight:700;color:var(--c-text)}
@@ -2047,6 +2050,9 @@ ul,li{list-style:none}
 .lr-history-day-extra{margin-left:auto;font-size:13px;font-weight:700;color:var(--c-primary-dark)}
 .lr-history-day-body{padding:10px 12px}
 .lr-week-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px}
+.lr-week-nav .page-link{background:transparent;border:none;color:var(--c-text-light);font-size:13px;padding:4px 8px;cursor:pointer;transition:all .2s}
+.lr-week-nav .page-link:hover{color:var(--c-primary)}
+.lr-week-nav .page-link:disabled{color:var(--c-text-muted);opacity:.5;cursor:not-allowed;background:transparent}
 
 @media (max-width:640px){
   .life-goal-grid{grid-template-columns:1fr}
@@ -2092,6 +2098,8 @@ ul,li{list-style:none}
   .lr-size-note{font-size:10px}
   .lr-history-stat-card{padding:8px}
   .lr-hsc-title{font-size:14px}
+  .lr-hsc-diet-grid{gap:6px 10px}
+  .lr-hsc-diet-item{font-size:12px}
 }
 </style>
 <script>
@@ -2170,7 +2178,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-<script src="app.js?v=352"></script>
+<script src="app.js?v=353"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

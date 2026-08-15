@@ -6045,14 +6045,12 @@ function renderDietWeekStats(days) {
   const counts = {};
   Object.keys(LIFE_RECORD_SUBTYPES.diet).forEach(sk => counts[sk] = 0);
   days.forEach(d => all.filter(r => r.type === 'diet' && r.date === d).forEach(r => { if (counts[r.subtype] != null) counts[r.subtype]++; }));
-  const maxCount = Math.max(1, ...Object.values(counts));
   return `<div class="lr-history-stat-card">
     <div class="lr-hsc-row"><span class="lr-hsc-title">一周饮食统计</span><span class="lr-hsc-sub">各餐食用次数</span></div>
-    <div class="lr-hsc-bar-body">
+    <div class="lr-hsc-diet-grid">
       ${Object.entries(LIFE_RECORD_SUBTYPES.diet).map(([sk, st]) => {
         const count = counts[sk];
-        const h = Math.max(4, count / maxCount * 70);
-        return `<div class="lr-hsc-bar-item"><div class="lr-hsc-bar" style="height:${h}px"></div><div class="lr-hsc-bar-num">${count}</div><div class="lr-hsc-bar-label">${st.label}</div></div>`;
+        return `<div class="lr-hsc-diet-item"><span class="lr-hsc-diet-label">${st.label}</span><span class="lr-hsc-diet-count">${count}次</span></div>`;
       }).join('')}
     </div>
   </div>`;
