@@ -6014,11 +6014,11 @@ function renderDietRecordCard(date) {
 }
 function renderSleepWeekLineChart(days) {
   const all = DB.list('lifeRecords');
-  const wdLabels = ['周日','周六','周五','周四','周三','周二','周一']; // days 已是倒序（周日→周一）
+  const wdLabels = ['周一','周二','周三','周四','周五','周六','周日']; // 周一→周日 正序（左到右）
   const vals = days.map(d => all.filter(r => r.type === 'sleep' && r.date === d).reduce((s, r) => s + (Number(r.duration) || 0), 0));
-  const maxV = Math.max(8, ...vals);
+  const maxV = Math.max(10, ...vals);
   const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-  const W = 680, H = 280, PAD = 34, TOP = 52, SIDE = 36;
+  const W = 680, H = 280, PAD = 34, TOP = 52, SIDE = 40;
   const chartH = H - PAD - TOP;
   const xOf = i => SIDE + (W - SIDE * 2) * i / 6;
   const yOf = v => TOP + chartH * (1 - v / maxV);
@@ -6030,13 +6030,17 @@ function renderSleepWeekLineChart(days) {
     const y = TOP + chartH * (1 - p);
     return `<line x1="${SIDE}" y1="${y.toFixed(1)}" x2="${W - SIDE}" y2="${y.toFixed(1)}" stroke="var(--c-border-light)" stroke-width="0.6"/>`;
   }).join('');
+  const hourLines = [4, 6, 8, 10].map(h => {
+    const y = yOf(h);
+    return `<line x1="${SIDE}" y1="${y.toFixed(1)}" x2="${W - SIDE}" y2="${y.toFixed(1)}" stroke="var(--c-border)" stroke-width="1"/><text x="${SIDE - 6}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="var(--c-text-muted)">${h}h</text>`;
+  }).join('');
   const points = vals.map((v, i) => {
     const x = xOf(i), y = yOf(v);
     const label = formatSleepDuration(v);
-    return `<g class="lr-hsc-point"><text x="${x}" y="${(y - 16).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="700" fill="${lineColor}">${label}</text><circle cx="${x}" cy="${y}" r="5" fill="${lineColor}" stroke="#fff" stroke-width="2"/></g>`;
+    return `<g class="lr-hsc-point"><text x="${x}" y="${(y - 18).toFixed(1)}" text-anchor="middle" font-size="16" font-weight="700" fill="${lineColor}">${label}</text><circle cx="${x}" cy="${y}" r="5.5" fill="${lineColor}" stroke="#fff" stroke-width="2"/></g>`;
   }).join('');
   return `<div class="lr-history-stat-card">
-    <div class="lr-hsc-row"><span class="lr-hsc-title">一周睡眠记录</span><span class="lr-hsc-sub">日均 ${formatSleepDuration(avg)}</span></div>
+    <div class="lr-hsc-row"><span class="lr-hsc-sub lr-hsc-avg">日均 ${formatSleepDuration(avg)}</span></div>
     <div class="lr-hsc-chart-body">
       <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
         <defs>
@@ -6046,6 +6050,7 @@ function renderSleepWeekLineChart(days) {
           </linearGradient>
         </defs>
         ${gridLines}
+        ${hourLines}
         <path d="${areaPath}" fill="url(#${gradId})" stroke="none"/>
         <polyline fill="none" stroke="${lineColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="${linePts}"/>
         ${points}
@@ -6060,7 +6065,6 @@ function renderDietWeekStats(days) {
   Object.keys(LIFE_RECORD_SUBTYPES.diet).forEach(sk => counts[sk] = 0);
   days.forEach(d => all.filter(r => r.type === 'diet' && r.date === d).forEach(r => { if (counts[r.subtype] != null) counts[r.subtype]++; }));
   return `<div class="lr-history-stat-card">
-    <div class="lr-hsc-row"><span class="lr-hsc-title">一周饮食统计</span><span class="lr-hsc-sub">各餐食用次数</span></div>
     <div class="lr-hsc-metrics">
       ${Object.entries(LIFE_RECORD_SUBTYPES.diet).map(([sk, st]) => {
         const count = counts[sk];
@@ -6106,7 +6110,7 @@ function renderLifeRecordHistory(typeKey) {
   const wdRev = wd.slice().reverse();
   const def = LIFE_RECORD_DEFS[typeKey];
   let html = '';
-  if (typeKey === 'sleep') html += renderSleepWeekLineChart(daysRev);
+  if (typeKey === 'sleep') html += renderSleepWeekLineChart(days);
   else html += renderDietWeekStats(daysRev);
   daysRev.forEach((d, i) => { html += renderLifeRecordHistoryDayCard(typeKey, d, wdRev[i]); });
   html += `<div class="lr-week-nav">
