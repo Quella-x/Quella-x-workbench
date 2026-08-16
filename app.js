@@ -6018,7 +6018,7 @@ function renderSleepWeekLineChart(days) {
   const vals = days.map(d => all.filter(r => r.type === 'sleep' && r.date === d).reduce((s, r) => s + (Number(r.duration) || 0), 0));
   const maxV = Math.max(8, ...vals);
   const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-  const W = 680, H = 260, PAD = 34, TOP = 48, SIDE = 50;
+  const W = 680, H = 280, PAD = 34, TOP = 52, SIDE = 36;
   const chartH = H - PAD - TOP;
   const xOf = i => SIDE + (W - SIDE * 2) * i / 6;
   const yOf = v => TOP + chartH * (1 - v / maxV);
