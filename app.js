@@ -6018,22 +6018,36 @@ function renderSleepWeekLineChart(days) {
   const vals = days.map(d => all.filter(r => r.type === 'sleep' && r.date === d).reduce((s, r) => s + (Number(r.duration) || 0), 0));
   const maxV = Math.max(8, ...vals);
   const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-  const W = 680, H = 250, PAD = 30, TOP = 38;
+  const W = 680, H = 260, PAD = 34, TOP = 48, SIDE = 50;
   const chartH = H - PAD - TOP;
-  const xOf = i => 44 + (W - 88) * i / 6;
+  const xOf = i => SIDE + (W - SIDE * 2) * i / 6;
   const yOf = v => TOP + chartH * (1 - v / maxV);
-  const pts = vals.map((v, i) => `${xOf(i).toFixed(1)} ${yOf(v).toFixed(1)}`).join(' ');
-  const lineColor = '#FA8C16';
+  const lineColor = '#F5A623';
+  const gradId = 'sleepAreaGrad';
+  const linePts = vals.map((v, i) => `${xOf(i).toFixed(1)} ${yOf(v).toFixed(1)}`).join(' ');
+  const areaPath = `M ${vals.map((v, i) => `${xOf(i).toFixed(1)} ${yOf(v).toFixed(1)}`).join(' L ')} L ${xOf(6).toFixed(1)} ${(H - PAD).toFixed(1)} L ${xOf(0).toFixed(1)} ${(H - PAD).toFixed(1)} Z`;
+  const gridLines = [0, 0.25, 0.5, 0.75, 1].map(p => {
+    const y = TOP + chartH * (1 - p);
+    return `<line x1="${SIDE}" y1="${y.toFixed(1)}" x2="${W - SIDE}" y2="${y.toFixed(1)}" stroke="var(--c-border-light)" stroke-width="0.6"/>`;
+  }).join('');
   const points = vals.map((v, i) => {
     const x = xOf(i), y = yOf(v);
     const label = formatSleepDuration(v);
-    return `<g class="lr-hsc-point"><text x="${x}" y="${(y - 14).toFixed(1)}" text-anchor="middle" font-size="14" font-weight="700" fill="${lineColor}">${label}</text><circle cx="${x}" cy="${y}" r="5" fill="#fff" stroke="${lineColor}" stroke-width="2"/></g>`;
+    return `<g class="lr-hsc-point"><text x="${x}" y="${(y - 16).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="700" fill="${lineColor}">${label}</text><circle cx="${x}" cy="${y}" r="5" fill="${lineColor}" stroke="#fff" stroke-width="2"/></g>`;
   }).join('');
   return `<div class="lr-history-stat-card">
     <div class="lr-hsc-row"><span class="lr-hsc-title">一周睡眠记录</span><span class="lr-hsc-sub">日均 ${formatSleepDuration(avg)}</span></div>
-    <div class="lr-hsc-chart-body" style="height:190px">
+    <div class="lr-hsc-chart-body">
       <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
-        <polyline fill="none" stroke="${lineColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${pts}"/>
+        <defs>
+          <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${lineColor}" stop-opacity="0.32"/>
+            <stop offset="100%" stop-color="${lineColor}" stop-opacity="0.03"/>
+          </linearGradient>
+        </defs>
+        ${gridLines}
+        <path d="${areaPath}" fill="url(#${gradId})" stroke="none"/>
+        <polyline fill="none" stroke="${lineColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="${linePts}"/>
         ${points}
       </svg>
     </div>
