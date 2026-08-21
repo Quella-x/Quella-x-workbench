@@ -208,10 +208,10 @@ function initModalSwipe() {
   modal.addEventListener('touchmove', (e) => {
     if (!tracking || window.innerWidth > 768) return;
     const dx = e.touches[0].clientX - sx, dy = e.touches[0].clientY - sy;
-    if (Math.abs(dx) > Math.abs(dy) && dx > 0) {
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 0) {
       modal.style.transition = 'none';
       modal.style.transform = 'translateX(' + dx + 'px)';
-      modal.style.opacity = String(Math.max(0.4, 1 - dx / 400));
+      modal.style.opacity = String(Math.max(0.4, 1 - Math.abs(dx) / 400));
     }
   }, { passive: true });
   modal.addEventListener('touchend', (e) => {
@@ -219,7 +219,7 @@ function initModalSwipe() {
     tracking = false;
     modal.style.transition = ''; modal.style.transform = ''; modal.style.opacity = '';
     const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
-    if (dx > 70 && Math.abs(dx) > Math.abs(dy) * 1.4) closeModal();
+    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.4) closeModal();
   }, { passive: true });
 }
 
@@ -247,6 +247,61 @@ window.addEventListener('popstate', function () {
     $('#modalOverlay').classList.remove('show'); $('#modalBody').innerHTML = ''; $('#modalFooter').innerHTML = '';
   }
 });
+
+/* ===== 二级页面手势返回（手机端左右滑动返回上一级） ===== */
+// v377：首页平台视图 / 每日记录历史视图 属于「二级页面」，支持手机手势左右滑动返回上一级
+function navBack() {
+  const ps = pageState || {};
+  // 首页平台视图：若处于「待发布/已发布」筛选状态，先返回平台全部，再返回首页
+  if (ps.home && ps.home.view === 'platform') {
+    if (ps.home.statusFilter) { ps.home.statusFilter = ''; ps.home.homePageNo = 1; renderHome(); return true; }
+    homeBackToMain(); return true;
+  }
+  // 每日记录历史视图（睡眠/饮食）→ 返回首页视图
+  if (ps['life-record'] && (ps['life-record'].view === 'sleep-history' || ps['life-record'].view === 'diet-history')) {
+    ps['life-record'].view = 'home'; renderLifeRecord(); return true;
+  }
+  return false;
+}
+function appHandleBack() {
+  const ov = document.getElementById('modalOverlay');
+  if (ov && ov.classList.contains('show')) { closeModal(); return true; }
+  return navBack();
+}
+function initSwipeBack() {
+  if (initSwipeBack._done) return;
+  initSwipeBack._done = true;
+  const body = document.getElementById('mainBody');
+  if (!body) return;
+  let sx = 0, sy = 0, tracking = false, horiz = false;
+  const EDGE = 24; // 边缘 24px 交给系统返回手势，避免与 OS 冲突/双重触发
+  const blocked = (t) => t && t.closest && t.closest('input,textarea,select,[contenteditable="true"],.combobox-dropdown,.combobox-wrapper,.modal');
+  const inHScroller = (t) => !!(t && t.closest && (t.closest('[data-hscroll]') || t.closest('[class*="scroll-x"]')));
+  const isModalOpen = () => { const ov = document.getElementById('modalOverlay'); return ov && ov.classList.contains('show'); };
+  body.addEventListener('touchstart', (e) => {
+    if (window.innerWidth > 768) return;
+    if (isModalOpen()) { tracking = false; return; }
+    const x0 = e.touches[0].clientX;
+    if (x0 < EDGE || x0 > window.innerWidth - EDGE) { tracking = false; return; }
+    if (e.touches.length !== 1 || blocked(e.target) || inHScroller(e.target)) { tracking = false; return; }
+    sx = x0; sy = e.touches[0].clientY; tracking = true; horiz = false;
+  }, { passive: true });
+  body.addEventListener('touchmove', (e) => {
+    if (!tracking || window.innerWidth > 768) return;
+    if (isModalOpen()) return;
+    const t = e.touches[0];
+    const dx = t.clientX - sx, dy = t.clientY - sy;
+    if (!horiz && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) horiz = true;
+    if (horiz) e.preventDefault(); // 抢占横向滑动，阻止页面纵向滚动与系统误判
+  }, { passive: false });
+  body.addEventListener('touchend', (e) => {
+    if (!tracking || window.innerWidth > 768) { tracking = false; return; }
+    tracking = false;
+    if (isModalOpen()) return;
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (horiz && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.4) navBack();
+  }, { passive: true });
+}
 
 /* ===== Lightbox ===== */
 function openLightbox(src) { $('#lightboxImg').src = src; $('#lightbox').classList.add('show'); }
@@ -379,7 +434,7 @@ function buildFormField(f, data, moduleKey, wrap) {
       const l = typeof o === 'string' ? o : o.label;
       const isCustom = typeof o === 'object' && o.custom;
       const customAttr = isCustom ? ' data-custom="true"' : '';
-      return `<label class="checkbox-item ${selected.includes(v) ? 'selected' : ''}"${customAttr}><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}${customAttr}> ${esc(l)}</label>`;
+      return `<label class="checkbox-item ${selected.includes(v) ? 'selected' : ''}"${customAttr}><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}${customAttr}>${esc(l)}</label>`;
     }).join('');
     const mainGroupId = 'ms_' + f.key + '_' + Math.random().toString(36).slice(2, 7);
     let msInner = `<label class="form-label">${esc(label)}</label><div class="checkbox-group" id="${mainGroupId}" data-key="${f.key}"${singleAttr}>${optHTML}</div>`;
@@ -852,7 +907,7 @@ function renderCalendar(year, month, records, commissionRecords = []) {
   const prevMonthDays = new Date(year, month, 0).getDate();
   const today = new Date();
   const todayKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
-  const START_COLOR = '#ff9a3c', END_COLOR = '#f5c518', BOTH_COLOR = '#712258';
+  const START_COLOR = '#ff9a3c', END_COLOR = '#FFDE75', BOTH_COLOR = '#712258';
   // v193: 深空打卡日期集合（固定位置在开稿/接稿/同天下方）
   const lifeDeepspaceDates = new Set(DB.list('lifeCheckins').filter(r => r.type === 'deepspace').map(r => r.date));
   let html = '<div class="cal-grid">';
@@ -1833,7 +1888,7 @@ function renderCommissionCalendar(year, month, records) {
   const today = new Date();
   const todayKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
   const ps = pageState['design-commission'] || {};
-  const START_COLOR = '#ff9a3c', END_COLOR = '#f5c518', BOTH_COLOR = '#712258';
+  const START_COLOR = '#ff9a3c', END_COLOR = '#FFDE75', BOTH_COLOR = '#712258';
   // Filter records with valid periods
   const periodRecords = records.filter(r => {
     const start = r.startTime || r.acceptTime || '';
@@ -2245,13 +2300,25 @@ function openDetail(pageKey, id) {
     if (f.type === 'dynamic-list' || f.type === 'dynamic-products') {
       const items = r[f.key];
       if (items && items.length) {
-        const cols = f.columns || [];
         const isCommProd = (pageKey === 'design-commission' && f.key === 'products');
-        const extraHead = isCommProd ? '<th style="width:54px">完成</th>' : '';
+        const cols = (f.columns || []).filter(c => !(isCommProd && c.subkey === 'urgent'));
+
+        const extraHead = isCommProd ? '<th style="width:32px;white-space:normal">加急</th><th style="width:32px;white-space:normal">完成</th>' : '';
         const extraCell = isCommProd
-          ? (item, idx) => `<td class="comm-prod-done"><label><input type="checkbox" ${item.done ? 'checked' : ''} onclick="commissionToggleProductDone('${id}',${idx},this.checked)"> ${item.done ? '✓' : ''}</label></td>`
+          ? (item, idx) => `<td class="comm-prod-urgent"><label><input type="checkbox" ${item.urgent ? 'checked' : ''} onclick="commissionToggleProductUrgent('${id}',${idx},this.checked)"></label></td><td class="comm-prod-done"><label><input type="checkbox" ${item.done ? 'checked' : ''} onclick="commissionToggleProductDone('${id}',${idx},this.checked)"></label></td>`
           : null;
-        html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><div class="detail-value"><table class="detail-table"><tr>${cols.map(c => `<th>${esc(c.label)}</th>`).join('')}${extraHead}</tr>`;
+        const commColStyle = (c, forTh) => {
+          const ws = forTh ? '' : 'white-space:nowrap;';
+          if (c.subkey === '_seq') return ` style="width:33px;${ws}"`;
+          if (c.subkey === 'patternId') return ` style="width:33px;${ws}"`;
+          if (c.subkey === 'price') return ` style="width:33px;${ws}"`;
+          if (c.subkey === 'quantity') return ` style="width:33px;${ws}"`;
+          if (c.subkey === 'size') return ` style="width:64px;${ws}"`;
+          if (c.subkey === 'name' || c.subkey === 'sameModel') return ` style="min-width:60px;${ws}"`;
+          return '';
+        };
+        const commThLabel = c => c.subkey === 'patternId' ? '柄图<br>标识' : esc(c.label);
+        html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><div class="detail-value"><table class="detail-table"><tr>${cols.map(c => `<th${isCommProd ? commColStyle(c, true) : ''}>${isCommProd ? commThLabel(c) : esc(c.label)}</th>`).join('')}${extraHead}</tr>`;
         items.forEach((item, idx) => {
           html += `<tr class="${item.done ? 'prod-done' : ''}">`;
           cols.forEach(c => {
@@ -2291,6 +2358,15 @@ function commissionToggleProductDone(id, idx, checked, fromList = false) {
   if (fromList) renderListPage('design-commission');
   else openDetail('design-commission', id);
 }
+// 接稿排期：制品加急勾选（持久化到 commission.products[idx].urgent）
+function commissionToggleProductUrgent(id, idx, checked) {
+  const r = DB.getById('commissions', id);
+  if (!r || !r.products || !r.products[idx]) return;
+  r.products[idx].urgent = checked;
+  DB.update('commissions', id, r);
+  Toast.success(checked ? '已标记加急' : '已取消加急');
+  openDetail('design-commission', id);
+}
 
 /* ===== Delete ===== */
 async function onDelete(pageKey, id) {
@@ -2328,7 +2404,7 @@ function renderHome() {
     html += `<span class="platform-icon">${platformIcons[t.value] || '📝'}</span>`;
     html += `<span class="platform-name">${esc(t.label)}</span>`;
     html += '</span>';
-    html += `<span class="platform-status-row"><span class="platform-pending" onclick="homeSetPlatformStatusFilter('${t.value}', '待发布');event.stopPropagation();">待发布 ${pendingForT}</span><span class="platform-sep">·</span><span class="platform-published" onclick="homeSetPlatformStatusFilter('${t.value}', '已发布');event.stopPropagation();">已发布 ${publishedForT}</span></span>`;
+    html += `<span class="platform-status-row"><span class="platform-pending">待发布 ${pendingForT}</span><span class="platform-sep">·</span><span class="platform-published">已发布 ${publishedForT}</span></span>`;
     html += '</button>';
   });
   html += '</div>';
@@ -2364,7 +2440,7 @@ function renderHome() {
     // Toolbar
     html += '<div class="toolbar" style="margin-top:4px">';
     html += `<div class="search-box"><input type="text" placeholder="搜索标题..." value="${esc(ps.search)}" oninput="homeSearch(this.value)"><span class="search-icon">🔍</span></div>`;
-    html += `<input type="date" class="filter-select" value="${ps.dateFilter}" onchange="homeDateFilter(this.value)" style="padding:8px" placeholder="请选择日期" title="请选择日期">`;
+    html += `<input type="text" class="filter-select" value="${ps.dateFilter}" placeholder="请选择日期" title="请选择日期" onfocus="this.type='date';try{this.showPicker()}catch(e){}" onblur="if(!this.value)this.type='text'" onchange="homeDateFilter(this.value)">`;
     html += `<button class="filter-select" onclick="homeClearFilter()" style="cursor:pointer;border:1px solid var(--c-border)">清除筛选</button>`;
     html += '<div class="spacer"></div>';
     html += '<button class="btn btn-primary" onclick="openAddForm(\'home\')">+ 新增记录</button>';
@@ -5169,6 +5245,12 @@ function normalizeTime(v) {
     }
   }
   const digits = s.replace(/\D/g, '');
+  // 支持 24 / 2400 自动转为 24:00（表示午夜）
+  if (/^\d{1,2}$/.test(digits)) {
+    const h = parseInt(digits, 10);
+    if (h >= 0 && h <= 23) return String(h).padStart(2, '0') + ':00';
+    if (h === 24) return '24:00';
+  }
   if (/^\d{3,4}$/.test(digits)) {
     let h, m;
     if (digits.length === 3) {
@@ -5178,6 +5260,7 @@ function normalizeTime(v) {
       h = parseInt(digits.slice(0, 2), 10);
       m = parseInt(digits.slice(2), 10);
     }
+    if (h === 24 && m === 0) return '24:00';
     if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
       return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
     }
@@ -6014,49 +6097,67 @@ function renderDietRecordCard(date) {
 }
 function renderSleepWeekLineChart(days) {
   const all = DB.list('lifeRecords');
-  const wdLabels = ['周一','周二','周三','周四','周五','周六','周日']; // 周一→周日 正序（左到右）
-  const vals = days.map(d => all.filter(r => r.type === 'sleep' && r.date === d).reduce((s, r) => s + (Number(r.duration) || 0), 0));
-  const maxV = Math.max(10, ...vals);
-  const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-  const W = 680, H = 280, PAD = 34, TOP = 52, SIDE = 40;
-  const chartH = H - PAD - TOP;
-  const xOf = i => SIDE + (W - SIDE * 2) * i / 6;
-  const yOf = v => TOP + chartH * (1 - v / maxV);
-  const lineColor = '#F5A623';
-  const gradId = 'sleepAreaGrad';
-  const linePts = vals.map((v, i) => `${xOf(i).toFixed(1)} ${yOf(v).toFixed(1)}`).join(' ');
-  const areaPath = `M ${vals.map((v, i) => `${xOf(i).toFixed(1)} ${yOf(v).toFixed(1)}`).join(' L ')} L ${xOf(6).toFixed(1)} ${(H - PAD).toFixed(1)} L ${xOf(0).toFixed(1)} ${(H - PAD).toFixed(1)} Z`;
-  const gridLines = [0, 0.25, 0.5, 0.75, 1].map(p => {
-    const y = TOP + chartH * (1 - p);
-    return `<line x1="${SIDE}" y1="${y.toFixed(1)}" x2="${W - SIDE}" y2="${y.toFixed(1)}" stroke="var(--c-border-light)" stroke-width="0.6"/>`;
+  const wdLabels = ['周一','周二','周三','周四','周五','周六','周日']; // 周一→周日 正序（上到下）
+  // v373：夜晚时长(橙) / 午睡时长(黄) 分两条折线；清醒次数按夜晚记录统计
+  const nightVals = days.map(d => all.filter(r => r.type === 'sleep' && r.date === d && r.subtype === 'night').reduce((s, r) => s + (Number(r.duration) || 0), 0));
+  const napVals = days.map(d => all.filter(r => r.type === 'sleep' && r.date === d && r.subtype === 'noon').reduce((s, r) => s + (Number(r.duration) || 0), 0));
+  const wakeVals = days.map(d => all.filter(r => r.type === 'sleep' && r.date === d && r.subtype === 'night').reduce((s, r) => s + (Number(r.wakeCount) || 0), 0));
+  const maxV = 16; // 顶部刻度固定 2h~16h
+  const nAvg = nightVals.reduce((a, b) => a + b, 0) / nightVals.length;
+  const napAvg = napVals.reduce((a, b) => a + b, 0) / napVals.length;
+  const wakeAvg = wakeVals.reduce((a, b) => a + b, 0) / wakeVals.length;
+  // 横版睡眠折线图，日期列在左侧；SVG高度568使日期间距90px；顶部固定16h刻度；顶部边距加大避免数据标签被截断
+  const W = 720, H = 568;
+  const LM = 80, RM = 40, TM = 46, BM = 4;
+  const CW = W - LM - RM, CH = H - TM - BM;
+  const xOf = v => LM + (maxV > 0 ? v / maxV * CW : 0);
+  const yOf = i => TM + CH * i / 6;
+  const nightColor = '#ff9a3c'; // 接稿排期「开稿」橙色
+  const napColor = '#FFDE75'; // 接稿排期「截稿」黄色（更亮）
+  const mkGrad = (id, color) => `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${color}" stop-opacity="0.05"/><stop offset="100%" stop-color="${color}" stop-opacity="0.30"/></linearGradient>`;
+  const linePath = vals => vals.map((v, i) => `${xOf(v).toFixed(1)} ${yOf(i).toFixed(1)}`).join(' ');
+  const areaPath = vals => `M ${LM} ${yOf(0)} L ${vals.map((v, i) => `${xOf(v).toFixed(1)} ${yOf(i).toFixed(1)}`).join(' L ')} L ${LM} ${yOf(6)} Z`;
+  const gradNight = 'sleepNightGrad' + Math.random().toString(36).slice(2, 7);
+  const gradNap = 'sleepNapGrad' + Math.random().toString(36).slice(2, 7);
+  const gridHours = [];
+  for (let h = 2; h <= maxV; h += 2) gridHours.push(h);
+  const gridLines = gridHours.map(h => {
+    const x = xOf(h);
+    return `<line x1="${x.toFixed(1)}" y1="${TM}" x2="${x.toFixed(1)}" y2="${TM + CH}" stroke="var(--c-border-light)" stroke-width="0.8"/>` +
+           `<text x="${x.toFixed(1)}" y="${TM - 55}" text-anchor="middle" font-size="20" font-weight="700" fill="var(--c-text-muted)">${h}h</text>`;
   }).join('');
-  const hourLines = [4, 6, 8, 10].map(h => {
-    const y = yOf(h);
-    return `<line x1="${SIDE}" y1="${y.toFixed(1)}" x2="${W - SIDE}" y2="${y.toFixed(1)}" stroke="var(--c-border)" stroke-width="1"/><text x="${SIDE - 6}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="var(--c-text-muted)">${h}h</text>`;
+  const dayLabels = nightVals.map((v, i) => {
+    const y = yOf(i);
+    return `<text x="${LM - 14}" y="${(y + 9).toFixed(1)}" text-anchor="end" font-size="24" font-weight="600" fill="var(--c-text)">${wdLabels[i]}</text>`;
   }).join('');
-  const points = vals.map((v, i) => {
-    const x = xOf(i), y = yOf(v);
+  const seriesPoints = (vals, color) => vals.map((v, i) => {
+    const x = xOf(v), y = yOf(i);
     const label = formatSleepDuration(v);
-    return `<g class="lr-hsc-point"><text x="${x}" y="${(y - 18).toFixed(1)}" text-anchor="middle" font-size="16" font-weight="700" fill="${lineColor}">${label}</text><circle cx="${x}" cy="${y}" r="5.5" fill="${lineColor}" stroke="#fff" stroke-width="2"/></g>`;
+    const anchor = (v / maxV) > 0.78 ? 'end' : 'start';
+    const lx = anchor === 'end' ? x - 12 : x + 12;
+    return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${(y - 22).toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${label}</text><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/></g>`;
   }).join('');
   return `<div class="lr-history-stat-card">
-    <div class="lr-hsc-row"><span class="lr-hsc-sub lr-hsc-avg">日均 ${formatSleepDuration(avg)}</span></div>
+    <div class="lr-hsc-row">
+      <span class="lr-hsc-avgs" style="margin-left:0">
+        <span class="lr-hsc-avg night">夜晚日均<b>${formatSleepDuration(nAvg)}</b></span>
+        <span class="lr-hsc-avg wake">日均清醒<b>${wakeAvg.toFixed(1)}次</b></span>
+        <span class="lr-hsc-avg nap">午间日均<b>${formatSleepDuration(napAvg)}</b></span>
+      </span>
+    </div>
     <div class="lr-hsc-chart-body">
       <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
-        <defs>
-          <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="${lineColor}" stop-opacity="0.32"/>
-            <stop offset="100%" stop-color="${lineColor}" stop-opacity="0.03"/>
-          </linearGradient>
-        </defs>
+        <defs>${mkGrad(gradNight, nightColor)}${mkGrad(gradNap, napColor)}</defs>
         ${gridLines}
-        ${hourLines}
-        <path d="${areaPath}" fill="url(#${gradId})" stroke="none"/>
-        <polyline fill="none" stroke="${lineColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="${linePts}"/>
-        ${points}
+        <path d="${areaPath(napVals)}" fill="url(#${gradNap})" stroke="none"/>
+        <path d="${areaPath(nightVals)}" fill="url(#${gradNight})" stroke="none"/>
+        <polyline fill="none" stroke="${napColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${linePath(napVals)}"/>
+        <polyline fill="none" stroke="${nightColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${linePath(nightVals)}"/>
+        ${dayLabels}
+        ${seriesPoints(napVals, napColor)}
+        ${seriesPoints(nightVals, nightColor)}
       </svg>
     </div>
-    <div class="lr-hsc-x">${days.map((d, i) => `<span>${wdLabels[i] || d.slice(5)}</span>`).join('')}</div>
   </div>`;
 }
 function renderDietWeekStats(days) {
@@ -6122,7 +6223,7 @@ function renderLifeRecordHistory(typeKey) {
 }
 function renderLifeRecord() {
   const body = $('#mainBody');
-  if (!pageState['life-record']) pageState['life-record'] = { date: todayStr(), formType: null, editId: null, values: {}, view: 'home', weekOffset: 0, subtype: null };
+  if (!pageState['life-record']) pageState['life-record'] = { date: todayStr(), formType: null, editId: null, values: {}, view: 'home', weekOffset: 0, subtype: null, historyAddDate: null };
   const ps = pageState['life-record'];
   const date = ps.date;
   const all = DB.list('lifeRecords');
@@ -6141,29 +6242,30 @@ function renderLifeRecord() {
   html += '</div>';
   body.innerHTML = html;
 }
-function lifeRecordSetDate(v) { const ps = pageState['life-record']; ps.date = v; ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; renderLifeRecord(); }
+function lifeRecordSetDate(v) { const ps = pageState['life-record']; ps.date = v; ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; ps.historyAddDate = null; renderLifeRecord(); }
 function lifeRecordGoDate(n) { const ps = pageState['life-record']; ps.date = addDaysStr(ps.date, n); if (ps.date > todayStr()) ps.date = todayStr(); ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; renderLifeRecord(); }
 function lifeRecordToggleView(view) {
   const ps = pageState['life-record'];
   if (ps.view === view) view = 'home';
   ps.view = view;
-  ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null;
+  ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; ps.historyAddDate = null;
   if (view === 'home') ps.weekOffset = 0;
   renderLifeRecord();
 }
 function lifeRecordHistoryPrevWeek() { pageState['life-record'].weekOffset--; renderLifeRecord(); }
 function lifeRecordHistoryNextWeek() { if (pageState['life-record'].weekOffset >= 0) return; pageState['life-record'].weekOffset++; renderLifeRecord(); }
 function lifeRecordHistoryCellClick(typeKey, subtypeKey, dateStr) {
-  lifeRecordSetDate(dateStr);
-  lifeRecordToggleView('home');
-  setTimeout(() => lifeRecOpenForm(typeKey, subtypeKey), 50);
-}
-function lifeRecOpenForm(typeKey, subtypeKey) {
   const ps = pageState['life-record'];
+  ps.historyAddDate = dateStr;
   ps.formType = typeKey; ps.subtype = subtypeKey; ps.editId = null; ps.values = {};
   openLifeRecordModal(typeKey, subtypeKey, null);
 }
-function lifeRecCancel() { const ps = pageState['life-record']; ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; closeModal(); }
+function lifeRecOpenForm(typeKey, subtypeKey) {
+  const ps = pageState['life-record'];
+  ps.formType = typeKey; ps.subtype = subtypeKey; ps.editId = null; ps.values = {}; ps.historyAddDate = null;
+  openLifeRecordModal(typeKey, subtypeKey, null);
+}
+function lifeRecCancel() { const ps = pageState['life-record']; ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; ps.historyAddDate = null; closeModal(); }
 function lifeRecEdit(typeKey, id) {
   const ps = pageState['life-record'];
   const rec = DB.getById('lifeRecords', id);
@@ -6171,6 +6273,7 @@ function lifeRecEdit(typeKey, id) {
   ps.subtype = rec ? rec.subtype : null;
   ps.editId = id;
   ps.values = rec ? { ...rec } : {};
+  ps.historyAddDate = null;
   openLifeRecordModal(ps.formType, ps.subtype, id);
 }
 function lifeRecSave(typeKey) {
@@ -6205,13 +6308,14 @@ function lifeRecSave(typeKey) {
       values.flavors = flavorGroup ? Array.from(flavorGroup.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value) : [];
     }
   }
-  const rec = { type: typeKey, date: ps.date, week: weekKeyOf(ps.date), createdAt: new Date().toISOString(), ...values };
+  const saveDate = ps.historyAddDate || ps.date;
+  const rec = { type: typeKey, date: saveDate, week: weekKeyOf(saveDate), createdAt: new Date().toISOString(), ...values };
   if (ps.editId) { DB.update('lifeRecords', ps.editId, rec); Toast.success('已保存修改'); }
   else { DB.add('lifeRecords', rec); Toast.success('已添加记录'); }
-  if (typeKey === 'diet' && subtypeKey === 'snack') syncSnackCheckin(ps.date);
-  ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null;
+  if (typeKey === 'diet' && subtypeKey === 'snack') syncSnackCheckin(saveDate);
+  ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; ps.historyAddDate = null;
   closeModal();
-  renderLifeRecord();
+  setTimeout(renderLifeRecord, 0);
 }
 function syncSnackCheckin(date) {
   const def = getCheckinDef('snackcheck');
@@ -6397,6 +6501,7 @@ function init() {
   initEvents();
   const lastState = DB.get('ui_state', {});
   navigate(lastState.lastPage || 'home');
+  initSwipeBack();
   Sync.startAuto();
 }
 document.addEventListener('DOMContentLoaded', init);
