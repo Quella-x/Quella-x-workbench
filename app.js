@@ -516,7 +516,13 @@ function buildFormField(f, data, moduleKey, wrap) {
     }
     inner = `${labelHTML}<input type="${type}" class="form-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(placeholder)}">${belowHint}`;
   }
-  return wrap ? `<div class="form-row">${inner}</div>` : inner;
+  const out = wrap ? `<div class="form-row">${inner}</div>` : inner;
+  if (f.visibleWhen) {
+    const cw = f.visibleWhen;
+    const initHidden = String(data[cw.key] ?? '') !== String(cw.value);
+    return `<div class="cond-field" data-cond-key="${esc(cw.key)}" data-cond-value="${esc(cw.value)}"${initHidden ? ' style="display:none"' : ''}>${out}</div>`;
+  }
+  return out;
 }
 function buildForm(fields, data = {}, moduleKey = '') {
   let html = '';
@@ -1432,10 +1438,10 @@ MODULES['design-commission'] = {
 /* ===== 接稿详情：四大分类约稿单（统一存储 commissionDetails，独立字段，支持切换标签页） ===== */
 // 通用展示权限四选项
 const COMM_DETAIL_DISPLAY_OPTS = [
-  { value: '可打码展示', label: '可打码展示' },
-  { value: '不愿公开展示', label: '不愿公开展示' },
-  { value: '延期1~3月展示', label: '延期1~3月展示' },
-  { value: '自定义日期展示', label: '自定义日期展示' },
+  { value: '可以展示', label: '可以展示' },
+  { value: '不愿意展示', label: '不愿意展示' },
+  { value: '延期1-3个月展示', label: '延期1-3个月展示' },
+  { value: '解封日期后可以展示', label: '解封日期后可以展示' },
 ];
 // 通用交付方式
 const COMM_DETAIL_DELIVERY_OPTS = [
@@ -1459,19 +1465,35 @@ const COMM_DETAIL_SAME_MODEL_OPTS = [
 
 // 通用「展示权限」字段
 function commDetailDisplayField() {
-  return { key: 'displayPermission', label: '是否可以展示', type: 'combobox', default: '可打码展示', options: COMM_DETAIL_DISPLAY_OPTS };
+  return { key: 'displayPermission', label: '是否可以展示', type: 'combobox', default: '可以展示', options: COMM_DETAIL_DISPLAY_OPTS };
 }
 // 通用「其他/备注」字段
 function commDetailOtherField() {
   return { key: 'other', label: '备注', type: 'textarea', placeholder: '其他补充需求...' };
 }
-// 通用「固定接收邮箱」字段（预填邮箱，只读展示）
+// 通用「接收邮箱」字段（预填邮箱，只读展示）
 function commDetailFixedEmailField() {
-  return { key: 'fixedEmail', label: '固定接收邮箱', type: 'readonly', default: '1512558554@qq.com / xxQuella@outlook.com' };
+  return { key: 'fixedEmail', label: '接收邮箱', type: 'readonly', default: '1512558554@qq.com / xxQuella@outlook.com' };
 }
-// 通用「收件邮箱地址」字段（选邮箱时填写）
+// 通用「收件邮箱」字段（选「指定邮箱」交付方式时显示）
 function commDetailEmailAddrField() {
-  return { key: 'emailAddr', label: '收件邮箱地址', type: 'text', placeholder: '选「指定邮箱」时填写' };
+  return { key: 'emailAddr', label: '收件邮箱', type: 'text', visibleWhen: { key: 'delivery', value: '指定邮箱' } };
+}
+// 通用「解封日期」字段（选「解封日期后可以展示」时显示），置于表单最后
+function commDetailUnsealDateField() {
+  return { key: 'unsealDate', label: '解封日期', type: 'date', visibleWhen: { key: 'displayPermission', value: '解封日期后可以展示' } };
+}
+// 平台昵称填完自动同步到单主（单主为空时填充），覆盖所有填写/导入方式
+function cdSyncPlatformNick(data) {
+  if (data && !data.clientInfo && data.platformNick) data.clientInfo = data.platformNick;
+}
+// 接稿详情表单外壳：顶部/底部提示文字 + 整体左移3px（离小标题更近）
+function cdFormShell(html) {
+  return `<div class="cd-form">`
+    + `<div class="cd-form-top"><div class="cd-form-topline">请仔细填写</div><div class="cd-form-topline cd-form-tip">帮助我更好了解您的需求</div></div>`
+    + html
+    + `<div class="cd-form-bottom"><div class="cd-form-botline">人物、参考图、色卡、模板等图片文件可直发/网盘/邮箱</div><div class="cd-form-botline cd-form-warn">请确认信息无误后再提交 尤其注意尺寸&颜色格式⚠️</div></div>`
+    + `</div>`;
 }
 
 // 板块1：土味约稿单
@@ -1491,11 +1513,12 @@ MODULES['design-commission-detail-twy'] = {
     { key: 'color', label: '颜色', type: 'text', placeholder: '默认跟底图颜色走' },
     commDetailOtherField(),
     { section: '交付规范' },
-    { key: 'colorFormat', label: '颜色格式', type: 'combobox', default: 'RGB', options: COMM_DETAIL_COLOR_FORMAT_OPTS },
+    { key: 'colorFormat', label: '颜色格式', type: 'combobox', default: 'RGB', options: COMM_DETAIL_COLOR_FORMAT_OPTS, hintInline: true, hint: '部分小程序不支持CMYK格式' },
     { key: 'delivery', label: '交付方式', type: 'combobox', default: '百度网盘', options: COMM_DETAIL_DELIVERY_OPTS },
     commDetailEmailAddrField(),
     commDetailDisplayField(),
     commDetailFixedEmailField(),
+    commDetailUnsealDateField(),
   ],
   listFields: [
     { label: '类型', key: 'type' },
@@ -1523,11 +1546,12 @@ MODULES['design-commission-detail-fm'] = {
     { key: 'baseImg', label: '底图', type: 'combobox', default: '自带', options: [{ value: '自带', label: '自带' }, { value: '有人', label: '有人（需说明需求/颜色/男女）' }, { value: '无人', label: '无人（需说明需求/颜色/男女）' }] },
     commDetailOtherField(),
     { section: '交付规范' },
-    { key: 'colorFormat', label: '颜色格式', type: 'combobox', default: 'RGB', options: COMM_DETAIL_COLOR_FORMAT_OPTS },
+    { key: 'colorFormat', label: '颜色格式', type: 'combobox', default: 'RGB', options: COMM_DETAIL_COLOR_FORMAT_OPTS, hintInline: true, hint: '部分小程序不支持CMYK格式' },
     { key: 'delivery', label: '交付方式', type: 'combobox', default: '直发', options: COMM_DETAIL_DELIVERY_OPTS },
     commDetailEmailAddrField(),
     commDetailDisplayField(),
     commDetailFixedEmailField(),
+    commDetailUnsealDateField(),
   ],
   listFields: [
     { label: '类型', key: 'type' },
@@ -1546,8 +1570,7 @@ MODULES['design-commission-detail-fq'] = {
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
     { key: 'usageType', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
-    { key: 'product', label: '制品', type: 'text', placeholder: '制品名称+工艺；出血默认3mm，特殊请备注', row: 'prodSize' },
-    { key: 'size', label: '尺寸', type: 'text', row: 'prodSize' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息<span class="form-label-hint">特殊出血请备注 可直接给模板</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><input type="text" class="form-input" data-key="craft" placeholder="工艺"></div><div class="style-color-col"><span class="style-color-col-label">尺寸</span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
     { key: 'theme', label: '企划/主题名称', type: 'text' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">可以给参考图/色卡 请把主色写最前面</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
@@ -1555,11 +1578,12 @@ MODULES['design-commission-detail-fq'] = {
     { key: 'copyText', label: '文案', type: 'textarea' },
     commDetailOtherField(),
     { section: '交付规范' },
-    { key: 'colorFormat', label: '颜色格式', type: 'combobox', default: 'RGB', options: COMM_DETAIL_COLOR_FORMAT_OPTS },
+    { key: 'colorFormat', label: '颜色格式', type: 'combobox', default: 'RGB', options: COMM_DETAIL_COLOR_FORMAT_OPTS, hintInline: true, hint: '部分小程序不支持CMYK格式' },
     { key: 'delivery', label: '交付方式', type: 'combobox', default: '百度网盘', options: COMM_DETAIL_DELIVERY_OPTS },
     commDetailEmailAddrField(),
     commDetailDisplayField(),
     commDetailFixedEmailField(),
+    commDetailUnsealDateField(),
   ],
   listFields: [
     { label: '用途', key: 'usageType' },
@@ -1578,8 +1602,7 @@ MODULES['design-commission-detail-ec'] = {
     { key: 'platformNick', label: '您的平台昵称', type: 'text', placeholder: '客户平台 ID' },
     { section: '制品信息' },
     { key: 'usageType', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
-    { key: 'product', label: '制品', type: 'text', placeholder: '制品名称+工艺；出血默认3mm，特殊请备注', row: 'prodSize' },
-    { key: 'size', label: '尺寸', type: 'text', row: 'prodSize' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息<span class="form-label-hint">特殊出血请备注 可直接给模板</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><input type="text" class="form-input" data-key="craft" placeholder="工艺"></div><div class="style-color-col"><span class="style-color-col-label">尺寸</span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
     { key: 'ipName', label: 'IP', type: 'text' },
     { key: 'theme', label: '企划/主题名称', type: 'text' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div></div>' },
@@ -1588,11 +1611,12 @@ MODULES['design-commission-detail-ec'] = {
     { key: 'copyText', label: '文案', type: 'textarea' },
     commDetailOtherField(),
     { section: '交付规范' },
-    { key: 'colorFormat', label: '颜色格式', type: 'combobox', default: 'RGB', options: COMM_DETAIL_COLOR_FORMAT_OPTS },
+    { key: 'colorFormat', label: '颜色格式', type: 'combobox', default: 'RGB', options: COMM_DETAIL_COLOR_FORMAT_OPTS, hintInline: true, hint: '部分小程序不支持CMYK格式' },
     { key: 'delivery', label: '交付方式', type: 'combobox', default: '百度网盘', options: COMM_DETAIL_DELIVERY_OPTS },
     commDetailEmailAddrField(),
     commDetailDisplayField(),
     commDetailFixedEmailField(),
+    commDetailUnsealDateField(),
   ],
   listFields: [
     { label: '用途', key: 'usageType' },
@@ -2723,7 +2747,7 @@ function openAddForm(pageKey) {
   // Apply defaults from field config
   fields.forEach(f => { if (f.default !== undefined) defaultData[f.key] = f.default; });
   const bodyHTML = buildForm(fields, defaultData, pageKey);
-  openModal('新增记录', bodyHTML, [
+  openModal('新增记录', pageKey.indexOf('design-commission-detail') === 0 ? cdFormShell(bodyHTML) : bodyHTML, [
     { label: '取消', class: 'btn-ghost', action: closeModal },
     { label: '保存', class: 'btn-primary', action: () => saveForm(pageKey, mod, null) },
   ]);
@@ -2736,7 +2760,7 @@ function openEditForm(pageKey, id) {
   if (!record) return Toast.error('记录不存在');
   let fields = prepareFields(pageKey, mod.fields);
   const bodyHTML = buildForm(fields, record, pageKey);
-  openModal('编辑记录', bodyHTML, [
+  openModal('编辑记录', pageKey.indexOf('design-commission-detail') === 0 ? cdFormShell(bodyHTML) : bodyHTML, [
     { label: '取消', class: 'btn-ghost', action: closeModal },
     { label: '保存', class: 'btn-primary', action: () => saveForm(pageKey, mod, id) },
   ]);
@@ -2772,13 +2796,27 @@ function setupFormInteractions(pageKey) {
   }
   // 约稿单：平台昵称填完自动同步到单主（单主为空时填充）
   if (pageKey.indexOf('design-commission-detail') === 0) {
+    const modalBody = $('#modalBody');
     const pn = $('[data-key="platformNick"]');
     const ci = $('[data-key="clientInfo"]');
+    // 初始同步（导入/回填场景：平台昵称已填充但单主为空）
+    if (pn && ci && pn.value.trim() && !ci.value.trim()) ci.value = pn.value;
     if (pn && ci) {
       pn.addEventListener('input', () => {
         if (!ci.value.trim()) ci.value = pn.value;
       });
     }
+    // 条件字段联动（交付方式=指定邮箱 → 收件邮箱；展示权限=解封日期后可以展示 → 解封日期）
+    const applyCond = () => {
+      if (!modalBody) return;
+      modalBody.querySelectorAll('.cond-field').forEach(w => {
+        const ctrl = modalBody.querySelector(`[data-key="${w.dataset.condKey}"]`);
+        const show = ctrl && ctrl.value === w.dataset.condValue;
+        w.style.display = show ? '' : 'none';
+      });
+    };
+    if (modalBody) modalBody.addEventListener('input', applyCond);
+    setTimeout(applyCond, 0);
   }
 }
 
@@ -2799,6 +2837,7 @@ function saveForm(pageKey, mod, id) {
   }
   if (pageKey === 'design-inspiration' && data.category) saveCustomCategory(data.category);
   if (pageKey === 'groupbuy-samples' && data.category) saveCustomSampleCategory(data.category);
+  if (pageKey.indexOf('design-commission-detail') === 0) cdSyncPlatformNick(data);
   if (id) { DB.update(mod.store, id, data); Toast.success('记录已更新'); }
   else { DB.add(mod.store, data); Toast.success('记录已添加'); }
   closeModal();
@@ -7857,16 +7896,46 @@ function renderCdFullRecord(r) {
       h += cdRecRow('截稿日期', c.deadline || '—');
       h += `</div>`;
     });
-  } else if (r.clientInfo) {
-    h += `<div class="cd-link-empty">未找到单主「${esc(r.clientInfo)}」的排期订单。<button class="btn btn-outline btn-sm" onclick="cdPushToCommission('${r.id}')">一键推送至接稿排期</button></div>`;
   } else {
-    h += '<div class="cd-link-empty">未填写单主姓名，无法与接稿排期联动。可在编辑中补充「单主」。</div>';
+    // 关联接稿排期项无信息时显示空白
+    h += '';
   }
   return h;
 }
 function cdRecRow(k, v, pre) {
   if (pre) return `<div class="cd-rec-row"><span class="cd-rec-k">${esc(k)}</span><div class="cd-rec-v"><div class="cd-rec-pre">${esc(v)}</div></div></div>`;
   return `<div class="cd-rec-row"><span class="cd-rec-k">${esc(k)}</span><span class="cd-rec-v">${esc(v)}</span></div>`;
+}
+// 渲染 custom 大框（重要信息/风格颜色/元素/制品信息）内部字段到详情视图
+function cdRenderCustomFieldRows(f, r, mode) {
+  if (!f.html) return '';
+  let doc;
+  try { doc = new DOMParser().parseFromString(f.html, 'text/html'); } catch (e) { return ''; }
+  const boxLabelEl = doc.querySelector('.form-label');
+  const boxLabel = boxLabelEl ? (boxLabelEl.childNodes[0] ? boxLabelEl.childNodes[0].textContent.trim() : '') : '';
+  const cols = doc.querySelectorAll('.style-color-col');
+  const rows = [];
+  cols.forEach(col => {
+    const lblEl = col.querySelector('.style-color-col-label');
+    const inp = col.querySelector('[data-key]');
+    if (!lblEl || !inp) return;
+    const key = inp.getAttribute('data-key');
+    const v = r[key];
+    if (v == null || String(v).trim() === '') return;
+    let outLabel = lblEl.textContent.trim();
+    if (key === 'elementsRequired') outLabel = '元素·必用';
+    else if (key === 'elementsOptional') outLabel = '元素·可用';
+    else if (key === 'elementsAvoid') outLabel = '元素·避雷';
+    rows.push([outLabel, String(v)]);
+  });
+  if (!rows.length) return '';
+  let h = '';
+  if (boxLabel) h += mode === 'rec' ? `<div class="cd-rec-section">${esc(boxLabel)}</div>` : `<div class="form-section-title">${esc(boxLabel)}</div>`;
+  rows.forEach(([lbl, v]) => {
+    if (mode === 'rec') h += cdRecRow(lbl, v);
+    else h += `<div class="detail-row"><span class="detail-label">${esc(lbl)}</span><span class="detail-value">${esc(v)}</span></div>`;
+  });
+  return h;
 }
 // 将追加制品归入「制品信息」区块（不再单独成块）：每个追加制品只展示其补充字段
 function renderCdExtraProductsRec(r) {
@@ -8194,6 +8263,7 @@ function openCdEditForm(id) {
 function saveCdForm(pageKey, id) {
   const mod = MODULES[pageKey];
   const data = readCdLocalForm($('#modalBody'), pageKey);
+  cdSyncPlatformNick(data);
   data.category = mod.category;
   data._linkClient = (data.clientInfo || '').trim();
   if (id) { DB.update('commissionDetails', id, data); Toast.success('已更新'); }
@@ -8218,6 +8288,10 @@ function openCdDetail(id) {
     if (f.type === 'readonly') {
       const v = r[f.key] ?? f.default ?? '';
       html += `<div class="detail-row"><span class="detail-label">${esc(f.label)}</span><span class="detail-value">${esc(String(v))}</span></div>`;
+      return;
+    }
+    if (f.type === 'custom') {
+      html += cdRenderCustomFieldRows(f, r, 'detail');
       return;
     }
     const label = getFieldLabel(pageKey, f.key, f.label);
@@ -8255,10 +8329,9 @@ function openCdDetail(id) {
       </div>`;
     });
     html += '</div>';
-  } else if (r.clientInfo) {
-    html += `<div class="cd-link-empty">未找到单主「${esc(r.clientInfo)}」的排期订单。<button class="btn btn-outline btn-sm" onclick="cdPushToCommission('${r.id}')">一键推送至接稿排期</button></div>`;
   } else {
-    html += '<div class="cd-link-empty">未填写单主姓名，无法与接稿排期联动。可在编辑中补充「单主」。</div>';
+    // 关联接稿排期项无信息时显示空白
+    html += '';
   }
   html += '</div>';
   openModal('约稿单详情', html, [
@@ -8453,7 +8526,7 @@ function runCdChatParse() {
     if (opt) data.delivery = opt.value;
   }
   if (!hit) { Toast.error('未能从聊天记录中提取到有效字段，请检查格式（每行用「标签：内容」）'); return; }
-  const bodyHTML = buildCdLocalForm(catKey, data);
+  const bodyHTML = cdFormShell(buildCdLocalForm(catKey, data));
   openModal('新建' + mod.category + '约稿单（已解析）', bodyHTML, [
     { label: '取消', class: 'btn-ghost', action: closeModal },
     { label: '保存', class: 'btn-primary', action: () => saveCdForm(catKey, null) },
@@ -8489,6 +8562,7 @@ function runCdJsonImport() {
     if (item.category === '二次创作') item.category = '二次';
     // 仅允许已存在的分类
     if (!COMM_DETAIL_CATS.some(c => c.cat === item.category)) item.category = fallbackCat;
+    cdSyncPlatformNick(item);
     DB.add('commissionDetails', item);
     ok++;
   });
@@ -8619,6 +8693,7 @@ function saveCdClientForm(pageKey, standalone) {
     data.extraProducts = readCdExtraProducts(container, pageKey);
   }
   data.category = mod.category;
+  cdSyncPlatformNick(data);
   DB.add('commissionDetails', data);
   if (standalone) {
     const body = $('#mainBody');
