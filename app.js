@@ -1403,9 +1403,6 @@ MODULES['design-commission'] = {
     { label: '稿件进度', key: 'progress', tag: true },
     { label: '稿件用途', key: 'usageType' },
     { label: '制品', key: '_firstProduct' },
-    { label: '开稿日期', key: 'startTime', date: true },
-    { label: '截稿日期', key: 'deadline', date: true },
-    { label: '报价金额', key: 'quoteAmount' },
     { label: '支付状态', key: 'paymentStatus', tag: true },
   ],
   stats: (records) => {
