@@ -277,7 +277,7 @@ ul,li{list-style:none}
 /* v517：对齐样式模块标签不再显示冒号；默认流式布局仍保留冒号 */
 .record-card-body:not(.comm-list-style) .field-label::after{content:':'}
 /* v515: 九模块列表字段对齐（与接稿排期左栏一致：64px 右对齐标签 + 1fr 值列），仅内部字段样式，单双列保持原样 */
-.record-card-body.comm-list-style{gap:2px 0;margin-left:0}
+.record-card-body.comm-list-style{gap:2px 0;margin-left:1px;margin-top:1px}
 .record-card-body.comm-list-style .field:not(.comm-products-field){display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:baseline;margin:0}
 .record-card-body.comm-list-style .field:not(.comm-products-field) .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;white-space:nowrap;line-height:1.4}
 .record-card-body.comm-list-style .field:not(.comm-products-field) .field-value{font-size:13px;color:var(--c-text);line-height:1.4;min-width:0;word-break:break-word}
@@ -2402,14 +2402,14 @@ ul,li{list-style:none}
 .comm-dual .record-card{height:100%;box-sizing:border-box;display:flex;flex-direction:column;min-width:0;padding-top:13px}
 .comm-dual .record-card-body{flex:1;min-width:0;padding-top:8px}
 /* v465：左栏卡片头部——标题、编辑/删除按钮在一条水平线上(标题左/按钮右)、分割线保留，整体往上移 2px，分隔线下边距 -4px */
-.comm-dual .record-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:-6px;margin-bottom:2px;border-bottom:1px solid var(--c-border-light);padding-bottom:6px}
+.comm-dual .record-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:-7px;margin-bottom:2px;border-bottom:1px solid var(--c-border-light);padding-bottom:6px}
 /* v456：右栏详情模块标题分割线左右留空，与左侧卡片一致 */
 .comm-detail-card .cdc-header{margin:0 16px;padding:12px 0 8px;border-bottom:1px solid var(--c-border-light);font-size:13px;color:var(--c-text);font-weight:600;display:flex;justify-content:flex-start;align-items:center;gap:6px}
 .comm-dual .record-card-body .field:not(.comm-products-field){display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:baseline;margin:0}
 .comm-dual .record-card-body .field:not(.comm-products-field) .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;white-space:nowrap;line-height:1.4}
 .comm-dual .record-card-body .field:not(.comm-products-field) .field-value{font-size:13px;color:var(--c-text);line-height:1.4;min-width:0;word-break:break-word}
 .comm-dual .record-card-body .field:not(.comm-products-field) .field-tags{display:flex;flex-wrap:wrap;gap:4px}
-.comm-dual .record-card-body{gap:2px 0;margin-left:0}
+.comm-dual .record-card-body{gap:2px 0;margin-left:1px;margin-top:1px}
 .comm-dual .record-card-body .comm-product-checklist{flex-direction:row;flex-wrap:wrap;gap:4px;align-items:center}
 .comm-dual .record-card-body .comm-products-field{display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:baseline;margin:0}
 .comm-dual .record-card-body .comm-products-field .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;padding-right:8px;white-space:nowrap;line-height:1.4}
@@ -2558,7 +2558,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=523"></script>
+  <script src="app.js?v=524"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
