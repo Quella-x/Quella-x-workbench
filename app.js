@@ -2382,7 +2382,7 @@ function renderCommDetailCard(r, isSelected) {
       <div class="cdc-track" id="cdc_${esc(d.id)}">${slidesHtml}</div>
     </div>
     ${dotsHtml}
-    <div class="comm-detail-actions"><button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation();cdJumpToDetail('${esc(d.id)}')">查看完整详情</button></div>
+    <div class="comm-detail-actions"><button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation();cdJumpToDetail('${esc(d.id)}')">${cat ? esc(cat) + ' | ' : ''}查看完整详情</button></div>
   </div>`;
 }
 // 接稿详情卡片：单条制品（柄图）字段；base 为初始制品，用于同柄图追加制品同步姓名/角色名、风格、颜色
@@ -2417,7 +2417,8 @@ function cdcGoTo(id, i) {
   if (!slide) return;
   const delta = slide.getBoundingClientRect().left - track.getBoundingClientRect().left + track.scrollLeft;
   track.scrollTo({ left: delta, behavior: 'smooth' });
-  const dots = track.parentElement ? track.parentElement.querySelectorAll('.cdc-dot') : [];
+  const card = track.closest('.comm-detail-card');
+  const dots = card ? card.querySelectorAll('.cdc-dot') : [];
   dots.forEach(dot => dot.classList.remove('active'));
   if (dots[i]) dots[i].classList.add('active');
   cdcUpdateHeader(id, i);
@@ -2444,7 +2445,8 @@ document.addEventListener('scroll', (e) => {
     const slides = t.querySelectorAll('.cdc-slide');
     let idx = 0, min = Infinity;
     slides.forEach((s, i) => { const dist = Math.abs(s.getBoundingClientRect().left - tLeft); if (dist < min) { min = dist; idx = i; } });
-    const dots = t.parentElement ? t.parentElement.querySelectorAll('.cdc-dot') : [];
+    const card = t.closest('.comm-detail-card');
+    const dots = card ? card.querySelectorAll('.cdc-dot') : [];
     dots.forEach(dot => dot.classList.remove('active'));
     if (dots[idx]) dots[idx].classList.add('active');
     const did = t.id.replace('cdc_', '');
@@ -2517,7 +2519,7 @@ function renderCommDetailPreview(selectedId) {
     html += `<div class="comm-preview-row"><span class="comm-preview-k">${esc(k)}</span><span class="comm-preview-v">${esc(String(v))}</span></div>`;
   });
   html += '</div>';
-  html += `<div class="comm-preview-actions"><button class="btn btn-primary btn-sm comm-preview-full" onclick="cdJumpToDetail('${d.id}')">查看完整详情</button></div>`;
+  html += `<div class="comm-preview-actions"><button class="btn btn-primary btn-sm comm-preview-full" onclick="cdJumpToDetail('${d.id}')">${cat ? esc(cat) + ' | ' : ''}查看完整详情</button></div>`;
   html += '</div>';
   return html;
 }

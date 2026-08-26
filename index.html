@@ -278,12 +278,12 @@ ul,li{list-style:none}
 .record-card-body:not(.comm-list-style) .field-label::after{content:':'}
 /* v515: 九模块列表字段对齐（与接稿排期左栏一致：64px 右对齐标签 + 1fr 值列），仅内部字段样式，单双列保持原样 */
 .record-card-body.comm-list-style{gap:2px 0;margin-left:-2px}
-.record-card-body.comm-list-style .field:not(.comm-products-field){display:grid;grid-template-columns:64px 1fr;gap:2px 6px;align-items:baseline;margin:0}
-.record-card-body.comm-list-style .field:not(.comm-products-field) .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;padding-right:8px;white-space:nowrap;line-height:1.4}
+.record-card-body.comm-list-style .field:not(.comm-products-field){display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:baseline;margin:0}
+.record-card-body.comm-list-style .field:not(.comm-products-field) .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;white-space:nowrap;line-height:1.4}
 .record-card-body.comm-list-style .field:not(.comm-products-field) .field-value{font-size:13px;color:var(--c-text);line-height:1.4;min-width:0;word-break:break-word}
 .record-card-body.comm-list-style .field:not(.comm-products-field) .field-tags{display:flex;flex-wrap:wrap;gap:4px}
 .record-card-body.comm-list-style .comm-product-checklist{flex-direction:row;flex-wrap:wrap;gap:4px;align-items:center}
-.record-card-body.comm-list-style .comm-products-field{display:grid;grid-template-columns:64px 1fr;gap:2px 6px;align-items:baseline;margin:0}
+.record-card-body.comm-list-style .comm-products-field{display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:baseline;margin:0}
 .record-card-body.comm-list-style .comm-products-field .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;padding-right:8px;white-space:nowrap;line-height:1.4}
 .record-card-actions{display:flex;gap:4px;justify-content:flex-end;flex-shrink:0}
 .record-card-minimal{padding:14px}
@@ -2405,13 +2405,13 @@ ul,li{list-style:none}
 .comm-dual .record-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:-6px;margin-bottom:2px;border-bottom:1px solid var(--c-border-light);padding-bottom:6px}
 /* v456：右栏详情模块标题分割线左右留空，与左侧卡片一致 */
 .comm-detail-card .cdc-header{margin:0 16px;padding:12px 0 8px;border-bottom:1px solid var(--c-border-light);font-size:13px;color:var(--c-text);font-weight:600;display:flex;justify-content:flex-start;align-items:center;gap:6px}
-.comm-dual .record-card-body .field:not(.comm-products-field){display:grid;grid-template-columns:64px 1fr;gap:2px 6px;align-items:baseline;margin:0}
-.comm-dual .record-card-body .field:not(.comm-products-field) .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;padding-right:8px;white-space:nowrap;line-height:1.4}
+.comm-dual .record-card-body .field:not(.comm-products-field){display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:baseline;margin:0}
+.comm-dual .record-card-body .field:not(.comm-products-field) .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;white-space:nowrap;line-height:1.4}
 .comm-dual .record-card-body .field:not(.comm-products-field) .field-value{font-size:13px;color:var(--c-text);line-height:1.4;min-width:0;word-break:break-word}
 .comm-dual .record-card-body .field:not(.comm-products-field) .field-tags{display:flex;flex-wrap:wrap;gap:4px}
 .comm-dual .record-card-body{gap:2px 0;margin-left:-2px}
 .comm-dual .record-card-body .comm-product-checklist{flex-direction:row;flex-wrap:wrap;gap:4px;align-items:center}
-.comm-dual .record-card-body .comm-products-field{display:grid;grid-template-columns:64px 1fr;gap:2px 6px;align-items:baseline;margin:0}
+.comm-dual .record-card-body .comm-products-field{display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:baseline;margin:0}
 .comm-dual .record-card-body .comm-products-field .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;padding-right:8px;white-space:nowrap;line-height:1.4}
 .comm-dual .record-card-body .comm-product-item{display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;color:var(--c-text);line-height:1.4}
 .comm-dual .record-card-body .comm-product-item input{width:14px;height:14px;accent-color:var(--c-green);cursor:pointer}
@@ -2558,7 +2558,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=520"></script>
+  <script src="app.js?v=521"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
