@@ -29,6 +29,8 @@
   .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:140px;height:26px;
     background:#0b0b0c;border-radius:0 0 16px 16px;z-index:5}
   iframe{flex:1;width:100%;border:0;background:#fff}
+  @keyframes phonePop{0%{transform:scale(.985);opacity:.55}55%{opacity:1}100%{transform:scale(1)}}
+  .phone.pop{animation:phonePop .4s ease}
 
   :root{--phone-width:412px}
 
@@ -150,7 +152,7 @@
       const m=d.getMinutes().toString().padStart(2,'0');document.getElementById('clock').textContent=h+':'+m;}
     tick();setInterval(tick,10000);
 
-    const APP_VERSION=396;
+    const APP_VERSION=508;
     const frame=document.getElementById('appframe');
     let loadTimer=null;
     function clearSwFromWindow(w){
@@ -234,6 +236,10 @@
         if(cw && cw.location && cw.location.href && cw.location.href!=='about:blank'){
           setStatus('应用已加载','ok');
           if(loadTimer){clearTimeout(loadTimer);loadTimer=null;}
+          const p=document.getElementById('phone');
+          p.classList.remove('pop');
+          void p.offsetWidth;
+          p.classList.add('pop');
         }
       }catch(e){}
     };

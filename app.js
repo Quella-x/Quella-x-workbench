@@ -8,6 +8,8 @@ const $$ = (s, p = document) => Array.from(p.querySelectorAll(s));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const esc = (s) => { if (s == null) return ''; const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; };
 const valIncludes = (val, target) => { if (Array.isArray(val)) return val.includes(target); return val === target; };
+// 金额解析：兼容「12,345」这类带千分位逗号的输入（否则 parseFloat 只读到逗号前，导致金额显示缩水）
+const parseNum = (v) => { const n = parseFloat(String(v == null ? '' : v).replace(/[,\s¥￥]/g, '')); return isNaN(n) ? 0 : n; };
 const arrVal = (val) => Array.isArray(val) ? val : (val ? [val] : []);
 const fmtDate = (d) => { if (!d) return ''; try { const dt = new Date(d); if (isNaN(dt)) return d; return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0'); } catch { return d; } };
 const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
@@ -30,7 +32,7 @@ const DB = {
 
 /* ===== Cloud Sync (Supabase REST) ===== */
 /* 同步集合：这些 store 会参与云端同步；其余（ui_state、customOpts_*、syncCfg 等）仅本地 */
-const SYNC_STORES = ['publishRecords','groupbuys','factories','samples','calcTemplates','calcRecords','inspirations','commissions','authorizations','priceList','ocCharacters','ocRelations','ocStories','ocTimeline','ocCommissions','appSettings','customCategories','lifeCheckins','lifeRecords','lifeCheckinDefs'];
+const SYNC_STORES = ['publishRecords','groupbuys','factories','samples','calcTemplates','calcRecords','inspirations','commissions','authorizations','priceList','ocCharacters','ocRelations','ocStories','ocTimeline','ocCommissions','appSettings','customCategories','lifeCheckins','lifeRecords','lifeCheckinDefs','commissionDetails'];
 
 function hashStr(str) {
   let h = 0;
@@ -327,7 +329,7 @@ function makeImageUploadHTML() {
 const DEFAULT_NAV_ICONS = {
   'home': '🏠', 'groupbuy': '📦', 'groupbuy-records': '📋', 'groupbuy-factories': '🏭',
   'groupbuy-samples': '🔬', 'groupbuy-calc': '🧮', 'design': '🎨', 'design-inspiration': '💡',
-  'design-commission': '📅', 'design-calc': '🧮', 'design-auth': '📜', 'design-pricelist': '💰',
+  'design-commission': '📅', 'design-commission-detail': '📝', 'design-calc': '🧮', 'design-auth': '📜', 'design-pricelist': '💰',
   'oc': '👤', 'oc-profiles': '🎭', 'oc-relations': '🔗', 'oc-stories': '📖', 'oc-timeline': '🕐',   'oc-commission': '🖌️',
   'life-checkin': '✅', 'life-record': '📝'
 };
@@ -338,6 +340,9 @@ const DEFAULT_SETTINGS = {
   navLabels: {},
   fieldLabels: {},
   fieldOptions: {},
+  moduleFields: {},
+  moduleFieldOrder: {},
+  moduleFieldsShown: {},
   priceListNotes: [
     { title: '价格浮动', content: '价格会根据复杂程度上下浮动' },
     { title: '用途倍率', content: '自用×1  商用×2  买断×3' },
@@ -356,9 +361,31 @@ const PRESET_THEMES = [
   { name: '暖橙', primary: '#fa8c16', primaryLight: '#ffc068', primaryDark: '#d46b08', primaryBg: '#fff7e6', sidebarStart: '#d46b08', sidebarEnd: '#ad4e00' },
 ];
 function getSettings() {
-  const s = DB.get('appSettings', DEFAULT_SETTINGS);
-  if (!s.navIcons) s.navIcons = { ...DEFAULT_NAV_ICONS };
-  if (!s.navLabels) s.navLabels = {};
+  const def = DEFAULT_SETTINGS || {};
+  let s = DB.get('appSettings', null);
+  if (!s || typeof s !== 'object') s = JSON.parse(JSON.stringify(def));
+  // Deep merge defaults so missing nested keys (e.g. theme colors) are filled
+  const merge = (target, source) => {
+    if (!target || typeof target !== 'object') target = {};
+    if (!source || typeof source !== 'object') return target;
+    Object.keys(source).forEach(k => {
+      if (source[k] && typeof source[k] === 'object' && !Array.isArray(source[k])) {
+        target[k] = merge(target[k] || {}, source[k]);
+      } else if (!(k in target)) {
+        target[k] = source[k];
+      }
+    });
+    return target;
+  };
+  s = merge(s, def);
+  if (!s.navIcons) s.navIcons = {};
+  s.navIcons = { ...DEFAULT_NAV_ICONS, ...s.navIcons };
+  // v514: 重置被旧版本调试污染过的展示字段缓存，恢复各模块默认 listFields
+  let fieldsReset = false;
+  if (s.moduleFields && Object.keys(s.moduleFields).length) { s.moduleFields = {}; fieldsReset = true; }
+  if (s.moduleFieldOrder && Object.keys(s.moduleFieldOrder).length) { s.moduleFieldOrder = {}; fieldsReset = true; }
+  if (s.moduleFieldsShown && Object.keys(s.moduleFieldsShown).length) { s.moduleFieldsShown = {}; fieldsReset = true; }
+  if (fieldsReset) DB.set('appSettings', s);
   return s;
 }
 function saveSettings(s) { DB.set('appSettings', s); }
@@ -391,13 +418,27 @@ const _dynamicConfigs = {};
 /* ===== Form Builder ===== */
 function buildFormField(f, data, moduleKey, wrap) {
   if (f.section) return `<div class="form-section">${esc(f.section)}</div>`;
-  if (f.type === 'custom') return f.html || '';
+  if (f.type === 'custom') {
+    let html = f.html || '';
+    // 将 data 中的值回填到 custom 内的 input/textarea（支持聊天记录解析回填 & 编辑回填）
+    html = html.replace(/<(input|textarea)([^>]*?)\bdata-key="([^"]+)"([^>]*)>/g, (mm, tag, pre, k, post) => {
+      const v = data[k];
+      if (v == null || v === '') return mm;
+      if (tag === 'textarea') return `<textarea${pre}data-key="${k}"${post}>${esc(String(v))}</textarea>`;
+      if (/(^|\s)value=/.test(pre + post)) return mm;
+      return `<input${pre}data-key="${k}" value="${esc(String(v))}"${post}>`;
+    });
+    return html;
+  }
   const label = moduleKey ? getFieldLabel(moduleKey, f.key, f.label) : f.label;
   const val = data[f.key] ?? f.default ?? '';
   const valStr = typeof val === 'string' ? val : (Array.isArray(val) ? '' : String(val ?? ''));
+  const showInlineHint = !!(f.hintInline && f.hint);
+  const labelHTML = `<label class="form-label">${esc(label)}${showInlineHint ? `<span class="form-label-hint">${esc(f.hint)}</span>` : ''}</label>`;
+  const belowHint = (!showInlineHint && f.hint) ? `<span class="form-hint">${esc(f.hint)}</span>` : '';
   let inner = '';
   if (f.type === 'textarea') {
-    inner = `<label class="form-label">${esc(label)}</label><textarea class="form-textarea" data-key="${f.key}" placeholder="${esc(f.placeholder || '')}">${esc(valStr)}</textarea>${f.hint ? `<span class="form-hint">${esc(f.hint)}</span>` : ''}`;
+    inner = `${labelHTML}<textarea class="form-textarea" data-key="${f.key}" placeholder="${esc(f.placeholder || '')}">${esc(valStr)}</textarea>${belowHint}`;
   } else if (f.type === 'combobox') {
     const opts = moduleKey ? getFieldOpts(moduleKey, f.key, f.options) : (f.options || []);
     const shouldSort = !f.noSort && (['factory', 'product', 'category'].includes(f.key) || f.label === '厂家');
@@ -408,7 +449,7 @@ function buildFormField(f, data, moduleKey, wrap) {
     }) : opts;
     const listId = 'cb_' + f.key + '_' + Math.random().toString(36).slice(2, 7);
     const optHTML = displayOpts.map(o => { const v = typeof o === 'string' ? o : o.value; const l = typeof o === 'string' ? o : o.label; return `<div class="combobox-option" onclick="selectComboboxOption('${listId}',this)" data-value="${esc(v)}">${esc(l)}</div>`; }).join('');
-    inner = `<label class="form-label">${esc(label)}</label><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(f.placeholder || '选择或输入...')}" onfocus="showComboboxDropdown('${listId}')" onclick="showComboboxDropdown('${listId}')" oninput="filterComboboxDropdown('${listId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${listId}')">▼</button><div class="combobox-dropdown" id="${listId}">${optHTML}</div></div>${f.hint ? `<span class="form-hint">${esc(f.hint)}</span>` : ''}`;
+    inner = `${labelHTML}<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(f.placeholder || '选择或输入...')}" onfocus="showComboboxDropdown('${listId}')" onclick="showComboboxDropdown('${listId}')" oninput="filterComboboxDropdown('${listId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${listId}')">▼</button><div class="combobox-dropdown" id="${listId}">${optHTML}</div></div>${belowHint}`;
   } else if (f.type === 'multiselect') {
     const opts = moduleKey ? getFieldOpts(moduleKey, f.key, f.options) : (f.options || []);
     const selected = Array.isArray(val) ? val : (val ? String(val).split(',') : []);
@@ -437,7 +478,7 @@ function buildFormField(f, data, moduleKey, wrap) {
       return `<label class="checkbox-item ${selected.includes(v) ? 'selected' : ''}"${customAttr}><input type="checkbox" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''}${onClickAttr}${customAttr}>${esc(l)}</label>`;
     }).join('');
     const mainGroupId = 'ms_' + f.key + '_' + Math.random().toString(36).slice(2, 7);
-    let msInner = `<label class="form-label">${esc(label)}</label><div class="checkbox-group" id="${mainGroupId}" data-key="${f.key}"${singleAttr}>${optHTML}</div>`;
+    let msInner = `${labelHTML}<div class="checkbox-group" id="${mainGroupId}" data-key="${f.key}"${singleAttr}>${optHTML}</div>`;
     if (f.allowCustom) {
       const customInputId = 'customAdd_' + f.key + '_' + Math.random().toString(36).slice(2, 7);
       const customPlaceholder = (moduleKey === 'oc-relations' && f.key === 'relationType') ? '请输入自定义关系类型' : '输入自定义类型后按添加';
@@ -454,13 +495,13 @@ function buildFormField(f, data, moduleKey, wrap) {
       const l = typeof o === 'string' ? o : (o.label || o.value);
       return `<option value="${esc(v)}" ${valStr === v ? 'selected' : ''}>${esc(l)}</option>`;
     }).join('');
-    inner = `<label class="form-label">${esc(label)}</label><select class="form-input" data-key="${f.key}">${optHTML}</select>${f.hint ? `<span class="form-hint">${esc(f.hint)}</span>` : ''}`;
+    inner = `${labelHTML}<select class="form-input" data-key="${f.key}">${optHTML}</select>${belowHint}`;
   } else if (f.type === 'dynamic-list' || f.type === 'dynamic-products') {
     return buildDynamicListHTML(f, data, moduleKey);
   } else if (f.type === 'image') {
-    inner = `<label class="form-label">${esc(label)}</label>${makeImageUploadHTML()}`;
+    inner = `${labelHTML}${makeImageUploadHTML()}`;
   } else if (f.type === 'readonly') {
-    inner = `<label class="form-label">${esc(label)}</label><input type="text" class="form-input" data-key="${f.key}" value="${esc(valStr)}" readonly style="background:var(--c-primary-bg)">${f.hint ? `<span class="form-hint">${esc(f.hint)}</span>` : ''}`;
+    inner = `${labelHTML}<input type="text" class="form-input" data-key="${f.key}" value="${esc(valStr)}" readonly style="background:var(--c-primary-bg)">${belowHint}`;
   } else {
     const type = f.type || 'text';
     // v16: 日期字段除默认当天外，增加"请选择日期"提示词
@@ -473,7 +514,7 @@ function buildFormField(f, data, moduleKey, wrap) {
         placeholder = '请选择日期';
       }
     }
-    inner = `<label class="form-label">${esc(label)}</label><input type="${type}" class="form-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(placeholder)}">${hint ? `<span class="form-hint">${esc(hint)}</span>` : ''}`;
+    inner = `${labelHTML}<input type="${type}" class="form-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(placeholder)}">${belowHint}`;
   }
   return wrap ? `<div class="form-row">${inner}</div>` : inner;
 }
@@ -485,10 +526,11 @@ function buildForm(fields, data = {}, moduleKey = '') {
       html += buildFormField(f, data, moduleKey, true);
       continue;
     }
-    // v32: 同行字段（row 属性相同）合并为一行
+    // v32: 同行字段（row 属性相同）合并为一行；v432 修复：无 rowLabel 时不生成空 label，避免 8px 占位空洞且兼容不支持 :has 的 WebView
     const group = [f];
     while (i + 1 < fields.length && fields[i + 1].row === f.row) { group.push(fields[i + 1]); i++; }
-    html += `<div class="form-row form-row-inline"><div class="form-row-label">${esc(f.rowLabel || '')}</div><div class="form-inline-fields">`;
+    const rowLabelHtml = f.rowLabel ? `<div class="form-row-label">${esc(f.rowLabel)}</div>` : '';
+    html += `<div class="form-row form-row-inline">${rowLabelHtml}<div class="form-inline-fields">`;
     group.forEach(gf => { html += `<div class="form-inline-field">${buildFormField(gf, data, moduleKey, false)}</div>`; });
     html += '</div></div>';
   }
@@ -972,47 +1014,49 @@ function renderCalendar(year, month, records, commissionRecords = []) {
 }
 
 /* ===== Annual Bar Chart ===== */
-function renderAnnualChart(records, dateField, opts = {}) {
-  const { title = '', color = '#9DC8FF', valueField = null, isCount = false, series = null } = opts;
-  const now = new Date();
-  const year = now.getFullYear();
+function getChartYear(pageKey) { const ps = pageState[pageKey]; return (ps && ps.chartYear) || new Date().getFullYear(); }
+function setChartYear(pageKey, y) { if (!pageState[pageKey]) pageState[pageKey] = {}; pageState[pageKey].chartYear = y; renderListPage(pageKey, MODULES[pageKey]); }
+function renderAnnualChart(records, dateField, opts = {}, pageKey) {
+  const { title = '', color = '#9DC8FF', valueField = null, isCount = false, series = null, year = null } = opts;
+  const yr = year || new Date().getFullYear();
+  const yearNav = pageKey ? `<div class="annual-chart-yearnav"><button class="btn btn-xs btn-ghost" onclick="setChartYear('${pageKey}',${yr - 1})">‹ 上年</button><button class="btn btn-xs btn-ghost" onclick="setChartYear('${pageKey}',${yr + 1})">下年 ›</button></div>` : '';
   if (series && series.length) {
     const data = series.map(() => Array(12).fill(0));
-    const hasData = () => data.some(arr => arr.some(v => v > 0));
     records.forEach(r => {
-      const d = r[dateField]; if (!d || !String(d).startsWith(String(year))) return;
+      const d = r[dateField]; if (!d || !String(d).startsWith(String(yr))) return;
       const m = parseInt(String(d).split('-')[1]) - 1;
       if (m < 0 || m > 11) return;
       series.forEach((s, si) => {
         if (s.compute) data[si][m] += s.compute(r);
         else if (s.isCount) data[si][m] += 1;
-        else data[si][m] += parseFloat(r[s.valueField]) || 0;
+        else data[si][m] += parseNum(r[s.valueField]);
       });
     });
     const max = Math.max(...data.flat(), 1);
     let bars = '';
     for (let i = 0; i < 12; i++) {
-      let total = data.reduce((s, arr) => s + arr[i], 0);
       const maxBarH = Math.max(...series.map((s, si) => (data[si][i] / max) * 100), 0);
+      const monthTotal = series.reduce((sum, s, si) => sum + data[si][i], 0);
       bars += '<div class="annual-chart-bar">';
+      if (monthTotal > 0) bars += `<span class="annual-chart-bar-value" style="bottom:calc(${Math.max(maxBarH, 2)}% + 3px)">¥${Math.round(monthTotal).toLocaleString()}</span>`;
       bars += `<div style="display:flex;gap:1px;width:70%;height:100%;align-items:flex-end;justify-content:center">`;
       series.forEach((s, si) => {
         const v = data[si][i]; const h = (v / max) * 100;
-        bars += `<div style="width:${100 / series.length}%;height:${Math.max(h, 0)}%;background:${s.color};min-height:${v > 0 ? '2px' : '0'};border-radius:0"></div>`;
+        bars += `<div style="width:${100 / series.length}%;height:${Math.max(h, 0)}%;background:${s.color};min-height:${v > 0 ? '2px' : '0'};border-radius:6px 6px 0 0"></div>`;
       });
       bars += '</div></div>';
     }
     let labels = ''; for (let i = 0; i < 12; i++) labels += `<span>${i + 1}月</span>`;
     let legend = '';
     series.forEach(s => { legend += `<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:${s.color}"></span>${esc(s.name)}</span>`; });
-    return `<div class="annual-chart"><div class="annual-chart-title">📊 ${esc(title)} · ${year}年</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div><div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--c-text-light)">${legend}</div></div>`;
+    return `<div class="annual-chart"><div class="annual-chart-title">📊 ${esc(title)} · ${yr}年${yearNav}</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div><div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--c-text-light)">${legend}</div></div>`;
   }
   const months = Array(12).fill(0);
   records.forEach(r => {
-    const d = r[dateField]; if (!d || !String(d).startsWith(String(year))) return;
+    const d = r[dateField]; if (!d || !String(d).startsWith(String(yr))) return;
     const m = parseInt(String(d).split('-')[1]) - 1;
     if (m < 0 || m > 11) return;
-    if (isCount) months[m] += 1; else months[m] += parseFloat(r[valueField]) || 0;
+    if (isCount) months[m] += 1; else months[m] += parseNum(r[valueField]);
   });
   const max = Math.max(...months, 1);
   let bars = '';
@@ -1025,7 +1069,7 @@ function renderAnnualChart(records, dateField, opts = {}) {
     bars += '</div>';
   });
   let labels = ''; for (let i = 0; i < 12; i++) labels += `<span>${i + 1}月</span>`;
-  return `<div class="annual-chart"><div class="annual-chart-title">📊 ${esc(title)} · ${year}年</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div></div>`;
+  return `<div class="annual-chart"><div class="annual-chart-title">📊 ${esc(title)} · ${yr}年${yearNav}</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div></div>`;
 }
 
 /* ===== Navigation Config ===== */
@@ -1044,6 +1088,7 @@ const NAV = [
   { key: 'design', label: '美工', group: true, children: [
     { key: 'design-inspiration', label: '灵感记录' },
     { key: 'design-commission', label: '接稿排期' },
+    { key: 'design-commission-detail', label: '接稿详情' },
     { key: 'design-auth', label: '授权记录' },
     { key: 'design-pricelist', label: '价目表' },
     { key: 'design-calc', label: '报价计算' },
@@ -1059,9 +1104,11 @@ const NAV = [
 const PAGE_TITLES = {
   'home': '首页 · 自媒体发布记录', 'groupbuy-records': '开团 · 开团记录', 'groupbuy-factories': '开团 · 厂家记录',
   'groupbuy-samples': '开团 · 打样记录', 'groupbuy-calc': '开团 · 价目计算', 'design-inspiration': '美工 · 灵感记录',
-  'design-commission': '美工 · 接稿排期', 'design-calc': '美工 · 报价计算', 'design-auth': '美工 · 授权记录', 'design-pricelist': '美工 · 价目表',
+  'design-commission': '美工 · 接稿排期', 'design-commission-detail': '美工 · 接稿详情', 'design-calc': '美工 · 报价计算', 'design-auth': '美工 · 授权记录', 'design-pricelist': '美工 · 价目表',
   'oc-profiles': 'OC · 人物档案', 'oc-relations': 'OC · 人物关系', 'oc-stories': 'OC · 故事小记', 'oc-timeline': 'OC · 时间线', 'oc-commission': 'OC · 约稿记录',
   'life-checkin': '生活 · 每日打卡', 'life-record': '生活 · 每日记录',
+  'design-commission-detail-twy': '美工 · 接稿详情 · 土味', 'design-commission-detail-fm': '美工 · 接稿详情 · 封面',
+  'design-commission-detail-fq': '美工 · 接稿详情 · 饭圈', 'design-commission-detail-ec': '美工 · 接稿详情 · 二次',
 };
 
 /* ===== Module Configs ===== */
@@ -1129,6 +1176,7 @@ MODULES['groupbuy-records'] = {
         { value: '补偿', label: '补偿' }, { value: '补发', label: '补发' }, { value: '补寄', label: '补寄' }, { value: '退款', label: '退款' }
       ]},
       { subkey: 'amount', label: '价格', type: 'number' },
+      { subkey: 'note', label: '备注', type: 'text' },
     ]},
     { key: 'purchaseCount', label: '购买人数', type: 'number', row: 'purchaseInfo' },
     { key: 'purchasePopularity', label: '拼团人气', type: 'number', row: 'purchaseInfo' },
@@ -1147,25 +1195,30 @@ MODULES['groupbuy-records'] = {
     { label: '购买人数', key: 'purchaseCount' },
   ],
   stats: (records) => {
-    const totalRev = records.reduce((s, r) => s + (parseFloat(r.productTotal) || 0) + (parseFloat(r.shippingTotal) || 0), 0);
-    const totalCost = records.reduce((s, r) => s + (parseFloat(r.cost) || 0) + (parseFloat(r.shippingTotalCost) || 0), 0);
+    const totalRev = records.reduce((s, r) => s + parseNum(r.productTotal) + parseNum(r.shippingTotal), 0);
+    const totalCost = records.reduce((s, r) => s + parseNum(r.cost) + parseNum(r.shippingTotalCost), 0);
     const profit = totalRev - totalCost;
+    const productSet = new Set();
+    records.forEach(r => (r.products || []).forEach(p => { if (p.name) productSet.add(p.name); }));
+    const buyers = records.reduce((s, r) => s + (parseFloat(r.purchaseCount) || 0), 0);
     return [
-      { label: '累计开团', value: records.length, sub: '个' },
+      { label: '累计开团', value: records.length, unit: '个' },
+      { label: '累计制品', value: productSet.size, unit: '种' },
+      { label: '累计购买人数', value: buyers, unit: '人' },
       { label: '总营收', value: '¥' + totalRev.toLocaleString(), sub: '' },
       { label: '总成本', value: '¥' + totalCost.toLocaleString(), sub: '' },
-      { label: '总利润', value: '¥' + profit.toLocaleString(), sub: profit >= 0 ? '盈利' : '亏损' },
+      { label: '总利润', value: '¥' + profit.toLocaleString(), unit: profit >= 0 ? '盈利' : '亏损' },
     ];
   },
   statsTitle: '开团统计',
+  statsYearField: 'startTime',
   chart: (records) => renderAnnualChart(records, 'startTime', {
     title: '开团营收/成本/利润',
     series: [
-      { name: '营收', compute: r => (parseFloat(r.productTotal) || 0) + (parseFloat(r.shippingTotal) || 0), color: '#7ec678' },
-      { name: '成本', compute: r => (parseFloat(r.cost) || 0) + (parseFloat(r.shippingTotalCost) || 0), color: '#e8857e' },
-      { name: '利润', compute: r => (parseFloat(r.productTotal) || 0) + (parseFloat(r.shippingTotal) || 0) - (parseFloat(r.cost) || 0) - (parseFloat(r.shippingTotalCost) || 0), color: '#9DC8FF' },
-    ]
-  }),
+      { name: '营收', compute: r => parseNum(r.productTotal) + parseNum(r.shippingTotal), color: '#7ec678' },
+      { name: '成本', compute: r => parseNum(r.cost) + parseNum(r.shippingTotalCost), color: '#e8857e' },
+      { name: '利润', compute: r => parseNum(r.productTotal) + parseNum(r.shippingTotal) - parseNum(r.cost) - parseNum(r.shippingTotalCost), color: '#9DC8FF' },
+    ], year: getChartYear('groupbuy-records') }, 'groupbuy-records'),
   detailExtra: (r) => {
     const rev = (parseFloat(r.productTotal) || 0) + (parseFloat(r.shippingTotal) || 0), cost = (parseFloat(r.cost) || 0) + (parseFloat(r.shippingTotalCost) || 0);
     return `<div class="detail-row"><span class="detail-label">盈亏统计</span><span class="detail-value"><b style="color:${rev - cost >= 0 ? 'var(--c-green)' : 'var(--c-red)'}">${rev - cost >= 0 ? '+' : ''}¥${(rev - cost).toLocaleString()}</b></span></div>`;
@@ -1183,28 +1236,37 @@ MODULES['groupbuy-factories'] = {
     { key: 'cooperationStatus', label: '合作状态', type: 'multiselect', single: true, default: '临时合作', options: [{ value: '长期合作', label: '长期合作' }, { value: '临时合作', label: '临时合作' }, { value: '暂停合作', label: '暂停合作' }] },
     { key: 'quote', label: '报价', type: 'textarea' },
     { key: 'cooperationRecords', label: '合作记录', type: 'dynamic-list', columns: [
+      { subkey: 'coopType', label: '合作类型', type: 'combobox', options: [{ value: '打样', label: '打样' }, { value: '开团', label: '开团' }, { value: '售卖', label: '售卖' }, { value: '无料', label: '无料' }, { value: '自印', label: '自印' }] },
       { subkey: 'project', label: '项目名称', type: 'text' },
       { subkey: 'date', label: '日期', type: 'date' },
       { subkey: 'note', label: '备注', type: 'text' },
     ]},
+    { key: 'factoryEvaluation', label: '厂家评价', type: 'combobox', single: true, options: [{ value: '非常满意', label: '非常满意' }, { value: '满意', label: '满意' }, { value: '一般', label: '一般' }, { value: '不满意', label: '不满意' }] },
     { key: 'notes', label: '备注', type: 'textarea' },
     { key: 'images', label: '存档图片', type: 'image' },
   ],
   filters: [{ key: 'cooperationStatus', label: '全部状态', options: [{ value: '', label: '全部状态' }, { value: '长期合作', label: '长期合作' }, { value: '临时合作', label: '临时合作' }, { value: '暂停合作', label: '暂停合作' }] }],
   listFields: [
-    { label: '状态', key: 'cooperationStatus', tag: true },
-    { label: '平台', key: 'platforms' },
-    { label: '电话', key: 'phone' },
+    { label: '合作次数', key: '_coopCount' },
     { label: '主营品类', key: 'category' },
+    { label: '所在平台', key: 'platforms' },
+    { label: '联系方式', key: 'phone' },
+    { label: '合作状态', key: 'cooperationStatus', tag: true },
+    { label: '厂家评价', key: 'factoryEvaluation', tag: true },
   ],
-  detailExtra: (r) => {
-    const related = DB.list('groupbuys').filter(g => {
-      const prods = g.products || [];
-      return prods.some(p => p.factory && p.factory.includes(r.name));
-    });
-    if (!related.length) return '';
-    return `<div class="detail-row"><span class="detail-label">关联开团</span><span class="detail-value">${related.map(g => `<span class="tag tag-info" style="margin-right:4px">${esc(g.title || '未命名')}</span>`).join('')}</span></div>`;
+  stats: (records) => {
+    const totalCoop = records.reduce((s, r) => s + (r.cooperationRecords || []).length, 0);
+    const scoreMap = { '非常满意': 100, '满意': 80, '一般': 60, '不满意': 40 };
+    const scored = records.map(r => scoreMap[(r.factoryEvaluation || '').trim()] || null).filter(v => v != null);
+    const satisfaction = scored.length ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length) + '%' : '0%';
+    return [
+      { label: '厂家总数', value: records.length, unit: '家' },
+      { label: '总合作次数', value: totalCoop, unit: '次' },
+      { label: '满意度', value: satisfaction },
+    ];
   },
+  statsTitle: '厂家统计',
+  detailExtra: (r) => '',
 };
 
 // --- Samples (需求6: 年度柱状图, 厂家可选, 复盘备注→备注) ---
@@ -1233,13 +1295,14 @@ MODULES['groupbuy-samples'] = {
   stats: (records) => {
     const totalCost = records.reduce((s, r) => s + (parseFloat(r.cost) || 0), 0);
     return [
-      { label: '打样总数', value: records.length, sub: '次' },
-      { label: '打样总费用', value: '¥' + totalCost.toLocaleString(), sub: '' },
+      { label: '打样总数', value: records.length, unit: '次' },
+      { label: '总费用', value: '¥' + totalCost.toLocaleString(), sub: '' },
       { label: '合格率', value: records.length ? Math.round(records.filter(r => valIncludes(r.evaluation, '合格')).length / records.length * 100) + '%' : '0%', sub: '' },
     ];
   },
   statsTitle: '打样统计',
-  chart: (records) => renderAnnualChart(records, 'sampleTime', { title: '打样费用', valueField: 'cost', color: '#fa8c16' }),
+  chart: (records) => renderAnnualChart(records, 'sampleTime', { title: '打样费用', valueField: 'cost', color: '#fa8c16', year: getChartYear('groupbuy-samples') }, 'groupbuy-samples'),
+  statsYearField: 'sampleTime',
 };
 
 // --- Inspiration ---
@@ -1278,7 +1341,7 @@ MODULES['design-inspiration'] = {
   ],
   filters: [{ key: 'category', label: '全部制品', options: [{ value: '', label: '全部制品' }] }],
   listFields: [
-    { label: '制品', key: 'category', tag: true },
+    { label: '制品', key: 'category' },
     { label: '标签', key: 'tags', tag: true },
     { label: '创建时间', key: 'createTime', date: true },
   ],
@@ -1289,9 +1352,9 @@ MODULES['design-commission'] = {
   store: 'commissions',
   fields: [
     { key: 'clientInfo', label: '单主', type: 'text' },
-    { key: 'acceptTime', label: '接稿时间', type: 'date', default: todayStr() },
-    { key: 'startTime', label: '开稿时间', type: 'date' },
-    { key: 'deadline', label: '截稿时间', type: 'date' },
+    { key: 'acceptTime', label: '接稿日期', type: 'date', default: todayStr() },
+    { key: 'startTime', label: '开稿日期', type: 'date' },
+    { key: 'deadline', label: '截稿日期', type: 'date' },
     { key: 'usageType', label: '稿件用途', type: 'multiselect', single: true, default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'products', label: '制品列表', type: 'dynamic-list', columns: [
       { subkey: '_seq', label: '序号', type: 'seq' },
@@ -1338,33 +1401,213 @@ MODULES['design-commission'] = {
   ],
   listFields: [
     { label: '稿件进度', key: 'progress', tag: true },
-    { label: '支付状态', key: 'paymentStatus', tag: true },
     { label: '稿件用途', key: 'usageType' },
     { label: '制品', key: '_firstProduct' },
+    { label: '开稿日期', key: 'startTime', date: true },
     { label: '截稿日期', key: 'deadline', date: true },
+    { label: '报价金额', key: 'quoteAmount' },
+    { label: '支付状态', key: 'paymentStatus', tag: true },
   ],
   stats: (records) => {
     const isPaid = r => valIncludes(r.paymentStatus, '全款') || valIncludes(r.paymentStatus, '尾款');
-    const totalRev = records.filter(isPaid).reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
-    const monthRev = records.filter(r => (r.acceptTime || '').startsWith(thisMonthStr()) && isPaid(r)).reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
-    const now = todayStr();
-    const overdue = records.filter(r => r.deadline && r.deadline < now && !valIncludes(r.progress, '已交付')).length;
+    const totalRev = records.filter(isPaid).reduce((s, r) => s + (parseNum(r.quoteAmount) || parseNum(r.amount) || 0), 0);
+    const monthRev = records.filter(r => (r.acceptTime || '').startsWith(thisMonthStr()) && isPaid(r)).reduce((s, r) => s + (parseNum(r.quoteAmount) || parseNum(r.amount) || 0), 0);
     return [
-      { label: '总接稿', value: records.length, sub: '单' },
       { label: '本月收入', value: '¥' + monthRev.toLocaleString(), sub: '已收款' },
+      { label: '总接稿', value: records.length, unit: '单' },
       { label: '总收入', value: '¥' + totalRev.toLocaleString(), sub: '累计' },
-      { label: '逾期预警', value: overdue, sub: overdue > 0 ? '需关注' : '正常' },
     ];
   },
   statsTitle: '接稿统计',
+  statsYearField: 'acceptTime',
   chart: (records) => {
     const processed = records.map(r => ({ ...r, acceptTime: r.acceptTime || r.startTime || r.deadline || '' }));
     return renderAnnualChart(processed, 'acceptTime', { title: '接稿收入', series: [
-      { name: '最终金额', compute: r => parseFloat(r.amount) || parseFloat(r.quoteAmount) || 0, color: '#7ab5f5' },
-    ]});
+      { name: '最终金额', compute: r => parseNum(r.quoteAmount) || parseNum(r.amount) || 0, color: '#ff9a3c' },
+    ], year: getChartYear('design-commission') }, 'design-commission');
   },
   isOverdue: (r) => { const now = todayStr(); return r.deadline && r.deadline < now && !valIncludes(r.progress, '已交付'); },
 };
+
+/* ===== 接稿详情：四大分类约稿单（统一存储 commissionDetails，独立字段，支持切换标签页） ===== */
+// 通用展示权限四选项
+const COMM_DETAIL_DISPLAY_OPTS = [
+  { value: '可打码展示', label: '可打码展示' },
+  { value: '不愿公开展示', label: '不愿公开展示' },
+  { value: '延期1~3月展示', label: '延期1~3月展示' },
+  { value: '自定义日期展示', label: '自定义日期展示' },
+];
+// 通用交付方式
+const COMM_DETAIL_DELIVERY_OPTS = [
+  { value: '直发', label: '直发' },
+  { value: '百度网盘', label: '百度网盘' },
+  { value: '夸克网盘', label: '夸克网盘' },
+  { value: '指定邮箱', label: '指定邮箱' },
+];
+// 通用颜色格式
+const COMM_DETAIL_COLOR_FORMAT_OPTS = [
+  { value: 'RGB', label: 'RGB' },
+  { value: 'CMYK', label: 'CMYK' },
+];
+// 是否同模（单选但用多选勾选样式）
+const COMM_DETAIL_SAME_MODEL_OPTS = [
+  { value: '否', label: '否' },
+  { value: '改人', label: '改人' },
+  { value: '改色+字', label: '改色+字' },
+  { value: '改人+字/色', label: '改人+字/色' },
+];
+
+// 通用「展示权限」字段
+function commDetailDisplayField() {
+  return { key: 'displayPermission', label: '是否可以展示', type: 'combobox', default: '可打码展示', options: COMM_DETAIL_DISPLAY_OPTS };
+}
+// 通用「其他/备注」字段
+function commDetailOtherField() {
+  return { key: 'other', label: '备注', type: 'textarea', placeholder: '其他补充需求...' };
+}
+// 通用「固定接收邮箱」字段（预填邮箱，只读展示）
+function commDetailFixedEmailField() {
+  return { key: 'fixedEmail', label: '固定接收邮箱', type: 'readonly', default: '1512558554@qq.com / xxQuella@outlook.com' };
+}
+// 通用「收件邮箱地址」字段（选邮箱时填写）
+function commDetailEmailAddrField() {
+  return { key: 'emailAddr', label: '收件邮箱地址', type: 'text', placeholder: '选「指定邮箱」时填写' };
+}
+
+// 板块1：土味约稿单
+MODULES['design-commission-detail-twy'] = {
+  store: 'commissionDetails',
+  category: '土味',
+  fields: [
+    { section: '单主信息' },
+    { key: 'clientInfo', label: '单主', type: 'text', placeholder: '单主姓名（用于与接稿排期联动）', localOnly: true },
+    { key: 'platformNick', label: '您的平台昵称', type: 'text' },
+    { section: '制品信息' },
+    { key: 'type', label: '类型', type: 'combobox', options: [{ value: '常约类型封面', label: '常约类型封面' }, { value: '小卡', label: '小卡' }, { value: '其他', label: '其他' }] },
+    { key: 'size', label: '尺寸', type: 'text', placeholder: '常约类型封面默认 3:4；小卡默认 54×86mm' },
+    { key: 'bookName', label: '书名/文字', type: 'text' },
+    { key: 'authorName', label: '作者名', type: 'text' },
+    { key: 'copyText', label: '文案/小字', type: 'textarea' },
+    { key: 'color', label: '颜色', type: 'text', placeholder: '默认跟底图颜色走' },
+    commDetailOtherField(),
+    { section: '交付规范' },
+    { key: 'colorFormat', label: '颜色格式', type: 'combobox', default: 'RGB', options: COMM_DETAIL_COLOR_FORMAT_OPTS },
+    { key: 'delivery', label: '交付方式', type: 'combobox', default: '百度网盘', options: COMM_DETAIL_DELIVERY_OPTS },
+    commDetailEmailAddrField(),
+    commDetailDisplayField(),
+    commDetailFixedEmailField(),
+  ],
+  listFields: [
+    { label: '类型', key: 'type' },
+    { label: '书名', key: 'bookName' },
+    { label: '作者', key: 'authorName' },
+  ],
+};
+
+// 板块2：封面约稿单
+MODULES['design-commission-detail-fm'] = {
+  store: 'commissionDetails',
+  category: '封面',
+  fields: [
+    { section: '单主信息' },
+    { key: 'clientInfo', label: '单主', type: 'text', placeholder: '单主姓名（用于与接稿排期联动）', localOnly: true },
+    { key: 'platformNick', label: '您的平台昵称', type: 'text' },
+    { section: '制品信息' },
+    { key: 'type', label: '类型', type: 'combobox', options: [{ value: '网站', label: '网站' }, { value: '书城', label: '书城' }, { value: '其他', label: '其他' }] },
+    { key: 'platformSize', label: '平台尺寸', type: 'text' },
+    { key: 'addLogo', label: '是否加logo', type: 'combobox', default: '不加', options: [{ value: '不加', label: '不加' }, { value: '加', label: '加' }] },
+    { key: 'bookName', label: '书名', type: 'text' },
+    { key: 'authorName', label: '作者名', type: 'text' },
+    { key: 'copyText', label: '文案/小字', type: 'textarea' },
+    { key: 'color', label: '颜色', type: 'text', placeholder: '默认跟底图颜色走' },
+    { key: 'baseImg', label: '底图', type: 'combobox', default: '自带', options: [{ value: '自带', label: '自带' }, { value: '有人', label: '有人（需说明需求/颜色/男女）' }, { value: '无人', label: '无人（需说明需求/颜色/男女）' }] },
+    commDetailOtherField(),
+    { section: '交付规范' },
+    { key: 'colorFormat', label: '颜色格式', type: 'combobox', default: 'RGB', options: COMM_DETAIL_COLOR_FORMAT_OPTS },
+    { key: 'delivery', label: '交付方式', type: 'combobox', default: '直发', options: COMM_DETAIL_DELIVERY_OPTS },
+    commDetailEmailAddrField(),
+    commDetailDisplayField(),
+    commDetailFixedEmailField(),
+  ],
+  listFields: [
+    { label: '类型', key: 'type' },
+    { label: '书名', key: 'bookName' },
+    { label: '作者', key: 'authorName' },
+  ],
+};
+
+// 板块3：饭圈约稿单
+MODULES['design-commission-detail-fq'] = {
+  store: 'commissionDetails',
+  category: '饭圈',
+  fields: [
+    { section: '单主信息' },
+    { key: 'clientInfo', label: '单主', type: 'text', placeholder: '单主姓名（用于与接稿排期联动）', localOnly: true },
+    { key: 'platformNick', label: '您的平台昵称', type: 'text' },
+    { section: '制品信息' },
+    { key: 'usageType', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
+    { key: 'product', label: '制品', type: 'text', placeholder: '制品名称+工艺；出血默认3mm，特殊请备注', row: 'prodSize' },
+    { key: 'size', label: '尺寸', type: 'text', row: 'prodSize' },
+    { key: 'theme', label: '企划/主题名称', type: 'text' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">可以给参考图/色卡 请把主色写最前面</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">元素</label><div class="style-color-box elements-box"><div class="style-color-col"><span class="style-color-col-label">必用</span><input type="text" class="form-input" data-key="elementsRequired"></div><div class="style-color-col"><span class="style-color-col-label">可选</span><input type="text" class="form-input" data-key="elementsOptional"></div><div class="style-color-col"><span class="style-color-col-label">避雷</span><input type="text" class="form-input" data-key="elementsAvoid"></div></div></div>' },
+    { key: 'copyText', label: '文案', type: 'textarea' },
+    commDetailOtherField(),
+    { section: '交付规范' },
+    { key: 'colorFormat', label: '颜色格式', type: 'combobox', default: 'RGB', options: COMM_DETAIL_COLOR_FORMAT_OPTS },
+    { key: 'delivery', label: '交付方式', type: 'combobox', default: '百度网盘', options: COMM_DETAIL_DELIVERY_OPTS },
+    commDetailEmailAddrField(),
+    commDetailDisplayField(),
+    commDetailFixedEmailField(),
+  ],
+  listFields: [
+    { label: '用途', key: 'usageType' },
+    { label: '主题', key: 'theme' },
+    { label: '姓名', key: 'charName' },
+  ],
+};
+
+// 板块4：二次约稿单
+MODULES['design-commission-detail-ec'] = {
+  store: 'commissionDetails',
+  category: '二次',
+  fields: [
+    { section: '单主信息' },
+    { key: 'clientInfo', label: '单主', type: 'text', placeholder: '单主姓名（用于与接稿排期联动）', localOnly: true },
+    { key: 'platformNick', label: '您的平台昵称', type: 'text', placeholder: '客户平台 ID' },
+    { section: '制品信息' },
+    { key: 'usageType', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
+    { key: 'product', label: '制品', type: 'text', placeholder: '制品名称+工艺；出血默认3mm，特殊请备注', row: 'prodSize' },
+    { key: 'size', label: '尺寸', type: 'text', row: 'prodSize' },
+    { key: 'ipName', label: 'IP', type: 'text' },
+    { key: 'theme', label: '企划/主题名称', type: 'text' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">可以给参考图/色卡 请把主色写最前面</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">元素</label><div class="style-color-box elements-box"><div class="style-color-col"><span class="style-color-col-label">必用</span><input type="text" class="form-input" data-key="elementsRequired"></div><div class="style-color-col"><span class="style-color-col-label">可选</span><input type="text" class="form-input" data-key="elementsOptional"></div><div class="style-color-col"><span class="style-color-col-label">避雷</span><input type="text" class="form-input" data-key="elementsAvoid"></div></div></div>' },
+    { key: 'copyText', label: '文案', type: 'textarea' },
+    commDetailOtherField(),
+    { section: '交付规范' },
+    { key: 'colorFormat', label: '颜色格式', type: 'combobox', default: 'RGB', options: COMM_DETAIL_COLOR_FORMAT_OPTS },
+    { key: 'delivery', label: '交付方式', type: 'combobox', default: '百度网盘', options: COMM_DETAIL_DELIVERY_OPTS },
+    commDetailEmailAddrField(),
+    commDetailDisplayField(),
+    commDetailFixedEmailField(),
+  ],
+  listFields: [
+    { label: '用途', key: 'usageType' },
+    { label: 'IP', key: 'ipName' },
+    { label: '主题', key: 'theme' },
+  ],
+};
+
+// 接稿详情：四大分类配置表（用于渲染标签页与表单）
+const COMM_DETAIL_CATS = [
+  { key: 'design-commission-detail-twy', label: '土味', cat: '土味' },
+  { key: 'design-commission-detail-fm', label: '封面', cat: '封面' },
+  { key: 'design-commission-detail-fq', label: '饭圈', cat: '饭圈' },
+  { key: 'design-commission-detail-ec', label: '二次', cat: '二次' },
+];
 
 // --- Authorization (需求8: 年度柱状图, 默认商用) ---
 MODULES['design-auth'] = {
@@ -1387,10 +1630,12 @@ MODULES['design-auth'] = {
   ],
   stats: (records) => {
     const totalFee = records.reduce((s, r) => s + (parseFloat(r.authFee) || 0), 0);
-    return [{ label: '授权总数', value: records.length, sub: '条' }, { label: '授权总收入', value: '¥' + totalFee.toLocaleString(), sub: '' }];
+    const monthAuth = records.filter(r => (r.authDate || '').startsWith(thisMonthStr())).length;
+    return [{ label: '本月授权数', value: monthAuth, unit: '条' }, { label: '授权总数', value: records.length, unit: '条' }, { label: '授权总收入', value: '¥' + totalFee.toLocaleString(), sub: '' }];
   },
   statsTitle: '授权统计',
-  chart: (records) => renderAnnualChart(records, 'authDate', { title: '授权收入', valueField: 'authFee', color: '#fa8c16' }),
+  chart: (records) => renderAnnualChart(records, 'authDate', { title: '授权收入', valueField: 'authFee', color: '#fa8c16', year: getChartYear('design-auth') }, 'design-auth'),
+  statsYearField: 'authDate',
 };
 
 // --- Price List (需求9: 去提示词, 删单位, 分类说明→备注, 菜单风格, 其他说明可折叠) ---
@@ -1533,6 +1778,7 @@ MODULES['oc-commission'] = {
     { key: 'commissionTime', label: '约稿时间', type: 'date', default: todayStr() },
     { key: 'deliveryTime', label: '交付时间', type: 'date' },
     { key: 'status', label: '交易状态', type: 'multiselect', single: true, options: [{ value: '待接稿', label: '待接稿' }, { value: '进行中', label: '进行中' }, { value: '已完成', label: '已完成' }, { value: '已取消', label: '已取消' }] },
+    { key: 'evaluation', label: '稿件评价', type: 'multiselect', single: true, options: [{ value: '非常满意', label: '非常满意' }, { value: '满意', label: '满意' }, { value: '一般', label: '一般' }, { value: '不满意', label: '不满意' }] },
     { key: 'artwork', label: '稿件成品图', type: 'image' },
     { key: 'notes', label: '备注', type: 'textarea' },
   ],
@@ -1545,17 +1791,28 @@ MODULES['oc-commission'] = {
     { label: '平台', key: 'platform' },
     { label: '费用', key: 'fee', prefix: '¥' },
     { label: '交付', key: 'deliveryTime', date: true },
+    { label: '稿件评价', key: 'evaluation', tag: true },
   ],
   stats: (records) => {
     const totalFee = records.reduce((s, r) => s + (parseFloat(r.fee) || 0), 0);
+    const monthFee = records.filter(r => (r.commissionTime || '').startsWith(thisMonthStr())).reduce((s, r) => s + (parseFloat(r.fee) || 0), 0);
+    const monthCount = records.filter(r => (r.commissionTime || '').startsWith(thisMonthStr())).length;
+    const done = records.filter(r => valIncludes(r.status, '已完成')).length;
+    const scoreMap = { '非常满意': 100, '满意': 80, '一般': 60, '不满意': 40 };
+    const scored = records.map(r => scoreMap[(r.evaluation || '').trim()] || null).filter(v => v != null);
+    const satisfaction = scored.length ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length) + '%' : '—';
     return [
-      { label: '约稿总数', value: records.length, sub: '单' },
-      { label: '总花费', value: '¥' + totalFee.toLocaleString(), sub: '' },
-      { label: '已完成', value: records.filter(r => valIncludes(r.status, '已完成')).length, sub: '单' },
+      { label: '本月约稿数', value: monthCount, unit: '单' },
+      { label: '本月花费', value: '¥' + monthFee.toLocaleString() },
+      { label: '已完成', value: done, unit: '单' },
+      { label: '约稿总数', value: records.length, unit: '单' },
+      { label: '总花费', value: '¥' + totalFee.toLocaleString() },
+      { label: '满意度', value: satisfaction },
     ];
   },
   statsTitle: '约稿统计',
-  chart: (records) => renderAnnualChart(records, 'commissionTime', { title: '约稿花费', valueField: 'fee', color: '#fa8c16' }),
+  chart: (records) => renderAnnualChart(records, 'commissionTime', { title: '约稿花费', valueField: 'fee', color: '#fa8c16', year: getChartYear('oc-commission') }, 'oc-commission'),
+  statsYearField: 'commissionTime',
   personFilterField: 'oc',
 };
 
@@ -1568,9 +1825,9 @@ let _searchTimer, _homeSearchTimer;
 const PAGE_SIZES = {
   'home': 5, 'groupbuy-records': 5, 'groupbuy-samples': 5,
   'design-commission': 5, 'design-auth': 5, 'oc-commission': 5,
-  'groupbuy-factories': 20, 'design-inspiration': 20, 'oc-profiles': 20, 'oc-stories': 10, 'oc-relations': 10,
+  'groupbuy-factories': 10, 'design-inspiration': 20, 'oc-profiles': 20, 'oc-stories': 10, 'oc-relations': 10,
 };
-const TWO_COL_MODULES = ['groupbuy-factories', 'design-inspiration', 'oc-profiles'];
+const TWO_COL_MODULES = ['design-inspiration', 'oc-profiles'];
 
 /* ===== Router ===== */
 function navigate(page) {
@@ -1591,6 +1848,7 @@ function navigate(page) {
   if (page === 'design-calc') return renderDesignCalc();
   if (page === 'life-checkin') return renderLifeCheckin();
   if (page === 'life-record') return renderLifeRecord();
+  if (page === 'design-commission-detail') return renderCommissionDetailPage();
   const mod = MODULES[page];
   if (mod) return renderListPage(page, mod);
   body.innerHTML = '<div class="empty-state"><div class="empty-icon">🔧</div><div class="empty-text">页面开发中...</div></div>';
@@ -1611,15 +1869,29 @@ function renderSidebar() {
 }
 
 /* ===== Stats Section Helper ===== */
-function renderStatsSection(stats, title) {
+function renderStatsSection(stats, title, scope, pageKey) {
+  scope = scope || 'all';
   let html = `<div class="stats-section">`;
-  html += `<div class="stats-section-title">📊 ${esc(title || '总结')}</div>`;
+  html += `<div class="stats-section-title">📊 ${esc(title || '总结')}`;
+  if (pageKey) {
+    html += `<div class="stats-scope-toggle">`;
+    html += `<button class="btn btn-xs ${scope === 'all' ? 'btn-primary' : 'btn-outline'}" onclick="setStatsScope('${pageKey}','all')">全部</button>`;
+    html += `<button class="btn btn-xs ${scope === 'year' ? 'btn-primary' : 'btn-outline'}" onclick="setStatsScope('${pageKey}','year')">年度</button>`;
+    html += `</div>`;
+  }
+  html += `</div>`;
   html += '<div class="stats-grid">';
   stats.forEach(s => {
-    html += `<div class="stat-card"><div class="stat-label">${esc(s.label)}</div><div class="stat-value">${esc(s.value)}</div>${s.sub ? `<div class="stat-sub">${esc(s.sub)}</div>` : ''}</div>`;
+    const unit = s.unit ? `<span class="stat-unit">${esc(s.unit)}</span>` : '';
+    html += `<div class="stat-card"><div class="stat-label">${esc(s.label)}</div><div class="stat-value">${esc(s.value)}${unit}</div>${s.sub ? `<div class="stat-sub">${esc(s.sub)}</div>` : ''}</div>`;
   });
   html += '</div></div>';
   return html;
+}
+function setStatsScope(pageKey, scope) {
+  if (!pageState[pageKey]) pageState[pageKey] = { search: '', filters: {} };
+  pageState[pageKey].statsScope = scope;
+  renderListPage(pageKey, MODULES[pageKey]);
 }
 
 /* ===== Generic List Page ===== */
@@ -1634,6 +1906,7 @@ function renderListPage(pageKey, mod) {
     if (!ps.viewMode) ps.viewMode = 'calendar';
     if (!ps.calYear) { ps.calYear = new Date().getFullYear(); ps.calMonth = new Date().getMonth(); }
     if (!ps.dateFilter) ps.dateFilter = '';
+    if (ps.selectedCommissionId === undefined) ps.selectedCommissionId = null;
   }
   if (ps.search) records = records.filter(r => JSON.stringify(r).toLowerCase().includes(ps.search.toLowerCase()));
   if (mod.filters) { mod.filters.forEach(f => { const fv = ps.filters[f.key]; if (fv) records = records.filter(r => valIncludes(r[f.key], fv)); }); }
@@ -1681,7 +1954,10 @@ function renderListPage(pageKey, mod) {
       return val === pf;
     });
   }
-  // Toolbar (新增置顶)
+  // 接稿排期「列表」模式：左右双栏（左=排期录入，右=接稿详情缩略预览）
+  const isCommDual = (pageKey === 'design-commission' && ps.viewMode === 'list');
+
+  // Toolbar (新增置顶)：始终占满顶部，不参与双栏
   html += '<div class="toolbar">';
   html += `<div class="search-box"><input type="text" placeholder="搜索..." value="${esc(ps.search)}" oninput="onSearch('${pageKey}', this.value)"><span class="search-icon">🔍</span></div>`;
   if (mod.filters) {
@@ -1720,8 +1996,10 @@ function renderListPage(pageKey, mod) {
   if (commissionAllRecords) {
     html += '<div class="calendar" style="margin-bottom:16px">';
     html += '<div class="calendar-header">';
-    html += `<span class="cal-title">${ps.calYear}年${ps.calMonth + 1}月</span>`;
-    html += '<div class="cal-nav">';
+    const calMonthKey = `${ps.calYear}-${String(ps.calMonth + 1).padStart(2, '0')}`;
+    const calMonthCount = commissionAllRecords.filter(r => (r.startTime || r.acceptTime || '').startsWith(calMonthKey)).length;
+    html += `<span class="cal-title">${ps.calYear}年${ps.calMonth + 1}月<span class="cal-month-count">（本月接稿 ${calMonthCount}）</span></span>`;
+    html += '<div class="cal-nav" style="gap:2px">';
     html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(-1)">‹ 上月</button>`;
     html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(0)">本月</button>`;
     html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(1)">下月 ›</button>`;
@@ -1733,21 +2011,41 @@ function renderListPage(pageKey, mod) {
     html += '</div>';
   }
 
+  // 双栏：工具栏/日历之上独占一行，记录与详情预览并列（左右等宽卡片一一对应）
+  if (isCommDual) html += '<div class="comm-dual">';
+
   // Records
   const pageSize = PAGE_SIZES[pageKey] || 10;
   const totalPages = Math.ceil(records.length / pageSize);
   if (ps.pageNo > totalPages) ps.pageNo = 1;
   const pageNo = ps.pageNo || 1;
   const pagedRecords = records.slice((pageNo - 1) * pageSize, pageNo * pageSize);
+  const fieldLabelMap = {};
+  (mod.fields || []).forEach(f2 => { if (f2.key) fieldLabelMap[f2.key] = f2.label; });
+  const _hiddenFields = ((getSettings().moduleFields || {})[pageKey]) || [];
+  const _order = ((getSettings().moduleFieldOrder || {})[pageKey]) || [];
+  const _shownFields = ((getSettings().moduleFieldsShown || {})[pageKey]) || [];
+  const _defaultVisibleKeys = (mod.listFields || []).map(f => f.key);
+  const _visibleKeys = _defaultVisibleKeys.filter(k => !_hiddenFields.includes(k)).concat(_shownFields.filter(k => !_defaultVisibleKeys.includes(k)));
+  const _orderedKeys = _order.filter(k => _visibleKeys.includes(k)).concat(_visibleKeys.filter(k => !_order.includes(k)));
+  const visibleListFields = _visibleKeys.map(k => {
+    const lf = (mod.listFields || []).find(f => f.key === k);
+    if (lf) return lf;
+    const ff = (mod.fields || []).find(f => f.key === k);
+    return ff ? { key: ff.key, label: ff.label } : null;
+  }).filter(Boolean).sort((a, b) => _orderedKeys.indexOf(a.key) - _orderedKeys.indexOf(b.key));
 
   if (!records.length) {
-    html += '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">暂无记录，点击新增开始添加</div></div>';
+    const emptyCls = isCommDual ? ' class="empty-state" style="grid-column:1/-1"' : ' class="empty-state"';
+    html += `<div${emptyCls}><div class="empty-icon">📋</div><div class="empty-text">暂无记录，点击新增开始添加</div></div>`;
   } else {
     const twoCol = TWO_COL_MODULES.includes(pageKey) ? ' two-col' : '';
-    html += `<div class="record-list${twoCol}">`;
+    if (!isCommDual) html += `<div class="record-list${twoCol}">`;
     pagedRecords.forEach(r => {
       const isOverdue = mod.isOverdue && mod.isOverdue(r);
-      html += `<div class="record-card" onclick="openDetail('${pageKey}','${r.id}')">`;
+      const cardClick = isCommDual ? `commissionSelectCard('${r.id}')` : `openDetail('${pageKey}','${r.id}')`;
+      const cardSelCls = (isCommDual && ps.selectedCommissionId === r.id) ? ' selected' : '';
+      html += `<div class="record-card${cardSelCls}" onclick="${cardClick}">`;
       html += '<div class="record-card-header">';
       const cardImg = mod.cardImage ? mod.cardImage(r) : null;
       if (cardImg) html += `<img src="${cardImg}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0">`;
@@ -1760,9 +2058,11 @@ function renderListPage(pageKey, mod) {
       html += '</div>';
       html += '</div>';
       html += '<div class="record-card-body">';
-      (mod.listFields || []).forEach(f => {
+      (visibleListFields).forEach(f => {
+        const dispLabel = fieldLabelMap[f.key] || f.label;
         let v = r[f.key];
         if (f.key === '_productCount') v = calcProductQty(r) + '件';
+        if (f.key === '_coopCount') v = (r.cooperationRecords || []).length;
         if (f.key === 'clientInfo') return; // 单主已在卡片标题展示，正文不再重复
         if (f.key === '_firstProduct') {
           if (pageKey === 'design-commission') return; // 接稿排期在下面用复选框展示
@@ -1772,14 +2072,14 @@ function renderListPage(pageKey, mod) {
         if (f.tag && Array.isArray(v)) {
           const tags = v.map(val => {
             let tc = 'tag-info';
-            if (['进行中', '全款', '长期合作', '合格', '稳定', '已完结', '尾款', '已接稿', '已交付', '交好'].includes(val)) tc = 'tag-success';
-            if (['筹备中', '未付', '临时合作', '连载中', '定金', '待接稿', '中等', '变化中'].includes(val)) tc = 'tag-warning';
+            if (['进行中', '全款', '长期合作', '合格', '稳定', '已完结', '尾款', '已接稿', '已交付', '交好', '非常满意', '满意'].includes(val)) tc = 'tag-success';
+            if (['筹备中', '未付', '临时合作', '连载中', '定金', '待接稿', '中等', '变化中', '一般'].includes(val)) tc = 'tag-warning';
             if (['已截团', '暂停合作', '已取消', '流团'].includes(val)) tc = 'tag-gray';
-            if (['不合格'].includes(val)) tc = 'tag-danger';
+            if (['不合格', '不满意'].includes(val)) tc = 'tag-danger';
             if (['买断', '敌对', '已结算'].includes(val)) tc = 'tag-purple';
             return `<span class="tag ${tc}">${esc(String(val))}</span>`;
           }).join(' ');
-          html += `<span class="field"><span class="field-label">${esc(f.label)}:</span>${tags}</span>`;
+          html += `<span class="field"><span class="field-label">${esc(dispLabel)}:</span><span class="field-value field-tags">${tags}</span></span>`;
           return;
         }
         if (Array.isArray(v)) v = v.join('、');
@@ -1787,21 +2087,21 @@ function renderListPage(pageKey, mod) {
         if (f.prefix) v = f.prefix + v;
         if (f.tag) {
           let tc = 'tag-info';
-          if (['进行中', '全款', '长期合作', '合格', '稳定', '已完结', '尾款', '已接稿', '已交付', '交好'].includes(v)) tc = 'tag-success';
-          if (['筹备中', '未付', '临时合作', '连载中', '定金', '待接稿', '中等', '变化中'].includes(v)) tc = 'tag-warning';
+          if (['进行中', '全款', '长期合作', '合格', '稳定', '已完结', '尾款', '已接稿', '已交付', '交好', '非常满意', '满意'].includes(v)) tc = 'tag-success';
+          if (['筹备中', '未付', '临时合作', '连载中', '定金', '待接稿', '中等', '变化中', '一般'].includes(v)) tc = 'tag-warning';
           if (['已截团', '暂停合作', '已取消', '流团'].includes(v)) tc = 'tag-gray';
-          if (['不合格'].includes(v)) tc = 'tag-danger';
+          if (['不合格', '不满意'].includes(v)) tc = 'tag-danger';
           if (['买断', '敌对', '已结算'].includes(v)) tc = 'tag-purple';
-          html += `<span class="field"><span class="field-label">${esc(f.label)}:</span><span class="tag ${tc}">${esc(String(v))}</span></span>`;
+          html += `<span class="field"><span class="field-label">${esc(dispLabel)}:</span><span class="field-value"><span class="tag ${tc}">${esc(String(v))}</span></span></span>`;
         } else if (f.link) {
-          if (v && v.startsWith('http')) html += `<span class="field"><span class="field-label">${esc(f.label)}:</span><a href="${esc(v)}" target="_blank" style="color:var(--c-primary)">链接</a></span>`;
+          if (v && v.startsWith('http')) html += `<span class="field"><span class="field-label">${esc(dispLabel)}:</span><a href="${esc(v)}" target="_blank" style="color:var(--c-primary)">链接</a></span>`;
         } else {
-          html += `<span class="field"><span class="field-label">${esc(f.label)}:</span><span class="field-value">${esc(String(v))}</span></span>`;
+          html += `<span class="field"><span class="field-label">${esc(dispLabel)}:</span><span class="field-value">${esc(String(v))}</span></span>`;
         }
       });
       if (pageKey === 'design-commission' && r.products && r.products.length) {
         const doneCount = r.products.filter(p => p.done).length;
-        html += `<div class="field comm-products-field" onclick="event.stopPropagation()"><span class="field-label">制品:</span><div class="comm-product-checklist">`;
+        html += `<div class="field comm-products-field" onclick="event.stopPropagation()"><span class="field-label">制品</span><div class="comm-product-checklist">`;
         r.products.forEach((p, idx) => {
           html += `<label class="comm-product-item ${p.done ? 'done' : ''}">
             <input type="checkbox" ${p.done ? 'checked' : ''} onchange="event.stopPropagation();commissionToggleProductDone('${r.id}',${idx},this.checked,true)">
@@ -1809,13 +2109,14 @@ function renderListPage(pageKey, mod) {
           </label>`;
         });
         html += `</div></div>`;
-        html += `<span class="field"><span class="field-label">完成:</span><span class="field-value" style="color:${doneCount === r.products.length ? 'var(--c-green)' : 'var(--c-text)'}">${doneCount}/${r.products.length}</span></span>`;
+        html += `<span class="field"><span class="field-label">完成进度</span><span class="field-value" style="color:${doneCount === r.products.length ? 'var(--c-green)' : 'var(--c-text)'}">${doneCount}/${r.products.length}</span></span>`;
       }
       html += '</div>';
-      if (isOverdue) html += `<div style="margin-top:8px;padding:4px 8px;background:#fff1f0;border-radius:4px;font-size:11px;color:var(--c-red)">⚠️ 已过截止日期</div>`;
+      if (isOverdue) html += `<div style="margin-top:6px;padding:4px 8px;background:#fff1f0;border-radius:4px;font-size:11px;color:var(--c-red)">⚠️ 已过截止日期</div>`;
       html += '</div>';
+      if (isCommDual) html += renderCommDetailCard(r, ps.selectedCommissionId === r.id);
     });
-    html += '</div>';
+    if (!isCommDual) html += '</div>';
     // Pagination controls
     if (totalPages > 1) {
       html += '<div class="pagination">';
@@ -1826,26 +2127,39 @@ function renderListPage(pageKey, mod) {
     }
   }
 
+  // 双栏：关闭 .comm-dual 容器
+  if (isCommDual) html += '</div>';
+
   // Chart + Stats (总结部分与记录隔开, 两列布局, 实色分割线)
   if (mod.chart || mod.stats) {
     html += '<div class="stats-divider"></div>';
     if (mod.chart) html += mod.chart(DB.list(store));
-    if (mod.stats) html += renderStatsSection(mod.stats(DB.list(store)), mod.statsTitle);
+    if (mod.stats) {
+      const scope = (pageState[pageKey] && pageState[pageKey].statsScope) || 'all';
+      let statRecs = DB.list(store);
+      const yrField = mod.statsYearField;
+      if (scope === 'year' && yrField) {
+        const y = new Date().getFullYear();
+        statRecs = statRecs.filter(r => String(r[yrField] || '').startsWith(String(y)));
+      }
+      html += renderStatsSection(mod.stats(statRecs), mod.statsTitle, scope, pageKey);
+    }
   }
   html += '</div>';
   body.innerHTML = html;
 }
 
+function _restoreSearchFocus(sel) {
+  try { const inp = document.querySelector(sel); if (inp) { inp.focus(); const n = inp.value.length; try { inp.setSelectionRange(n, n); } catch (e) {} } } catch (e) {}
+}
 function onSearch(pageKey, val) {
   if (!pageState[pageKey]) pageState[pageKey] = { search: '', filters: {} };
   pageState[pageKey].search = val;
   pageState[pageKey].pageNo = 1;
-  clearTimeout(_searchTimer);
-  _searchTimer = setTimeout(() => {
-    if (pageKey === 'design-pricelist') return renderPriceList();
-    if (pageKey === 'oc-timeline') return renderTimeline();
-    renderListPage(pageKey, MODULES[pageKey]);
-  }, 200);
+  if (pageKey === 'design-pricelist') { renderPriceList(); _restoreSearchFocus('#mainBody .search-box input'); return; }
+  if (pageKey === 'oc-timeline') { renderTimeline(); _restoreSearchFocus('#mainBody .search-box input'); return; }
+  renderListPage(pageKey, MODULES[pageKey]);
+  _restoreSearchFocus('#mainBody .search-box input');
 }
 function onFilter(pageKey, fkey, val) {
   if (!pageState[pageKey]) pageState[pageKey] = { search: '', filters: {} };
@@ -2022,6 +2336,202 @@ function commissionClearDate() {
   pageState['design-commission'].dateFilter = '';
   renderListPage('design-commission', MODULES['design-commission']);
 }
+// 接稿排期列表：点击卡片选中（右栏联动刷新），不直接开详情
+function commissionSelectCard(id) {
+  const ps = pageState['design-commission'];
+  ps.selectedCommissionId = (ps.selectedCommissionId === id) ? null : id;
+  ps.pageNo = ps.pageNo || 1;
+  renderListPage('design-commission', MODULES['design-commission']);
+}
+
+// 双栏中右栏的单个「接稿详情」卡片，与左侧排期卡片一一对应、等高联动
+function renderCommDetailCard(r, isSelected) {
+  const client = r.clientInfo || '';
+  const details = DB.list('commissionDetails')
+    .filter(d => (d.clientInfo || '') === client)
+    .sort((a, b) => (b._ct || 0) - (a._ct || 0));
+  const selCls = isSelected ? ' selected' : '';
+  if (!details.length) {
+    return `<div class="record-card comm-detail-card${selCls}">
+      <div class="cdc-header"><span class="cdc-header-main">初始制品 0</span></div>
+      <div class="cdc-body"><div class="cdc-empty">该单主暂无接稿详情档案。</div></div>
+      <div class="comm-detail-actions"><button type="button" class="btn btn-primary btn-sm" disabled>查看完整详情</button></div>
+    </div>`;
+  }
+  const d = details[0];
+  const cat = d.category || '';
+  const pages = [];
+  pages.push({ data: d, isExtra: false });
+  (d.extraProducts || []).forEach((p) => { pages.push({ data: p, isExtra: true }); });
+  const slidesHtml = pages.map((pg, i) => {
+    const rows = cdDetailRowsFor(pg.data, cat, pg.isExtra, d);
+    const rowsHtml = rows.map(([k, v]) => `<div class="cdc-row"><span class="cdc-label">${esc(k)}</span><span class="cdc-value">${esc(v != null ? String(v) : '')}</span></div>`).join('');
+    const href = pg.isExtra ? (pg.data.sameHandleRef || '否') : '0';
+    return `<div class="cdc-slide" data-index="${i}" data-same-handle-ref="${esc(href)}">${rowsHtml}</div>`;
+  }).join('');
+  const dotsHtml = pages.length > 1
+    ? `<div class="cdc-dots">` + pages.map((_, i) => `<span class="cdc-dot${i === 0 ? ' active' : ''}" onclick="cdcGoTo('${esc(d.id)}', ${i})"></span>`).join('') + `</div>`
+    : '';
+  return `<div class="record-card comm-detail-card${selCls}">
+    <div class="cdc-header" id="cdc_hdr_${esc(d.id)}"><span class="cdc-header-main">初始制品 0</span></div>
+    <div class="cdc-body">
+      <div class="cdc-track" id="cdc_${esc(d.id)}">${slidesHtml}</div>
+    </div>
+    ${dotsHtml}
+    <div class="comm-detail-actions"><button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation();cdJumpToDetail('${esc(d.id)}')">查看完整详情</button></div>
+  </div>`;
+}
+// 接稿详情卡片：单条制品（柄图）字段；base 为初始制品，用于同柄图追加制品同步姓名/角色名、风格、颜色
+function cdDetailRowsFor(data, cat, isExtra, base) {
+  const rows = [];
+  const add = (k, v) => { rows.push([k, v]); };
+  // 同柄图（同模于初始制品）追加制品：同步姓名/角色名、风格、颜色
+  let charName = data.charName, style = data.style, color = data.color;
+  if (isExtra && base && String(data.sameHandleRef) === '0') {
+    if (charName == null || String(charName).trim() === '') charName = base.charName;
+    if (style == null || String(style).trim() === '') style = base.style;
+    if (color == null || String(color).trim() === '') color = base.color;
+  }
+  if (cat === '土味' || cat === '封面') {
+    add('书名/文字', data.bookName); add('类型', data.type); add('尺寸', data.size); add('颜色', color);
+  } else if (cat === '饭圈') {
+    add('姓名', charName); add('制品', data.product); add('尺寸', data.size); add('风格', style); add('颜色', color);
+  } else if (cat === '二次') {
+    add('角色名', charName); add('制品', data.product); add('尺寸', data.size); add('风格', style); add('颜色', color);
+  } else {
+    add('类型', data.type); add('制品', data.product); add('尺寸', data.size); add('颜色', color);
+  }
+  // 是否同模：放在字段最后（sameModel 字段，默认“否”）
+  const sameModelVal = data.sameModel === true ? '是' : (data.sameModel || '否');
+  rows.push(['是否同模', sameModelVal]);
+  return rows;
+}
+function cdcGoTo(id, i) {
+  const track = document.getElementById('cdc_' + id);
+  if (!track) return;
+  const slide = track.children[i];
+  if (!slide) return;
+  const delta = slide.getBoundingClientRect().left - track.getBoundingClientRect().left + track.scrollLeft;
+  track.scrollTo({ left: delta, behavior: 'smooth' });
+  const dots = track.parentElement ? track.parentElement.querySelectorAll('.cdc-dot') : [];
+  dots.forEach(dot => dot.classList.remove('active'));
+  if (dots[i]) dots[i].classList.add('active');
+  cdcUpdateHeader(id, i);
+}
+function cdcUpdateHeader(id, i) {
+  const h = document.getElementById('cdc_hdr_' + id);
+  if (!h) return;
+  if (i === 0) { h.innerHTML = '<span class="cdc-header-main">初始制品 0</span>'; return; }
+  const track = document.getElementById('cdc_' + id);
+  const slide = track && track.children[i];
+  const ref = slide ? (slide.dataset.sameHandleRef || '否') : '否';
+  let hint = '';
+  if (ref !== '否') {
+    const target = ref === '0' ? '初始制品0' : ('追加制品' + ref);
+    hint = '<span class="cdc-header-hint">与' + esc(target) + '同柄</span>';
+  }
+  h.innerHTML = '<span class="cdc-header-main">追加制品 ' + i + '</span>' + hint;
+}
+// 接稿详情卡片轮播：滑动翻页时同步圆点与顶部柄图标签
+document.addEventListener('scroll', (e) => {
+  const t = e.target;
+  if (t && t.classList && t.classList.contains('cdc-track')) {
+    const tLeft = t.getBoundingClientRect().left;
+    const slides = t.querySelectorAll('.cdc-slide');
+    let idx = 0, min = Infinity;
+    slides.forEach((s, i) => { const dist = Math.abs(s.getBoundingClientRect().left - tLeft); if (dist < min) { min = dist; idx = i; } });
+    const dots = t.parentElement ? t.parentElement.querySelectorAll('.cdc-dot') : [];
+    dots.forEach(dot => dot.classList.remove('active'));
+    if (dots[idx]) dots[idx].classList.add('active');
+    const did = t.id.replace('cdc_', '');
+    cdcUpdateHeader(did, idx);
+  }
+}, true);
+// 同柄图标签
+function cdHandleRefLabel(ref) {
+  if (!ref || ref === '否') return '独立新柄';
+  return ref === '0' ? '同柄于初始制品' : ('同柄于追加制品 ' + ref);
+}
+
+// 右栏：接稿详情缩略预览（按单主姓名关联 commissionDetails），按品类展示关键字段
+function renderCommDetailPreview(selectedId) {
+  const commission = selectedId ? DB.getById('commissions', selectedId) : null;
+  let html = '<div class="comm-dual-right">';
+  if (!commission) {
+    html += '<div class="comm-preview-empty">点击左侧任意排期订单，在此查看其对应的接稿详情。</div>';
+    html += '</div>';
+    return html;
+  }
+  const client = commission.clientInfo || '';
+  const details = DB.list('commissionDetails')
+    .filter(d => (d.clientInfo || '') === client)
+    .sort((a, b) => (b._ct || 0) - (a._ct || 0));
+  html += `<div class="comm-preview-client">单主：<b>${esc(client || '未填写')}</b></div>`;
+  if (!details.length) {
+    html += '<div class="comm-preview-empty">该单主暂无接稿详情档案。</div>';
+    html += `<button class="btn btn-outline btn-sm" onclick="navigate('design-commission-detail')">前往接稿详情新建</button>`;
+    html += '</div>';
+    return html;
+  }
+  // 取第一条匹配详情，按品类展示指定字段
+  const d = details[0];
+  const cat = d.category || '';
+  let thumbRows = [];
+  if (cat === '土味' || cat === '封面') {
+    thumbRows = [
+      ['书名/文字', d.bookName || '—'],
+      ['类型', d.type || '—'],
+      ['尺寸', d.size || '—'],
+      ['颜色', d.color || '—'],
+    ];
+  } else if (cat === '饭圈') {
+    thumbRows = [
+      ['姓名', d.charName || '—'],
+      ['制品', d.product || '—'],
+      ['尺寸', d.size || '—'],
+      ['风格', d.style || '—'],
+      ['颜色', d.color || '—'],
+    ];
+  } else if (cat === '二次') {
+    thumbRows = [
+      ['角色名', d.charName || '—'],
+      ['制品', d.product || '—'],
+      ['尺寸', d.size || '—'],
+      ['风格', d.style || '—'],
+      ['颜色', d.color || '—'],
+    ];
+  } else {
+    thumbRows = [
+      ['类型', d.type || '—'],
+      ['制品', d.product || '—'],
+      ['尺寸', d.size || '—'],
+      ['颜色', d.color || d.styleColor || '—'],
+    ];
+  }
+  html += `<div class="comm-preview-thumb" onclick="cdJumpToDetail('${d.id}')">`;
+  thumbRows.forEach(([k, v]) => {
+    html += `<div class="comm-preview-row"><span class="comm-preview-k">${esc(k)}</span><span class="comm-preview-v">${esc(String(v))}</span></div>`;
+  });
+  html += '</div>';
+  html += `<div class="comm-preview-actions"><button class="btn btn-primary btn-sm comm-preview-full" onclick="cdJumpToDetail('${d.id}')">查看完整详情</button></div>`;
+  html += '</div>';
+  return html;
+}
+function cdJumpToDetail(detailId) {
+  const r = DB.getById('commissionDetails', detailId);
+  if (!r) return;
+  const cat = COMM_DETAIL_CATS.find(c => c.cat === r.category);
+  let ps = pageState['design-commission-detail'];
+  if (!ps) ps = pageState['design-commission-detail'] = { tab: '', search: '', cdMonth: thisMonthStr(), recCollapsed: {}, cdPage: 1 };
+  ps.tab = cat ? cat.key : '';
+  ps.search = '';
+  ps.recCollapsed = { [detailId]: false };
+  navigate('design-commission-detail');
+  setTimeout(() => {
+    const el = document.querySelector(`.cd-rec-card[data-id="${detailId}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 100);
+}
 function setPersonFilter(pageKey, name) {
   if (!pageState[pageKey]) pageState[pageKey] = { search: '', filters: {} };
   pageState[pageKey].personFilter = name || null;
@@ -2153,6 +2663,15 @@ function prepareFields(pageKey, fields) {
       if (aNameCol) { aNameCol.datalistId = 'gb_product_dl'; }
     }
   }
+  if (pageKey === 'design-commission-detail-fq' || pageKey === 'design-commission-detail-ec') {
+    // 制品下拉与价目表联动（可选价目表制品，也支持手动输入）
+    const cdPriceList = DB.list('priceList');
+    const cdProdNames = [...new Set(cdPriceList.filter(p => PRODUCT_CATEGORIES.includes(p.category) && p.product).map(p => p.product))];
+    const prodF = f.find(x => x.key === 'product');
+    if (prodF) { prodF.type = 'combobox'; prodF.options = cdProdNames.map(n => ({ value: n, label: n })); }
+    const sizeF = f.find(x => x.key === 'size');
+    if (sizeF) { sizeF.hint = '初始为默认尺寸'; sizeF.hintInline = true; }
+  }
   if (pageKey === 'design-commission') {
     const priceList = DB.list('priceList');
     const prodField = f.find(ff => ff.key === 'products');
@@ -2245,6 +2764,16 @@ function setupFormInteractions(pageKey) {
     });
     setTimeout(recalc, 100);
   }
+  // 约稿单：平台昵称填完自动同步到单主（单主为空时填充）
+  if (pageKey.indexOf('design-commission-detail') === 0) {
+    const pn = $('[data-key="platformNick"]');
+    const ci = $('[data-key="clientInfo"]');
+    if (pn && ci) {
+      pn.addEventListener('input', () => {
+        if (!ci.value.trim()) ci.value = pn.value;
+      });
+    }
+  }
 }
 
 function saveForm(pageKey, mod, id) {
@@ -2258,6 +2787,9 @@ function saveForm(pageKey, mod, id) {
     if (valIncludes(data.progress, '已交付') && !data.deliveredTime) {
       data.deliveredTime = todayStr();
     }
+  }
+  if (pageKey === 'groupbuy-records') {
+    syncGroupbuyToFactories(data);
   }
   if (pageKey === 'design-inspiration' && data.category) saveCustomCategory(data.category);
   if (pageKey === 'groupbuy-samples' && data.category) saveCustomSampleCategory(data.category);
@@ -2276,6 +2808,32 @@ function calcCommissionPrice(data) {
   if (!parseFloat(data.amount)) data.amount = quoteAmount;
 }
 
+/* ===== 开团制品 → 厂家合作记录 回填（#6） ===== */
+function syncGroupbuyToFactories(gb) {
+  const products = gb.products || [];
+  if (!products.length) return;
+  const startTime = gb.startTime || gb.endTime || '';
+  products.forEach(p => {
+    const facName = (p.factory || '').trim();
+    const prodName = (p.name || '').trim();
+    if (!facName || !prodName) return;
+    const nFac = facName.toLowerCase().replace(/\s+/g, '');
+    const facs = DB.list('factories').filter(f => {
+      const fn = (f.name || '').toLowerCase().replace(/\s+/g, '');
+      return fn && (fn.includes(nFac) || nFac.includes(fn));
+    });
+    facs.forEach(fac => {
+      if (!fac.id) return;
+      const recs = (fac.cooperationRecords || []).slice();
+      const exists = recs.some(c => (c.coopType || '开团') === '开团' && (c.project || '').trim() === prodName && (c.date || '') === startTime);
+      if (!exists) {
+        recs.push({ coopType: '开团', project: prodName, date: startTime });
+        DB.update('factories', fac.id, { cooperationRecords: recs });
+      }
+    });
+  });
+}
+
 /* ===== Detail View ===== */
 function openDetail(pageKey, id) {
   const mod = MODULES[pageKey];
@@ -2283,7 +2841,8 @@ function openDetail(pageKey, id) {
   if (!r) return;
   let html = '<div class="detail-view">';
   mod.fields.forEach(f => {
-    if (f.section) { html += `<div style="font-size:13px;font-weight:600;color:var(--c-primary);margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--c-border-light)">${esc(f.section)}</div>`; return; }
+    // v450-5：展示模块分组标题统一用 .form-section（与接稿详情右侧 .cdc-header 一致，底部带分割线）
+    if (f.section) { html += `<div class="form-section">${esc(f.section)}</div>`; return; }
     if (f.type === 'custom' || f.type === 'readonly') return;
     const label = getFieldLabel(pageKey, f.key, f.label);
     if (f.type === 'image') {
@@ -2318,7 +2877,21 @@ function openDetail(pageKey, id) {
           return '';
         };
         const commThLabel = c => c.subkey === 'patternId' ? '柄图<br>标识' : esc(c.label);
-        html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><div class="detail-value"><table class="detail-table"><tr>${cols.map(c => `<th${isCommProd ? commColStyle(c, true) : ''}>${isCommProd ? commThLabel(c) : esc(c.label)}</th>`).join('')}${extraHead}</tr>`;
+        const isGb = (pageKey === 'groupbuy-records');
+        // v454：售后记录 orderNo/quantity/amount 固定62px，其余三列(name/type/note)自动均分；制品列表保持原宽(name90+price62+factory104+salesCount62+isDisbanded62=380)。
+        const isAfterSales = f.key === 'afterSales';
+        const gbColStyle = (c, forTh) => {
+          const ws = forTh ? '' : 'white-space:nowrap;';
+          if (isAfterSales && ['orderNo','quantity','amount'].includes(c.subkey)) return ` style="width:62px;${ws}"`;
+          if (!isAfterSales && ['price','salesCount','isDisbanded'].includes(c.subkey)) return ` style="width:62px;${ws}"`;
+          if (!isAfterSales && c.subkey === 'factory') return ` style="width:104px;${ws}"`;
+          if (!isAfterSales && c.subkey === 'name') return ` style="width:90px;${ws}"`;
+          if (!isAfterSales && c.subkey === 'note') return ` style="width:90px;${ws}"`;
+          return '';
+        };
+        const thStyle = c => isCommProd ? commColStyle(c, true) : (isGb ? gbColStyle(c, true) : '');
+        // v456：开团记录详情表格宽度改回默认(width:100%)，由.detail-table自带，左右边距/留白保持一致
+        html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><div class="detail-value"><table class="detail-table"><tr>${cols.map(c => `<th${thStyle(c)}>${isCommProd ? commThLabel(c) : esc(c.label)}</th>`).join('')}${extraHead}</tr>`;
         items.forEach((item, idx) => {
           html += `<tr class="${item.done ? 'prod-done' : ''}">`;
           cols.forEach(c => {
@@ -2439,7 +3012,7 @@ function renderHome() {
 
     // Toolbar
     html += '<div class="toolbar" style="margin-top:4px">';
-    html += `<div class="search-box"><input type="text" placeholder="搜索标题..." value="${esc(ps.search)}" oninput="homeSearch(this.value)"><span class="search-icon">🔍</span></div>`;
+    html += `<div class="search-box"><input type="text" placeholder="搜索..." value="${esc(ps.search)}" oninput="homeSearch(this.value)"><span class="search-icon">🔍</span></div>`;
     html += `<input type="text" class="filter-select" value="${ps.dateFilter}" placeholder="请选择日期" title="请选择日期" onfocus="this.type='date';try{this.showPicker()}catch(e){}" onblur="if(!this.value)this.type='text'" onchange="homeDateFilter(this.value)">`;
     html += `<button class="filter-select" onclick="homeClearFilter()" style="cursor:pointer;border:1px solid var(--c-border)">清除筛选</button>`;
     html += '<div class="spacer"></div>';
@@ -2527,7 +3100,7 @@ function enterPlatformView(tab) {
   renderHome();
 }
 function homeBackToMain() { pageState.home.view = 'main'; pageState.home.statusFilter = ''; renderHome(); }
-function homeSearch(val) { pageState.home.search = val; pageState.home.homePageNo = 1; clearTimeout(_homeSearchTimer); _homeSearchTimer = setTimeout(renderHome, 200); }
+function homeSearch(val) { pageState.home.search = val; pageState.home.homePageNo = 1; renderHome(); _restoreSearchFocus('#mainBody .toolbar .search-box input'); }
 function homeDateFilter(val) { pageState.home.dateFilter = val; pageState.home.homePageNo = 1; renderHome(); }
 function homeClearFilter() { pageState.home.search = ''; pageState.home.dateFilter = ''; pageState.home.homePageNo = 1; renderHome(); }
 function homeGoPage(pageNo) { pageState.home.homePageNo = pageNo; renderHome(); }
@@ -4593,16 +5166,30 @@ async function syncNow() {
   await Sync.fullSync();
 }
 function renderSettingsModal() {
+  const validTabs = ['theme','navicons','fields','display','data'];
+  if (!validTabs.includes(_settingsTab)) _settingsTab = 'theme';
   let html = '<div class="settings-tabs">';
   html += `<div class="settings-tab ${_settingsTab === 'theme' ? 'active' : ''}" onclick="switchSettingsTab('theme')">配色设置</div>`;
   html += `<div class="settings-tab ${_settingsTab === 'navicons' ? 'active' : ''}" onclick="switchSettingsTab('navicons')">导航图标</div>`;
   html += `<div class="settings-tab ${_settingsTab === 'fields' ? 'active' : ''}" onclick="switchSettingsTab('fields')">版块设置</div>`;
+  html += `<div class="settings-tab ${_settingsTab === 'display' ? 'active' : ''}" onclick="switchSettingsTab('display')">展示字段</div>`;
   html += `<div class="settings-tab ${_settingsTab === 'data' ? 'active' : ''}" onclick="switchSettingsTab('data')">数据管理</div>`;
   html += '</div>';
-  if (_settingsTab === 'theme') html = renderThemeSettings(html);
-  else if (_settingsTab === 'navicons') html = renderNavIconSettings(html);
-  else if (_settingsTab === 'fields') html = renderFieldSettings(html);
-  else if (_settingsTab === 'data') html = renderDataSettings(html);
+  let tabHtml = '';
+  try {
+    if (_settingsTab === 'theme') tabHtml = renderThemeSettings('');
+    else if (_settingsTab === 'navicons') tabHtml = renderNavIconSettings('');
+    else if (_settingsTab === 'fields') tabHtml = renderFieldSettings('');
+    else if (_settingsTab === 'display') tabHtml = renderDisplayFieldsSettings('');
+    else if (_settingsTab === 'data') tabHtml = renderDataSettings('');
+  } catch (e) {
+    console.error('设置渲染失败', e);
+    tabHtml = `<div class="settings-section active"><div class="empty-state"><div class="empty-text">该设置项加载失败：${esc(e && e.message ? e.message : String(e))}</div></div></div>`;
+  }
+  if (!tabHtml || !tabHtml.trim()) {
+    tabHtml = `<div class="settings-section active"><div class="empty-state"><div class="empty-text">暂无设置内容（标签：${_settingsTab}）</div></div></div>`;
+  }
+  html += tabHtml;
   openModal('设置', html, [
     { label: '关闭', class: 'btn-ghost', action: closeModal },
     { label: '保存', class: 'btn-primary', action: saveSettingsAction },
@@ -4638,14 +5225,9 @@ function renderThemeSettings(html) {
   const customThemes = (s.customThemes || []);
   if (customThemes.length) {
     html += '<h4 style="font-size:14px;margin:20px 0 12px;color:var(--c-primary)">已保存方案</h4>';
-    html += '<div style="display:flex;flex-direction:column;gap:8px">';
+    html += '<div class="preset-themes">';
     customThemes.forEach((ct, i) => {
-      html += '<div style="display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--c-border);border-radius:8px;background:var(--c-card)">';
-      html += `<div style="width:28px;height:28px;border-radius:6px;background:${ct.primary};flex-shrink:0;border:1px solid var(--c-border-light)"></div>`;
-      html += `<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--c-text)">${ct.name}</div><div style="font-size:11px;color:var(--c-text-muted)">${ct.primary}</div></div>`;
-      html += `<button class="btn btn-outline" style="padding:4px 10px;font-size:12px;flex-shrink:0" onclick="applyCustomTheme(${i})">应用</button>`;
-      html += `<button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;flex-shrink:0;color:#e74c3c" onclick="deleteCustomTheme(${i})">删除</button>`;
-      html += '</div>';
+      html += `<div class="preset-theme custom-theme-chip" style="background:${ct.primary}" onclick="applyCustomTheme(${i})" title="应用「${ct.name}」">${ct.name}<span class="ct-del" onclick="event.stopPropagation();deleteCustomTheme(${i})" title="删除">✕</span></div>`;
     });
     html += '</div>';
   }
@@ -4732,23 +5314,31 @@ function renderNavIconEditItem(key, label, currentIcon) {
 
 function renderFieldSettings(html) {
   html += '<div class="settings-section active">';
-  html += '<div class="module-selector"><label style="font-size:13px;margin-right:8px">选择模块:</label>';
-  const modules = Object.keys(MODULES).filter(k => MODULES[k].fields);
-  html += `<select onchange="_settingsModule=this.value;renderSettingsModal()"><option value="">选择模块...</option>`;
+  html += '<div class="module-selector"><label style="font-size:13px;margin-right:4px">选择模块</label>';
+  const modules = Object.keys(MODULES).filter(k => MODULES[k] && MODULES[k].fields);
+  if (!modules.length) {
+    html += '<span style="font-size:12px;color:var(--c-text-light)">暂无可配置模块</span></div></div>';
+    return html;
+  }
+  if (!_settingsModule || !modules.includes(_settingsModule)) _settingsModule = modules[0];
+  const selLabel = _settingsModule ? (PAGE_TITLES[_settingsModule] || _settingsModule) : '请选择模块';
+  html += `<div class="combobox-wrapper" style="min-width:160px"><input type="text" class="form-input combobox-input" value="${esc(selLabel)}" placeholder="请选择模块" readonly onfocus="showComboboxDropdown('settingsModuleCb')" onclick="showComboboxDropdown('settingsModuleCb')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('settingsModuleCb')">▼</button><div class="combobox-dropdown" id="settingsModuleCb">`;
   modules.forEach(k => {
-    html += `<option value="${k}" ${_settingsModule === k ? 'selected' : ''}>${PAGE_TITLES[k] || k}</option>`;
+    html += `<div class="combobox-option ${_settingsModule === k ? 'selected' : ''}" data-value="${k}" onclick="_settingsModule='${k}';renderSettingsModal()">${esc(PAGE_TITLES[k] || k)}</div>`;
   });
-  html += '</select></div>';
+  html += '</div></div></div>';
   if (_settingsModule && MODULES[_settingsModule]) {
     const mod = MODULES[_settingsModule];
     const s = getSettings();
     html += '<h4 style="font-size:13px;margin:16px 0 8px;color:var(--c-primary)">字段名称修改</h4>';
+    html += '<div class="field-area">';
     mod.fields.forEach(f => {
       if (f.section || f.type === 'custom') return;
       const key = _settingsModule + '.' + f.key;
       const customLabel = (s.fieldLabels && s.fieldLabels[key]) || '';
       html += `<div class="field-edit-row"><label>${esc(f.label)}</label><input type="text" id="fld_${f.key}" value="${esc(customLabel)}" placeholder="${esc(f.label)}"></div>`;
     });
+    html += '</div>';
     const optFields = mod.fields.filter(f => f.type === 'combobox' || f.type === 'multiselect');
     if (optFields.length) {
       html += '<h4 style="font-size:13px;margin:20px 0 8px;color:var(--c-primary)">选项管理</h4>';
@@ -4757,13 +5347,12 @@ function renderFieldSettings(html) {
         const customOpts = (s.fieldOptions && s.fieldOptions[key]) || [];
         const defaultOpts = (f.options || []).map(o => typeof o === 'string' ? o : o.value);
         const allOpts = customOpts.length ? customOpts : defaultOpts;
-        html += `<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:600;margin-bottom:4px">${esc(f.label)}</div>`;
-        html += `<div class="option-edit-list" id="opts_${f.key}">`;
-        allOpts.forEach((opt, i) => {
-          html += `<div class="option-edit-item"><input type="text" value="${esc(opt)}" data-opt-key="${f.key}" data-idx="${i}"><button class="btn-icon danger" onclick="this.parentElement.remove()">🗑️</button></div>`;
-        });
-        html += `</div>`;
-        html += `<button class="btn btn-outline btn-sm" onclick="addOptionItem('${f.key}')">+ 添加选项</button></div>`;
+      html += `<div style="margin-bottom:12px"><div class="option-field-block"><div class="option-field-title">${esc(f.label)}</div><div class="option-field-inputs" id="opts_${f.key}">`;
+      allOpts.forEach((opt, i) => {
+        html += `<div class="option-edit-item"><input type="text" value="${esc(opt)}" data-opt-key="${f.key}" data-idx="${i}"><button class="btn-icon danger" onclick="this.parentElement.remove()">🗑️</button></div>`;
+      });
+      html += `<div class="option-edit-item" style="margin-bottom:0"><button class="btn btn-primary add-opt-btn" onclick="addOptionItem('${f.key}')">+ 添加选项</button><span class="option-delete-placeholder"></span></div>`;
+      html += `</div></div></div>`;
       });
     }
   }
@@ -4776,7 +5365,9 @@ function addOptionItem(fieldKey) {
   const item = document.createElement('div');
   item.className = 'option-edit-item';
   item.innerHTML = `<input type="text" value="" data-opt-key="${fieldKey}" data-idx="-1"><button class="btn-icon danger" onclick="this.parentElement.remove()">🗑️</button>`;
-  container.appendChild(item);
+  const addBtn = container.querySelector('.add-opt-btn');
+  if (addBtn) container.insertBefore(item, addBtn);
+  else container.appendChild(item);
 }
 
 function renderDataSettings(html) {
@@ -4806,6 +5397,146 @@ function renderDataSettings(html) {
   html += '</div>';
   html += '</div>';
   return html;
+}
+
+/* ===== 展示字段（主界面卡片字段显隐与排序） ===== */
+let _displayDraft = null; // { moduleFields:{}, moduleFieldOrder:{}, moduleFieldsShown:{} }
+
+function ensureDisplayDraft() {
+  if (_displayDraft) return;
+  const s = getSettings();
+  _displayDraft = {
+    moduleFields: JSON.parse(JSON.stringify(s.moduleFields || {})),
+    moduleFieldOrder: JSON.parse(JSON.stringify(s.moduleFieldOrder || {})),
+    moduleFieldsShown: JSON.parse(JSON.stringify(s.moduleFieldsShown || {})),
+  };
+}
+
+// 计算某模块的展示字段状态
+function getDisplayModuleState(modKey, mod) {
+  const hidden = (_displayDraft.moduleFields[modKey]) || [];
+  const order = (_displayDraft.moduleFieldOrder[modKey]) || [];
+  const shown = (_displayDraft.moduleFieldsShown[modKey]) || [];
+  const listKeys = (mod.listFields || []).map(f => f.key);
+  const allKeys = [];
+  (mod.listFields || []).forEach(f => { if (f.key && !allKeys.includes(f.key)) allKeys.push(f.key); });
+  (mod.fields || []).forEach(f => { if (f.key && !allKeys.includes(f.key)) allKeys.push(f.key); });
+  const visibleKeys = listKeys.filter(k => !hidden.includes(k)).concat(shown.filter(k => !listKeys.includes(k)));
+  return { hidden, order, shown, listKeys, allKeys, visibleKeys };
+}
+
+function renderDisplayFieldsSettings(html) {
+  ensureDisplayDraft();
+  html += '<div class="settings-section active">';
+  html += '<div class="module-selector"><label style="font-size:13px;margin-right:4px">选择模块</label>';
+  const modules = Object.keys(MODULES).filter(k => MODULES[k] && MODULES[k].fields);
+  if (!modules.length) {
+    html += '<span style="font-size:12px;color:var(--c-text-light)">暂无可配置模块</span></div></div>';
+    return html;
+  }
+  if (!_settingsModule || !modules.includes(_settingsModule)) _settingsModule = modules[0];
+  const selLabel = _settingsModule ? (PAGE_TITLES[_settingsModule] || _settingsModule) : '请选择模块';
+  html += `<div class="combobox-wrapper" style="min-width:160px"><input type="text" class="form-input combobox-input" value="${esc(selLabel)}" placeholder="请选择模块" readonly onfocus="showComboboxDropdown('settingsModuleCb')" onclick="showComboboxDropdown('settingsModuleCb')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('settingsModuleCb')">▼</button><div class="combobox-dropdown" id="settingsModuleCb">`;
+  modules.forEach(k => {
+    html += `<div class="combobox-option ${_settingsModule === k ? 'selected' : ''}" data-value="${k}" onclick="_settingsModule='${k}';renderSettingsModal()">${esc(PAGE_TITLES[k] || k)}</div>`;
+  });
+  html += '</div></div></div>';
+  const mod = MODULES[_settingsModule];
+  const st = getDisplayModuleState(_settingsModule, mod);
+  const labelMap = {};
+  (mod.listFields || []).forEach(f => { if (f.key) labelMap[f.key] = f.label || f.key; });
+  (mod.fields || []).forEach(f => { if (f.key && !labelMap[f.key]) labelMap[f.key] = f.label || f.key; });
+  const orderedVisible = st.order.filter(k => st.visibleKeys.includes(k)).concat(st.visibleKeys.filter(k => !st.order.includes(k)));
+  html += '<h4 style="font-size:13px;margin:16px 0 8px;color:var(--c-primary)">已展示字段（↑/↓ 调整顺序）</h4>';
+  if (!orderedVisible.length) {
+    html += '<div class="empty-state" style="padding:16px"><div class="empty-text">当前未展示任何字段</div></div>';
+  } else {
+    html += '<div class="df-list">';
+    orderedVisible.forEach((k, idx) => {
+      const canUp = idx > 0 ? '' : 'disabled';
+      const canDown = idx < orderedVisible.length - 1 ? '' : 'disabled';
+      html += `<div class="df-row">
+        <span class="df-label">${esc(labelMap[k] || k)}</span>
+        <span class="df-actions">
+          <button type="button" class="df-btn" ${canUp} onclick="moveDisplayField('${k}','up')">↑</button>
+          <button type="button" class="df-btn" ${canDown} onclick="moveDisplayField('${k}','down')">↓</button>
+          <button type="button" class="df-btn danger" onclick="toggleDisplayField('${k}')">隐藏</button>
+        </span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  const hiddenList = st.allKeys.filter(k => !st.visibleKeys.includes(k));
+  html += '<h4 style="font-size:13px;margin:20px 0 8px;color:var(--c-primary)">可添加字段</h4>';
+  if (!hiddenList.length) {
+    html += '<div class="empty-state" style="padding:16px"><div class="empty-text">没有可添加的字段</div></div>';
+  } else {
+    html += '<div class="df-list">';
+    hiddenList.forEach(k => {
+      html += `<div class="df-row">
+        <span class="df-label">${esc(labelMap[k] || k)}</span>
+        <span class="df-actions"><button type="button" class="df-btn primary" onclick="toggleDisplayField('${k}')">＋ 添加</button></span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  html += '<div style="margin-top:16px"><button class="btn btn-outline" onclick="resetDisplayFields()">↺ 恢复默认展示</button></div>';
+  html += '</div>';
+  return html;
+}
+
+function _displayRecomputeVisible(modKey, mod) {
+  const hidden = _displayDraft.moduleFields[modKey] || (_displayDraft.moduleFields[modKey] = []);
+  const shown = _displayDraft.moduleFieldsShown[modKey] || (_displayDraft.moduleFieldsShown[modKey] = []);
+  const listKeys = (mod.listFields || []).map(f => f.key);
+  return listKeys.filter(k => !hidden.includes(k)).concat(shown.filter(k => !listKeys.includes(k)));
+}
+
+function toggleDisplayField(key) {
+  ensureDisplayDraft();
+  const modKey = _settingsModule;
+  const mod = MODULES[modKey];
+  if (!mod) return;
+  const listKeys = (mod.listFields || []).map(f => f.key);
+  const isList = listKeys.includes(key);
+  const hidden = _displayDraft.moduleFields[modKey] || (_displayDraft.moduleFields[modKey] = []);
+  const shown = _displayDraft.moduleFieldsShown[modKey] || (_displayDraft.moduleFieldsShown[modKey] = []);
+  if (isList) {
+    const hi = hidden.indexOf(key);
+    if (hi >= 0) hidden.splice(hi, 1); else hidden.push(key);
+  } else {
+    const si = shown.indexOf(key);
+    if (si >= 0) shown.splice(si, 1); else shown.push(key);
+  }
+  const visible = _displayRecomputeVisible(modKey, mod);
+  const order = (_displayDraft.moduleFieldOrder[modKey]) || [];
+  _displayDraft.moduleFieldOrder[modKey] = order.filter(k => visible.includes(k)).concat(visible.filter(k => !order.includes(k)));
+  renderSettingsModal();
+}
+
+function moveDisplayField(key, dir) {
+  ensureDisplayDraft();
+  const modKey = _settingsModule;
+  const mod = MODULES[modKey];
+  if (!mod) return;
+  const visible = _displayRecomputeVisible(modKey, mod);
+  let order = (_displayDraft.moduleFieldOrder[modKey]) ? _displayDraft.moduleFieldOrder[modKey].slice() : [];
+  order = order.filter(k => visible.includes(k)).concat(visible.filter(k => !order.includes(k)));
+  const i = order.indexOf(key);
+  if (i < 0) return;
+  const j = dir === 'up' ? i - 1 : i + 1;
+  if (j < 0 || j >= order.length) return;
+  const tmp = order[i]; order[i] = order[j]; order[j] = tmp;
+  _displayDraft.moduleFieldOrder[modKey] = order;
+  renderSettingsModal();
+}
+
+function resetDisplayFields() {
+  ensureDisplayDraft();
+  delete _displayDraft.moduleFields[_settingsModule];
+  delete _displayDraft.moduleFieldOrder[_settingsModule];
+  delete _displayDraft.moduleFieldsShown[_settingsModule];
+  renderSettingsModal();
 }
 
 function saveSettingsAction() {
@@ -4864,7 +5595,14 @@ function saveSettingsAction() {
       Toast.warning('云端同步需填写完整的 URL、Anon Key 与同步码，本次未改动同步设置');
     }
   }
+  // 展示字段（主界面卡片字段显隐与排序）
+  if (_displayDraft) {
+    s.moduleFields = _displayDraft.moduleFields;
+    s.moduleFieldOrder = _displayDraft.moduleFieldOrder;
+    s.moduleFieldsShown = _displayDraft.moduleFieldsShown;
+  }
   saveSettings(s);
+  _displayDraft = null;
   applyTheme(s.theme);
   closeModal();
   Toast.success('设置已保存');
@@ -5070,6 +5808,56 @@ function migrateData() {
     }
   });
   if (lrChanged) DB.set('lifeRecords', fixedLife);
+
+  // v398: 接稿详情分类名与字段拆分迁移
+  const cdRecords = DB.list('commissionDetails');
+  let cdChanged = false;
+  cdRecords.forEach(r => {
+    // 分类名迁移
+    if (r.category === '土味制品') { r.category = '土味'; cdChanged = true; }
+    if (r.category === '二次创作') { r.category = '二次'; cdChanged = true; }
+    // 旧字段 products（文本）-> product（单条）+ extraProducts
+    if (r.products && !r.product && !r.extraProducts) {
+      r.product = String(r.products);
+      delete r.products;
+      cdChanged = true;
+    }
+    // 旧字段 nameNick（姓名+昵称）拆分
+    if (r.nameNick && (!r.charName && !r.nickName)) {
+      const parts = String(r.nameNick).split(/[，,、\s]+/).map(s => s.trim()).filter(Boolean);
+      r.charName = parts[0] || '';
+      r.nickName = parts.slice(1).join(' ') || '';
+      delete r.nameNick;
+      cdChanged = true;
+    }
+    // 旧字段 ipRole（IP+角色名）拆分
+    if (r.ipRole && (!r.ipName && !r.charName)) {
+      const parts = String(r.ipRole).split(/[，,、\s]+/).map(s => s.trim()).filter(Boolean);
+      r.ipName = parts[0] || '';
+      r.charName = parts.slice(1).join(' ') || '';
+      delete r.ipRole;
+      cdChanged = true;
+    }
+    // 旧字段 elements（必用/可选/避雷）拆分
+    if (r.elements && (!r.elementsRequired && !r.elementsOptional && !r.elementsAvoid)) {
+      const parts = String(r.elements).split(/[；;]/).map(s => s.trim());
+      r.elementsRequired = (parts[0] || '').replace(/^[必用可选避雷][：:]\s*/, '');
+      r.elementsOptional = (parts[1] || '').replace(/^[必用可选避雷][：:]\s*/, '');
+      r.elementsAvoid = (parts[2] || '').replace(/^[必用可选避雷][：:]\s*/, '');
+      delete r.elements;
+      cdChanged = true;
+    }
+    // 旧只读 emailHint -> fixedEmail 可编辑文本
+    if (r.emailHint && !r.fixedEmail) {
+      r.fixedEmail = String(r.emailHint);
+      delete r.emailHint;
+      cdChanged = true;
+    }
+    // 旧 displayPermission 值迁移
+    if (r.displayPermission === '可以展示') { r.displayPermission = '可打码展示'; cdChanged = true; }
+    if (r.displayPermission === '不愿意展示') { r.displayPermission = '不愿公开展示'; cdChanged = true; }
+  });
+  if (cdChanged) DB.set('commissionDetails', cdRecords);
 }
 
 /* ============================================================
@@ -5312,6 +6100,132 @@ function lifeMonthWeekTotal(y, m) {
   while (d.getMonth() === m) { if (d.getDay() === 1) count++; d.setDate(d.getDate() + 1); }
   return count;
 }
+/* ===== Year View (v457: 年视图统计) ===== */
+function lifeCheckinPrevYearView() { lifeCheckinYearView--; renderLifeCheckin(); }
+function lifeCheckinNextYearView() { lifeCheckinYearView++; renderLifeCheckin(); }
+function lifeCheckinJumpYear(y) { lifeCheckinYearView = y; lifeCheckinPickerOpen = false; renderLifeCheckin(); }
+function lifeYearCheckinCount(typeKey, year) {
+  return DB.list('lifeCheckins').filter(r => r.type === typeKey && (r.date || '').startsWith(String(year))).length;
+}
+function lifeDailyLongestStreak(typeKey, year) {
+  const set = new Set(DB.list('lifeCheckins').filter(r => r.type === typeKey && (r.date || '').startsWith(String(year))).map(r => r.date));
+  if (!set.size) return 0;
+  let best = 0;
+  let cur = new Date(year, 0, 1);
+  const end = new Date(year, 11, 31);
+  const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  while (cur <= end) {
+    const ds = ymd(cur);
+    if (set.has(ds)) {
+      let s = 1; const c = new Date(cur); c.setDate(c.getDate() + 1);
+      while (set.has(ymd(c))) { s++; c.setDate(c.getDate() + 1); }
+      best = Math.max(best, s); cur = new Date(c);
+    } else cur.setDate(cur.getDate() + 1);
+  }
+  return best;
+}
+function lifeWeeklyLongestStreak(typeKey, year) {
+  const set = new Set(DB.list('lifeCheckins').filter(r => r.type === typeKey && r.week && r.week.startsWith(String(year))).map(r => r.week));
+  if (!set.size) return 0;
+  const mondays = [...set].map(w => { const [yy, ww] = w.split('-W'); return mondayFromWeek(Number(yy), Number(ww)); }).sort((a, b) => a - b);
+  let best = 1, run = 1;
+  for (let i = 1; i < mondays.length; i++) {
+    const diff = Math.round((mondays[i] - mondays[i - 1]) / 86400000);
+    if (diff === 7) run++; else run = 1;
+    best = Math.max(best, run);
+  }
+  return best;
+}
+function lifeYearStats(typeKey, year) {
+  const def = getCheckinDef(typeKey);
+  const period = def ? def.period : 'day';
+  const now = new Date();
+  const curYear = now.getFullYear();
+  let totalDays, doneDays, streak, metricName;
+  if (period === 'day') {
+    const jan1 = new Date(year, 0, 1);
+    const dec31 = new Date(year, 11, 31);
+    const totalAll = Math.round((dec31 - jan1) / 86400000) + 1;
+    totalDays = (year < curYear) ? totalAll : (Math.round((now - jan1) / 86400000) + 1);
+    doneDays = lifeYearCheckinCount(typeKey, year);
+    streak = lifeDailyLongestStreak(typeKey, year);
+    metricName = '最长连续';
+  } else {
+    const mondays = [];
+    const d = new Date(year, 0, 1);
+    while (d.getFullYear() === year) { if (d.getDay() === 1) mondays.push(new Date(d)); d.setDate(d.getDate() + 1); }
+    const totalAll = mondays.length;
+    let elapsed = 0;
+    for (const md of mondays) { if (md <= now) elapsed++; }
+    totalDays = (year < curYear) ? totalAll : elapsed;
+    doneDays = new Set(DB.list('lifeCheckins').filter(r => r.type === typeKey && r.week && r.week.startsWith(String(year))).map(r => r.week)).size;
+    streak = lifeWeeklyLongestStreak(typeKey, year);
+    metricName = '连续完成';
+  }
+  const rate = totalDays ? Math.round(doneDays / totalDays * 100) : 0;
+  const score = (rate / 20).toFixed(1);
+  return { count: doneDays, streak, rate, score, metricName };
+}
+function renderLifeYearOverview(year) {
+  const yr = year && !isNaN(year) ? year : new Date().getFullYear();
+  const allDefs = Object.values(LIFE_CHECKIN_DEFS || {}).concat(DB.list('lifeCheckinDefs'));
+  if (!allDefs.length) return '<div class="empty-state"><div class="empty-text">暂无打卡模块，请先在「日/周」视图添加打卡</div></div>';
+  const ratings = DB.get('lifeYearRatings', {});
+  // 每日打卡在前，每周打卡在后，确保两类都展示
+  const ordered = allDefs.slice().sort((a, b) => {
+    if (!a || !b) return 0;
+    if ((a.period === 'day') !== (b.period === 'day')) return a.period === 'day' ? -1 : 1;
+    return 0;
+  });
+  let html = '<div class="life-year-grid">';
+  ordered.forEach(t => {
+    if (!t || !t.key) return;
+    let st;
+    try { st = lifeYearStats(t.key, yr); } catch (e) { console.error('年视图统计失败', t.key, e); return; }
+    if (!st) return;
+    const rk = t.key + '_' + yr;
+    const cur = ratings[rk];
+    const rateLabel = cur != null ? (cur + '分') : '未评分';
+    const rateNum = cur != null ? cur : '—';
+    html += `<div class="life-goal-card ${t.period === 'week' ? 'week-card' : ''}">
+      <div class="lgc-head">
+        <div class="lgc-title-wrap">
+          <div class="lgc-name">${esc(t.label)}</div>
+          <div class="lgc-desc">${t.period === 'day' ? '每日打卡' : '每周打卡'} · ${yr}年</div>
+        </div>
+      </div>
+      <div class="lgc-body">
+        <div class="lgc-stats lgc-stats-4">
+          <div class="lgc-stat"><div class="lgc-num">${st.count}</div><div class="lgc-unit">累计打卡</div></div>
+          <div class="lgc-stat"><div class="lgc-num">${st.streak}</div><div class="lgc-unit">${st.metricName}</div></div>
+          <div class="lgc-stat"><div class="lgc-num">${st.rate}%</div><div class="lgc-unit">完成率</div></div>
+          <div class="lgc-stat lgc-rate-stat ${cur != null ? 'rated' : ''}" onclick="lifeYearToggleRate('${t.key}',${yr})">
+            <div class="lgc-num">${rateNum}</div>
+            <div class="lgc-unit">${rateLabel}</div>
+          </div>
+        </div>
+      </div>
+      <div class="year-rate-panel" id="yrp_${t.key}_${yr}" style="display:none" onclick="event.stopPropagation()">
+        ${[1, 2, 3, 4, 5].map(n => `<button class="yr-rate-btn ${cur === n ? 'sel' : ''}" onclick="event.stopPropagation();lifeYearSetRate('${t.key}',${yr},${n})">${n}</button>`).join('')}
+        ${cur != null ? `<button class="yr-rate-btn yr-rate-clear" onclick="event.stopPropagation();lifeYearSetRate('${t.key}',${yr},null)">清除</button>` : ''}
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  return html;
+}
+function lifeYearToggleRate(typeKey, year) {
+  const el = document.getElementById('yrp_' + typeKey + '_' + year);
+  if (el) el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+}
+function lifeYearSetRate(typeKey, year, score) {
+  const ratings = DB.get('lifeYearRatings', {});
+  const rk = typeKey + '_' + year;
+  if (score == null) delete ratings[rk];
+  else ratings[rk] = score;
+  DB.set('lifeYearRatings', ratings);
+  renderLifeCheckin();
+}
 function fmtHM(iso) {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '';
@@ -5428,15 +6342,37 @@ function getCheckinDef(typeKey) {
 }
 let lifeCheckinPickerOpen = false;
 let lifeCheckinPickerY = null;
+let lifeCheckinPickerM = null;
 let lifeCheckinModalView = null;
 let lifeCheckinModalKey = null;
 let lifeCheckinSelDate = null;
 let lifeWeekOffset = 0;
 let lifeCheckinBlock = 'day';
+let lifeCheckinYearView = new Date().getFullYear();
+let lifeYearPickerOpen = false;
+let lifeYearPickerY = new Date().getFullYear();
+function lifeYearTogglePicker() {
+  const yp = document.querySelector('.life-year-picker');
+  const mp = document.querySelector('.life-month-picker');
+  const bd = document.getElementById('lifePickerBackdrop');
+  if (mp) mp.classList.remove('show');
+  const open = yp ? yp.classList.toggle('show') : false;
+  if (bd) bd.classList.toggle('show', open);
+}
+function lifeYearPickerShift(d) { lifeYearPickerY = (lifeYearPickerY != null ? lifeYearPickerY : new Date().getFullYear()) + d; renderLifeCheckin(); }
+function lifeYearPickYear(y) { lifeCheckinYearView = y; lifeYearPickerOpen = false; renderLifeCheckin(); }
 function lifeCheckinTogglePicker() {
-  lifeCheckinPickerOpen = !lifeCheckinPickerOpen;
-  if (lifeCheckinPickerOpen) { const vv = lifeCheckinInitView(); lifeCheckinPickerY = vv.y; }
-  renderLifeCheckin();
+  const mp = document.querySelector('.life-month-picker');
+  const yp = document.querySelector('.life-year-picker');
+  const bd = document.getElementById('lifePickerBackdrop');
+  if (yp) yp.classList.remove('show');
+  const open = mp ? mp.classList.toggle('show') : false;
+  if (bd) bd.classList.toggle('show', open);
+}
+function lifeCheckinClosePickers() {
+  document.querySelectorAll('.life-month-picker,.life-year-picker').forEach(e => e.classList.remove('show'));
+  const bd = document.getElementById('lifePickerBackdrop');
+  if (bd) bd.classList.remove('show');
 }
 function lifeCheckinPickerYear(d) {
   lifeCheckinPickerY = (lifeCheckinPickerY != null ? lifeCheckinPickerY : new Date().getFullYear()) + d;
@@ -5444,6 +6380,46 @@ function lifeCheckinPickerYear(d) {
 }
 function lifeCheckinJumpMonth(y, m) {
   lifeCheckinView = { y: y, m: m };
+  if (lifeCheckinBlock === 'week') {
+    const firstMon = new Date(y, m, 1);
+    while (firstMon.getDay() !== 1) firstMon.setDate(firstMon.getDate() + 1);
+    const base = weekMondayOf(parseDateStr(todayStr()));
+    const diffWeeks = Math.round((firstMon - base) / (7 * 86400000));
+    lifeWeekOffset = diffWeeks;
+    // 周视图：选月后保持选择器打开，并展示该月的周段供进一步选择
+    lifeCheckinPickerOpen = true;
+    lifeCheckinPickerM = m;
+  } else {
+    lifeCheckinPickerOpen = false;
+    lifeYearPickerOpen = false;
+  }
+  renderLifeCheckin();
+}
+// 周视图：渲染某年某月的各周段（周一~周日），点击直接跳转到该周
+function renderWeekChips(y, m, curOffset) {
+  const weeks = [];
+  const d = new Date(y, m, 1);
+  const base = weekMondayOf(parseDateStr(todayStr()));
+  while (d.getMonth() === m) {
+    if (d.getDay() === 1) {
+      const monday = new Date(d);
+      const sun = new Date(d); sun.setDate(d.getDate() + 6);
+      const off = Math.round((monday - base) / (7 * 86400000));
+      weeks.push({ off, label: `${monday.getMonth() + 1}/${monday.getDate()}-${sun.getMonth() + 1}/${sun.getDate()}` });
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  if (!weeks.length) return '';
+  let h = '<div class="lmp-weeks-title">选择周段</div><div class="lmp-weeks">';
+  weeks.forEach(wk => {
+    const sel = wk.off === curOffset ? 'sel' : '';
+    h += `<button class="lmp-week ${sel}" onclick="lifeCheckinGotoWeekOffset(${wk.off})">${wk.label}</button>`;
+  });
+  h += '</div>';
+  return h;
+}
+function lifeCheckinGotoWeekOffset(off) {
+  lifeWeekOffset = off;
   lifeCheckinPickerOpen = false;
   renderLifeCheckin();
 }
@@ -5563,17 +6539,23 @@ function renderLifeCheckin() {
   const now = new Date();
   const isCur = v.y === now.getFullYear() && v.m === now.getMonth();
   const pickerY = lifeCheckinPickerY != null ? lifeCheckinPickerY : v.y;
+  if (lifeCheckinPickerM == null) lifeCheckinPickerM = v.m;
   let html = '<div class="fade-in">';
   html += renderQuickCheckin();
-  html += `<div class="life-monthbar ${lifeCheckinBlock === 'week' ? 'week-mode' : ''}">`;
+  const block = lifeCheckinBlock;
+  html += `<div class="life-monthbar ${block === 'week' ? 'week-mode' : ''} ${block === 'year' ? 'year-mode' : ''}">`;
   html += '<div class="life-monthbar-center">';
-  if (lifeCheckinBlock === 'week') {
+  if (block === 'year') {
+    html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinPrevYearView()">‹ 上一年</button>`;
+    html += `<span class="life-monthbar-txt" onclick="lifeYearTogglePicker()">${lifeCheckinYearView}年 ▾</span>`;
+    html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinNextYearView()">下一年 ›</button>`;
+  } else if (block === 'week') {
     const base = weekMondayOf(parseDateStr(todayStr()));
     base.setDate(base.getDate() + lifeWeekOffset * 7);
     const sun = new Date(base); sun.setDate(base.getDate() + 6);
     const weekTxt = `${base.getMonth() + 1}/${base.getDate()} - ${sun.getMonth() + 1}/${sun.getDate()}`;
     html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinPrevWeek()">‹ 上一周</button>`;
-    html += `<span class="life-monthbar-txt">${weekTxt}</span>`;
+    html += `<span class="life-monthbar-txt" onclick="lifeCheckinTogglePicker()">${weekTxt}</span>`;
     html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinNextWeek()" ${lifeWeekOffset === 0 ? 'disabled' : ''}>下一周 ›</button>`;
   } else {
     html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinPrevMonth()">‹ 上月</button>`;
@@ -5582,20 +6564,36 @@ function renderLifeCheckin() {
   }
   html += '</div>';
   html += '<div class="life-block-toggle">';
-  html += `<button class="lbt-btn ${lifeCheckinBlock === 'day' ? 'active' : ''}" onclick="lifeCheckinToggleBlock('day')">日</button>`;
-  html += `<button class="lbt-btn ${lifeCheckinBlock === 'week' ? 'active' : ''}" onclick="lifeCheckinToggleBlock('week')">周</button>`;
+  html += `<button class="lbt-btn ${block === 'day' ? 'active' : ''}" onclick="lifeCheckinToggleBlock('day')">日</button>`;
+  html += `<button class="lbt-btn ${block === 'week' ? 'active' : ''}" onclick="lifeCheckinToggleBlock('week')">周</button>`;
+  html += `<button class="lbt-btn ${block === 'year' ? 'active' : ''}" onclick="lifeCheckinToggleBlock('year')">年</button>`;
   html += '</div>';
-  html += `<div class="life-month-picker ${lifeCheckinPickerOpen ? 'show' : ''}">`;
-  html += `<div class="lmp-yearbar"><button class="btn btn-ghost btn-xs" onclick="lifeCheckinPickerYear(-1)">‹</button><span>${pickerY}年</span><button class="btn btn-ghost btn-xs" onclick="lifeCheckinPickerYear(1)">›</button></div>`;
-  html += '<div class="lmp-months">';
-  for (let mo = 0; mo < 12; mo++) {
-    const sel = (pickerY === v.y && mo === v.m) ? 'sel' : '';
-    html += `<button class="lmp-month ${sel}" onclick="lifeCheckinJumpMonth(${pickerY},${mo})">${mo + 1}月</button>`;
+  if (block === 'year') {
+    html += `<div class="life-year-picker ${lifeYearPickerOpen ? 'show' : ''}">`;
+    html += `<div class="lmp-yearbar"><button class="btn btn-ghost btn-xs" onclick="lifeYearPickerShift(-1)">‹</button><span>${lifeYearPickerY}年</span><button class="btn btn-ghost btn-xs" onclick="lifeYearPickerShift(1)">›</button></div>`;
+    html += '<div class="lyp-years">';
+    for (let yy = lifeYearPickerY - 6; yy <= lifeYearPickerY + 5; yy++) {
+      const sel = (yy === lifeCheckinYearView) ? 'sel' : '';
+      html += `<button class="lyp-year ${sel}" onclick="lifeYearPickYear(${yy})">${yy}年</button>`;
+    }
+    html += '</div></div>';
+  } else {
+    html += `<div class="life-month-picker ${lifeCheckinPickerOpen ? 'show' : ''}">`;
+    html += `<div class="lmp-yearbar"><button class="btn btn-ghost btn-xs" onclick="lifeCheckinPickerYear(-1)">‹</button><span>${pickerY}年</span><button class="btn btn-ghost btn-xs" onclick="lifeCheckinPickerYear(1)">›</button></div>`;
+    html += '<div class="lmp-months">';
+    for (let mo = 0; mo < 12; mo++) {
+      const sel = (pickerY === v.y && mo === v.m) ? 'sel' : '';
+      html += `<button class="lmp-month ${sel}" onclick="lifeCheckinJumpMonth(${pickerY},${mo})">${mo + 1}月</button>`;
+    }
+    html += '</div>';
+    if (block === 'week') html += renderWeekChips(pickerY, lifeCheckinPickerM != null ? lifeCheckinPickerM : v.m, lifeWeekOffset);
+    html += '</div>';
   }
-  html += '</div></div>';
   html += '</div>';
-  if (lifeCheckinPickerOpen) html += '<div class="life-picker-backdrop" onclick="lifeCheckinTogglePicker()"></div>';
-  if (lifeCheckinBlock === 'week') {
+  html += '<div class="life-picker-backdrop" id="lifePickerBackdrop" onclick="lifeCheckinClosePickers()"></div>';
+  if (block === 'year') {
+    try { html += renderLifeYearOverview(lifeCheckinYearView); } catch (e) { console.error('年视图渲染失败', e); html += '<div class="empty-state"><div class="empty-text">年视图加载失败，请重试</div></div>'; }
+  } else if (block === 'week') {
     html += renderLifeWeekOverview();
   } else {
     html += `<div class="life-goal-grid compact">`;
@@ -5603,7 +6601,7 @@ function renderLifeCheckin() {
     allDefs.forEach(t => { html += renderGoalCard(t, v.y, v.m); });
     html += '</div>';
   }
-  html += '<div class="life-goal-add" onclick="lifeCheckinAdd()"><div class="lga-plus">＋</div><div class="lga-txt">添加打卡</div></div>';
+  if (block !== 'year') html += '<div class="life-goal-add" onclick="lifeCheckinAdd()"><div class="lga-plus">＋</div><div class="lga-txt">添加打卡</div></div>';
   html += '</div>';
   body.innerHTML = html;
 }
@@ -5728,7 +6726,7 @@ function renderLifeSingleWeek(label, days, today, withSummary) {
   html += '</div></div>';
   return html;
 }
-function lifeCheckinToggleBlock(mode) { lifeCheckinBlock = mode; renderLifeCheckin(); }
+function lifeCheckinToggleBlock(mode) { lifeCheckinBlock = mode; lifeCheckinPickerOpen = false; lifeYearPickerOpen = false; renderLifeCheckin(); }
 function lifeWeekCellClick(typeKey, dateStr) {
   if (dateStr > todayStr()) { Toast.warning('不能给未来的日期打卡'); return; }
   const rec = DB.list('lifeCheckins').find(r => r.type === typeKey && r.date === dateStr);
@@ -6210,22 +7208,107 @@ function renderLifeRecordHistory(typeKey) {
   const daysRev = days.slice().reverse();
   const wdRev = wd.slice().reverse();
   const def = LIFE_RECORD_DEFS[typeKey];
-  let html = '';
+  // 历史视图周导航：样式与每日打卡周视图日期条一致（居中、主色数字范围）
+  const rangeTxt = `${Number(days[0].slice(5, 7))}/${Number(days[0].slice(8, 10))} - ${Number(days[6].slice(5, 7))}/${Number(days[6].slice(8, 10))}`;
+  let html = `<div class="lr-week-nav">
+    <button class="btn btn-ghost btn-sm" onclick="lifeRecordHistoryPrevWeek()">‹ 上一周</button>
+    <span class="life-monthbar-txt" onclick="lifeRecordHistoryToggleWeekPicker()" style="cursor:pointer">${rangeTxt} ▾</span>
+    <button class="btn btn-ghost btn-sm" onclick="lifeRecordHistoryNextWeek()" ${ps.weekOffset >= 0 ? 'disabled' : ''}>下一周 ›</button>
+    <div class="life-month-picker ${lifeRecordHistoryWeekPickerOpen ? 'show' : ''}" id="lrHistoryWeekPicker">${lifeRecordHistoryWeekPickerInner()}</div>
+    <div class="life-picker-backdrop" id="lrHistoryWeekBackdrop" onclick="lifeRecordHistoryToggleWeekPicker()" style="display:${lifeRecordHistoryWeekPickerOpen ? 'block' : 'none'}"></div>
+  </div>`;
   if (typeKey === 'sleep') html += renderSleepWeekLineChart(days);
   else html += renderDietWeekStats(daysRev);
   daysRev.forEach((d, i) => { html += renderLifeRecordHistoryDayCard(typeKey, d, wdRev[i]); });
-  html += `<div class="lr-week-nav">
-    <button class="page-link" onclick="lifeRecordHistoryPrevWeek()">‹ 上一周</button>
-    <span class="page-info">${days[0].slice(5)} - ${days[6].slice(5)}</span>
-    <button class="page-link" onclick="lifeRecordHistoryNextWeek()" ${ps.weekOffset >= 0 ? 'disabled' : ''}>下一周 ›</button>
-  </div>`;
   return html;
+}
+let lifeRecordDatePickerOpen = false;
+let lifeRecordDatePickerStep = 'month'; // 'month' | 'day'
+let lifeRecordDatePickerY = null;
+let lifeRecordDatePickerM = null;
+function lifeRecordDateNavHtml() {
+  const ps = pageState['life-record'];
+  const date = ps.date;
+  const dp = date.split('-');
+  const label = `${dp[0]}年${Number(dp[1])}月${Number(dp[2])}日 ▾`;
+  let h = `<div class="lr-date-nav">`;
+  h += `<button class="cd-month-btn" onclick="lifeRecordGoDate(-1)">‹ 前一天</button>`;
+  h += `<span class="life-monthbar-txt" onclick="lifeRecordToggleDatePicker()" style="cursor:pointer">${label}</span>`;
+  h += `<button class="cd-month-btn" onclick="lifeRecordGoDate(1)">后一天 ›</button>`;
+  h += `<div class="life-month-picker ${lifeRecordDatePickerOpen ? 'show' : ''}">${lifeRecordDatePickerInner()}</div>`;
+  if (lifeRecordDatePickerOpen) h += '<div class="life-picker-backdrop" onclick="lifeRecordToggleDatePicker()"></div>';
+  h += `</div>`;
+  return h;
+}
+// 睡眠/饮食卡片内的紧凑日期条（复用主日期逻辑，不重复渲染选择器）
+function lifeRecordMiniDateNavHtml() {
+  const ps = pageState['life-record'];
+  const date = ps.date;
+  return `<div class="lr-card-datebar"><div class="lr-date-nav-inner">
+    <button class="cd-month-btn" onclick="lifeRecordGoDate(-1)">‹</button>
+    <span class="cd-month-label" onclick="lifeRecordToggleDatePicker()" style="cursor:pointer">选择日期</span>
+    <button class="cd-month-btn" onclick="lifeRecordGoDate(1)">后一天 ›</button>
+  </div></div>`;
+}
+function lifeRecordDatePickerInner() {
+  const ps = pageState['life-record'];
+  const date = ps.date;
+  const lrY = lifeRecordDatePickerY != null ? lifeRecordDatePickerY : Number(date.slice(0, 4));
+  const lrM = lifeRecordDatePickerM != null ? lifeRecordDatePickerM : Number(date.slice(5, 7));
+  const lrD = Number(date.slice(8, 10));
+  // 年 / 月 / 日 同屏显示（不再分两步）
+  let h = `<div class="lmp-yearbar"><button class="btn btn-ghost btn-xs" onclick="lifeRecordDatePickerYear(-1)">‹</button><span>${lrY}年</span><button class="btn btn-ghost btn-xs" onclick="lifeRecordDatePickerYear(1)">›</button></div>`;
+  h += '<div class="lmp-months">';
+  for (let mo = 0; mo < 12; mo++) {
+    const sel = (mo === lrM - 1) ? 'sel' : '';
+    h += `<button class="lmp-month ${sel}" onclick="lifeRecordDatePickMonth(${lrY},${mo})">${mo + 1}月</button>`;
+  }
+  h += '</div>';
+  h += '<div class="lmp-weeks-title">选择日期</div>';
+  h += '<div class="lmp-days">';
+  const lrDim = new Date(lrY, lrM, 0).getDate();
+  const showDaySel = (lrM === Number(date.slice(5, 7)));
+  for (let dd = 1; dd <= lrDim; dd++) {
+    const sel = (showDaySel && dd === lrD) ? 'sel' : '';
+    h += `<button class="lmp-day ${sel}" onclick="lifeRecordDatePickDay(${lrY},${lrM},${dd})">${dd}</button>`;
+  }
+  h += '</div>';
+  return h;
+}
+function lifeRecordRenderDatePicker() {
+  const picker = document.querySelector('.lr-date-nav .life-month-picker');
+  if (picker) picker.innerHTML = lifeRecordDatePickerInner();
+}
+function lifeRecordToggleDatePicker() {
+  const ps = pageState['life-record'];
+  const picker = document.querySelector('.lr-date-nav .life-month-picker');
+  const bd = document.querySelector('.lr-date-nav .life-picker-backdrop');
+  if (!picker) { renderLifeRecord(); return; }
+  lifeRecordDatePickerOpen = !lifeRecordDatePickerOpen;
+  if (lifeRecordDatePickerOpen) {
+    const [yy, mm] = ps.date.split('-').map(Number);
+    lifeRecordDatePickerY = yy; lifeRecordDatePickerM = mm; lifeRecordDatePickerStep = 'month';
+    picker.innerHTML = lifeRecordDatePickerInner();
+  }
+  picker.classList.toggle('show', lifeRecordDatePickerOpen);
+  if (bd) bd.classList.toggle('show', lifeRecordDatePickerOpen);
+}
+function lifeRecordDatePickerYear(d) { lifeRecordDatePickerY = (lifeRecordDatePickerY != null ? lifeRecordDatePickerY : new Date().getFullYear()) + d; lifeRecordRenderDatePicker(); }
+function lifeRecordDatePickMonth(y, m) { lifeRecordDatePickerY = y; lifeRecordDatePickerM = m + 1; lifeRecordRenderDatePicker(); }
+function lifeRecordDatePickDay(y, m, d) {
+  const ds = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  if (ds > todayStr()) { Toast.warning('不能选择未来日期'); return; }
+  lifeRecordDatePickerOpen = false;
+  lifeRecordSetDate(ds);
 }
 function renderLifeRecord() {
   const body = $('#mainBody');
   if (!pageState['life-record']) pageState['life-record'] = { date: todayStr(), formType: null, editId: null, values: {}, view: 'home', weekOffset: 0, subtype: null, historyAddDate: null };
   const ps = pageState['life-record'];
   const date = ps.date;
+  if (lifeRecordDatePickerY == null) lifeRecordDatePickerY = Number(date.slice(0, 4));
+  if (lifeRecordDatePickerM == null) lifeRecordDatePickerM = Number(date.slice(5, 7));
+  if (!lifeRecordDatePickerStep) lifeRecordDatePickerStep = 'month';
   const all = DB.list('lifeRecords');
   let html = '<div class="fade-in life-record-page">';
   html += renderLifeRecordTopCard(all, date);
@@ -6233,9 +7316,11 @@ function renderLifeRecord() {
     <button class="lr-toggle-btn ${ps.view === 'sleep-history' ? 'active' : ''}" onclick="lifeRecordToggleView('sleep-history')">睡眠记录</button>
     <button class="lr-toggle-btn ${ps.view === 'diet-history' ? 'active' : ''}" onclick="lifeRecordToggleView('diet-history')">饮食记录</button>
   </div>`;
+  // 日期切换条只在首页展示；历史视图顶部由 renderLifeRecordHistory 自带周导航
   if (ps.view === 'sleep-history' || ps.view === 'diet-history') {
     html += renderLifeRecordHistory(ps.view === 'sleep-history' ? 'sleep' : 'diet');
   } else {
+    html += lifeRecordDateNavHtml();
     html += renderSleepRecordCard(date);
     html += renderDietRecordCard(date);
   }
@@ -6254,6 +7339,70 @@ function lifeRecordToggleView(view) {
 }
 function lifeRecordHistoryPrevWeek() { pageState['life-record'].weekOffset--; renderLifeRecord(); }
 function lifeRecordHistoryNextWeek() { if (pageState['life-record'].weekOffset >= 0) return; pageState['life-record'].weekOffset++; renderLifeRecord(); }
+let lifeRecordHistoryWeekPickerOpen = false;
+let lifeRecordHistoryWeekPickerY = null;
+let lifeRecordHistoryWeekPickerM = null;
+function lifeRecordHistoryToggleWeekPicker() {
+  lifeRecordHistoryWeekPickerOpen = !lifeRecordHistoryWeekPickerOpen;
+  const pk = document.getElementById('lrHistoryWeekPicker');
+  const bd = document.getElementById('lrHistoryWeekBackdrop');
+  if (pk) pk.classList.toggle('show', lifeRecordHistoryWeekPickerOpen);
+  if (bd) bd.style.display = lifeRecordHistoryWeekPickerOpen ? 'block' : 'none';
+}
+function lifeRecordHistoryRenderPickerInner() {
+  const pk = document.getElementById('lrHistoryWeekPicker');
+  if (pk) pk.innerHTML = lifeRecordHistoryWeekPickerInner();
+}
+function lifeRecordHistoryWeekPickerYear(n) {
+  const today = todayStr();
+  const base = weekMondayOf(parseDateStr(today));
+  if (lifeRecordHistoryWeekPickerY == null) lifeRecordHistoryWeekPickerY = base.getFullYear();
+  if (lifeRecordHistoryWeekPickerM == null) lifeRecordHistoryWeekPickerM = base.getMonth();
+  lifeRecordHistoryWeekPickerY += n;
+  lifeRecordHistoryRenderPickerInner();
+}
+function lifeRecordHistoryWeekPickerMonth(y, m) {
+  lifeRecordHistoryWeekPickerY = y;
+  lifeRecordHistoryWeekPickerM = m;
+  lifeRecordHistoryRenderPickerInner();
+}
+function lifeRecordHistoryWeekPickerInner() {
+  const ps = pageState['life-record'];
+  const today = todayStr();
+  const base = weekMondayOf(parseDateStr(today));
+  const lrY = lifeRecordHistoryWeekPickerY != null ? lifeRecordHistoryWeekPickerY : base.getFullYear();
+  const lrM = lifeRecordHistoryWeekPickerM != null ? lifeRecordHistoryWeekPickerM : base.getMonth();
+  let h = `<div class="lmp-yearbar"><button class="btn btn-ghost btn-xs" onclick="lifeRecordHistoryWeekPickerYear(-1)">‹</button><span>${lrY}年</span><button class="btn btn-ghost btn-xs" onclick="lifeRecordHistoryWeekPickerYear(1)">›</button></div>`;
+  const weeks = [];
+  const d = new Date(lrY, lrM, 1);
+  while (d.getMonth() === lrM) {
+    if (d.getDay() === 1) {
+      const monday = new Date(d);
+      const sun = new Date(d); sun.setDate(d.getDate() + 6);
+      const off = Math.round((monday - base) / (7 * 86400000));
+      weeks.push({ off, label: `${monday.getMonth() + 1}/${monday.getDate()}-${sun.getMonth() + 1}/${sun.getDate()}` });
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  h += '<div class="lmp-months">';
+  for (let mo = 0; mo < 12; mo++) {
+    const sel = (mo === lrM) ? 'sel' : '';
+    h += `<button class="lmp-month ${sel}" onclick="lifeRecordHistoryWeekPickerMonth(${lrY},${mo})">${mo + 1}月</button>`;
+  }
+  h += '</div>';
+  h += '<div class="lmp-weeks-title">选择周段</div><div class="lmp-weeks">';
+  weeks.forEach(wk => {
+    const sel = wk.off === ps.weekOffset ? 'sel' : '';
+    h += `<button class="lmp-week ${sel}" onclick="lifeRecordHistoryGotoWeek(${wk.off})">${wk.label}</button>`;
+  });
+  h += '</div>';
+  return h;
+}
+function lifeRecordHistoryGotoWeek(off) {
+  pageState['life-record'].weekOffset = off;
+  lifeRecordHistoryWeekPickerOpen = false;
+  renderLifeRecord();
+}
 function lifeRecordHistoryCellClick(typeKey, subtypeKey, dateStr) {
   const ps = pageState['life-record'];
   ps.historyAddDate = dateStr;
@@ -6491,6 +7640,992 @@ function removeCheckedLifeRecordTemperatures(groupId) {
   Toast.success('已删除 ' + checked.length + ' 项');
 }
 
+/* ===== 接稿详情页面（信息录入按钮 + 品类切换 + 接稿条按月分页） ===== */
+function cdRecMonth(r) {
+  // 关联接稿排期时，按排期日期（截稿优先，其次开稿/接稿）归月，使约稿条归入对应月份
+  if (r.clientInfo) {
+    const linked = DB.list('commissions').filter(c => (c.clientInfo || '') === (r.clientInfo || ''));
+    if (linked.length) {
+      const c = linked[0];
+      const dt = c.deadline || c.startTime || c.acceptTime;
+      if (dt) {
+        const d = new Date(dt);
+        if (!isNaN(d.getTime())) return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      }
+    }
+  }
+  const t = r._ct ? new Date(r._ct) : new Date();
+  return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0');
+}
+function cdMonthLabel(m) {
+  const [y, mon] = m.split('-');
+  return `${y}年${parseInt(mon, 10)}月`;
+}
+function renderCommissionDetailPage() {
+  const body = $('#mainBody');
+  if (!pageState['design-commission-detail']) pageState['design-commission-detail'] = { tab: '', search: '', cdMonth: thisMonthStr(), recCollapsed: {}, cdPage: 1, cdPickerOpen: false };
+  const ps = pageState['design-commission-detail'];
+  // v456：接稿详情页月份不再跟随接稿排期表的 dateFilter，独立按记录自身开稿/截稿月份归月显示
+  const allRecords = DB.list('commissionDetails');
+  let html = '<div class="fade-in commission-detail-page">';
+
+  // 1) 信息录入：三个按钮并列（不折叠）
+  html += `<div class="cd-import-row">
+    <div class="cd-import-btn" onclick="openCdImportChat()">
+      <div class="cd-import-btn-icon">💬</div>
+      <div class="cd-import-btn-name">聊天记录导入</div>
+    </div>
+    <div class="cd-import-btn" onclick="openCdImportJson()">
+      <div class="cd-import-btn-icon">📋</div>
+      <div class="cd-import-btn-name">腾讯问卷导入</div>
+    </div>
+    <div class="cd-import-btn" onclick="openCdClientForm()">
+      <div class="cd-import-btn-icon">📨</div>
+      <div class="cd-import-btn-name">生成约稿单导入</div>
+    </div>
+  </div>`;
+
+  // 2) 品类切换按钮（名字与用户一致；数字不带灰底；点激活按钮返回全部）
+  html += '<div class="cd-cat-bar">';
+  COMM_DETAIL_CATS.forEach(c => {
+    const cnt = allRecords.filter(r => r.category === c.cat).length;
+    const active = ps.tab === c.key;
+    html += `<div class="cd-cat-btn ${active ? 'active' : ''}" onclick="setCdTab('${c.key}')">
+      <span class="cd-cat-name">${esc(c.label)}</span>
+      <span class="cd-cat-count">${cnt}</span>
+    </div>`;
+  });
+  html += '</div>';
+
+  // 3) 搜索条（无新增按钮）
+  html += '<div class="toolbar cd-toolbar">';
+  html += `<div class="search-box"><input type="text" placeholder="搜索..." value="${esc(ps.search)}" oninput="onCdSearch(this.value)"><span class="search-icon">🔍</span></div>`;
+  html += '</div>';
+
+  // 4) 接稿条模块：按月分页，一页最多 10 条，开稿日期最近在最上
+  let recs = allRecords;
+  if (ps.tab) recs = recs.filter(r => r.category === MODULES[ps.tab].category);
+  if (ps.search) recs = recs.filter(r => JSON.stringify(r).toLowerCase().includes(ps.search.toLowerCase()));
+  recs.sort((a, b) => (b._ct || 0) - (a._ct || 0));
+
+  // 月导航：真实日历月，支持点击打开「年+月」选择面板
+  const [cdY, cdM] = ps.cdMonth.split('-').map(Number);
+  html += `<div class="cd-month-nav">`;
+  html += `<button class="cd-month-btn" onclick="cdShiftMonth(-1)">‹ 上月</button>`;
+  html += `<span class="cd-month-label" onclick="cdToggleMonthPicker()" style="cursor:pointer">${esc(cdMonthLabel(ps.cdMonth))} ▾</span>`;
+  html += `<button class="cd-month-btn" onclick="cdShiftMonth(1)">下月 ›</button>`;
+  html += `<div class="life-month-picker ${ps.cdPickerOpen ? 'show' : ''}">`;
+  html += `<div class="lmp-yearbar"><button class="btn btn-ghost btn-xs" onclick="cdPickerYear(-1)">‹</button><span>${cdY}年</span><button class="btn btn-ghost btn-xs" onclick="cdPickerYear(1)">›</button></div>`;
+  html += '<div class="lmp-months">';
+  for (let mo = 0; mo < 12; mo++) {
+    const sel = (mo === cdM - 1) ? 'sel' : '';
+    html += `<button class="lmp-month ${sel}" onclick="cdJumpMonth(${cdY},${mo})">${mo + 1}月</button>`;
+  }
+  html += '</div></div>';
+  if (ps.cdPickerOpen) html += '<div class="life-picker-backdrop" onclick="cdToggleMonthPicker()"></div>';
+  html += `</div>`;
+
+  // 当前月记录
+  let monthRecs = recs.filter(r => cdRecMonth(r) === ps.cdMonth);
+  const PER_PAGE = 10;
+  const totalPages = Math.max(1, Math.ceil(monthRecs.length / PER_PAGE));
+  if (ps.cdPage > totalPages) ps.cdPage = totalPages;
+  const pageRecs = monthRecs.slice((ps.cdPage - 1) * PER_PAGE, ps.cdPage * PER_PAGE);
+
+  if (!pageRecs.length) {
+    html += '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">本月暂无约稿条，使用上方导入渠道添加</div></div>';
+  } else {
+    html += '<div class="cd-rec-list">';
+    pageRecs.forEach(r => {
+      // 约稿单(commissionDetails)本身无 progress 字段，已交付状态来自关联的接稿排期(commissions)
+      const linkedDelivered = DB.list('commissions').some(c => (c.clientInfo || '') === (r.clientInfo || '') && valIncludes(c.progress, '已交付'));
+      const delivered = valIncludes(r.progress, '已交付') || linkedDelivered;
+      let collapsed = ps.recCollapsed[r.id];
+      if (collapsed === undefined) collapsed = delivered;
+      html += `<div class="cd-rec-card" data-id="${r.id}">
+        <div class="cd-rec-head" onclick="cdToggleRec('${r.id}')">
+          <span class="cd-rec-toggle">${collapsed ? '▸' : '▾'}</span>
+          <span class="cd-rec-title">${esc(r.clientInfo || r.bookName || r.theme || r.ipName || r.platformNick || '未命名约稿单')}</span>
+          <span class="cd-rec-cat">${esc(r.category || '')}</span>
+          ${delivered ? '<span class="cd-rec-delivered">已交付</span>' : ''}
+          <span class="cd-rec-actions">
+            <span class="btn-icon" onclick="event.stopPropagation();openCdEditForm('${r.id}')">✏️</span>
+            <span class="btn-icon danger" onclick="event.stopPropagation();onCdDelete('${r.id}')">🗑️</span>
+          </span>
+        </div>`;
+      if (!collapsed) html += `<div class="cd-rec-body">${renderCdFullRecord(r)}</div>`;
+      html += `</div>`;
+    });
+    html += '</div>';
+
+    // 分页
+    if (totalPages > 1) {
+      html += '<div class="cd-pager">';
+      html += `<button class="cd-page-btn" onclick="cdSetPage(${ps.cdPage - 1})" ${ps.cdPage <= 1 ? 'disabled' : ''}>上一页</button>`;
+      for (let i = 1; i <= totalPages; i++) {
+        html += `<button class="cd-page-btn ${i === ps.cdPage ? 'active' : ''}" onclick="cdSetPage(${i})">${i}</button>`;
+      }
+      html += `<button class="cd-page-btn" onclick="cdSetPage(${ps.cdPage + 1})" ${ps.cdPage >= totalPages ? 'disabled' : ''}>下一页</button>`;
+      html += '</div>';
+    }
+  }
+
+  html += '</div>';
+  body.innerHTML = html;
+}
+
+// 渲染单条约稿单的完整信息（按分组展示）
+function renderCdFullRecord(r) {
+  const pageKey = (COMM_DETAIL_CATS.find(c => c.cat === r.category) || COMM_DETAIL_CATS[0]).key;
+  const mod = MODULES[pageKey];
+  let h = '';
+  // 关联接稿排期（按单主姓名绑定）
+  const linked = DB.list('commissions').filter(c => (c.clientInfo || '') === (r.clientInfo || ''));
+
+  // 渲染普通字段（readonly 也展示为静态文本）
+  const hasExtra = (r.category === '饭圈' || r.category === '二次') && Array.isArray(r.extraProducts) && r.extraProducts.length;
+  let extraInjected = false;
+  mod.fields.forEach(f => {
+    if (f.section) {
+      // 在「交付规范」之前，把追加制品归入「制品信息」区块（不再单独成块）
+      if (!extraInjected && hasExtra && f.section === '交付规范') { h += renderCdExtraProductsRec(r); extraInjected = true; }
+      h += `<div class="cd-rec-section">${esc(f.section)}</div>`; return;
+    }
+    // 自定义 HTML 块（饭圈/二次：重要信息 / 风格颜色 / 元素）按 data-key 渲染非空子字段
+    if (f.type === 'custom') {
+      const doc = new DOMParser().parseFromString(f.html || '', 'text/html');
+      let rendered = '';
+      doc.querySelectorAll('.style-color-col').forEach(col => {
+        const inp = col.querySelector('[data-key]');
+        const key = inp && inp.getAttribute('data-key');
+        const lbl = col.querySelector('.style-color-col-label');
+        const label = lbl ? lbl.textContent.trim() : '';
+        if (!key || !label) return;
+        const v = r[key];
+        if (v == null || v === '') return;
+        const val = Array.isArray(v) ? v.join('、') : String(v);
+        // v451：元素类标题统一加「元素·」前缀（编辑表单里 label 是裸「必用/可选/避雷」，展示时补全）
+        let outLabel = label;
+        if (key === 'elementsRequired') outLabel = '元素·必用';
+        else if (key === 'elementsOptional') outLabel = '元素·可用';
+        else if (key === 'elementsAvoid') outLabel = '元素·避雷';
+        rendered += `<div class="cd-rec-row"><span class="cd-rec-k">${esc(outLabel)}</span><span class="cd-rec-v">${esc(val)}</span></div>`;
+      });
+      if (rendered) h += rendered;
+      return;
+    }
+    // 展示视图：单主、固定接收邮箱不显示
+    if (f.key === 'clientInfo' || f.key === 'fixedEmail') return;
+    const label = getFieldLabel(pageKey, f.key, f.label);
+    if (f.type === 'readonly') {
+      const v = r[f.key] ?? f.default ?? '';
+      if (v === '') return;
+      h += `<div class="cd-rec-row"><span class="cd-rec-k">${esc(label)}</span><span class="cd-rec-v cd-rec-static">${esc(String(v))}</span></div>`;
+      return;
+    }
+    if (f.type === 'dynamic-list') {
+      const items = r[f.key];
+      if (items && items.length) {
+        const cols = f.columns || [];
+        h += `<div class="cd-rec-row"><span class="cd-rec-k">${esc(label)}</span><div class="cd-rec-v"><table class="detail-table"><tr>${cols.map(c => `<th>${esc(c.label)}</th>`).join('')}</tr>`;
+        items.forEach(item => { h += '<tr>' + cols.map(c => `<td>${esc(item[c.subkey] || '')}</td>`).join('') + '</tr>'; });
+        h += '</table></div></div>';
+      }
+      return;
+    }
+    let v = r[f.key];
+    if (v == null || v === '') return;
+    if (f.type === 'textarea') v = `<div class="cd-rec-pre">${esc(v)}</div>`;
+    else if (Array.isArray(v)) v = esc(v.join('、'));
+    else v = esc(String(v));
+    h += `<div class="cd-rec-row"><span class="cd-rec-k">${esc(label)}</span><span class="cd-rec-v">${v}</span></div>`;
+  });
+
+  // 联动块：仅显示稿件进度 / 开稿时间 / 截稿时间，三排样式与交付规范一致
+  h += `<div class="cd-rec-section">关联接稿排期</div>`;
+  if (r.clientInfo && linked.length) {
+    linked.forEach(c => {
+      h += `<div class="cd-link-block" onclick="commissionSelectById('${c.id}')">`;
+      h += cdRecRow('稿件进度', c.progress || '—');
+      h += cdRecRow('开稿日期', c.acceptTime || c.startTime || '—');
+      h += cdRecRow('截稿日期', c.deadline || '—');
+      h += `</div>`;
+    });
+  } else if (r.clientInfo) {
+    h += `<div class="cd-link-empty">未找到单主「${esc(r.clientInfo)}」的排期订单。<button class="btn btn-outline btn-sm" onclick="cdPushToCommission('${r.id}')">一键推送至接稿排期</button></div>`;
+  } else {
+    h += '<div class="cd-link-empty">未填写单主姓名，无法与接稿排期联动。可在编辑中补充「单主」。</div>';
+  }
+  return h;
+}
+function cdRecRow(k, v, pre) {
+  if (pre) return `<div class="cd-rec-row"><span class="cd-rec-k">${esc(k)}</span><div class="cd-rec-v"><div class="cd-rec-pre">${esc(v)}</div></div></div>`;
+  return `<div class="cd-rec-row"><span class="cd-rec-k">${esc(k)}</span><span class="cd-rec-v">${esc(v)}</span></div>`;
+}
+// 将追加制品归入「制品信息」区块（不再单独成块）：每个追加制品只展示其补充字段
+function renderCdExtraProductsRec(r) {
+  let h = '';
+  const refOf = (p) => p.sameHandleRef || p.sameHandle || '否';
+  (r.extraProducts || []).forEach((p, idx) => {
+    const ref = refOf(p);
+    h += `<div class="form-section-title cd-extra-subtitle">追加制品 ${idx + 1}</div>`;
+    if (p.usageType != null && p.usageType !== '') h += cdRecRow('稿件用途', p.usageType);
+    if (p.product != null && p.product !== '') h += cdRecRow('制品', p.product);
+    if (p.size != null && p.size !== '') h += cdRecRow('尺寸', p.size);
+    h += cdRecRow('关联柄图', cdHandleRefLabel(ref));
+    if (ref === '否') {
+      if (r.category === '饭圈') {
+        if (p.charName != null && p.charName !== '') h += cdRecRow('姓名', p.charName);
+      } else {
+        if (p.ipName != null && p.ipName !== '') h += cdRecRow('IP', p.ipName);
+        if (p.charName != null && p.charName !== '') h += cdRecRow('角色名', p.charName);
+      }
+      if (p.theme != null && p.theme !== '') h += cdRecRow('企划/主题名称', p.theme);
+      if (p.style != null && p.style !== '') h += cdRecRow('风格', p.style);
+      if (p.color != null && p.color !== '') h += cdRecRow('颜色', p.color);
+      if (p.elementsRequired != null && p.elementsRequired !== '') h += cdRecRow('元素·必用', p.elementsRequired);
+      if (p.elementsOptional != null && p.elementsOptional !== '') h += cdRecRow('元素·可用', p.elementsOptional);
+      if (p.elementsAvoid != null && p.elementsAvoid !== '') h += cdRecRow('元素·避雷', p.elementsAvoid);
+      if (p.copyText != null && p.copyText !== '') h += cdRecRow('文案', p.copyText, true);
+    }
+    if (p.note != null && p.note !== '') h += cdRecRow('备注', p.note, true);
+    if (p.sameModel != null && p.sameModel !== '') h += cdRecRow('是否同模', p.sameModel);
+  });
+  return h;
+}
+// 详情弹窗：将追加制品归入「制品信息」区块（不再单独成块）
+function renderCdExtraProductsDetail(r) {
+  let html = '';
+  const refOf = (p) => p.sameHandleRef || p.sameHandle || '否';
+  (r.extraProducts || []).forEach((p, idx) => {
+    const ref = refOf(p);
+    const sameTxt = ref === '否' ? '独立新柄' : ('同柄于' + (ref === '0' ? '初始制品' : '追加制品 ' + ref));
+    const summary = [p.product, p.size, sameTxt, p.sameModel].filter(Boolean).join(' · ');
+    html += `<div class="form-section-title cd-extra-subtitle">追加制品 ${idx + 1}</div>`;
+    html += `<div class="detail-row"><span class="detail-label">概览</span><span class="detail-value">${esc(summary)}</span></div>`;
+    if (ref === '否') {
+      if (r.category === '饭圈') {
+        if (p.charName != null && p.charName !== '') html += `<div class="detail-row"><span class="detail-label">姓名</span><span class="detail-value">${esc(p.charName)}</span></div>`;
+      } else {
+        if (p.ipName != null && p.ipName !== '') html += `<div class="detail-row"><span class="detail-label">IP</span><span class="detail-value">${esc(p.ipName)}</span></div>`;
+        if (p.charName != null && p.charName !== '') html += `<div class="detail-row"><span class="detail-label">角色名</span><span class="detail-value">${esc(p.charName)}</span></div>`;
+      }
+      if (p.theme != null && p.theme !== '') html += `<div class="detail-row"><span class="detail-label">企划/主题名称</span><span class="detail-value">${esc(p.theme)}</span></div>`;
+      if (p.style != null && p.style !== '') html += `<div class="detail-row"><span class="detail-label">风格</span><span class="detail-value">${esc(p.style)}</span></div>`;
+      if (p.color != null && p.color !== '') html += `<div class="detail-row"><span class="detail-label">颜色</span><span class="detail-value">${esc(p.color)}</span></div>`;
+      if (p.elementsRequired != null && p.elementsRequired !== '') html += `<div class="detail-row"><span class="detail-label">元素·必用</span><span class="detail-value">${esc(p.elementsRequired)}</span></div>`;
+      if (p.elementsOptional != null && p.elementsOptional !== '') html += `<div class="detail-row"><span class="detail-label">元素·可用</span><span class="detail-value">${esc(p.elementsOptional)}</span></div>`;
+      if (p.elementsAvoid != null && p.elementsAvoid !== '') html += `<div class="detail-row"><span class="detail-label">元素·避雷</span><span class="detail-value">${esc(p.elementsAvoid)}</span></div>`;
+      if (p.copyText != null && p.copyText !== '') html += `<div class="detail-row"><span class="detail-label">文案</span><span class="detail-value"><div style="white-space:pre-wrap">${esc(p.copyText)}</div></span></div>`;
+    }
+    if (p.note != null && p.note !== '') html += `<div class="detail-row"><span class="detail-label">备注</span><span class="detail-value"><div style="white-space:pre-wrap">${esc(p.note)}</div></span></div>`;
+  });
+  return html;
+}
+
+function cdToggleRec(id) {
+  const ps = pageState['design-commission-detail'];
+  const rec = DB.list('commissionDetails').find(r => r.id === id);
+  const delivered = rec && (valIncludes(rec.progress, '已交付') || DB.list('commissions').some(c => (c.clientInfo || '') === (rec.clientInfo || '') && valIncludes(c.progress, '已交付')));
+  const cur = ps.recCollapsed[id];
+  ps.recCollapsed[id] = (cur === undefined) ? !delivered : !cur;
+  renderCommissionDetailPage();
+}
+function cdShiftMonth(dir) {
+  const ps = pageState['design-commission-detail'];
+  let [y, m] = ps.cdMonth.split('-').map(Number);
+  m += dir;
+  if (m < 1) { m = 12; y--; }
+  if (m > 12) { m = 1; y++; }
+  ps.cdMonth = `${y}-${String(m).padStart(2, '0')}`;
+  ps.cdPage = 1;
+  renderCommissionDetailPage();
+}
+function cdToggleMonthPicker() {
+  const ps = pageState['design-commission-detail'];
+  ps.cdPickerOpen = !ps.cdPickerOpen;
+  renderCommissionDetailPage();
+}
+function cdPickerYear(d) {
+  const ps = pageState['design-commission-detail'];
+  let [y, m] = ps.cdMonth.split('-').map(Number);
+  y += d;
+  ps.cdMonth = `${y}-${String(m).padStart(2, '0')}`;
+  renderCommissionDetailPage();
+}
+function cdJumpMonth(y, m) {
+  const ps = pageState['design-commission-detail'];
+  ps.cdMonth = `${y}-${String(m + 1).padStart(2, '0')}`;
+  ps.cdPickerOpen = false;
+  ps.cdPage = 1;
+  renderCommissionDetailPage();
+}
+function cdSetPage(p) {
+  const ps = pageState['design-commission-detail'];
+  ps.cdPage = p;
+  renderCommissionDetailPage();
+}
+function setCdTab(tabKey) {
+  const ps = pageState['design-commission-detail'];
+  ps.tab = (ps.tab === tabKey) ? '' : tabKey; // 再次点击返回全部
+  ps.search = ''; ps.cdPage = 1; ps.recCollapsed = {};
+  renderCommissionDetailPage();
+}
+function onCdSearch(val) {
+  const ps = pageState['design-commission-detail'];
+  ps.search = val;
+  renderCommissionDetailPage();
+  _restoreSearchFocus('#mainBody .search-box input');
+}
+
+// 接稿详情本地表单：支持分组 + 追加制品（饭圈/二次），追加制品放在「制品信息」栏内
+function buildCdLocalForm(pageKey, data) {
+  const mod = MODULES[pageKey];
+  const fields = prepareFields(pageKey, mod.fields);
+  const deliveryIdx = fields.findIndex(f => f.section === '交付规范');
+  const hasExtra = pageKey === 'design-commission-detail-fq' || pageKey === 'design-commission-detail-ec';
+  let html = '';
+  if (deliveryIdx > -1) {
+    html += buildForm(fields.slice(0, deliveryIdx), data, pageKey);
+    if (hasExtra) html += buildCdExtraProductsHTML(pageKey, data.extraProducts || [], data);
+    html += buildForm(fields.slice(deliveryIdx), data, pageKey);
+  } else {
+    html += buildForm(fields, data, pageKey);
+    if (hasExtra) html += buildCdExtraProductsHTML(pageKey, data.extraProducts || [], data);
+  }
+  return html;
+}
+function readCdLocalForm(container, pageKey) {
+  const data = readForm(container);
+  // 饭圈 / 二次：读取追加制品
+  if (pageKey === 'design-commission-detail-fq' || pageKey === 'design-commission-detail-ec') {
+    data.extraProducts = readCdExtraProducts(container, pageKey);
+  }
+  return data;
+}
+function buildCdExtraProductsHTML(pageKey, items, parentData) {
+  const isFq = pageKey === 'design-commission-detail-fq';
+  const list = (items && items.length) ? items : [];
+  let html = `<div class="cd-extra-products" id="cdExtraProducts" data-pagekey="${pageKey}">`;
+  list.forEach((it, idx) => {
+    html += cdExtraProductRowHTML(idx, it || {}, isFq, list);
+  });
+  html += `</div>`;
+  html += `<button type="button" class="btn btn-outline btn-sm" onclick="addCdExtraProduct()" style="margin-top:14px">+ 新增制品</button>`;
+  return html;
+}
+// 是否同模下拉：否（独立新柄）/ 初始制品 0 / 其他独立新柄的追加制品（排除自身及非独立新柄的追加制品）
+function cdHandleRefCombobox(idx, items, currentVal) {
+  const selfNumber = idx + 1;
+  const opts = [{ value: '否', label: '否（独立新柄）' }, { value: '0', label: '初始制品 0' }];
+  for (let i = 1; i <= items.length; i++) {
+    if (i === selfNumber) continue;
+    const other = items[i - 1];
+    if (other && other.sameHandleRef !== '否') continue; // 只列独立新柄的追加制品
+    opts.push({ value: String(i), label: '追加制品 ' + i });
+  }
+  const cbId = 'hr_' + idx + '_' + Math.random().toString(36).slice(2, 7);
+  const optHTML = opts.map(o => `<div class="combobox-option" onclick="selectComboboxOption('${cbId}',this);toggleCdExtraProductFull(this.closest('.combobox-wrapper'))" data-value="${esc(o.value)}">${esc(o.label)}</div>`).join('');
+  const val = (currentVal === '否' || currentVal === '0' || (currentVal && !isNaN(currentVal))) ? currentVal : '0';
+  const lbl = (val === '否') ? '否（独立新柄）' : (val === '0' ? '初始制品 0' : '追加制品 ' + val);
+  return { id: cbId, html: `<div class="combobox-wrapper cd-ep-handleref"><input type="text" class="form-input combobox-input" value="${esc(lbl)}" placeholder="选择或输入..." onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div><input type="hidden" class="combobox-value" data-ep="sameHandleRef" value="${esc(val)}"></div>` };
+}
+function cdExtraProductRowHTML(idx, it, isFq, items) {
+  const sameHandleRef = it.sameHandleRef || '0';
+  const isSame = sameHandleRef !== '否';
+  const fullClass = isSame ? 'cd-ep-full hidden' : 'cd-ep-full';
+  const usageOpts = [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }];
+  const usageCbId = 'epu_' + idx + '_' + Math.random().toString(36).slice(2, 7);
+  const usageCbOpts = usageOpts.map(o => '<div class="combobox-option" onclick="selectComboboxOption(\'' + usageCbId + '\',this)" data-value="' + esc(o.value) + '">' + esc(o.label) + '</div>').join('');
+  const usageCb = '<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-ep="usageType" value="' + esc(it.usageType || '') + '" placeholder="选择或输入..." onfocus="showComboboxDropdown(\'' + usageCbId + '\')" onclick="showComboboxDropdown(\'' + usageCbId + '\')" oninput="filterComboboxDropdown(\'' + usageCbId + '\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'' + usageCbId + '\')">▼</button><div class="combobox-dropdown" id="' + usageCbId + '">' + usageCbOpts + '</div></div>';
+  const hr = cdHandleRefCombobox(idx, items, sameHandleRef);
+  const sameModelSel = COMM_DETAIL_SAME_MODEL_OPTS.map(o => {
+    const checked = (it.sameModel || '否') === o.value ? 'checked' : '';
+    return `<label class="checkbox-item ${checked ? 'selected' : ''}"><input type="checkbox" name="ep_${idx}_sameModel" value="${esc(o.value)}" ${checked} onclick="limitSingleCheckbox(this)">${esc(o.label)}</label>`;
+  }).join('');
+  // 追加制品完整表单与初始制品保持完全一致（大框分组 + 提示词），企划/主题名称在重要信息之前
+  let fullFields = `<div class="form-row"><label class="form-label">企划/主题名称</label><input type="text" class="form-input" data-ep="theme" value="${esc(it.theme || '')}"></div>`;
+  if (isFq) {
+    fullFields += `<div class="form-row style-color-row"><label class="form-label">重要信息</label><div class="style-color-box info-box">
+      <div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-ep="charName" value="${esc(it.charName || '')}"></div>
+      <div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-ep="nickName" value="${esc(it.nickName || '')}"></div>
+      <div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-ep="englishName" value="${esc(it.englishName || '')}"></div>
+      <div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-ep="birthday" value="${esc(it.birthday || '')}"></div>
+    </div></div>`;
+  } else {
+    fullFields += `<div class="form-row style-color-row"><label class="form-label">重要信息</label><div class="style-color-box info-box">
+      <div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-ep="charName" value="${esc(it.charName || '')}"></div>
+      <div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-ep="nickName" value="${esc(it.nickName || '')}"></div>
+      <div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-ep="englishName" value="${esc(it.englishName || '')}"></div>
+      <div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-ep="birthday" value="${esc(it.birthday || '')}"></div>
+    </div></div>`;
+  }
+  fullFields += `<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">可以给参考图/色卡 请把主色写最前面</span></label><div class="style-color-box">
+      <div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-ep="style" value="${esc(it.style || '')}"></div>
+      <div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-ep="color" value="${esc(it.color || '')}"></div>
+    </div></div>`
+    + `<div class="form-row style-color-row"><label class="form-label">元素</label><div class="style-color-box elements-box">
+      <div class="style-color-col"><span class="style-color-col-label">必用</span><input type="text" class="form-input" data-ep="elementsRequired" value="${esc(it.elementsRequired || '')}"></div>
+      <div class="style-color-col"><span class="style-color-col-label">可选</span><input type="text" class="form-input" data-ep="elementsOptional" value="${esc(it.elementsOptional || '')}"></div>
+      <div class="style-color-col"><span class="style-color-col-label">避雷</span><input type="text" class="form-input" data-ep="elementsAvoid" value="${esc(it.elementsAvoid || '')}"></div>
+    </div></div>`
+    + `<div class="form-row"><label class="form-label">文案</label><textarea class="form-textarea" data-ep="copyText">${esc(it.copyText || '')}</textarea></div>`;
+
+  return `<div class="cd-extra-product-row" data-idx="${idx}">
+    <div class="cd-ep-head${idx === 0 ? ' row-first' : ''}">
+      <span class="cd-ep-title">追加制品 ${idx + 1}</span>
+      <button type="button" class="btn btn-danger btn-sm" onclick="deleteCdExtraProduct(this)">删除</button>
+    </div>
+    <div class="cd-ep-grid">
+      <div class="cd-ep-inline">
+        <div class="cd-ep-field"><label class="form-label">稿件用途</label>${usageCb}</div>
+        <div class="cd-ep-field"><label class="form-label">是否同柄<span class="form-label-hint">可选择同柄制品</span></label>${hr.html}</div>
+      </div>
+      <div class="cd-ep-inline">
+        <div class="cd-ep-field"><label class="form-label">制品</label><input type="text" class="form-input" data-ep="product" value="${esc(it.product || '')}"></div>
+        <div class="cd-ep-field"><label class="form-label">尺寸</label><input type="text" class="form-input" data-ep="size" value="${esc(it.size || '')}"></div>
+      </div>
+      <div class="${fullClass}">${fullFields}</div>
+      <div class="cd-ep-field cd-ep-wide"><label class="form-label">备注</label><textarea class="form-textarea" data-ep="note">${esc(it.note || '')}</textarea></div>
+      <div class="cd-ep-field cd-ep-wide"><label class="form-label">是否同模</label><div class="checkbox-group" data-ep="sameModel" data-single="true">${sameModelSel}</div></div>
+    </div>
+  </div>`;
+}
+function collectCdExtraRows(container) {
+  const rows = [];
+  container.querySelectorAll('.cd-extra-product-row').forEach(row => {
+    const it = {};
+    row.querySelectorAll('[data-ep]').forEach(el => {
+      if (el.dataset.ep === 'sameModel') return;
+      if (el.tagName === 'INPUT' && el.type === 'checkbox') {
+        if (el.checked) it[el.dataset.ep] = el.value;
+        return;
+      }
+      it[el.dataset.ep] = el.value;
+    });
+    const sm = row.querySelector('[data-ep="sameModel"] input[type="checkbox"]:checked');
+    it.sameModel = sm ? sm.value : '否';
+    rows.push(it);
+  });
+  return rows;
+}
+function reRenderCdExtra(container, items, isFq) {
+  container.innerHTML = items.map((it, idx) => cdExtraProductRowHTML(idx, it, isFq, items)).join('');
+}
+function addCdExtraProduct() {
+  const container = $('#cdExtraProducts');
+  if (!container) return;
+  const isFq = container.dataset.pagekey === 'design-commission-detail-fq';
+  const items = collectCdExtraRows(container);
+  const firstUsage = ($('#modalBody [data-key="usageType"]') || {}).value || '自用';
+  items.push({ usageType: firstUsage, sameHandleRef: '0' });
+  reRenderCdExtra(container, items, isFq);
+}
+function deleteCdExtraProduct(btn) {
+  const row = btn.closest('.cd-extra-product-row');
+  if (!row) return;
+  row.remove();
+  const container = $('#cdExtraProducts');
+  if (!container) return;
+  const isFq = container.dataset.pagekey === 'design-commission-detail-fq';
+  reRenderCdExtra(container, collectCdExtraRows(container), isFq);
+}
+function toggleCdExtraProductFull(wrapper) {
+  if (!wrapper) return;
+  const row = wrapper.closest('.cd-extra-product-row');
+  const full = row.querySelector('.cd-ep-full');
+  if (!full) return;
+  const hidden = wrapper.querySelector('.combobox-value');
+  const val = hidden ? hidden.value : '否';
+  if (val === '否') full.classList.remove('hidden');
+  else full.classList.add('hidden');
+}
+function readCdExtraProducts(container, pageKey) {
+  const items = [];
+  container.querySelectorAll('.cd-extra-product-row').forEach(row => {
+    const it = {};
+    row.querySelectorAll('[data-ep]').forEach(el => {
+      if (el.dataset.ep === 'sameModel') return;
+      if (el.tagName === 'INPUT' && el.type === 'checkbox') {
+        if (el.checked) it[el.dataset.ep] = el.value;
+        return;
+      }
+      it[el.dataset.ep] = el.value;
+    });
+    // sameModel 单选
+    const sm = row.querySelector('[data-ep="sameModel"] input[type="checkbox"]:checked');
+    it.sameModel = sm ? sm.value : '否';
+    // 兼容旧数据：仅含 sameHandle 字段时映射到 sameHandleRef
+    if (it.sameHandle && !it.sameHandleRef) it.sameHandleRef = it.sameHandle;
+    if (Object.values(it).some(v => v && String(v).trim())) items.push(it);
+  });
+  return items;
+}
+
+// 新增 / 编辑 / 详情 / 删除
+function openCdAddForm(pageKey) {
+  const mod = MODULES[pageKey];
+  let defaultData = { category: mod.category };
+  mod.fields.forEach(f => { if (f.default !== undefined) defaultData[f.key] = f.default; });
+  const bodyHTML = buildCdLocalForm(pageKey, defaultData);
+  openModal('新增' + mod.category + '约稿单', bodyHTML, [
+    { label: '取消', class: 'btn-ghost', action: closeModal },
+    { label: '保存', class: 'btn-primary', action: () => saveCdForm(pageKey, null) },
+  ]);
+  setTimeout(() => { setupFormInteractions(pageKey); }, 50);
+}
+function openCdEditForm(id) {
+  const r = DB.getById('commissionDetails', id);
+  if (!r) return;
+  const pageKey = COMM_DETAIL_CATS.find(c => c.cat === r.category).key;
+  const bodyHTML = buildCdLocalForm(pageKey, r);
+  openModal('编辑' + r.category + '约稿单', bodyHTML, [
+    { label: '取消', class: 'btn-ghost', action: closeModal },
+    { label: '保存', class: 'btn-primary', action: () => saveCdForm(pageKey, id) },
+  ]);
+  setTimeout(() => { setupFormInteractions(pageKey); }, 50);
+}
+function saveCdForm(pageKey, id) {
+  const mod = MODULES[pageKey];
+  const data = readCdLocalForm($('#modalBody'), pageKey);
+  data.category = mod.category;
+  data._linkClient = (data.clientInfo || '').trim();
+  if (id) { DB.update('commissionDetails', id, data); Toast.success('已更新'); }
+  else { DB.add('commissionDetails', data); Toast.success('已添加'); }
+  closeModal();
+  renderCommissionDetailPage();
+  syncCdToCommission(data._linkClient);
+}
+function openCdDetail(id) {
+  const r = DB.getById('commissionDetails', id);
+  if (!r) return;
+  const pageKey = COMM_DETAIL_CATS.find(c => c.cat === r.category).key;
+  const mod = MODULES[pageKey];
+  let html = '<div class="detail-view">';
+  const hasExtraDetail = (r.category === '饭圈' || r.category === '二次') && Array.isArray(r.extraProducts) && r.extraProducts.length;
+  let extraInjectedDetail = false;
+  mod.fields.forEach(f => {
+    if (f.section) {
+      if (!extraInjectedDetail && hasExtraDetail && f.section === '交付规范') { html += renderCdExtraProductsDetail(r); extraInjectedDetail = true; }
+      html += `<div class="form-section-title">${esc(f.section)}</div>`; return;
+    }
+    if (f.type === 'readonly') {
+      const v = r[f.key] ?? f.default ?? '';
+      html += `<div class="detail-row"><span class="detail-label">${esc(f.label)}</span><span class="detail-value">${esc(String(v))}</span></div>`;
+      return;
+    }
+    const label = getFieldLabel(pageKey, f.key, f.label);
+    if (f.type === 'dynamic-list') {
+      const items = r[f.key];
+      if (items && items.length) {
+        const cols = f.columns || [];
+        html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><div class="detail-value"><table class="detail-table"><tr>${cols.map(c => `<th>${esc(c.label)}</th>`).join('')}</tr>`;
+        items.forEach(item => {
+          html += '<tr>' + cols.map(c => `<td>${esc(item[c.subkey] || '')}</td>`).join('') + '</tr>';
+        });
+        html += '</table></div></div>';
+      }
+      return;
+    }
+    let v = r[f.key];
+    if (v == null || v === '') return;
+    if (f.type === 'textarea') v = `<div style="white-space:pre-wrap">${esc(v)}</div>`;
+    else v = esc(String(v));
+    html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><span class="detail-value">${v}</span></div>`;
+  });
+  // 联动块：关联的接稿排期订单
+  const linked = DB.list('commissions').filter(c => (c.clientInfo || '') === (r.clientInfo || ''));
+  html += '<div class="form-section-title">🔗 关联接稿排期</div>';
+  if (r.clientInfo && linked.length) {
+    html += '<div class="cd-link-list">';
+    linked.forEach(c => {
+      const pnames = (c.products || []).map(p => p.name).filter(Boolean).join('、') || '—';
+      const acceptTime = c.acceptTime ? `开稿 ${c.acceptTime}` : '';
+      const deadline = c.deadline ? `截稿 ${c.deadline}` : '无截稿';
+      const timeInfo = [acceptTime, deadline].filter(Boolean).join(' · ');
+      html += `<div class="cd-link-item" onclick="commissionSelectById('${c.id}')">
+        <span class="cd-link-name">${esc(c.clientInfo)}</span>
+        <span class="cd-link-meta">${esc(c.progress || '')} · ${esc(timeInfo)} · ${esc(pnames)}</span>
+      </div>`;
+    });
+    html += '</div>';
+  } else if (r.clientInfo) {
+    html += `<div class="cd-link-empty">未找到单主「${esc(r.clientInfo)}」的排期订单。<button class="btn btn-outline btn-sm" onclick="cdPushToCommission('${r.id}')">一键推送至接稿排期</button></div>`;
+  } else {
+    html += '<div class="cd-link-empty">未填写单主姓名，无法与接稿排期联动。可在编辑中补充「单主」。</div>';
+  }
+  html += '</div>';
+  openModal('约稿单详情', html, [
+    { label: '关闭', class: 'btn-ghost', action: closeModal },
+    { label: '编辑', class: 'btn-primary', action: () => { closeModal(); openCdEditForm(id); } },
+  ], 'lg');
+}
+async function onCdDelete(id) {
+  const r = DB.getById('commissionDetails', id);
+  if (!r) return;
+  if (await confirmDialog(`确定删除该约稿单吗？此操作不可撤销。`)) {
+    DB.remove('commissionDetails', id); Toast.success('已删除');
+    renderCommissionDetailPage();
+  }
+}
+
+// 联动：接稿详情 ↔ 接稿排期（按单主姓名绑定）
+function syncCdToCommission(clientName) {
+  if (!clientName) return;
+  const linked = DB.list('commissions').some(c => (c.clientInfo || '') === clientName);
+  if (!linked) {
+    Toast.info('已保存。若「' + clientName + '」尚未建立接稿排期，可在详情中点「一键推送至接稿排期」');
+  }
+}
+// 从接稿详情一键推送至接稿排期（创建一条排期草稿，单主自动绑定）
+function cdPushToCommission(detailId) {
+  const r = DB.getById('commissionDetails', detailId);
+  if (!r) return;
+  const draft = {
+    clientInfo: r.clientInfo || '',
+    acceptTime: todayStr(),
+    progress: '待接稿',
+    paymentStatus: '未付',
+    products: [],
+    notes: '由接稿详情（' + (r.category || '') + '）推送：' + (r.bookName || r.theme || r.ipRole || ''),
+  };
+  // 尝试把制品文本拆成制品列表
+  if (r.products) {
+    const parts = String(r.products).split(/[；;、，,]/).map(s => s.trim()).filter(Boolean);
+    draft.products = parts.map(p => ({ name: p, quantity: 1 }));
+  }
+  DB.add('commissions', draft);
+  Toast.success('已推送至接稿排期（单主：' + (r.clientInfo || '未填') + '）');
+  closeModal();
+  navigate('design-commission');
+}
+// 接稿排期卡片点击后跳到对应排期（用于联动跳转）
+function commissionSelectById(id) {
+  pageState['design-commission'] = pageState['design-commission'] || {};
+  pageState['design-commission'].viewMode = 'list';
+  navigate('design-commission');
+  setTimeout(() => { openDetail('design-commission', id); }, 80);
+}
+
+/* ===== 接稿详情：三种导入渠道（本地等价实现） ===== */
+// 接稿单分享/导入：分类选择下拉（统一 combobox 规范，左间距避免贴标题）
+function cdCatComboboxHTML(hiddenId, selectedKey, onchange) {
+  const sel = COMM_DETAIL_CATS.find(c => c.key === selectedKey) || COMM_DETAIL_CATS[0];
+  const oc = onchange ? (';' + onchange) : '';
+  const opts = COMM_DETAIL_CATS.map(c => {
+    const on = c.key === sel.key ? ' selected' : '';
+    return `<div class="combobox-option${on}" data-value="${esc(c.key)}" onclick="selectComboboxOption('${hiddenId}cb',this)${oc}">${esc(c.label)}</div>`;
+  }).join('');
+  return `<div class="combobox-wrapper cd-cat-combo" style="max-width:220px;margin-left:6px;vertical-align:middle">` +
+    `<input type="text" class="form-input combobox-input" value="${esc(sel.label)}" readonly placeholder="请选择分类" onfocus="showComboboxDropdown('${hiddenId}cb')" onclick="showComboboxDropdown('${hiddenId}cb')">` +
+    `<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${hiddenId}cb')">▼</button>` +
+    `<div class="combobox-dropdown" id="${hiddenId}cb">${opts}</div>` +
+    `<input type="hidden" class="combobox-value" id="${hiddenId}" value="${esc(sel.key)}">` +
+    `</div>`;
+}
+// 1. 聊天记录解析导入：粘贴文字 → 正则模板提取 → 自动回填表单
+function openCdImportChat() {
+  let html = '<div class="cd-import-modal">';
+  html += '<div class="cd-import-tip">粘贴与单主的聊天记录，系统会智能识别字段并自动回填（字段名不要求完全一致，识别有误可手动修改）</div>';
+  // v451：上边距设 0（蓝块下边距已提供 8px 上留白），下边距 8px，使下拉框上下对称
+  html += `<div style="margin-top:0;margin-bottom:10px"><label class="form-label">选择分类</label>${cdCatComboboxHTML('cdChatCat', COMM_DETAIL_CATS[0].key)}</div>`;
+  html += `<textarea class="form-textarea cd-chat-input" id="cdChatInput" placeholder="您的平台昵称：\n稿件用途：\n制品：\n尺寸：\n企划/主题名称：\n姓名：\n昵称：\n英文名：\n生日：\n风格：\n颜色：\n元素·必用：\n元素·可用：\n元素·避雷：\n文案：\n备注：\n颜色格式：\n交付方式：\n是否可以展示："></textarea>`;
+  html += `<div class="cd-import-actions"><button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="runCdChatParse()">解析并回填</button></div>`;
+  html += '</div>';
+  openModal('聊天记录导入', html, [
+    { label: '关闭', class: 'btn-ghost', action: closeModal },
+  ], 'lg add60');
+}
+function runCdChatParse() {
+  const text = ($('#cdChatInput').value || '');
+  const catKey = $('#cdChatCat').value;
+  const mod = MODULES[catKey];
+  if (!text.trim()) { Toast.error('请先粘贴聊天记录'); return; }
+  const data = { category: mod.category };
+  // 字段识别：模糊别名匹配（忽略标点/空格/emoji/序号前缀，不要求标题完全一致）
+  const aliasMap = {
+    clientInfo: ['单主', '客户', '甲方', '委托人', '约稿人', '宝子', '宝'],
+    platformNick: ['平台昵称', '店铺', '店名', '微博', 'wb', '小红书', 'vx', '微信', 'qq', '抖音', '账号', 'id'],
+    bookName: ['书名', '书名文字', '文字', '标题'],
+    authorName: ['作者', '作者名', '笔名', '写手'],
+    type: ['类型'],
+    size: ['尺寸', '大小'],
+    color: ['颜色'],
+    colorFormat: ['颜色格式', '色值格式', '格式'],
+    copyText: ['文案', '小字', '宣传语', 'slogan'],
+    theme: ['企划名称', '主题名称', '企划名', '主题名', '企划', '主题'],
+    charName: ['姓名', '角色名', '名字', '人物', '角色', '本名'],
+    nickName: ['昵称', '小名'],
+    englishName: ['英文名', '英文', 'english', 'en'],
+    birthday: ['生日', '出生日期', '生日日期', 'birthday', 'bday', '出生'],
+    ipName: ['ip名', 'ip', '原作', '作品名', '番名'],
+    usageType: ['用途', '使用', '用法'],
+    product: ['制品', '产品', '物料', 'goods', 'item'],
+    style: ['风格颜色', '风格', '画风', 'style'],
+    elementsRequired: ['元素必用', '元素-必用', '元素必要', '元素必备', '必用元素', '必带元素', '必要元素', '必备元素', '必用', '必带', '必要', '必备'],
+    elementsOptional: ['元素可选', '元素-可选', '元素可用', '元素·可用', '元素备选', '元素可加', '可选元素', '备选元素', '可加元素', '可选', '可以加'],
+    elementsAvoid: ['元素避雷', '元素-避雷', '元素避免', '元素禁用', '元素忌', '避雷元素', '避免元素', '禁用元素', '忌元素', '避雷', '避免', '禁用', '忌'],
+  };
+  const norm = (s) => String(s).toLowerCase().replace(/[\s　\/·•・、，,。.!！?？~*★☆#@\-_()（）0-9]/g, '');
+  let hit = 0;
+  // 垃圾值（空 / 纯冒号·标点·数字）不占位，且允许真值覆盖已被占用的垃圾值
+  const isJunkVal = (v) => !v || /^[：:，,。.\s\-_/·•・、！!?？~*★☆#@()（）]+$/.test(v);
+  const assign = (key, val) => {
+    val = (val || '').trim();
+    if (isJunkVal(val)) return;
+    if (!data[key] || isJunkVal(data[key])) { data[key] = val; hit++; }
+  };
+  // 元素专项解析：优先从「标签」提取 必用/可选/避雷 子类型（如 元素—必用：星星），再退回按「值」内拆分，均无则整体进必用
+  const parseElementLine = (labelRaw, val) => {
+    const tagMap = { '必用':'elementsRequired','必带':'elementsRequired','必要':'elementsRequired','必备':'elementsRequired',
+                     '可选':'elementsOptional','可以加':'elementsOptional','备选':'elementsOptional','可用':'elementsOptional',
+                     '避雷':'elementsAvoid','避免':'elementsAvoid','禁用':'elementsAvoid','忌':'elementsAvoid' };
+    // 1) 标签中明确写了子类型（元素—必用 / 元素-可选 / 元素避雷…），直接按标签归类
+    for (const t in tagMap) {
+      if (labelRaw.indexOf(t) > -1) { assign(tagMap[t], val.trim()); return; }
+    }
+    // 2) 标签无子类型，尝试从值内拆分（如 必用星星/可选月亮/避雷云）
+    const keys = [...val.matchAll(/(必用|必带|必要|必备|可选|可以加|备选|避雷|避免|禁用|忌)/g)].map(m => m[1]);
+    if (keys.length) {
+      const positions = keys.map(k => val.indexOf(k));
+      for (let i = 0; i < keys.length; i++) {
+        const start = positions[i] + keys[i].length;
+        const end = (i + 1 < keys.length) ? positions[i + 1] : val.length;
+        let seg = val.slice(start, end).replace(/^[:：\s、，,。.\/]+/, '').replace(/[\s、，,。.]+$/, '');
+        if (seg) assign(tagMap[keys[i]], seg);
+      }
+    } else {
+      assign('elementsRequired', val.trim());
+    }
+  };
+  text.split(/\r?\n+/).forEach(raw => {
+    const line = raw.replace(/[\s　]+/g, ' ').trim();
+    if (!line) return;
+    const m = line.match(/^(.*?)[:：]\s*(.+)$/);
+    if (m) {
+      const val = m[2];
+      const labelRaw = m[1];
+      // 元素标签专项：以「元素」开头（如 元素/元素：/元素-）的字段走智能拆分
+      const normLabelRaw = labelRaw.replace(/[\s　]/g, '');
+      if (normLabelRaw === '元素' || normLabelRaw.startsWith('元素')) {
+        parseElementLine(labelRaw, val);
+        return;
+      }
+      // 标签须以别名为核心：别名前仅允许序号/emoji/空格前缀，别名后仅允许分隔符（避免「尺寸 4:3」把值里的冒号误判为分隔）
+      for (const key in aliasMap) {
+        for (const a of aliasMap[key]) {
+          const lowA = a.toLowerCase();
+          const pos = labelRaw.toLowerCase().indexOf(lowA);
+          if (pos === -1) continue;
+          const before = labelRaw.slice(0, pos);
+          const after = labelRaw.slice(pos + lowA.length);
+          const beforeOk = /^[^a-z\u4e00-\u9fa5]*$/i.test(before);
+          const afterOk = /^[\s　\-_]*$/.test(after);
+          if (beforeOk && afterOk) { assign(key, val); return; }
+        }
+      }
+    } else {
+      const lowLine = line.toLowerCase();
+      if (line.length > 60) return; // 长句不强行识别，避免误判（放宽以容纳多元素列表）
+      for (const key in aliasMap) {
+        for (const a of aliasMap[key]) {
+          const lowA = a.toLowerCase();
+          const idx = lowLine.indexOf(lowA);
+          if (idx > -1 && idx < 12) {
+            const v = line.slice(idx + lowA.length).trim();
+            if (v) { assign(key, v); return; }
+          }
+        }
+      }
+    }
+  });
+  // 交付方式（兼容「交付」与「交付方式」）
+  const delM = text.match(/交付(?:方式)?[：:]\s*([^\n]+)/);
+  if (delM) {
+    const dv = delM[1].trim();
+    const opt = COMM_DETAIL_DELIVERY_OPTS.find(o => dv.includes(o.value));
+    if (opt) data.delivery = opt.value;
+  }
+  if (!hit) { Toast.error('未能从聊天记录中提取到有效字段，请检查格式（每行用「标签：内容」）'); return; }
+  const bodyHTML = buildCdLocalForm(catKey, data);
+  openModal('新建' + mod.category + '约稿单（已解析）', bodyHTML, [
+    { label: '取消', class: 'btn-ghost', action: closeModal },
+    { label: '保存', class: 'btn-primary', action: () => saveCdForm(catKey, null) },
+  ], 'lg');
+  setTimeout(() => { setupFormInteractions(catKey); }, 50);
+  Toast.success('已识别 ' + hit + ' 个字段，请核对后保存');
+}
+// 2. 腾讯问卷 / JSON 导入：粘贴 JSON 批量导入
+function openCdImportJson() {
+  let html = '<div class="cd-import-modal">';
+  html += '<div class="cd-import-tip">支持两种来源：①腾讯问卷导出的 JSON（字段名需与表单一致）；②本系统「生成约稿单导入」导出的回填 JSON。粘贴后选择分类批量导入。</div>';
+  // v451：上边距设 0（蓝块下边距已提供 8px 上留白），下边距 8px，使下拉框上下对称
+  html += `<div style="margin-top:0;margin-bottom:10px"><label class="form-label">选择分类</label>${cdCatComboboxHTML('cdJsonCat', COMM_DETAIL_CATS[0].key)}</div>`;
+  html += `<textarea class="form-textarea cd-chat-input" id="cdJsonInput" placeholder='[{"category":"土味","clientInfo":"小明","bookName":"青春纪事",...}]'></textarea>`;
+  html += `<div class="cd-import-actions"><button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="runCdJsonImport()">解析并导入</button></div>`;
+  html += '</div>';
+  openModal('腾讯问卷 / JSON 导入', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'lg add60');
+}
+function runCdJsonImport() {
+  const text = ($('#cdJsonInput').value || '').trim();
+  const catKey = $('#cdJsonCat').value;
+  const fallbackCat = MODULES[catKey].category;
+  if (!text) { Toast.error('请粘贴 JSON 数据'); return; }
+  let arr;
+  try { arr = JSON.parse(text); } catch (e) { Toast.error('JSON 解析失败：' + e.message); return; }
+  if (!Array.isArray(arr)) arr = [arr];
+  let ok = 0;
+  arr.forEach(item => {
+    if (typeof item !== 'object' || !item) return;
+    item.category = item.category || fallbackCat;
+    // 兼容旧分类名
+    if (item.category === '土味制品') item.category = '土味';
+    if (item.category === '二次创作') item.category = '二次';
+    // 仅允许已存在的分类
+    if (!COMM_DETAIL_CATS.some(c => c.cat === item.category)) item.category = fallbackCat;
+    DB.add('commissionDetails', item);
+    ok++;
+  });
+  if (!ok) { Toast.error('没有可导入的有效记录'); return; }
+  Toast.success('成功导入 ' + ok + ' 条约稿单');
+  closeModal();
+  renderCommissionDetailPage();
+}
+// 3. 生成标准化约稿单：选择分类后直接展示可分享链接（v447 式：链接初始界面直接显示）
+// v451：恢复顶部蓝色说明模块（v450 误删了上蓝块，仅保留下方已生成提示块被删）；仅链接区显示，无"已生成"提示块
+function openCdClientForm() {
+  const defKey = COMM_DETAIL_CATS[0].key;
+  let html = '<div class="cd-import-modal">';
+  html += '<div class="cd-import-tip">选择分类后自动生成对应的约稿单填写链接，可直接复制发给单主，或点「直接填写」在本页打开。链接长期有效，单主提交的数据将归入对应分类的接稿详情。</div>';
+  html += `<div style="margin-top:10px"><label class="form-label">选择分类</label>${cdCatComboboxHTML('cdClientCat', defKey, 'cdClientCatChange()')}</div>`;
+  html += `<div id="cdClientLinkWrap" style="margin-top:8px">${cdClientLinkInner(defKey)}</div>`;
+  html += '</div>';
+  openModal('生成约稿单导入', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'lg add60');
+}
+// 分类切换时刷新同一页面内的链接（不再切换界面）
+function cdShowClientLinkInline(catKey) {
+  const wrap = $('#cdClientLinkWrap');
+  if (wrap) {
+    wrap.innerHTML = cdClientLinkInner(catKey);
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+function cdClientLinkInner(catKey) {
+  const mod = MODULES[catKey];
+  const base = (window.location.origin || '') + (window.location.pathname || '/index.html');
+  const link = base.replace(/\/$/, '') + '?cd_client=1&cat=' + encodeURIComponent(catKey) + '&standalone=1&_t=' + Date.now();
+  let h = `<div class="cd-link-box"><textarea class="form-input" id="cdClientLink" readonly>${esc(link)}</textarea></div>`;
+  h += `<div class="cd-import-actions"><button class="btn btn-primary" onclick="copyCdClientLink()">复制链接</button><button class="btn btn-primary" onclick="cdOpenClientFormFromLink('${catKey}')">直接填写</button></div>`;
+  return h;
+}
+function cdClientCatChange() {
+  const catKey = ($('#cdClientCat') || {}).value || COMM_DETAIL_CATS[0].key;
+  const wrap = $('#cdClientLinkWrap');
+  if (wrap && wrap.innerHTML.trim()) wrap.innerHTML = cdClientLinkInner(catKey);
+}
+function runCdClientForm() {
+  const catKey = ($('#cdClientCat') || {}).value || COMM_DETAIL_CATS[0].key;
+  cdShowClientLink(catKey);
+}
+function cdShowClientLink(catKey) {
+  const mod = MODULES[catKey];
+  const base = (window.location.origin || '') + (window.location.pathname || '/index.html');
+  const link = base.replace(/\/$/, '') + '?cd_client=1&cat=' + encodeURIComponent(catKey) + '&standalone=1&_t=' + Date.now();
+  let html = '<div class="cd-import-modal">';
+  html += `<div class="cd-link-box"><textarea class="form-input" id="cdClientLink" readonly>${esc(link)}</textarea></div>`;
+  html += `<div class="cd-import-actions"><button class="btn btn-outline" onclick="closeModal()">关闭</button><button class="btn btn-primary" onclick="copyCdClientLink()">复制链接</button><button class="btn btn-primary" onclick="cdOpenClientFormFromLink('${catKey}')">直接填写</button></div>`;
+  html += '</div>';
+  openModal('单主填写链接', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'link-narrow');
+}
+function copyCdClientLink() {
+  const input = $('#cdClientLink');
+  if (!input) return;
+  input.select();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(input.value).then(() => Toast.success('链接已复制'));
+  } else {
+    try { document.execCommand('copy'); Toast.success('链接已复制'); } catch (e) { Toast.error('复制失败，请手动复制'); }
+  }
+}
+function cdOpenClientFormFromLink(catKey) {
+  const mod = MODULES[catKey];
+  const data = { category: mod.category };
+  mod.fields.forEach(f => { if (f.default !== undefined && f.key !== 'category') data[f.key] = f.default; });
+  const bodyHTML = buildCdClientForm(catKey, data);
+  openModal('单主填写：' + mod.category + '约稿单', bodyHTML, [
+    { label: '取消', class: 'btn-ghost', action: closeModal },
+    { label: '提交', class: 'btn-primary', action: () => saveCdClientForm(catKey) },
+  ], 'lg');
+  setTimeout(() => { setupFormInteractions(catKey); }, 50);
+}
+// 从 URL 参数自动打开单主填写表单
+function cdCheckClientFormFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('cd_client') !== '1') return;
+    const catKey = params.get('cat');
+    if (!catKey || !MODULES[catKey]) return;
+    history.replaceState({}, '', window.location.pathname || window.location.href.split('?')[0]);
+    // 单主专用：打开干净独立填写页（不暴露用户工作台）
+    if (params.get('standalone') === '1') { cdRenderClientStandalone(catKey); return; }
+    cdOpenClientFormFromLink(catKey);
+  } catch (e) {}
+}
+// 单主专用独立填写页：仅渲染表单，隐藏侧边栏/顶栏，提交后显示致谢
+function cdRenderClientStandalone(catKey) {
+  const mod = MODULES[catKey];
+  if (!mod) return;
+  document.body.classList.add('cd-standalone');
+  const data = { category: mod.category };
+  mod.fields.forEach(f => { if (f.default !== undefined && f.key !== 'category') data[f.key] = f.default; });
+  const body = $('#mainBody');
+  let html = '<div class="cd-client-standalone">';
+  html += `<div class="cd-client-head">${esc(mod.category)}约稿单</div>`;
+  html += '<div class="cd-client-form">';
+  html += buildCdClientForm(catKey, data);
+  html += '</div>';
+  html += `<div class="cd-client-submit"><button class="btn btn-primary" onclick="saveCdClientForm('${catKey}', true)">提交</button></div>`;
+  html += '</div>';
+  body.innerHTML = html;
+  setTimeout(() => { setupFormInteractions(catKey); }, 50);
+}
+function buildCdClientForm(pageKey, data) {
+  const mod = MODULES[pageKey];
+  const fields = prepareFields(pageKey, mod.fields).filter(f => !f.localOnly);
+  const deliveryIdx = fields.findIndex(f => f.section === '交付规范');
+  const hasExtra = pageKey === 'design-commission-detail-fq' || pageKey === 'design-commission-detail-ec';
+  let html = '';
+  if (deliveryIdx > -1) {
+    html += buildForm(fields.slice(0, deliveryIdx), data, pageKey);
+    if (hasExtra) html += buildCdExtraProductsHTML(pageKey, data.extraProducts || [], data);
+    html += buildForm(fields.slice(deliveryIdx), data, pageKey);
+  } else {
+    html += buildForm(fields, data, pageKey);
+    if (hasExtra) html += buildCdExtraProductsHTML(pageKey, data.extraProducts || [], data);
+  }
+  return html;
+}
+function saveCdClientForm(pageKey, standalone) {
+  const mod = MODULES[pageKey];
+  const container = $('#modalBody') || $('#mainBody');
+  const data = readForm(container);
+  if (pageKey === 'design-commission-detail-fq' || pageKey === 'design-commission-detail-ec') {
+    data.extraProducts = readCdExtraProducts(container, pageKey);
+  }
+  data.category = mod.category;
+  DB.add('commissionDetails', data);
+  if (standalone) {
+    const body = $('#mainBody');
+    body.innerHTML = '<div class="cd-client-done"><div class="cd-client-done-icon">✅</div><div class="cd-client-done-title">提交成功，感谢填写！</div><div class="cd-client-done-sub">您可关闭本页面，画手将收到您的信息。</div></div>';
+    return;
+  }
+  Toast.success('单主填写内容已保存到本地，请编辑补填「单主」等内部信息');
+  closeModal();
+  const ps = pageState['design-commission-detail'];
+  ps.tab = pageKey; ps.cdPage = 1;
+  renderCommissionDetailPage();
+}
+
 /* ===== Init ===== */
 function init() {
   const s = getSettings();
@@ -6499,6 +8634,12 @@ function init() {
   migrateData();
   Sync.load();
   initEvents();
+  // 单主填写链接优先接管：在渲染首页之前检测，避免先闪出工作台
+  const _cdParams = new URLSearchParams(window.location.search);
+  if (_cdParams.get('cd_client') === '1') {
+    cdCheckClientFormFromUrl();
+    return;
+  }
   const lastState = DB.get('ui_state', {});
   navigate(lastState.lastPage || 'home');
   initSwipeBack();
