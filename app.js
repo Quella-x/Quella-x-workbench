@@ -1402,8 +1402,11 @@ MODULES['design-commission'] = {
   listFields: [
     { label: '稿件进度', key: 'progress', tag: true },
     { label: '稿件用途', key: 'usageType' },
-    { label: '制品', key: '_firstProduct' },
+    { label: '开稿日期', key: 'startTime', date: true },
+    { label: '截稿日期', key: 'deadline', date: true },
+    { label: '报价金额', key: 'quoteAmount' },
     { label: '支付状态', key: 'paymentStatus', tag: true },
+    { label: '制品', key: '_firstProduct' },
   ],
   stats: (records) => {
     const isPaid = r => valIncludes(r.paymentStatus, '全款') || valIncludes(r.paymentStatus, '尾款');
@@ -2067,7 +2070,9 @@ function renderListPage(pageKey, mod) {
           if (pageKey === 'design-commission') return; // 接稿排期在下面用复选框展示
           const names = (r.products || []).map(p => p.name).filter(Boolean); v = names.join('、');
         }
-        if (v == null || v === '') return;
+        if (v == null || v === '') {
+          if (!(pageKey === 'design-commission' && ['startTime','deadline','quoteAmount'].includes(f.key))) return;
+        }
         if (f.tag && Array.isArray(v)) {
           const tags = v.map(val => {
             let tc = 'tag-info';
@@ -2078,7 +2083,7 @@ function renderListPage(pageKey, mod) {
             if (['买断', '敌对', '已结算'].includes(val)) tc = 'tag-purple';
             return `<span class="tag ${tc}">${esc(String(val))}</span>`;
           }).join(' ');
-          html += `<span class="field"><span class="field-label">${esc(dispLabel)}:</span><span class="field-value field-tags">${tags}</span></span>`;
+          html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value field-tags">${tags}</span></span>`;
           return;
         }
         if (Array.isArray(v)) v = v.join('、');
@@ -2091,11 +2096,11 @@ function renderListPage(pageKey, mod) {
           if (['已截团', '暂停合作', '已取消', '流团'].includes(v)) tc = 'tag-gray';
           if (['不合格', '不满意'].includes(v)) tc = 'tag-danger';
           if (['买断', '敌对', '已结算'].includes(v)) tc = 'tag-purple';
-          html += `<span class="field"><span class="field-label">${esc(dispLabel)}:</span><span class="field-value"><span class="tag ${tc}">${esc(String(v))}</span></span></span>`;
+          html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value"><span class="tag ${tc}">${esc(String(v))}</span></span></span>`;
         } else if (f.link) {
-          if (v && v.startsWith('http')) html += `<span class="field"><span class="field-label">${esc(dispLabel)}:</span><a href="${esc(v)}" target="_blank" style="color:var(--c-primary)">链接</a></span>`;
+          if (v && v.startsWith('http')) html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><a href="${esc(v)}" target="_blank" style="color:var(--c-primary)">链接</a></span>`;
         } else {
-          html += `<span class="field"><span class="field-label">${esc(dispLabel)}:</span><span class="field-value">${esc(String(v))}</span></span>`;
+          html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value">${esc(String(v))}</span></span>`;
         }
       });
       if (pageKey === 'design-commission' && r.products && r.products.length) {
