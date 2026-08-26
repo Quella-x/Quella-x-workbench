@@ -1828,6 +1828,8 @@ const PAGE_SIZES = {
   'groupbuy-factories': 10, 'design-inspiration': 20, 'oc-profiles': 20, 'oc-stories': 10, 'oc-relations': 10,
 };
 const TWO_COL_MODULES = ['design-inspiration', 'oc-profiles'];
+// v515: 九模块列表字段对齐（与接稿排期左栏一致：64px 右对齐标签 + 1fr 值列），仅改内部字段样式，单双列保持原样
+const COMM_LIST_STYLE_MODULES = ['groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'design-inspiration', 'design-commission', 'design-auth', 'oc-profiles', 'oc-stories', 'oc-commission'];
 
 /* ===== Router ===== */
 function navigate(page) {
@@ -2057,7 +2059,7 @@ function renderListPage(pageKey, mod) {
       html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('${pageKey}','${r.id}')">🗑️</span>`;
       html += '</div>';
       html += '</div>';
-      html += '<div class="record-card-body">';
+      html += '<div class="record-card-body' + (COMM_LIST_STYLE_MODULES.includes(pageKey) ? ' comm-list-style' : '') + '">';
       (visibleListFields).forEach(f => {
         const dispLabel = fieldLabelMap[f.key] || f.label;
         let v = r[f.key];
