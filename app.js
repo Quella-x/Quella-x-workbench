@@ -7351,7 +7351,7 @@ function renderSleepWeekLineChart(days) {
   const isDesktop = window.innerWidth > 768;
   const W = 720, H = 568;
   const LM = isDesktop ? 45 : 80, RM = isDesktop ? 15 : 40, TM = isDesktop ? 70 : 46, BM = isDesktop ? 40 : 4;
-  const hourLabelY = isDesktop ? TM - 20 : TM - 55;
+  const hourLabelY = isDesktop ? TM - 26 : TM - 55;
   const CW = W - LM - RM, CH = H - TM - BM;
   const xOf = v => LM + (maxV > 0 ? v / maxV * CW : 0);
   const yOf = i => TM + CH * i / 6;
@@ -7378,7 +7378,9 @@ function renderSleepWeekLineChart(days) {
     const label = formatSleepDuration(v);
     const anchor = (v / maxV) > 0.78 ? 'end' : 'start';
     const lx = anchor === 'end' ? x - 12 : x + 12;
-    return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${(y - 22).toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${label}</text><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/></g>`;
+    // v556：右侧接近边界的点标签放到点下方，避免与顶部小时刻度重叠
+    const ly = anchor === 'end' ? y + 26 : y - 22;
+    return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${label}</text><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/></g>`;
   }).join('');
   return `<div class="lr-history-stat-card">
     <div class="lr-hsc-row">
