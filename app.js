@@ -474,6 +474,13 @@ function buildFormField(f, data, moduleKey, wrap) {
         }
       } catch (e) {}
     }
+    // 土味约稿单：制品下拉框从固定 9 项列表渲染（与价目表联动自动回填尺寸/出血）
+    if (moduleKey === 'design-commission-detail-twy') {
+      const twyMatch = html.match(/<input([^>]*?)\bclass="([^"]*?\b)?cd-twy-product-combobox(\b[^"]*)?"([^>]*?)>/);
+      if (twyMatch) {
+        html = html.replace(twyMatch[0], cdTwyProductComboboxHTML('cdTwyProductBox', data.product || ''));
+      }
+    }
     // 将 data 中的值回填到 custom 内的 input/textarea（支持聊天记录解析回填 & 编辑回填）
     html = html.replace(/<(input|textarea)([^>]*?)\bdata-key="([^"]+)"([^>]*)>/g, (mm, tag, pre, k, post) => {
       const v = data[k];
@@ -578,6 +585,11 @@ function buildFormField(f, data, moduleKey, wrap) {
     const cw = f.visibleWhen;
     const initHidden = String(data[cw.key] ?? '') !== String(cw.value);
     return `<div class="cond-field" data-cond-key="${esc(cw.key)}" data-cond-value="${esc(cw.value)}"${initHidden ? ' style="display:none"' : ''}>${out}</div>`;
+  }
+  if (f.showWhenIn) {
+    const cw = f.showWhenIn;
+    const initHidden = !((cw.values || []).includes(String(data[cw.key] ?? '')));
+    return `<div class="cond-field" data-cond-key="${esc(cw.key)}" data-cond-in='${JSON.stringify(cw.values)}'${initHidden ? ' style="display:none"' : ''}>${out}</div>`;
   }
   return out;
 }
@@ -1641,6 +1653,34 @@ function cdBindProductAutoFill(container) {
   container.querySelectorAll('.cd-ep-product-box').forEach(box => bindBox(box));
 }
 
+// 土味约稿单：制品下拉框（固定 9 项，按拼音 A-Z 排序；与价目表联动，选择后自动回填尺寸/出血）
+function cdTwyProductComboboxHTML(id, value) {
+  const opts = ['壁纸', '封口贴', '封面', '海报', '卡套', '手持镜', '手机壳', '小卡', '易拉宝'];
+  const optHTML = opts.map(n => `<div class="combobox-option" onclick="selectComboboxOption('${id}',this)" data-value="${esc(n)}">${esc(n)}</div>`).join('');
+  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="product" value="${esc(value || '')}" placeholder="选择或输入制品" onfocus="showComboboxDropdown('${id}')" onclick="showComboboxDropdown('${id}')" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${optHTML}</div><input type="hidden" class="combobox-value" data-key="product" value="${esc(value || '')}"></div>`;
+}
+// 土味约稿单：选择价目表制品后自动回填默认尺寸/出血（仅当制品命中价目表时）
+function cdTwyBindProductAutoFill(container) {
+  if (!container) return;
+  const box = container.querySelector('.cd-twy-product-box');
+  if (!box) return;
+  const cb = box.querySelector('.combobox-input');
+  const sizeInp = box.querySelector('[data-key="size"]');
+  const bleedInp = box.querySelector('[data-key="bleed"]');
+  if (!cb) return;
+  const onPick = () => {
+    const name = (cb.value || '').trim();
+    if (!name) return;
+    const pl = DB.list('priceList').find(p => p.product === name && PRODUCT_CATEGORIES.includes(p.category));
+    if (pl) {
+      if (sizeInp) sizeInp.value = pl.defaultSize || '';
+      if (bleedInp) bleedInp.value = pl.defaultBleed || '';
+    }
+  };
+  cb.addEventListener('input', onPick);
+  cb.addEventListener('change', onPick);
+}
+
 // 板块1：土味约稿单
 MODULES['design-commission-detail-twy'] = {
   store: 'commissionDetails',
@@ -1650,12 +1690,11 @@ MODULES['design-commission-detail-twy'] = {
     { key: 'clientInfo', label: '单主', type: 'text', placeholder: '单主姓名（用于与接稿排期联动）', localOnly: true },
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
-    { key: 'type', label: '类型', type: 'combobox', options: [{ value: '常约类型封面', label: '常约类型封面' }, { value: '小卡', label: '小卡' }, { value: '其他', label: '其他' }] },
-    { key: 'size', label: '尺寸', type: 'text', placeholder: '常约类型封面默认 3:4；小卡默认 54×86mm' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息</label><div class="style-color-box info-box cd-product-box cd-twy-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input combobox-input cd-twy-product-combobox" data-key="product" placeholder="选择或输入制品"></div><div class="style-color-col"><span class="style-color-col-label">排版</span><input type="text" class="form-input" data-key="layout" placeholder="排版"></div><div class="style-color-col"><span class="style-color-col-label">尺寸</span><input type="text" class="form-input" data-key="size" placeholder="随制品自动填入"></div><div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-key="bleed" placeholder="出血"></div></div></div>' },
     { key: 'bookName', label: '书名/文字', type: 'text' },
     { key: 'authorName', label: '作者名', type: 'text' },
     { key: 'copyText', label: '文案/小字', type: 'textarea' },
-    { key: 'color', label: '颜色', type: 'text', placeholder: '默认跟底图颜色走' },
+    { key: 'color', label: '颜色', type: 'text', hintInline: true, hint: '默认跟底图颜色走' },
     commDetailOtherField(),
     { section: '交付规范' },
     { key: 'colorFormat', label: '颜色格式', type: 'combobox', default: 'RGB', options: COMM_DETAIL_COLOR_FORMAT_OPTS, hintInline: true, hint: '部分小程序不支持CMYK格式' },
@@ -1666,7 +1705,7 @@ MODULES['design-commission-detail-twy'] = {
     commDetailUnsealDateField(),
   ],
   listFields: [
-    { label: '类型', key: 'type' },
+    { label: '制品', key: 'product' },
     { label: '书名', key: 'bookName' },
     { label: '作者', key: 'authorName' },
   ],
@@ -1681,14 +1720,14 @@ MODULES['design-commission-detail-fm'] = {
     { key: 'clientInfo', label: '单主', type: 'text', placeholder: '单主姓名（用于与接稿排期联动）', localOnly: true },
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
-    { key: 'type', label: '类型', type: 'combobox', options: [{ value: '网站', label: '网站' }, { value: '书城', label: '书城' }, { value: '其他', label: '其他' }] },
-    { key: 'platformSize', label: '平台尺寸', type: 'text' },
-    { key: 'addLogo', label: '是否加logo', type: 'combobox', default: '不加', options: [{ value: '不加', label: '不加' }, { value: '加', label: '加' }] },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">尺寸信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">网站/书城</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="type" placeholder="网站/书城" onfocus="showComboboxDropdown(\'cdFmPlatformCb\')" onclick="showComboboxDropdown(\'cdFmPlatformCb\')" oninput="filterComboboxDropdown(\'cdFmPlatformCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdFmPlatformCb\')">▼</button><div class="combobox-dropdown" id="cdFmPlatformCb"><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPlatformCb\',this)" data-value="网站">网站</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPlatformCb\',this)" data-value="书城">书城</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPlatformCb\',this)" data-value="其他">其他</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸</span><input type="text" class="form-input" data-key="size" placeholder="平台尺寸"></div><div class="style-color-col"><span class="style-color-col-label">是否加logo</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="addLogo" placeholder="是否加logo" onfocus="showComboboxDropdown(\'cdFmLogoCb\')" onclick="showComboboxDropdown(\'cdFmLogoCb\')" oninput="filterComboboxDropdown(\'cdFmLogoCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdFmLogoCb\')">▼</button><div class="combobox-dropdown" id="cdFmLogoCb"><div class="combobox-option" onclick="selectComboboxOption(\'cdFmLogoCb\',this)" data-value="不加">不加</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmLogoCb\',this)" data-value="加">加</div></div></div></div></div></div>' },
     { key: 'bookName', label: '书名', type: 'text' },
     { key: 'authorName', label: '作者名', type: 'text' },
     { key: 'copyText', label: '文案/小字', type: 'textarea' },
-    { key: 'color', label: '颜色', type: 'text', placeholder: '默认跟底图颜色走' },
-    { key: 'baseImg', label: '底图', type: 'combobox', default: '自带', options: [{ value: '自带', label: '自带' }, { value: '有人', label: '有人（需说明需求/颜色/男女）' }, { value: '无人', label: '无人（需说明需求/颜色/男女）' }] },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">类型 · 纯排</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">类型</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="genre" placeholder="类型" onfocus="showComboboxDropdown(\'cdFmGenreCb\')" onclick="showComboboxDropdown(\'cdFmGenreCb\')" oninput="filterComboboxDropdown(\'cdFmGenreCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdFmGenreCb\')">▼</button><div class="combobox-dropdown" id="cdFmGenreCb"><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="都市">都市</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="古风">古风</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="灵异">灵异</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="Q 版">Q 版</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="素锦">素锦</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="玄幻">玄幻</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="校园">校园</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="言情">言情</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">是否纯排</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="pureLayout" placeholder="是否纯排" onfocus="showComboboxDropdown(\'cdFmPureCb\')" onclick="showComboboxDropdown(\'cdFmPureCb\')" oninput="filterComboboxDropdown(\'cdFmPureCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdFmPureCb\')">▼</button><div class="combobox-dropdown" id="cdFmPureCb"><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPureCb\',this)" data-value="否">否</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPureCb\',this)" data-value="是">是</div></div></div></div></div></div></div>' },
+    { key: 'color', label: '颜色', type: 'text', hintInline: true, hint: '默认跟底图颜色走' },
+    { key: 'baseImg', label: '底图', type: 'combobox', default: '自带', options: [{ value: '自带', label: '自带' }, { value: '有人', label: '有人' }, { value: '无人', label: '无人' }] },
+    { key: 'baseReq', label: '底图需求', type: 'text', placeholder: '请说明需求', hintInline: true, hint: '请说明需求 颜色、男女、元素等', showWhenIn: { key: 'baseImg', values: ['有人', '无人'] } },
     commDetailOtherField(),
     { section: '交付规范' },
     { key: 'colorFormat', label: '颜色格式', type: 'combobox', default: 'RGB', options: COMM_DETAIL_COLOR_FORMAT_OPTS, hintInline: true, hint: '部分小程序不支持CMYK格式' },
@@ -1699,7 +1738,7 @@ MODULES['design-commission-detail-fm'] = {
     commDetailUnsealDateField(),
   ],
   listFields: [
-    { label: '类型', key: 'type' },
+    { label: '网站/书城', key: 'type' },
     { label: '书名', key: 'bookName' },
     { label: '作者', key: 'authorName' },
   ],
@@ -2669,7 +2708,7 @@ function renderCommDetailPreview(selectedId) {
   if (cat === '土味' || cat === '封面') {
     thumbRows = [
       ['书名/文字', d.bookName || '—'],
-      ['类型', d.type || '—'],
+      ['制品', d.product || (cat === '封面' ? (d.type || '—') : '—')],
       ['尺寸', d.size || '—'],
       ['颜色', d.color || '—'],
     ];
@@ -2970,7 +3009,14 @@ function setupFormInteractions(pageKey) {
       if (!container) return;
       container.querySelectorAll('.cond-field').forEach(w => {
         const ctrl = container.querySelector(`[data-key="${w.dataset.condKey}"]`);
-        const show = ctrl && ctrl.value === w.dataset.condValue;
+        let show;
+        if (w.dataset.condIn) {
+          let vals = [];
+          try { vals = JSON.parse(w.dataset.condIn); } catch (e) { vals = []; }
+          show = ctrl && vals.includes(ctrl.value);
+        } else {
+          show = ctrl && ctrl.value === w.dataset.condValue;
+        }
         w.style.display = show ? '' : 'none';
       });
     };
@@ -2978,6 +3024,8 @@ function setupFormInteractions(pageKey) {
     setTimeout(applyCond, 0);
     // 饭圈/二次：选择价目表制品后自动回填默认尺寸/出血（初始大框 + 追加制品大框，仅空值时）
     cdBindProductAutoFill(container);
+    // 土味约稿单：选择制品后联动价目表自动回填尺寸/出血
+    if (pageKey === 'design-commission-detail-twy') cdTwyBindProductAutoFill(container);
   }
 }
 
