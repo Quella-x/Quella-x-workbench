@@ -270,8 +270,8 @@ ul,li{list-style:none}
 .record-card-title{font-size:15px;font-weight:600;color:var(--c-text);flex:1;word-break:break-word;min-width:0}
 /* v452：九大模块列表视图卡片标题底部分割线与接稿排期列表视图右侧接稿详情模块(.cdc-header)统一为同款 1px solid var(--c-border-light) */
 .record-list .record-card-header{border-bottom:1px solid var(--c-border-light);padding-bottom:8px}
-/* v534：接稿排期日历视图卡片标题/编辑/删除/分割线整体上移 4px（累计） */
-.record-list.cal-view .record-card-header{margin-top:-4px}
+/* v535：接稿排期日历视图卡片标题/编辑/删除/分割线整体下移 1px（累计 -3px） */
+.record-list.cal-view .record-card-header{margin-top:-3px}
 /* v534：接稿排期日历视图展示模块盒子 padding-top 再减 2px（13→11）*/
 .record-list.cal-view .record-card{padding-top:11px}
 .record-card-body{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--c-text-light)}
@@ -2332,7 +2332,7 @@ ul,li{list-style:none}
 .cd-month-btn:hover{color:var(--c-primary);background:transparent}
 .cd-month-btn:disabled{opacity:.35;cursor:not-allowed;color:var(--c-text-light);background:transparent}
 .cd-month-label{font-size:15px;font-weight:700;color:var(--c-text);min-width:96px;text-align:center}
-.cal-month-count{display:inline-block;margin-left:5px;vertical-align:middle;white-space:nowrap;font-size:12px;font-weight:750;color:#fff;background:var(--c-primary);padding:2px 8px;border-radius:12px;cursor:default}.cal-month-count .n{position:relative;left:-1px}
+.cal-month-count{display:inline-block;margin-left:5px;vertical-align:middle;white-space:nowrap;font-size:12px;font-weight:750;color:#fff;background:var(--c-primary);padding:2px 8px;border-radius:12px;cursor:default}.cal-month-count .n{display:inline-block;margin-left:1px}
 .cd-month-summary{font-size:12px;color:var(--c-text-muted);text-align:center;margin-bottom:10px}
 /* 接稿条列表 */
 .cd-rec-list{display:flex;flex-direction:column;gap:10px}
@@ -2576,7 +2576,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=534"></script>
+  <script src="app.js?v=535"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
