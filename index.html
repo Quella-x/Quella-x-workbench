@@ -2392,8 +2392,8 @@ ul,li{list-style:none}
 .cd-link-box textarea.form-input{font-size:12px;min-height:40px;height:auto;padding:11px 10px;line-height:1.4;white-space:pre-wrap;word-break:break-all;overflow-wrap:anywhere;resize:none;overflow:hidden;field-sizing:content}
 /* 追加制品编辑器（新增/编辑弹窗内）：与第一条制品样式统一，无蓝底、无边框 */
 .cd-extra-products{display:flex;flex-direction:column;gap:6px;margin-top:2px}
-.cd-extra-product-row{border:none;border-radius:0;padding:0;background:none}
-.cd-ep-head{display:flex;align-items:center;justify-content:space-between;margin:14px 0}
+.cd-extra-product-row{border:none;border-radius:0;padding:0;background:none;margin-top:-10px}
+.cd-ep-head{display:flex;align-items:center;justify-content:space-between;margin:14px 0}.cd-ep-head .btn{transform:translateY(1px)}
 .cd-ep-title{font-size:13px;font-weight:700;color:var(--c-text);margin:0}
 .cd-extra-product-row .style-color-row{margin-bottom:0}
 .cd-extra-product-row .form-row{margin-bottom:0}
@@ -2576,7 +2576,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=535"></script>
+  <script src="app.js?v=536"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
