@@ -389,6 +389,31 @@ function getSettings() {
   return s;
 }
 function saveSettings(s) { DB.set('appSettings', s); }
+
+// v541：接稿排期/详情排序优先级（制作中>修改中>已接稿>待接稿>已交付）
+const COMMISSION_PROGRESS_ORDER = { '制作中': 1, '修改中': 2, '已接稿': 3, '待接稿': 4, '已交付': 5 };
+function commissionProgressPriority(r) {
+  const vals = Array.isArray(r.progress) ? r.progress : (r.progress ? [r.progress] : []);
+  let best = 99;
+  vals.forEach(v => { if (COMMISSION_PROGRESS_ORDER[v] != null && COMMISSION_PROGRESS_ORDER[v] < best) best = COMMISSION_PROGRESS_ORDER[v]; });
+  return best;
+}
+function commissionRecordSort(a, b) {
+  const pa = commissionProgressPriority(a), pb = commissionProgressPriority(b);
+  if (pa !== pb) return pa - pb;
+  const aa = a.acceptTime || a.startTime || '';
+  const ab = b.acceptTime || b.startTime || '';
+  if (aa !== ab) return aa.localeCompare(ab);
+  const sa = a.startTime || '';
+  const sb = b.startTime || '';
+  return sa.localeCompare(sb);
+}
+function commissionDetailSort(a, b) {
+  const linkedA = DB.list('commissions').filter(c => (c.clientInfo || '') === (a.clientInfo || ''));
+  const linkedB = DB.list('commissions').filter(c => (c.clientInfo || '') === (b.clientInfo || ''));
+  const ra = linkedA[0] || a, rb = linkedB[0] || b;
+  return commissionRecordSort(ra, rb);
+}
 function applyTheme(theme) {
   const root = document.documentElement;
   root.style.setProperty('--c-primary', theme.primary);
@@ -1018,7 +1043,13 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     // v226: 日历条数仅统计「已发布」的发布条数
     const publishedDayRecords = dayRecords.filter(r => r.status === '已发布');
     const dayCount = publishedDayRecords.length > 0 ? `<span class="cal-day-count">${publishedDayRecords.length}条</span>` : '';
-    const dayComms = commissionRecords.filter(r => (r.startTime || '').startsWith(dateStr) || (r.deadline || '').startsWith(dateStr));
+    const dayComms = commissionRecords.filter(r => {
+      const s = r.startTime || '';
+      const e = r.deadline || '';
+      if (!s && !e) return false;
+      if (s && e) return dateStr >= s && dateStr <= e;
+      return s.startsWith(dateStr) || e.startsWith(dateStr);
+    });
     const hasStart = dayComms.some(r => (r.startTime || '').startsWith(dateStr));
     const hasEnd = dayComms.some(r => (r.deadline || '').startsWith(dateStr));
     let commTag = '';
@@ -1435,7 +1466,7 @@ MODULES['design-commission'] = {
     { key: 'deposit', label: '定金', type: 'readonly', row: 'depositBalance', hint: '自动计算（报价金额50%）' },
     { key: 'balance', label: '尾款', type: 'readonly', row: 'depositBalance', hint: '自动计算' },
     { key: 'paymentStatus', label: '支付状态', type: 'multiselect', single: true, default: '定金', options: [{ value: '未付', label: '未付' }, { value: '定金', label: '定金' }, { value: '尾款', label: '尾款' }, { value: '全款', label: '全款' }] },
-    { key: 'progress', label: '稿件进度', type: 'multiselect', single: true, default: '已接稿', options: [{ value: '待接稿', label: '待接稿' }, { value: '已接稿', label: '已接稿' }, { value: '修改中', label: '修改中' }, { value: '已交付', label: '已交付' }] },
+    { key: 'progress', label: '稿件进度', type: 'multiselect', single: true, default: '已接稿', options: [{ value: '待接稿', label: '待接稿' }, { value: '已接稿', label: '已接稿' }, { value: '制作中', label: '制作中' }, { value: '修改中', label: '修改中' }, { value: '已交付', label: '已交付' }] },
     { key: 'deliveredTime', label: '交付时间', type: 'date', hint: '设为「已交付」时自动记录；用于报价导入接稿过滤' },
     { key: 'modifications', label: '修改项目', type: 'dynamic-list', maxRows: 2, columns: [
       { subkey: 'modifyType', label: '修改类型', type: 'combobox', datalistId: 'comm_modify_dl', priceLookup: 'modify', options: [] },
@@ -1448,7 +1479,7 @@ MODULES['design-commission'] = {
     { key: 'notes', label: '备注', type: 'textarea' },
   ],
   filters: [
-    { key: 'progress', label: '全部进度', options: [{ value: '', label: '全部进度' }, { value: '待接稿', label: '待接稿' }, { value: '已接稿', label: '已接稿' }, { value: '修改中', label: '修改中' }, { value: '已交付', label: '已交付' }] },
+    { key: 'progress', label: '全部进度', options: [{ value: '', label: '全部进度' }, { value: '待接稿', label: '待接稿' }, { value: '已接稿', label: '已接稿' }, { value: '制作中', label: '制作中' }, { value: '修改中', label: '修改中' }, { value: '已交付', label: '已交付' }] },
     { key: 'paymentStatus', label: '全部支付', options: [{ value: '', label: '全部支付' }, { value: '未付', label: '未付' }, { value: '定金', label: '定金' }, { value: '尾款', label: '尾款' }, { value: '全款', label: '全款' }] },
   ],
   listFields: [
@@ -2039,7 +2070,9 @@ function renderListPage(pageKey, mod) {
   }
   if (ps.search) records = records.filter(r => JSON.stringify(r).toLowerCase().includes(ps.search.toLowerCase()));
   if (mod.filters) { mod.filters.forEach(f => { const fv = ps.filters[f.key]; if (fv) records = records.filter(r => valIncludes(r[f.key], fv)); }); }
-  if (pageKey === 'oc-profiles') {
+  if (pageKey === 'design-commission') {
+    records.sort(commissionRecordSort);
+  } else if (pageKey === 'oc-profiles') {
     records.sort((a, b) => {
       const ao = a.order != null ? a.order : 999999;
       const bo = b.order != null ? b.order : 999999;
@@ -2208,7 +2241,7 @@ function renderListPage(pageKey, mod) {
           const tags = v.map(val => {
             let tc = 'tag-info';
             if (['进行中', '全款', '长期合作', '合格', '稳定', '已完结', '尾款', '已接稿', '已交付', '交好', '非常满意', '满意'].includes(val)) tc = 'tag-success';
-            if (['筹备中', '未付', '临时合作', '连载中', '定金', '待接稿', '中等', '变化中', '一般'].includes(val)) tc = 'tag-warning';
+            if (['筹备中', '未付', '临时合作', '连载中', '定金', '待接稿', '中等', '变化中', '一般', '制作中'].includes(val)) tc = 'tag-warning';
             if (['已截团', '暂停合作', '已取消', '流团'].includes(val)) tc = 'tag-gray';
             if (['不合格', '不满意'].includes(val)) tc = 'tag-danger';
             if (['买断', '敌对', '已结算'].includes(val)) tc = 'tag-purple';
@@ -5515,26 +5548,26 @@ function renderFieldSettings(html) {
         const customOpts = (s.fieldOptions && s.fieldOptions[key]) || [];
         const defaultOpts = (f.options || []).map(o => typeof o === 'string' ? o : o.value);
         const allOpts = customOpts.length ? customOpts : defaultOpts;
-      html += `<div style="margin-bottom:12px"><div class="option-field-block"><div class="option-field-title">${esc(f.label)}</div><div class="option-field-inputs" id="opts_${f.key}">`;
-      allOpts.forEach((opt, i) => {
-        html += `<div class="option-edit-item"><input type="text" value="${esc(opt)}" data-opt-key="${f.key}" data-idx="${i}"><button class="btn-icon danger" onclick="this.parentElement.remove()">🗑️</button></div>`;
+        html += `<div style="margin-bottom:12px"><div class="option-field-block"><div class="option-field-title">${esc(f.label)}</div><div class="option-field-inputs" id="opts_${f.key}">`;
+        allOpts.forEach((opt, i) => {
+          html += `<div class="option-edit-item"><input type="text" value="${esc(opt)}" data-opt-key="${f.key}" data-idx="${i}"><button class="btn-icon danger" onclick="this.parentElement.remove()">🗑️</button></div>`;
+        });
+        html += `<div class="option-edit-item" style="margin-bottom:0"><button class="btn btn-primary add-opt-btn" onclick="addOptionItem('${f.key}')">+ 添加选项</button><span class="option-delete-placeholder"></span></div>`;
+        html += `</div></div></div>`;
+        // 饭圈/二次：制品信息大框里的「工艺」下拉框，按实际表单顺序放在「稿件用途」后面
+        if (f.key === 'usageType' && (_settingsModule === 'design-commission-detail-fq' || _settingsModule === 'design-commission-detail-ec')) {
+          const craftKey = _settingsModule + '.craft';
+          const craftCustomOpts = (s.fieldOptions && s.fieldOptions[craftKey]) || [];
+          const craftDefaultOpts = ['白墨', '逆向', '光油', '烫色'];
+          const craftOpts = craftCustomOpts.length ? craftCustomOpts : craftDefaultOpts;
+          html += `<div style="margin-bottom:12px"><div class="option-field-block"><div class="option-field-title">工艺</div><div class="option-field-inputs" id="opts_craft">`;
+          craftOpts.forEach((opt, i) => {
+            html += `<div class="option-edit-item"><input type="text" value="${esc(opt)}" data-opt-key="craft" data-idx="${i}"><button class="btn-icon danger" onclick="this.parentElement.remove()">🗑️</button></div>`;
+          });
+          html += `<div class="option-edit-item" style="margin-bottom:0"><button class="btn btn-primary add-opt-btn" onclick="addOptionItem('craft')">+ 添加选项</button><span class="option-delete-placeholder"></span></div>`;
+          html += `</div></div></div>`;
+        }
       });
-      html += `<div class="option-edit-item" style="margin-bottom:0"><button class="btn btn-primary add-opt-btn" onclick="addOptionItem('${f.key}')">+ 添加选项</button><span class="option-delete-placeholder"></span></div>`;
-      html += `</div></div></div>`;
-      });
-    }
-    // 饭圈/二次：制品信息大框里的「工艺」下拉框支持在设置中管理
-    if (_settingsModule === 'design-commission-detail-fq' || _settingsModule === 'design-commission-detail-ec') {
-      const craftKey = _settingsModule + '.craft';
-      const craftCustomOpts = (s.fieldOptions && s.fieldOptions[craftKey]) || [];
-      const craftDefaultOpts = ['白墨', '逆向', '光油', '烫色'];
-      const craftOpts = craftCustomOpts.length ? craftCustomOpts : craftDefaultOpts;
-      html += `<div style="margin-bottom:12px"><div class="option-field-block"><div class="option-field-title">工艺</div><div class="option-field-inputs" id="opts_craft">`;
-      craftOpts.forEach((opt, i) => {
-        html += `<div class="option-edit-item"><input type="text" value="${esc(opt)}" data-opt-key="craft" data-idx="${i}"><button class="btn-icon danger" onclick="this.parentElement.remove()">🗑️</button></div>`;
-      });
-      html += `<div class="option-edit-item" style="margin-bottom:0"><button class="btn btn-primary add-opt-btn" onclick="addOptionItem('craft')">+ 添加选项</button><span class="option-delete-placeholder"></span></div>`;
-      html += `</div></div></div>`;
     }
   }
   html += '</div>';
@@ -7936,6 +7969,7 @@ function renderCommissionDetailPage() {
     }
     return cdRecMonth(r) === ps.cdMonth;
   });
+  monthRecs.sort(commissionDetailSort);
   const PER_PAGE = 10;
   const totalPages = Math.max(1, Math.ceil(monthRecs.length / PER_PAGE));
   if (ps.cdPage > totalPages) ps.cdPage = totalPages;
