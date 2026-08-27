@@ -7993,9 +7993,10 @@ function renderCommissionDetailPage() {
   } else {
     html += '<div class="cd-rec-list">';
     pageRecs.forEach(r => {
-      // 约稿单(commissionDetails)本身无 progress 字段，已交付状态来自关联的接稿排期(commissions)
-      const linkedDelivered = DB.list('commissions').some(c => (c.clientInfo || '') === (r.clientInfo || '') && valIncludes(c.progress, '已交付'));
-      const delivered = valIncludes(r.progress, '已交付') || linkedDelivered;
+      // 约稿单(commissionDetails)本身无 progress 字段，进度/已交付状态来自关联的接稿排期(commissions)
+      const linkedComm = DB.list('commissions').find(c => (c.clientInfo || '') === (r.clientInfo || ''));
+      const prog = r.progress || (linkedComm && linkedComm.progress) || '';
+      const delivered = valIncludes(prog, '已交付');
       let collapsed = ps.recCollapsed[r.id];
       if (collapsed === undefined) collapsed = delivered;
       html += `<div class="cd-rec-card" data-id="${r.id}">
@@ -8003,7 +8004,7 @@ function renderCommissionDetailPage() {
           <span class="cd-rec-toggle">${collapsed ? '▸' : '▾'}</span>
           <span class="cd-rec-title">${esc(r.clientInfo || r.bookName || r.theme || r.ipName || r.platformNick || '未命名约稿单')}</span>
           <span class="cd-rec-cat">${esc(r.category || '')}</span>
-          ${delivered ? '<span class="cd-rec-delivered">已交付</span>' : ''}
+          ${prog ? `<span class="cd-rec-pill" data-progress="${esc(prog)}">${esc(prog)}</span>` : ''}
           <span class="cd-rec-actions">
             <span class="btn-icon" onclick="event.stopPropagation();openCdEditForm('${r.id}')">✏️</span>
             <span class="btn-icon danger" onclick="event.stopPropagation();onCdDelete('${r.id}')">🗑️</span>
@@ -8098,7 +8099,7 @@ function renderCdFullRecord(r) {
     linked.forEach(c => {
       h += `<div class="cd-link-block" onclick="commissionSelectById('${c.id}')">`;
       const prog = c.progress || '';
-      h += `<div class="cd-rec-row"><span class="cd-rec-k">稿件进度</span><span class="cd-rec-v"><span class="tag ${commTagClass('progress', prog)}">${esc(prog)}</span></span></div>`;
+      h += cdRecRow('稿件进度', prog);
       h += cdRecRow('开稿日期', c.acceptTime || c.startTime || '');
       h += cdRecRow('截稿日期', c.deadline || '');
       h += `</div>`;
