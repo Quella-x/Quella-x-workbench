@@ -271,7 +271,7 @@ ul,li{list-style:none}
 /* v452：九大模块列表视图卡片标题底部分割线与接稿排期列表视图右侧接稿详情模块(.cdc-header)统一为同款 1px solid var(--c-border-light) */
 .record-list .record-card-header{border-bottom:1px solid var(--c-border-light);padding-bottom:8px}
 /* v529：接稿排期日历视图卡片标题/编辑/删除/分割线整体上移 2px */
-.record-list.cal-view .record-card-header{margin-top:-2px}
+.record-list.cal-view .record-card-header{margin-top:-1px}
 .record-card-body{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--c-text-light)}
 .record-card-body .field{display:flex;gap:4px}
 .record-card-body .field-label{color:var(--c-text-muted)}
@@ -2325,7 +2325,7 @@ ul,li{list-style:none}
 .cd-month-btn:hover{color:var(--c-primary);background:transparent}
 .cd-month-btn:disabled{opacity:.35;cursor:not-allowed;color:var(--c-text-light);background:transparent}
 .cd-month-label{font-size:15px;font-weight:700;color:var(--c-text);min-width:96px;text-align:center}
-.cal-month-count{display:inline-block;margin-left:6px;vertical-align:middle;white-space:nowrap;font-size:12px;color:#fff;background:var(--c-primary);padding:2px 10px;border-radius:12px;cursor:default;line-height:1.7}
+.cal-month-count{display:inline;margin-left:6px;vertical-align:baseline;white-space:nowrap;font-size:inherit;font-weight:inherit;color:var(--c-text);background:none;padding:0;border-radius:0;cursor:default}
 .cd-month-summary{font-size:12px;color:var(--c-text-muted);text-align:center;margin-bottom:10px}
 /* 接稿条列表 */
 .cd-rec-list{display:flex;flex-direction:column;gap:10px}
@@ -2373,12 +2373,12 @@ ul,li{list-style:none}
 .cd-link-empty .btn{margin-left:8px}
 /* 接稿详情表单外壳：整体左移3px（离小标题更近） + 顶部/底部提示文字 */
 .cd-form{margin-left:-3px}
-.cd-form-top{margin-bottom:10px}
-.cd-form-topline{font-size:15px;font-weight:700;color:var(--c-text);line-height:1.5}
-.cd-form-topline.cd-form-tip{font-size:13px;font-weight:500;color:var(--c-text-muted)}
-.cd-form-bottom{margin-top:14px}
-.cd-form-botline{font-size:12px;color:var(--c-text-muted);line-height:1.6}
-.cd-form-botline.cd-form-warn{color:var(--c-red);font-weight:600}
+.cd-form-top{margin-bottom:10px;text-align:center}
+.cd-form-topline{font-size:13px;font-weight:500;color:var(--c-text);line-height:1.6}
+.cd-form-topline.cd-form-tip{font-size:13px;font-weight:500;color:var(--c-text)}
+.cd-form-bottom{margin-top:14px;text-align:center}
+.cd-form-botline{font-size:13px;font-weight:500;color:var(--c-text);line-height:1.6}
+.cd-form-botline.cd-form-warn{color:var(--c-red);font-weight:500;font-size:13px}
 /* 饭圈/二次：制品信息大框（制品/工艺/尺寸/出血，沿用 info-box 两列网格，移动端友好） */
 /* v454：生成链接框改为 textarea，链接超长自动换行，高度随内容自适应 */
 .cd-link-box{margin:12px 0 0}
@@ -2569,7 +2569,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=529"></script>
+  <script src="app.js?v=530"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

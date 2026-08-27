@@ -509,20 +509,23 @@ function buildFormField(f, data, moduleKey, wrap) {
     inner = `${labelHTML}${makeImageUploadHTML()}`;
   } else if (f.type === 'readonly') {
     inner = `${labelHTML}<input type="text" class="form-input" data-key="${f.key}" value="${esc(valStr)}" readonly style="background:var(--c-primary-bg)">${belowHint}`;
-  } else {
-    const type = f.type || 'text';
-    // v16: 日期字段除默认当天外，增加"请选择日期"提示词
-    let hint = f.hint || '';
-    let placeholder = f.placeholder || '';
-    if (type === 'date') {
-      const isTodayDefault = f.default === todayStr();
-      if (!isTodayDefault && !valStr) {
-        if (!hint) hint = '请选择日期';
-        placeholder = '请选择日期';
+    } else {
+      const type = f.type || 'text';
+      // v16: 日期字段除默认当天外，增加"请选择日期"提示词
+      let hint = f.hint || '';
+      let placeholder = f.placeholder || '';
+      if (type === 'date') {
+        const isTodayDefault = f.default === todayStr();
+        if (!isTodayDefault && !valStr) {
+          if (!hint) hint = '请选择日期';
+          placeholder = '请选择日期';
+        }
+        // 需求③：日期支持手动输入或点选日历（focus 时转为 date 并弹出原生选择器）
+        inner = `${labelHTML}<input type="text" class="form-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(placeholder)}" onfocus="if(this.type!=='date'){this.type='date';if(this.showPicker){try{this.showPicker()}catch(e){}}}">${belowHint}`;
+      } else {
+        inner = `${labelHTML}<input type="${type}" class="form-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(placeholder)}">${belowHint}`;
       }
     }
-    inner = `${labelHTML}<input type="${type}" class="form-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(placeholder)}">${belowHint}`;
-  }
   const out = wrap ? `<div class="form-row">${inner}</div>` : inner;
   if (f.visibleWhen) {
     const cw = f.visibleWhen;
@@ -1509,6 +1512,39 @@ function cdProductComboboxHTML(id, value) {
   const opts = products.map(n => `<div class="combobox-option" onclick="selectComboboxOption('${id}',this)" data-value="${esc(n)}">${esc(n)}</div>`).join('');
   return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="product" value="${esc(value || '')}" placeholder="选择或输入..." onfocus="showComboboxDropdown('${id}')" onclick="showComboboxDropdown('${id}')" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${opts}</div><input type="hidden" class="combobox-value" data-key="product" value="${esc(value || '')}"></div>`;
 }
+// 追加制品专用：制品下拉框（使用 data-ep 命名空间，与初始制品信息大框一致）
+function cdProductComboboxHTMLForEp(id, value) {
+  const priceList = DB.list('priceList');
+  const products = [...new Set(priceList.filter(p => PRODUCT_CATEGORIES.includes(p.category) && p.product).map(p => p.product))];
+  const opts = products.map(n => `<div class="combobox-option" onclick="selectComboboxOption('${id}',this)" data-value="${esc(n)}">${esc(n)}</div>`).join('');
+  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-ep="product" value="${esc(value || '')}" placeholder="选择或输入..." onfocus="showComboboxDropdown('${id}')" onclick="showComboboxDropdown('${id}')" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${opts}</div><input type="hidden" class="combobox-value" data-ep="product" value="${esc(value || '')}"></div>`;
+}
+// 饭圈/二次：选择价目表制品后自动回填默认尺寸/出血（初始大框 + 追加制品大框，仅空值时）
+function cdBindProductAutoFill(container) {
+  if (!container) return;
+  const fill = (pl, sizeInp, bleedInp) => {
+    if (pl && sizeInp && !sizeInp.value.trim()) sizeInp.value = pl.defaultSize || '';
+    if (pl && bleedInp && !bleedInp.value.trim()) bleedInp.value = pl.defaultBleed || '';
+  };
+  const bindBox = (box) => {
+    if (!box) return;
+    const cb = box.querySelector('.combobox-input');
+    const hidden = box.querySelector('.combobox-value');
+    const sizeInp = box.querySelector('[data-key="size"], [data-ep="size"]');
+    const bleedInp = box.querySelector('[data-key="bleed"], [data-ep="bleed"]');
+    if (!cb) return;
+    const onPick = () => {
+      const name = (hidden && hidden.value) || cb.value || '';
+      const pl = DB.list('priceList').find(p => p.product === name && PRODUCT_CATEGORIES.includes(p.category));
+      fill(pl, sizeInp, bleedInp);
+    };
+    cb.addEventListener('input', onPick);
+    if (hidden) hidden.addEventListener('change', onPick);
+  };
+  const initBox = container.querySelector('#cdProductBoxProd');
+  if (initBox) bindBox(initBox);
+  container.querySelectorAll('.cd-ep-product-box').forEach(box => bindBox(box));
+}
 
 // 板块1：土味约稿单
 MODULES['design-commission-detail-twy'] = {
@@ -1585,7 +1621,7 @@ MODULES['design-commission-detail-fq'] = {
     { section: '制品信息' },
     { key: 'usageType', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'theme', label: '企划/主题名称', type: 'text' },
-    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息</label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><input type="text" class="form-input" data-key="craft"></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">特殊出血请备注 可直接给模板</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息</label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><input type="text" class="form-input" data-key="craft"></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">初始为默认尺寸，特殊出血请备注 可直接给模板</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">可以给参考图/色卡 请把主色写最前面</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">元素</label><div class="style-color-box elements-box"><div class="style-color-col"><span class="style-color-col-label">必用</span><input type="text" class="form-input" data-key="elementsRequired"></div><div class="style-color-col"><span class="style-color-col-label">可选</span><input type="text" class="form-input" data-key="elementsOptional"></div><div class="style-color-col"><span class="style-color-col-label">避雷</span><input type="text" class="form-input" data-key="elementsAvoid"></div></div></div>' },
@@ -1617,7 +1653,7 @@ MODULES['design-commission-detail-ec'] = {
     { section: '制品信息' },
     { key: 'usageType', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'theme', label: '企划/主题名称', type: 'text' },
-    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息</label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><input type="text" class="form-input" data-key="craft"></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">特殊出血请备注 可直接给模板</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息</label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><input type="text" class="form-input" data-key="craft"></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">初始为默认尺寸，特殊出血请备注 可直接给模板</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
     { key: 'ipName', label: 'IP', type: 'text' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">可以给参考图/色卡 请把主色写最前面</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
@@ -2039,7 +2075,7 @@ function renderListPage(pageKey, mod) {
     html += '<div class="calendar-header">';
     const calMonthKey = `${ps.calYear}-${String(ps.calMonth + 1).padStart(2, '0')}`;
     const calMonthCount = commissionAllRecords.filter(r => (r.startTime || r.acceptTime || '').startsWith(calMonthKey)).length;
-    html += `<span class="cal-title">${ps.calYear}年${ps.calMonth + 1}月<span class="cal-month-count">（本月接稿 ${calMonthCount}）</span></span>`;
+    html += `<span class="cal-title">${ps.calYear}年${ps.calMonth + 1}月<span class="cal-month-count"> 本月接稿 ${calMonthCount}</span></span>`;
     html += '<div class="cal-nav" style="gap:2px">';
     html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(-1)">‹ 上月</button>`;
     html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(0)">本月</button>`;
@@ -2832,23 +2868,8 @@ function setupFormInteractions(pageKey) {
     };
     if (container) container.addEventListener('input', applyCond);
     setTimeout(applyCond, 0);
-    // 饭圈/二次：选择价目表制品后自动回填默认尺寸/出血（仅空值时）
-    if (pageKey === 'design-commission-detail-fq' || pageKey === 'design-commission-detail-ec') {
-      const prodCb = container ? container.querySelector('#cdProductBoxProd') : null;
-      const fillSizeBleed = (name) => {
-        const pl = DB.list('priceList').find(p => p.product === name && PRODUCT_CATEGORIES.includes(p.category));
-        const sizeInp = container ? container.querySelector('.cd-product-box [data-key="size"]') : null;
-        const bleedInp = container ? container.querySelector('.cd-product-box [data-key="bleed"]') : null;
-        if (pl && sizeInp && !sizeInp.value.trim()) sizeInp.value = pl.defaultSize || '';
-        if (pl && bleedInp && !bleedInp.value.trim()) bleedInp.value = pl.defaultBleed || '';
-      };
-      if (prodCb) {
-        const prodInput = prodCb.querySelector('.combobox-input');
-        const prodHidden = prodCb.querySelector('.combobox-value');
-        if (prodInput) prodInput.addEventListener('input', () => fillSizeBleed(prodInput.value.trim()));
-        if (prodHidden) prodHidden.addEventListener('change', () => fillSizeBleed(prodHidden.value.trim()));
-      }
-    }
+    // 饭圈/二次：选择价目表制品后自动回填默认尺寸/出血（初始大框 + 追加制品大框，仅空值时）
+    cdBindProductAutoFill(container);
   }
 }
 
@@ -2923,71 +2944,69 @@ function openDetail(pageKey, id) {
     if (f.type === 'custom' || f.type === 'readonly') return;
     const label = getFieldLabel(pageKey, f.key, f.label);
     if (f.type === 'image') {
-      if (r.images && r.images.length) {
-        html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><div class="detail-value"><div class="detail-images">${r.images.map(src => `<img src="${src}" onclick="openLightbox('${src.replace(/'/g, "\\'")}')">`).join('')}</div></div></div>`;
-      }
+      const imgs = (r.images && r.images.length) ? r.images : [];
+      html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><div class="detail-value">${imgs.length ? `<div class="detail-images">${imgs.map(src => `<img src="${src}" onclick="openLightbox('${src.replace(/'/g, "\\'")}')">`).join('')}</div>` : ''}</div></div>`;
       return;
     }
     if (f.type === 'multiselect') {
       const vals = Array.isArray(r[f.key]) ? r[f.key] : [];
-      if (vals.length) html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><span class="detail-value">${vals.map(v => `<span class="tag tag-info" style="margin-right:4px">${esc(v)}</span>`).join('')}</span></div>`;
+      const tags = vals.map(v => `<span class="tag tag-info" style="margin-right:4px">${esc(v)}</span>`).join('');
+      html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><span class="detail-value">${tags}</span></div>`;
       return;
     }
     if (f.type === 'dynamic-list' || f.type === 'dynamic-products') {
-      const items = r[f.key];
-      if (items && items.length) {
-        const isCommProd = (pageKey === 'design-commission' && f.key === 'products');
-        const cols = (f.columns || []).filter(c => !(isCommProd && c.subkey === 'urgent'));
+      const items = r[f.key] || [];
+      const isCommProd = (pageKey === 'design-commission' && f.key === 'products');
+      const cols = (f.columns || []).filter(c => !(isCommProd && c.subkey === 'urgent'));
 
-        const extraHead = isCommProd ? '<th style="width:32px;white-space:normal">加急</th><th style="width:32px;white-space:normal">完成</th>' : '';
-        const extraCell = isCommProd
-          ? (item, idx) => `<td class="comm-prod-urgent"><label><input type="checkbox" ${item.urgent ? 'checked' : ''} onclick="commissionToggleProductUrgent('${id}',${idx},this.checked)"></label></td><td class="comm-prod-done"><label><input type="checkbox" ${item.done ? 'checked' : ''} onclick="commissionToggleProductDone('${id}',${idx},this.checked)"></label></td>`
-          : null;
-        const commColStyle = (c, forTh) => {
-          const ws = forTh ? '' : 'white-space:nowrap;';
-          if (c.subkey === '_seq') return ` style="width:33px;${ws}"`;
-          if (c.subkey === 'patternId') return ` style="width:33px;${ws}"`;
-          if (c.subkey === 'price') return ` style="width:33px;${ws}"`;
-          if (c.subkey === 'quantity') return ` style="width:33px;${ws}"`;
-          if (c.subkey === 'size') return ` style="width:64px;${ws}"`;
-          if (c.subkey === 'name' || c.subkey === 'sameModel') return ` style="min-width:60px;${ws}"`;
-          return '';
-        };
-        const commThLabel = c => c.subkey === 'patternId' ? '柄图<br>标识' : esc(c.label);
-        const isGb = (pageKey === 'groupbuy-records');
-        // v454：售后记录 orderNo/quantity/amount 固定62px，其余三列(name/type/note)自动均分；制品列表保持原宽(name90+price62+factory104+salesCount62+isDisbanded62=380)。
-        const isAfterSales = f.key === 'afterSales';
-        const gbColStyle = (c, forTh) => {
-          const ws = forTh ? '' : 'white-space:nowrap;';
-          if (isAfterSales && ['orderNo','quantity','amount'].includes(c.subkey)) return ` style="width:62px;${ws}"`;
-          if (!isAfterSales && ['price','salesCount','isDisbanded'].includes(c.subkey)) return ` style="width:62px;${ws}"`;
-          if (!isAfterSales && c.subkey === 'factory') return ` style="width:104px;${ws}"`;
-          if (!isAfterSales && c.subkey === 'name') return ` style="width:90px;${ws}"`;
-          if (!isAfterSales && c.subkey === 'note') return ` style="width:90px;${ws}"`;
-          return '';
-        };
-        const thStyle = c => isCommProd ? commColStyle(c, true) : (isGb ? gbColStyle(c, true) : '');
-        // v456：开团记录详情表格宽度改回默认(width:100%)，由.detail-table自带，左右边距/留白保持一致
-        html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><div class="detail-value"><table class="detail-table"><tr>${cols.map(c => `<th${thStyle(c)}>${isCommProd ? commThLabel(c) : esc(c.label)}</th>`).join('')}${extraHead}</tr>`;
-        items.forEach((item, idx) => {
-          html += `<tr class="${item.done ? 'prod-done' : ''}">`;
-          cols.forEach(c => {
-            if (c.type === 'seq') html += `<td style="text-align:center;font-weight:700;color:var(--c-text-light)">${String(idx + 1).padStart(2, '0')}</td>`;
-            else if (c.type === 'checkbox') html += `<td style="text-align:center">${item[c.subkey] ? '✓' : ''}</td>`;
-            else html += `<td>${esc(item[c.subkey] || '')}</td>`;
-          });
-          html += extraCell ? extraCell(item, idx) : '';
-          html += `</tr>`;
+      const extraHead = isCommProd ? '<th style="width:32px;white-space:normal">加急</th><th style="width:32px;white-space:normal">完成</th>' : '';
+      const extraCell = isCommProd
+        ? (item, idx) => `<td class="comm-prod-urgent"><label><input type="checkbox" ${item.urgent ? 'checked' : ''} onclick="commissionToggleProductUrgent('${id}',${idx},this.checked)"></label></td><td class="comm-prod-done"><label><input type="checkbox" ${item.done ? 'checked' : ''} onclick="commissionToggleProductDone('${id}',${idx},this.checked)"></label></td>`
+        : null;
+      const commColStyle = (c, forTh) => {
+        const ws = forTh ? '' : 'white-space:nowrap;';
+        if (c.subkey === '_seq') return ` style="width:33px;${ws}"`;
+        if (c.subkey === 'patternId') return ` style="width:33px;${ws}"`;
+        if (c.subkey === 'price') return ` style="width:33px;${ws}"`;
+        if (c.subkey === 'quantity') return ` style="width:33px;${ws}"`;
+        if (c.subkey === 'size') return ` style="width:64px;${ws}"`;
+        if (c.subkey === 'name' || c.subkey === 'sameModel') return ` style="min-width:60px;${ws}"`;
+        return '';
+      };
+      const commThLabel = c => c.subkey === 'patternId' ? '柄图<br>标识' : esc(c.label);
+      const isGb = (pageKey === 'groupbuy-records');
+      // v454：售后记录 orderNo/quantity/amount 固定62px，其余三列(name/type/note)自动均分；制品列表保持原宽(name90+price62+factory104+salesCount62+isDisbanded62=380)。
+      const isAfterSales = f.key === 'afterSales';
+      const gbColStyle = (c, forTh) => {
+        const ws = forTh ? '' : 'white-space:nowrap;';
+        if (isAfterSales && ['orderNo','quantity','amount'].includes(c.subkey)) return ` style="width:62px;${ws}"`;
+        if (!isAfterSales && ['price','salesCount','isDisbanded'].includes(c.subkey)) return ` style="width:62px;${ws}"`;
+        if (!isAfterSales && c.subkey === 'factory') return ` style="width:104px;${ws}"`;
+        if (!isAfterSales && c.subkey === 'name') return ` style="width:90px;${ws}"`;
+        if (!isAfterSales && c.subkey === 'note') return ` style="width:90px;${ws}"`;
+        return '';
+      };
+      const thStyle = c => isCommProd ? commColStyle(c, true) : (isGb ? gbColStyle(c, true) : '');
+      // v530：需求①——空列表也展示表头（无信息就空着）
+      html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><div class="detail-value"><table class="detail-table"><tr>${cols.map(c => `<th${thStyle(c)}>${isCommProd ? commThLabel(c) : esc(c.label)}</th>`).join('')}${extraHead}</tr>`;
+      items.forEach((item, idx) => {
+        html += `<tr class="${item.done ? 'prod-done' : ''}">`;
+        cols.forEach(c => {
+          if (c.type === 'seq') html += `<td style="text-align:center;font-weight:700;color:var(--c-text-light)">${String(idx + 1).padStart(2, '0')}</td>`;
+          else if (c.type === 'checkbox') html += `<td style="text-align:center">${item[c.subkey] ? '✓' : ''}</td>`;
+          else html += `<td>${esc(item[c.subkey] || '')}</td>`;
         });
-        html += `</table></div></div>`;
-      }
+        html += extraCell ? extraCell(item, idx) : '';
+        html += `</tr>`;
+      });
+      html += `</table></div></div>`;
       return;
     }
     let v = r[f.key];
-    if (v == null || v === '') return;
-    if (f.type === 'date') v = fmtDate(v);
-    if (f.type === 'textarea') v = `<div style="white-space:pre-wrap">${esc(v)}</div>`;
-    else v = esc(String(v));
+    // 需求①：空字段也展示（无信息就空着），不再跳过
+    if (f.type === 'date') v = v ? fmtDate(v) : '';
+    if (f.type === 'textarea') v = `<div style="white-space:pre-wrap">${esc(v == null ? '' : v)}</div>`;
+    else v = esc(String(v == null ? '' : v));
     html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><span class="detail-value">${v}</span></div>`;
   });
   if (mod.detailExtra) html += mod.detailExtra(r);
@@ -3080,7 +3099,7 @@ function renderHome() {
     html += '<input type="text" class="form-input" id="hInspTheme" placeholder="灵感主题">';
     html += '<div class="combobox-wrapper home-insp-combo"><input type="text" class="form-input combobox-input" id="hInspCat" placeholder="请选择或输入制品" onfocus="showComboboxDropdown(\'hInspCatList\')" onclick="showComboboxDropdown(\'hInspCatList\')" oninput="filterComboboxDropdown(\'hInspCatList\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'hInspCatList\')">▼</button><div class="combobox-dropdown" id="hInspCatList">' + hCatOpts + '</div></div>';
     html += '</div>';
-    html += '<textarea class="form-input home-insp-textarea" id="hInspThoughts" placeholder="文字思路…"></textarea>';
+    html += '<textarea class="form-input home-insp-textarea" id="hInspThoughts" placeholder="文字思路"></textarea>';
     html += '<div class="home-insp-actions"><button class="btn btn-primary" onclick="homeAddInspiration()">保存灵感</button></div>';
     html += '</div>';
   } else if (ps.view === 'platform') {
@@ -7891,8 +7910,7 @@ function renderCdFullRecord(r) {
         const label = lbl ? lbl.textContent.trim() : '';
         if (!key || !label) return;
         const v = r[key];
-        if (v == null || v === '') return;
-        const val = Array.isArray(v) ? v.join('、') : String(v);
+        const val = Array.isArray(v) ? v.join('、') : String(v == null ? '' : v);
         // v451：元素类标题统一加「元素·」前缀（编辑表单里 label 是裸「必用/可选/避雷」，展示时补全）
         let outLabel = label;
         if (key === 'elementsRequired') outLabel = '元素·必用';
@@ -7908,25 +7926,21 @@ function renderCdFullRecord(r) {
     const label = getFieldLabel(pageKey, f.key, f.label);
     if (f.type === 'readonly') {
       const v = r[f.key] ?? f.default ?? '';
-      if (v === '') return;
       h += `<div class="cd-rec-row"><span class="cd-rec-k">${esc(label)}</span><span class="cd-rec-v cd-rec-static">${esc(String(v))}</span></div>`;
       return;
     }
     if (f.type === 'dynamic-list') {
-      const items = r[f.key];
-      if (items && items.length) {
-        const cols = f.columns || [];
-        h += `<div class="cd-rec-row"><span class="cd-rec-k">${esc(label)}</span><div class="cd-rec-v"><table class="detail-table"><tr>${cols.map(c => `<th>${esc(c.label)}</th>`).join('')}</tr>`;
-        items.forEach(item => { h += '<tr>' + cols.map(c => `<td>${esc(item[c.subkey] || '')}</td>`).join('') + '</tr>'; });
-        h += '</table></div></div>';
-      }
+      const items = r[f.key] || [];
+      const cols = f.columns || [];
+      h += `<div class="cd-rec-row"><span class="cd-rec-k">${esc(label)}</span><div class="cd-rec-v"><table class="detail-table"><tr>${cols.map(c => `<th>${esc(c.label)}</th>`).join('')}</tr>`;
+      items.forEach(item => { h += '<tr>' + cols.map(c => `<td>${esc(item[c.subkey] || '')}</td>`).join('') + '</tr>'; });
+      h += '</table></div></div>';
       return;
     }
     let v = r[f.key];
-    if (v == null || v === '') return;
-    if (f.type === 'textarea') v = `<div class="cd-rec-pre">${esc(v)}</div>`;
+    if (f.type === 'textarea') v = `<div class="cd-rec-pre">${esc(v == null ? '' : v)}</div>`;
     else if (Array.isArray(v)) v = esc(v.join('、'));
-    else v = esc(String(v));
+    else v = esc(String(v == null ? '' : v));
     h += `<div class="cd-rec-row"><span class="cd-rec-k">${esc(label)}</span><span class="cd-rec-v">${v}</span></div>`;
   });
 
@@ -8130,7 +8144,7 @@ function buildCdExtraProductsHTML(pageKey, items, parentData) {
     html += cdExtraProductRowHTML(idx, it || {}, isFq, list);
   });
   html += `</div>`;
-  html += `<button type="button" class="btn btn-primary btn-sm" onclick="addCdExtraProduct()" style="margin-top:12px;width:100%">+ 新增制品</button>`;
+  html += `<button type="button" class="btn btn-primary" onclick="addCdExtraProduct()" style="margin-top:12px;width:100%;font-size:13px;padding:8px 12px">+ 新增制品</button>`;
   return html;
 }
 // 是否同模下拉：否（独立新柄）/ 初始制品 0 / 其他独立新柄的追加制品（排除自身及非独立新柄的追加制品）
@@ -8200,9 +8214,14 @@ function cdExtraProductRowHTML(idx, it, isFq, items) {
         <div class="cd-ep-field"><label class="form-label">稿件用途</label>${usageCb}</div>
         <div class="cd-ep-field"><label class="form-label">是否同柄<span class="form-label-hint">可选择同柄制品</span></label>${hr.html}</div>
       </div>
-      <div class="cd-ep-inline">
-        <div class="cd-ep-field"><label class="form-label">制品</label><input type="text" class="form-input" data-ep="product" value="${esc(it.product || '')}"></div>
-        <div class="cd-ep-field"><label class="form-label">尺寸</label><input type="text" class="form-input" data-ep="size" value="${esc(it.size || '')}"></div>
+      <div class="cd-ep-field" style="margin-top:8px">
+        <label class="form-label">制品信息</label>
+        <div class="style-color-box info-box cd-product-box cd-ep-product-box">
+          <div class="style-color-col"><span class="style-color-col-label">制品</span>${cdProductComboboxHTMLForEp('cdEpProduct_' + idx, it.product)}</div>
+          <div class="style-color-col"><span class="style-color-col-label">工艺</span><input type="text" class="form-input" data-ep="craft" value="${esc(it.craft || '')}"></div>
+          <div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">初始为默认尺寸，特殊出血请备注 可直接给模板</span></span><input type="text" class="form-input" data-ep="size" value="${esc(it.size || '')}"></div>
+          <div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-ep="bleed" value="${esc(it.bleed || '')}"></div>
+        </div>
       </div>
       <div class="${fullClass}">${fullFields}</div>
       <div class="cd-ep-field cd-ep-wide"><label class="form-label">备注</label><textarea class="form-textarea" data-ep="note">${esc(it.note || '')}</textarea></div>
@@ -8239,6 +8258,7 @@ function addCdExtraProduct() {
   const firstUsage = ($('#modalBody [data-key="usageType"]') || {}).value || '自用';
   items.push({ usageType: firstUsage, sameHandleRef: '0' });
   reRenderCdExtra(container, items, isFq);
+  cdBindProductAutoFill(container);
 }
 function deleteCdExtraProduct(btn) {
   const row = btn.closest('.cd-extra-product-row');
@@ -8352,9 +8372,9 @@ function openCdDetail(id) {
       return;
     }
     let v = r[f.key];
-    if (v == null || v === '') return;
-    if (f.type === 'textarea') v = `<div style="white-space:pre-wrap">${esc(v)}</div>`;
-    else v = esc(String(v));
+    // 需求①：空字段也展示（无信息就空着），不再跳过
+    if (f.type === 'textarea') v = `<div style="white-space:pre-wrap">${esc(v == null ? '' : v)}</div>`;
+    else v = esc(String(v == null ? '' : v));
     html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><span class="detail-value">${v}</span></div>`;
   });
   // 联动块：关联的接稿排期订单
@@ -8378,7 +8398,7 @@ function openCdDetail(id) {
     html += '';
   }
   html += '</div>';
-  openModal('约稿单详情', html, [
+  openModal((mod.category || '约稿') + '约稿需求', html, [
     { label: '关闭', class: 'btn-ghost', action: closeModal },
     { label: '编辑', class: 'btn-primary', action: () => { closeModal(); openCdEditForm(id); } },
   ], 'lg');
@@ -8699,10 +8719,12 @@ function cdCheckClientFormFromUrl() {
 function cdRenderClientStandalone(catKey) {
   const mod = MODULES[catKey];
   if (!mod) return;
+  document.documentElement.classList.add('cd-standalone');
   document.body.classList.add('cd-standalone');
   const data = { category: mod.category };
   mod.fields.forEach(f => { if (f.default !== undefined && f.key !== 'category') data[f.key] = f.default; });
   const body = $('#mainBody');
+  if (!body) return;
   let html = '<div class="cd-client-standalone">';
   html += `<div class="cd-client-head">${esc(mod.category)}约稿单</div>`;
   html += '<div class="cd-client-form">';
