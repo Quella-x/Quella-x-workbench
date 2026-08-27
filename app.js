@@ -420,6 +420,13 @@ function buildFormField(f, data, moduleKey, wrap) {
   if (f.section) return `<div class="form-section">${esc(f.section)}</div>`;
   if (f.type === 'custom') {
     let html = f.html || '';
+    // 饭圈/二次：制品框从价目表导入，将普通输入替换为 combobox
+    if (moduleKey === 'design-commission-detail-fq' || moduleKey === 'design-commission-detail-ec') {
+      const prodMatch = html.match(/<input([^>]*?)\bclass="([^"]*?\b)?cd-product-combobox(\b[^"]*)?"([^>]*?)>/);
+      if (prodMatch) {
+        html = html.replace(prodMatch[0], cdProductComboboxHTML('cdProductBoxProd', data.product || ''));
+      }
+    }
     // 将 data 中的值回填到 custom 内的 input/textarea（支持聊天记录解析回填 & 编辑回填）
     html = html.replace(/<(input|textarea)([^>]*?)\bdata-key="([^"]+)"([^>]*)>/g, (mm, tag, pre, k, post) => {
       const v = data[k];
@@ -1495,6 +1502,13 @@ function cdFormShell(html) {
     + `<div class="cd-form-bottom"><div class="cd-form-botline">人物、参考图、色卡、模板等图片文件可直发/网盘/邮箱</div><div class="cd-form-botline cd-form-warn">请确认信息无误后再提交 尤其注意尺寸&颜色格式⚠️</div></div>`
     + `</div>`;
 }
+// 饭圈/二次：制品下拉框 HTML（从价目表读取制品列表，支持选择后自动回填默认尺寸/出血）
+function cdProductComboboxHTML(id, value) {
+  const priceList = DB.list('priceList');
+  const products = [...new Set(priceList.filter(p => PRODUCT_CATEGORIES.includes(p.category) && p.product).map(p => p.product))];
+  const opts = products.map(n => `<div class="combobox-option" onclick="selectComboboxOption('${id}',this)" data-value="${esc(n)}">${esc(n)}</div>`).join('');
+  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="product" value="${esc(value || '')}" placeholder="选择或输入..." onfocus="showComboboxDropdown('${id}')" onclick="showComboboxDropdown('${id}')" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${opts}</div><input type="hidden" class="combobox-value" data-key="product" value="${esc(value || '')}"></div>`;
+}
 
 // 板块1：土味约稿单
 MODULES['design-commission-detail-twy'] = {
@@ -1570,8 +1584,8 @@ MODULES['design-commission-detail-fq'] = {
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
     { key: 'usageType', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
-    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息<span class="form-label-hint">特殊出血请备注 可直接给模板</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><input type="text" class="form-input" data-key="craft" placeholder="工艺"></div><div class="style-color-col"><span class="style-color-col-label">尺寸</span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
     { key: 'theme', label: '企划/主题名称', type: 'text' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息</label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><input type="text" class="form-input" data-key="craft"></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">特殊出血请备注 可直接给模板</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">可以给参考图/色卡 请把主色写最前面</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">元素</label><div class="style-color-box elements-box"><div class="style-color-col"><span class="style-color-col-label">必用</span><input type="text" class="form-input" data-key="elementsRequired"></div><div class="style-color-col"><span class="style-color-col-label">可选</span><input type="text" class="form-input" data-key="elementsOptional"></div><div class="style-color-col"><span class="style-color-col-label">避雷</span><input type="text" class="form-input" data-key="elementsAvoid"></div></div></div>' },
@@ -1582,8 +1596,8 @@ MODULES['design-commission-detail-fq'] = {
     { key: 'delivery', label: '交付方式', type: 'combobox', default: '百度网盘', options: COMM_DETAIL_DELIVERY_OPTS },
     commDetailEmailAddrField(),
     commDetailDisplayField(),
-    commDetailFixedEmailField(),
     commDetailUnsealDateField(),
+    commDetailFixedEmailField(),
   ],
   listFields: [
     { label: '用途', key: 'usageType' },
@@ -1599,12 +1613,12 @@ MODULES['design-commission-detail-ec'] = {
   fields: [
     { section: '单主信息' },
     { key: 'clientInfo', label: '单主', type: 'text', placeholder: '单主姓名（用于与接稿排期联动）', localOnly: true },
-    { key: 'platformNick', label: '您的平台昵称', type: 'text', placeholder: '客户平台 ID' },
+    { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
     { key: 'usageType', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
-    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息<span class="form-label-hint">特殊出血请备注 可直接给模板</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><input type="text" class="form-input" data-key="craft" placeholder="工艺"></div><div class="style-color-col"><span class="style-color-col-label">尺寸</span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
-    { key: 'ipName', label: 'IP', type: 'text' },
     { key: 'theme', label: '企划/主题名称', type: 'text' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息</label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><input type="text" class="form-input" data-key="craft"></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">特殊出血请备注 可直接给模板</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
+    { key: 'ipName', label: 'IP', type: 'text' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">可以给参考图/色卡 请把主色写最前面</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">元素</label><div class="style-color-box elements-box"><div class="style-color-col"><span class="style-color-col-label">必用</span><input type="text" class="form-input" data-key="elementsRequired"></div><div class="style-color-col"><span class="style-color-col-label">可选</span><input type="text" class="form-input" data-key="elementsOptional"></div><div class="style-color-col"><span class="style-color-col-label">避雷</span><input type="text" class="form-input" data-key="elementsAvoid"></div></div></div>' },
@@ -1615,8 +1629,8 @@ MODULES['design-commission-detail-ec'] = {
     { key: 'delivery', label: '交付方式', type: 'combobox', default: '百度网盘', options: COMM_DETAIL_DELIVERY_OPTS },
     commDetailEmailAddrField(),
     commDetailDisplayField(),
-    commDetailFixedEmailField(),
     commDetailUnsealDateField(),
+    commDetailFixedEmailField(),
   ],
   listFields: [
     { label: '用途', key: 'usageType' },
@@ -1668,7 +1682,8 @@ MODULES['design-pricelist'] = {
   fields: [
     { key: 'category', label: '制品分类', type: 'combobox', noSort: true, options: [{ value: '纸片类', label: '纸片类' }, { value: '其他材质类', label: '其他材质类' }, { value: '线上&应援类', label: '线上&应援类' }, { value: '加价项目', label: '加价项目' }, { value: '修改类型', label: '修改类型' }] },
     { key: 'product', label: '制品', type: 'text' },
-    { key: 'defaultSize', label: '默认尺寸', type: 'text', hint: '如: 10cm（选填）' },
+    { key: 'defaultSize', label: '默认尺寸', type: 'text' },
+    { key: 'defaultBleed', label: '默认出血', type: 'text' },
     { key: 'price', label: '单价', type: 'number', hint: '元' },
     { key: 'priceUnit', label: '单位', type: 'multiselect', single: true, default: '元', options: [{ value: '元', label: '元' }, { value: '元/p', label: '元/p' }, { value: '元/次', label: '元/次' }] },
     { key: 'description', label: '备注', type: 'textarea' },
@@ -2066,7 +2081,7 @@ function renderListPage(pageKey, mod) {
     html += `<div${emptyCls}><div class="empty-icon">📋</div><div class="empty-text">暂无记录，点击新增开始添加</div></div>`;
   } else {
     const twoCol = TWO_COL_MODULES.includes(pageKey) ? ' two-col' : '';
-    if (!isCommDual) html += `<div class="record-list${twoCol}">`;
+    if (!isCommDual) { const _calViewCls = (pageKey === 'design-commission' && ps.viewMode === 'calendar') ? ' cal-view' : ''; html += `<div class="record-list${twoCol}${_calViewCls}">`; }
     pagedRecords.forEach(r => {
       const isOverdue = mod.isOverdue && mod.isOverdue(r);
       const cardClick = isCommDual ? `commissionSelectCard('${r.id}')` : `openDetail('${pageKey}','${r.id}')`;
@@ -2796,9 +2811,9 @@ function setupFormInteractions(pageKey) {
   }
   // 约稿单：平台昵称填完自动同步到单主（单主为空时填充）
   if (pageKey.indexOf('design-commission-detail') === 0) {
-    const modalBody = $('#modalBody');
-    const pn = $('[data-key="platformNick"]');
-    const ci = $('[data-key="clientInfo"]');
+    const container = $('#modalBody') || $('#mainBody');
+    const pn = $('[data-key="platformNick"]', container);
+    const ci = $('[data-key="clientInfo"]', container);
     // 初始同步（导入/回填场景：平台昵称已填充但单主为空）
     if (pn && ci && pn.value.trim() && !ci.value.trim()) ci.value = pn.value;
     if (pn && ci) {
@@ -2808,15 +2823,32 @@ function setupFormInteractions(pageKey) {
     }
     // 条件字段联动（交付方式=指定邮箱 → 收件邮箱；展示权限=解封日期后可以展示 → 解封日期）
     const applyCond = () => {
-      if (!modalBody) return;
-      modalBody.querySelectorAll('.cond-field').forEach(w => {
-        const ctrl = modalBody.querySelector(`[data-key="${w.dataset.condKey}"]`);
+      if (!container) return;
+      container.querySelectorAll('.cond-field').forEach(w => {
+        const ctrl = container.querySelector(`[data-key="${w.dataset.condKey}"]`);
         const show = ctrl && ctrl.value === w.dataset.condValue;
         w.style.display = show ? '' : 'none';
       });
     };
-    if (modalBody) modalBody.addEventListener('input', applyCond);
+    if (container) container.addEventListener('input', applyCond);
     setTimeout(applyCond, 0);
+    // 饭圈/二次：选择价目表制品后自动回填默认尺寸/出血（仅空值时）
+    if (pageKey === 'design-commission-detail-fq' || pageKey === 'design-commission-detail-ec') {
+      const prodCb = container ? container.querySelector('#cdProductBoxProd') : null;
+      const fillSizeBleed = (name) => {
+        const pl = DB.list('priceList').find(p => p.product === name && PRODUCT_CATEGORIES.includes(p.category));
+        const sizeInp = container ? container.querySelector('.cd-product-box [data-key="size"]') : null;
+        const bleedInp = container ? container.querySelector('.cd-product-box [data-key="bleed"]') : null;
+        if (pl && sizeInp && !sizeInp.value.trim()) sizeInp.value = pl.defaultSize || '';
+        if (pl && bleedInp && !bleedInp.value.trim()) bleedInp.value = pl.defaultBleed || '';
+      };
+      if (prodCb) {
+        const prodInput = prodCb.querySelector('.combobox-input');
+        const prodHidden = prodCb.querySelector('.combobox-value');
+        if (prodInput) prodInput.addEventListener('input', () => fillSizeBleed(prodInput.value.trim()));
+        if (prodHidden) prodHidden.addEventListener('change', () => fillSizeBleed(prodHidden.value.trim()));
+      }
+    }
   }
 }
 
@@ -5005,6 +5037,16 @@ function dcCreateCommission() {
   Toast.success('已新增接稿记录，可在接稿排期中查看');
 }
 
+/* ===== Price List Helpers ===== */
+function cdPriceListSizeText(r) {
+  const size = (r && r.defaultSize) || '';
+  const bleed = (r && r.defaultBleed) || '';
+  if (size && bleed) return `${esc(size)}+${esc(bleed)}`;
+  if (size) return esc(size);
+  if (bleed) return `+${esc(bleed)}`;
+  return '';
+}
+
 /* ===== Price List Custom Renderer (需求9: 菜单风格, 其他说明可折叠) ===== */
 function renderPriceList() {
   const body = $('#mainBody');
@@ -5077,7 +5119,8 @@ function renderPriceList() {
       html += `<div class="pricelist-menu-category">${esc(cat)}</div>`;
       items.forEach(r => {
         html += `<div class="pricelist-menu-item" onclick="openEditForm('design-pricelist','${r.id}')">`;
-        html += `<span class="menu-name">${esc(r.product || '未命名')}${r.defaultSize ? `<sub class="menu-size-sub">(${esc(r.defaultSize)})</sub>` : ''}</span>`;
+        const sizeTxt = cdPriceListSizeText(r);
+        html += `<span class="menu-name">${esc(r.product || '未命名')}${sizeTxt ? `<sub class="menu-size-sub">(${sizeTxt})</sub>` : ''}</span>`;
         const priceUnit = Array.isArray(r.priceUnit) ? (r.priceUnit[0] || '元') : (r.priceUnit || '元');
         const unitSuffix = priceUnit === '元' ? '' : priceUnit.replace('元', '');
         const priceText = `¥${esc(r.price || 0)}${esc(unitSuffix)}`;
@@ -5135,7 +5178,8 @@ function openPriceListSort() {
     groups[cat].forEach((r, i) => {
       const isFirst = i === 0, isLast = i === groups[cat].length - 1;
       html += '<div class="pricelist-sort-item">';
-      html += `<span class="sort-name">${esc(r.product || '未命名')}${r.defaultSize ? `<sub class="menu-size-sub">(${esc(r.defaultSize)})</sub>` : ''}</span>`;
+      const sizeTxt = cdPriceListSizeText(r);
+      html += `<span class="sort-name">${esc(r.product || '未命名')}${sizeTxt ? `<sub class="menu-size-sub">(${sizeTxt})</sub>` : ''}</span>`;
       html += `<span class="sort-price">¥${esc(r.price || 0)}</span>`;
       html += `<span class="sort-btns">`;
       html += `<button class="btn btn-ghost btn-sm" ${isFirst ? 'disabled' : ''} onclick="event.stopPropagation();priceItemMove('${r.id}',-1);openPriceListSort();">▲</button>`;
@@ -7891,9 +7935,9 @@ function renderCdFullRecord(r) {
   if (r.clientInfo && linked.length) {
     linked.forEach(c => {
       h += `<div class="cd-link-block" onclick="commissionSelectById('${c.id}')">`;
-      h += cdRecRow('稿件进度', c.progress || '—');
-      h += cdRecRow('开稿日期', c.acceptTime || c.startTime || '—');
-      h += cdRecRow('截稿日期', c.deadline || '—');
+      h += cdRecRow('稿件进度', c.progress || '');
+      h += cdRecRow('开稿日期', c.acceptTime || c.startTime || '');
+      h += cdRecRow('截稿日期', c.deadline || '');
       h += `</div>`;
     });
   } else {
@@ -8086,7 +8130,7 @@ function buildCdExtraProductsHTML(pageKey, items, parentData) {
     html += cdExtraProductRowHTML(idx, it || {}, isFq, list);
   });
   html += `</div>`;
-  html += `<button type="button" class="btn btn-outline btn-sm" onclick="addCdExtraProduct()" style="margin-top:14px">+ 新增制品</button>`;
+  html += `<button type="button" class="btn btn-primary btn-sm" onclick="addCdExtraProduct()" style="margin-top:12px;width:100%">+ 新增制品</button>`;
   return html;
 }
 // 是否同模下拉：否（独立新柄）/ 初始制品 0 / 其他独立新柄的追加制品（排除自身及非独立新柄的追加制品）
@@ -8277,7 +8321,7 @@ function openCdDetail(id) {
   if (!r) return;
   const pageKey = COMM_DETAIL_CATS.find(c => c.cat === r.category).key;
   const mod = MODULES[pageKey];
-  let html = '<div class="detail-view">';
+  let html = '<div class="detail-view cd-form">';
   const hasExtraDetail = (r.category === '饭圈' || r.category === '二次') && Array.isArray(r.extraProducts) && r.extraProducts.length;
   let extraInjectedDetail = false;
   mod.fields.forEach(f => {
@@ -8631,7 +8675,7 @@ function cdOpenClientFormFromLink(catKey) {
   const mod = MODULES[catKey];
   const data = { category: mod.category };
   mod.fields.forEach(f => { if (f.default !== undefined && f.key !== 'category') data[f.key] = f.default; });
-  const bodyHTML = buildCdClientForm(catKey, data);
+  const bodyHTML = cdFormShell(buildCdClientForm(catKey, data));
   openModal('单主填写：' + mod.category + '约稿单', bodyHTML, [
     { label: '取消', class: 'btn-ghost', action: closeModal },
     { label: '提交', class: 'btn-primary', action: () => saveCdClientForm(catKey) },
@@ -8662,7 +8706,7 @@ function cdRenderClientStandalone(catKey) {
   let html = '<div class="cd-client-standalone">';
   html += `<div class="cd-client-head">${esc(mod.category)}约稿单</div>`;
   html += '<div class="cd-client-form">';
-  html += buildCdClientForm(catKey, data);
+  html += cdFormShell(buildCdClientForm(catKey, data));
   html += '</div>';
   html += `<div class="cd-client-submit"><button class="btn btn-primary" onclick="saveCdClientForm('${catKey}', true)">提交</button></div>`;
   html += '</div>';
