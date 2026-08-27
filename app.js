@@ -520,8 +520,8 @@ function buildFormField(f, data, moduleKey, wrap) {
           if (!hint) hint = '请选择日期';
           placeholder = '请选择日期';
         }
-        // 需求③：日期支持手动输入（type=text 自由输入）或点 📅 打开原生日历选择
-        inner = `${labelHTML}<div class="date-field-wrap"><input type="text" class="form-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(placeholder)}"><button type="button" class="date-pick-btn" onclick="openDatePicker(this)" title="选择日期" aria-label="选择日期"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></button></div>${belowHint}`;
+        // 需求③：日期支持手动输入（type=text 自由输入）或点 📅 打开原生日历选择；输入/选择后统一规范为 YYYY-MM-DD
+        inner = `${labelHTML}<div class="date-field-wrap"><input type="text" class="form-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(placeholder)}" onchange="normalizeDateValue(this)"><button type="button" class="date-pick-btn" onclick="openDatePicker(this)" title="选择日期" aria-label="选择日期"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></button></div>${belowHint}`;
       } else {
         inner = `${labelHTML}<input type="${type}" class="form-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(placeholder)}">${belowHint}`;
       }
@@ -534,17 +534,30 @@ function buildFormField(f, data, moduleKey, wrap) {
   }
   return out;
 }
-// 需求③：日期字段点 📅 打开原生日历选择器（输入保持 type=text 可自由手输）
+// 需求③：日期字段点 📅 打开原生日历选择器（输入保持 type=text 可自由手输）；选完或失焦后统一规范为 YYYY-MM-DD 文本显示
 function openDatePicker(btn) {
   const inp = btn.previousElementSibling;
   if (!inp) return;
-  if (inp.value && !/^\d{4}-\d{2}-\d{2}$/.test(inp.value)) {
-    const d = new Date(inp.value);
-    if (!isNaN(d.getTime())) inp.value = d.toISOString().slice(0, 10);
-  }
   inp.type = 'date';
   if (inp.showPicker) { try { inp.showPicker(); } catch (e) { inp.focus(); } }
   else inp.focus();
+  const finish = () => {
+    normalizeDateValue(inp);   // 统一为 YYYY-MM-DD
+    inp.type = 'text';         // 选完转回文本，显示与手输一致
+    inp.removeEventListener('change', onChange);
+    inp.removeEventListener('blur', onBlur);
+  };
+  const onChange = () => { finish(); };
+  const onBlur = () => { finish(); };
+  inp.addEventListener('change', onChange);
+  inp.addEventListener('blur', onBlur);
+}
+// 将任意可解析日期归一化为 YYYY-MM-DD（已是规范格式则不动）
+function normalizeDateValue(inp) {
+  if (!inp || !inp.value) return;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(inp.value)) return;
+  const d = new Date(inp.value);
+  if (!isNaN(d.getTime())) inp.value = fmtDate(d);
 }
 function buildForm(fields, data = {}, moduleKey = '') {
   let html = '';
@@ -1535,8 +1548,10 @@ function cdProductComboboxHTMLForEp(id, value) {
 function cdBindProductAutoFill(container) {
   if (!container) return;
   const fill = (pl, sizeInp, bleedInp) => {
-    if (pl && sizeInp && !sizeInp.value.trim()) sizeInp.value = pl.defaultSize || '';
-    if (pl && bleedInp && !bleedInp.value.trim()) bleedInp.value = pl.defaultBleed || '';
+    // 更换制品时尺寸/出血跟随一起变（始终以当前制品的默认值为准）
+    if (!pl) return;
+    if (sizeInp) sizeInp.value = pl.defaultSize || '';
+    if (bleedInp) bleedInp.value = pl.defaultBleed || '';
   };
   const bindBox = (box) => {
     if (!box) return;
@@ -8159,7 +8174,7 @@ function buildCdExtraProductsHTML(pageKey, items, parentData) {
     html += cdExtraProductRowHTML(idx, it || {}, isFq, list);
   });
   html += `</div>`;
-  html += `<button type="button" class="btn btn-primary" onclick="addCdExtraProduct()" style="margin-top:5px;width:100%;font-size:13px;padding:8px 12px">+ 新增制品</button>`;
+  html += `<button type="button" class="btn btn-primary" onclick="addCdExtraProduct()" style="margin-top:3px;width:100%;font-size:13px;padding:8px 12px">+ 新增制品</button>`;
   return html;
 }
 // 是否同模下拉：否（独立新柄）/ 初始制品 0 / 其他独立新柄的追加制品（排除自身及非独立新柄的追加制品）
@@ -8229,7 +8244,7 @@ function cdExtraProductRowHTML(idx, it, isFq, items) {
         <div class="cd-ep-field"><label class="form-label">稿件用途</label>${usageCb}</div>
         <div class="cd-ep-field"><label class="form-label">是否同柄<span class="form-label-hint">可选择同柄制品</span></label>${hr.html}</div>
       </div>
-      <div class="cd-ep-field" style="margin-top:8px">
+      <div class="cd-ep-field" style="margin-top:3px">
         <label class="form-label">制品信息<span class="form-label-hint">特殊出血请备注 可直接给模板</span></label>
         <div class="style-color-box info-box cd-product-box cd-ep-product-box">
           <div class="style-color-col"><span class="style-color-col-label">制品</span>${cdProductComboboxHTMLForEp('cdEpProduct_' + idx, it.product)}</div>
