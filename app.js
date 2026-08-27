@@ -8097,7 +8097,8 @@ function renderCdFullRecord(r) {
   if (r.clientInfo && linked.length) {
     linked.forEach(c => {
       h += `<div class="cd-link-block" onclick="commissionSelectById('${c.id}')">`;
-      h += cdRecRow('稿件进度', c.progress || '');
+      const prog = c.progress || '';
+      h += `<div class="cd-rec-row"><span class="cd-rec-k">稿件进度</span><span class="cd-rec-v"><span class="tag ${commTagClass('progress', prog)}">${esc(prog)}</span></span></div>`;
       h += cdRecRow('开稿日期', c.acceptTime || c.startTime || '');
       h += cdRecRow('截稿日期', c.deadline || '');
       h += `</div>`;
