@@ -829,7 +829,7 @@ ul,li{list-style:none}
 .option-edit-item{display:flex;align-items:center;gap:6px;margin-bottom:8px;width:100%}
 .option-edit-item input{flex:1;min-width:0;padding:6px 10px;border:1px solid var(--c-border);border-radius:4px;font-size:13px}
 .option-field-block{display:flex;align-items:flex-start;gap:1px}
-.option-field-title{flex-shrink:0;width:auto;min-width:60px;max-width:120px;margin-left:12px;font-size:12px;font-weight:600;color:var(--c-text);padding-top:7px;padding-right:10px;white-space:normal;line-height:1.4}
+.option-field-title{flex-shrink:0;width:60px;margin-left:12px;font-size:12px;font-weight:600;color:var(--c-text);padding-top:7px;padding-right:10px;white-space:normal;overflow-wrap:anywhere;line-height:1.4}
 .option-field-inputs{flex:1;min-width:0;margin-left:-4px}
 .add-opt-btn{flex:1;display:flex;justify-content:center;align-items:center;padding:6px 10px}
 .option-delete-placeholder{width:26px;height:1px;flex-shrink:0;visibility:hidden}
@@ -2576,7 +2576,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=541"></script>
+  <script src="app.js?v=542"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

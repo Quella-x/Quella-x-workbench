@@ -390,7 +390,7 @@ function getSettings() {
 }
 function saveSettings(s) { DB.set('appSettings', s); }
 
-// v541：接稿排期/详情排序优先级（制作中>修改中>已接稿>待接稿>已交付）
+// v542：接稿排期/详情排序优先级（制作中>修改中>已接稿>待接稿>已交付）；次级：接稿时间>开稿时间>截稿时间（均升序）
 const COMMISSION_PROGRESS_ORDER = { '制作中': 1, '修改中': 2, '已接稿': 3, '待接稿': 4, '已交付': 5 };
 function commissionProgressPriority(r) {
   const vals = Array.isArray(r.progress) ? r.progress : (r.progress ? [r.progress] : []);
@@ -406,7 +406,10 @@ function commissionRecordSort(a, b) {
   if (aa !== ab) return aa.localeCompare(ab);
   const sa = a.startTime || '';
   const sb = b.startTime || '';
-  return sa.localeCompare(sb);
+  if (sa !== sb) return sa.localeCompare(sb);
+  const da = a.deadline || '';
+  const db = b.deadline || '';
+  return da.localeCompare(db);
 }
 function commissionDetailSort(a, b) {
   const linkedA = DB.list('commissions').filter(c => (c.clientInfo || '') === (a.clientInfo || ''));
@@ -1031,16 +1034,15 @@ function renderCalendar(year, month, records, commissionRecords = []) {
   const lifeDeepspaceDates = new Set(DB.list('lifeCheckins').filter(r => r.type === 'deepspace').map(r => r.date));
   let html = '<div class="cal-grid">';
   ['日', '一', '二', '三', '四', '五', '六'].forEach(w => { html += `<div class="cal-weekday">${w}</div>`; });
-  for (let i = startWeekday - 1; i >= 0; i--) { html += `<div class="cal-day other-month"><span class="cal-date">${prevMonthDays - i}</span></div>`; }
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  // v542：抽成单元格助手，prev/next 月补位格也渲染开稿/截稿标签（跨月不再空壳）
+  function renderHomeCalCell(cy, cm, cd, isOther) {
+    const dateStr = cy + '-' + String(cm + 1).padStart(2, '0') + '-' + String(cd).padStart(2, '0');
     const dayRecords = records.filter(r => (r.publishTime || '').startsWith(dateStr));
     const isToday = dateStr === todayKey;
     let topDots = '';
     const dayPlatforms = new Set();
     dayRecords.forEach(r => { arrVal(r.platform).forEach(p => dayPlatforms.add(p)); });
     [...dayPlatforms].forEach(p => { topDots += `<span class="cal-dot" style="background:${PLATFORM_COLORS[p] || '#9DC8FF'}"></span>`; });
-    // v226: 日历条数仅统计「已发布」的发布条数
     const publishedDayRecords = dayRecords.filter(r => r.status === '已发布');
     const dayCount = publishedDayRecords.length > 0 ? `<span class="cal-day-count">${publishedDayRecords.length}条</span>` : '';
     const dayComms = commissionRecords.filter(r => {
@@ -1064,8 +1066,8 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     if (lifeDeepspaceDates.has(dateStr)) {
       deepTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:#9DC8FF"></span><span class="cal-day-tag-text" style="color:#5BA3F0">进入临空</span></span>`;
     }
-    html += `<div class="cal-day${isToday ? ' today' : ''}">
-      <div class="cal-date-row"><span class="cal-date">${d}</span></div>
+    return `<div class="cal-day${isOther ? ' other-month' : ''}${isToday ? ' today' : ''}">
+      <div class="cal-date-row"><span class="cal-date">${cd}</span></div>
       <div class="cal-dots">${topDots}${dayCount}</div>
       <div class="cal-tag-rows">
         <div class="cal-tag-row home-comm-tags">${commTag}</div>
@@ -1073,9 +1075,11 @@ function renderCalendar(year, month, records, commissionRecords = []) {
       </div>
     </div>`;
   }
+  for (let i = startWeekday - 1; i >= 0; i--) { html += renderHomeCalCell(year, month - 1, prevMonthDays - i, true); }
+  for (let d = 1; d <= daysInMonth; d++) { html += renderHomeCalCell(year, month, d, false); }
   const totalCells = startWeekday + daysInMonth;
   const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
-  for (let i = 1; i <= remaining; i++) { html += `<div class="cal-day other-month"><span class="cal-date">${i}</span></div>`; }
+  for (let i = 1; i <= remaining; i++) { html += renderHomeCalCell(year, month + 1, i, true); }
   html += '</div>';
   // v29-fix6: 底部图例 — 平台发布 + 开稿/截稿/同天，按顺序排在公众号后面
   html += '<div class="cal-legend-wrap">';
@@ -2423,10 +2427,10 @@ function renderCommissionCalendar(year, month, records) {
 
   let html = '<div class="cal-grid commission-cal-grid">';
   ['日', '一', '二', '三', '四', '五', '六'].forEach(w => { html += `<div class="cal-weekday">${w}</div>`; });
-  for (let i = startWeekday - 1; i >= 0; i--) { html += `<div class="cal-day other-month"><span class="cal-date">${prevMonthDays - i}</span></div>`; }
+  // v542：抽成单元格助手，prev/next 月补位格也渲染真实跨月工期条（不再空壳截断）
   const barAreaTop = 22; // px from top of cell where bars start (date+开稿 on one row)
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  function renderCommCalCell(cy, cm, cd, isOther) {
+    const dateStr = cy + '-' + String(cm + 1).padStart(2, '0') + '-' + String(cd).padStart(2, '0');
     const dayPeriods = periodRecords.filter(r => {
       const start = r.startTime || r.acceptTime || '';
       const end = r.deadline || '';
@@ -2436,8 +2440,6 @@ function renderCommissionCalendar(year, month, records) {
     const deadlineRecords = records.filter(r => r.deadline === dateStr);
     const isToday = dateStr === todayKey;
     const isSelected = ps.dateFilter === dateStr;
-    // v29-fix2: 开稿/截稿统一恢复为 v27 样式：日期同行实心圆点+文字
-    // v29-fix6: 日期数字靠左，截稿不再固定右侧，同天合并为"开+截"
     let startTag = '', endTag = '';
     if (startRecords.length > 0 && deadlineRecords.length > 0) {
       startTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${BOTH_COLOR}"></span><span class="cal-day-tag-text" style="color:${BOTH_COLOR}">开+截</span></span>`;
@@ -2445,8 +2447,6 @@ function renderCommissionCalendar(year, month, records) {
       if (startRecords.length > 0) startTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${START_COLOR}"></span><span class="cal-day-tag-text" style="color:${START_COLOR}">开稿</span></span>`;
       if (deadlineRecords.length > 0) endTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${END_COLOR}"></span><span class="cal-day-tag-text" style="color:${END_COLOR}">截稿</span></span>`;
     }
-    let info = '';
-    // Build period bars by track (max 3 visible, excess ignored)
     let bars = '';
     dayPeriods.forEach(r => {
       const track = recordTrack[r.id] != null ? recordTrack[r.id] : 0;
@@ -2466,11 +2466,14 @@ function renderCommissionCalendar(year, month, records) {
       bars += `<div class="${cls}" style="background:${color};top:${topPx}px;height:${CAL_BAR_HEIGHT}px;line-height:${CAL_BAR_HEIGHT}px">${label}</div>`;
     });
     const cellMinHeight = 76; // fits 3 bars (22+3*13=61px) + padding
-    html += `<div class="cal-day${isToday ? ' today' : ''}${isSelected ? ' selected' : ''}" onclick="commissionDateClick('${dateStr}')" style="cursor:pointer;min-height:${cellMinHeight}px"><div class="cal-date-row"><span class="cal-date">${d}</span>${startTag}${endTag}</div>${info}${bars}</div>`;
+    const cls = 'cal-day' + (isOther ? ' other-month' : '') + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
+    return `<div class="${cls}" onclick="commissionDateClick('${dateStr}')" style="cursor:pointer;min-height:${cellMinHeight}px"><div class="cal-date-row"><span class="cal-date">${cd}</span>${startTag}${endTag}</div>${bars}</div>`;
   }
+  for (let i = startWeekday - 1; i >= 0; i--) { html += renderCommCalCell(year, month - 1, prevMonthDays - i, true); }
+  for (let d = 1; d <= daysInMonth; d++) { html += renderCommCalCell(year, month, d, false); }
   const totalCells = startWeekday + daysInMonth;
   const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
-  for (let i = 1; i <= remaining; i++) { html += `<div class="cal-day other-month"><span class="cal-date">${i}</span></div>`; }
+  for (let i = 1; i <= remaining; i++) { html += renderCommCalCell(year, month + 1, i, true); }
   html += '</div>';
   // Legend (v29-fix4: 改回 v27 样式 — 开稿/截稿 用实际色，加同天开+截)
   html += '<div class="cal-legend-wrap">';
