@@ -6300,6 +6300,11 @@ function sleepDurationHours(sleepTime, wakeTime) {
   if (mins <= 0) mins += 1440;
   return Math.round(mins / 60 * 10) / 10;
 }
+function getSleepDuration(r) {
+  if (r && r.duration != null && !isNaN(r.duration)) return Number(r.duration);
+  const computed = r ? sleepDurationHours(r.sleepTime, r.wakeTime) : null;
+  return computed != null ? computed : 0;
+}
 function lifeDailyStreak(typeKey) {
   const set = new Set(DB.list('lifeCheckins').filter(r => r.type === typeKey).map(r => r.date));
   if (!set.size) return 0;
@@ -7032,8 +7037,8 @@ function renderLifeRecordTopCard(all, date) {
   const sleepRecs = all.filter(r => r.type === 'sleep' && r.date === date);
   const night = sleepRecs.find(r => r.subtype === 'night');
   const noon = sleepRecs.find(r => r.subtype === 'noon');
-  const nightDur = night ? Number(night.duration) || 0 : 0;
-  const noonDur = noon ? Number(noon.duration) || 0 : 0;
+  const nightDur = night ? getSleepDuration(night) : 0;
+  const noonDur = noon ? getSleepDuration(noon) : 0;
   const total = nightDur + noonDur;
   const dietSubs = lifeRecordSubtypes('diet');
   return `<div class="lr-top-card">
@@ -7255,7 +7260,7 @@ function openLifeRecordModal(typeKey, subtypeKey, editId) {
 }
 function renderSleepRecordRows(recs) {
   return recs.map(r => {
-    const dur = r.duration != null ? formatSleepDuration(Number(r.duration)) : '—';
+    const dur = formatSleepDuration(getSleepDuration(r));
     return `<div class="lr-record-row">
       <div class="lr-record-info lr-record-info-2col">
         <div class="lr-info-line"><span class="lr-info-label">入睡时间:</span><span class="lr-info-val">${r.sleepTime || '—'}</span></div>
@@ -7332,10 +7337,11 @@ function renderDietRecordCard(date) {
 }
 function renderSleepWeekLineChart(days) {
   const all = DB.list('lifeRecords');
-  const wdLabels = ['周一','周二','周三','周四','周五','周六','周日']; // 周一→周日 正序（上到下）
+  const wdLabels = ['周日','周六','周五','周四','周三','周二','周一']; // days已倒序（周日→周一），与下方日卡片对齐
   // v373：夜晚时长(橙) / 午睡时长(黄) 分两条折线；清醒次数按夜晚记录统计
-  const nightVals = days.map(d => all.filter(r => r.type === 'sleep' && r.date === d && r.subtype === 'night').reduce((s, r) => s + (Number(r.duration) || 0), 0));
-  const napVals = days.map(d => all.filter(r => r.type === 'sleep' && r.date === d && r.subtype === 'noon').reduce((s, r) => s + (Number(r.duration) || 0), 0));
+  // v548：duration缺失时从sleepTime/wakeTime自动计算，避免旧记录显示0m
+  const nightVals = days.map(d => all.filter(r => r.type === 'sleep' && r.date === d && r.subtype === 'night').reduce((s, r) => s + getSleepDuration(r), 0));
+  const napVals = days.map(d => all.filter(r => r.type === 'sleep' && r.date === d && r.subtype === 'noon').reduce((s, r) => s + getSleepDuration(r), 0));
   const wakeVals = days.map(d => all.filter(r => r.type === 'sleep' && r.date === d && r.subtype === 'night').reduce((s, r) => s + (Number(r.wakeCount) || 0), 0));
   const maxV = 16; // 顶部刻度固定 2h~16h
   const nAvg = nightVals.reduce((a, b) => a + b, 0) / nightVals.length;
@@ -7413,7 +7419,7 @@ function renderLifeRecordHistoryDayCard(typeKey, dateStr, wdLabel) {
   const all = DB.list('lifeRecords');
   const subKeys = typeKey === 'sleep' ? ['night', 'noon'] : Object.keys(LIFE_RECORD_SUBTYPES.diet);
   const headExtra = typeKey === 'sleep'
-    ? (() => { const total = all.filter(r => r.type === 'sleep' && r.date === dateStr).reduce((s, r) => s + (Number(r.duration) || 0), 0); return total > 0 ? `睡眠 ${formatSleepDuration(total)}` : ''; })()
+    ? (() => { const total = all.filter(r => r.type === 'sleep' && r.date === dateStr).reduce((s, r) => s + getSleepDuration(r), 0); return total > 0 ? `睡眠 ${formatSleepDuration(total)}` : ''; })()
     : '';
   let body = '';
   subKeys.forEach(sk => {
@@ -7454,7 +7460,7 @@ function renderLifeRecordHistory(typeKey) {
     <div class="life-month-picker ${lifeRecordHistoryWeekPickerOpen ? 'show' : ''}" id="lrHistoryWeekPicker">${lifeRecordHistoryWeekPickerInner()}</div>
     <div class="life-picker-backdrop" id="lrHistoryWeekBackdrop" onclick="lifeRecordHistoryToggleWeekPicker()" style="display:${lifeRecordHistoryWeekPickerOpen ? 'block' : 'none'}"></div>
   </div>`;
-  if (typeKey === 'sleep') html += renderSleepWeekLineChart(days);
+  if (typeKey === 'sleep') html += renderSleepWeekLineChart(daysRev);
   else html += renderDietWeekStats(daysRev);
   daysRev.forEach((d, i) => { html += renderLifeRecordHistoryDayCard(typeKey, d, wdRev[i]); });
   return html;
