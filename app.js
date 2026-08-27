@@ -7347,10 +7347,10 @@ function renderSleepWeekLineChart(days) {
   const nAvg = nightVals.reduce((a, b) => a + b, 0) / nightVals.length;
   const napAvg = napVals.reduce((a, b) => a + b, 0) / napVals.length;
   const wakeAvg = wakeVals.reduce((a, b) => a + b, 0) / wakeVals.length;
-  // v554：回退自适应，固定 viewBox 1:1 显示，避免字体被拉伸放大或左侧超出
-  const isDesktop = window.innerWidth > 640;
-  const W = 720, H = isDesktop ? 394 : 568;
-  const LM = isDesktop ? 60 : 80, RM = isDesktop ? 30 : 40, TM = isDesktop ? 70 : 46, BM = isDesktop ? 40 : 4;
+  // v555：恢复 v550 压缩居中方案，viewBox 720×568，桌面端收紧边距、移动端保持原样，避免全部挤在左边且字体过大
+  const isDesktop = window.innerWidth > 768;
+  const W = 720, H = 568;
+  const LM = isDesktop ? 45 : 80, RM = isDesktop ? 15 : 40, TM = isDesktop ? 70 : 46, BM = isDesktop ? 40 : 4;
   const hourLabelY = isDesktop ? TM - 20 : TM - 55;
   const CW = W - LM - RM, CH = H - TM - BM;
   const xOf = v => LM + (maxV > 0 ? v / maxV * CW : 0);
@@ -7389,7 +7389,7 @@ function renderSleepWeekLineChart(days) {
       </span>
     </div>
     <div class="lr-hsc-chart-body">
-      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMinYMid meet">
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
         <defs>${mkGrad(gradNight, nightColor)}${mkGrad(gradNap, napColor)}</defs>
         ${gridLines}
         <path d="${areaPath(napVals)}" fill="url(#${gradNap})" stroke="none"/>
