@@ -2102,7 +2102,7 @@ function renderListPage(pageKey, mod) {
     html += '<div class="calendar-header">';
     const calMonthKey = `${ps.calYear}-${String(ps.calMonth + 1).padStart(2, '0')}`;
     const calMonthCount = commissionAllRecords.filter(r => (r.startTime || r.acceptTime || '').startsWith(calMonthKey)).length;
-    html += `<span class="cal-title">${ps.calYear}年${ps.calMonth + 1}月<span class="cal-month-count">本月接稿 ${calMonthCount}</span></span>`;
+    html += `<span class="cal-title">${ps.calYear}年${ps.calMonth + 1}月<span class="cal-month-count">本月接稿 <span class="n">${calMonthCount}</span></span></span>`;
     html += '<div class="cal-nav" style="gap:2px">';
     html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(-1)">‹ 上月</button>`;
     html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(0)">本月</button>`;
@@ -8244,7 +8244,7 @@ function cdExtraProductRowHTML(idx, it, isFq, items) {
         <div class="cd-ep-field"><label class="form-label">稿件用途</label>${usageCb}</div>
         <div class="cd-ep-field"><label class="form-label">是否同柄<span class="form-label-hint">可选择同柄制品</span></label>${hr.html}</div>
       </div>
-      <div class="cd-ep-field" style="margin-top:3px">
+      <div class="cd-ep-field" style="margin-top:-3px">
         <label class="form-label">制品信息<span class="form-label-hint">特殊出血请备注 可直接给模板</span></label>
         <div class="style-color-box info-box cd-product-box cd-ep-product-box">
           <div class="style-color-col"><span class="style-color-col-label">制品</span>${cdProductComboboxHTMLForEp('cdEpProduct_' + idx, it.product)}</div>
