@@ -392,6 +392,14 @@ function saveSettings(s) { DB.set('appSettings', s); }
 
 // v542：接稿排期/详情排序优先级（制作中>修改中>已接稿>待接稿>已交付）；次级：接稿时间>开稿时间>截稿时间（均升序）
 const COMMISSION_PROGRESS_ORDER = { '制作中': 1, '修改中': 2, '已接稿': 3, '待接稿': 4, '已交付': 5 };
+// v543：接稿排期展示模块 稿件进度/支付状态 胶囊按状态分色（只改展示，不动新增表单）
+const COMMISSION_PROGRESS_TAG = { '待接稿': 'tag-yellow', '已接稿': 'tag-orange', '制作中': 'tag-info', '修改中': 'tag-danger', '已交付': 'tag-success' };
+const COMMISSION_PAYMENT_TAG = { '未付': 'tag-danger', '定金': 'tag-orange', '尾款': 'tag-info', '全款': 'tag-success' };
+function commTagClass(key, val) {
+  if (key === 'progress') return COMMISSION_PROGRESS_TAG[val] || 'tag-info';
+  if (key === 'paymentStatus') return COMMISSION_PAYMENT_TAG[val] || 'tag-info';
+  return 'tag-info';
+}
 function commissionProgressPriority(r) {
   const vals = Array.isArray(r.progress) ? r.progress : (r.progress ? [r.progress] : []);
   let best = 99;
@@ -2249,6 +2257,7 @@ function renderListPage(pageKey, mod) {
             if (['已截团', '暂停合作', '已取消', '流团'].includes(val)) tc = 'tag-gray';
             if (['不合格', '不满意'].includes(val)) tc = 'tag-danger';
             if (['买断', '敌对', '已结算'].includes(val)) tc = 'tag-purple';
+            if (f.key === 'progress' || f.key === 'paymentStatus') tc = commTagClass(f.key, val);
             return `<span class="tag ${tc}">${esc(String(val))}</span>`;
           }).join(' ');
           html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value field-tags">${tags}</span></span>`;
@@ -2267,6 +2276,7 @@ function renderListPage(pageKey, mod) {
             if (['已截团', '暂停合作', '已取消', '流团'].includes(v)) tc = 'tag-gray';
             if (['不合格', '不满意'].includes(v)) tc = 'tag-danger';
             if (['买断', '敌对', '已结算'].includes(v)) tc = 'tag-purple';
+            if (f.key === 'progress' || f.key === 'paymentStatus') tc = commTagClass(f.key, v);
             html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value"><span class="tag ${tc}">${esc(String(v))}</span></span></span>`;
           }
         } else if (f.link) {
@@ -3045,8 +3055,8 @@ function openDetail(pageKey, id) {
       return;
     }
     if (f.type === 'multiselect') {
-      const vals = Array.isArray(r[f.key]) ? r[f.key] : [];
-      const tags = vals.map(v => `<span class="tag tag-info" style="margin-right:4px">${esc(v)}</span>`).join('');
+      const vals = [].concat(r[f.key] || []);
+      const tags = vals.map(v => `<span class="tag ${commTagClass(f.key, v)}" style="margin-right:4px">${esc(v)}</span>`).join('');
       html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><span class="detail-value">${tags}</span></div>`;
       return;
     }
