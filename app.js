@@ -7347,9 +7347,9 @@ function renderSleepWeekLineChart(days) {
   const nAvg = nightVals.reduce((a, b) => a + b, 0) / nightVals.length;
   const napAvg = napVals.reduce((a, b) => a + b, 0) / napVals.length;
   const wakeAvg = wakeVals.reduce((a, b) => a + b, 0) / wakeVals.length;
-  // 横版睡眠折线图，日期列在左侧；SVG高度568使日期间距90px；顶部固定16h刻度；顶部边距加大避免数据标签被截断
+  // 横版睡眠折线图，日期列在左侧；SVG高度568使日期间距~74px；顶部固定16h刻度；顶部边距加大避免数据标签被截断，底部边距避免贴底
   const W = 720, H = 568;
-  const LM = 80, RM = 40, TM = 46, BM = 4;
+  const LM = 60, RM = 25, TM = 70, BM = 40;
   const CW = W - LM - RM, CH = H - TM - BM;
   const xOf = v => LM + (maxV > 0 ? v / maxV * CW : 0);
   const yOf = i => TM + CH * i / 6;
@@ -7365,7 +7365,7 @@ function renderSleepWeekLineChart(days) {
   const gridLines = gridHours.map(h => {
     const x = xOf(h);
     return `<line x1="${x.toFixed(1)}" y1="${TM}" x2="${x.toFixed(1)}" y2="${TM + CH}" stroke="var(--c-border-light)" stroke-width="0.8"/>` +
-           `<text x="${x.toFixed(1)}" y="${TM - 55}" text-anchor="middle" font-size="20" font-weight="700" fill="var(--c-text-muted)">${h}h</text>`;
+           `<text x="${x.toFixed(1)}" y="${TM - 20}" text-anchor="middle" font-size="20" font-weight="700" fill="var(--c-text-muted)">${h}h</text>`;
   }).join('');
   const dayLabels = nightVals.map((v, i) => {
     const y = yOf(i);
