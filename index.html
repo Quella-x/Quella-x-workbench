@@ -2201,7 +2201,7 @@ ul,li{list-style:none}
 .lr-hsc-avg.night{color:#ff9a3c}
 .lr-hsc-avg.nap{color:#FFDE75}
 .lr-hsc-avg.wake{color:var(--c-text)}
-.lr-hsc-chart-body{height:394px;position:relative;margin-top:16px}
+.lr-hsc-chart-body{width:100%;aspect-ratio:720/568;position:relative;margin-top:16px}
 .lr-hsc-chart-body svg{width:100%;height:100%;overflow:visible}
 .lr-hsc-x{display:flex;justify-content:space-between;padding:8px 5.9% 0;font-size:12px;color:var(--c-text-light)}
 .lr-hsc-point text{pointer-events:none}
@@ -2295,7 +2295,7 @@ ul,li{list-style:none}
   .lr-size-note{font-size:10px}
   .lr-history-stat-card{padding:8px}
   .lr-hsc-title{font-size:14px}
-  .lr-hsc-chart-body{height:324px;margin-top:10px}
+  .lr-hsc-chart-body{height:324px;aspect-ratio:auto;margin-top:10px}
   .lr-hsc-metrics{gap:6px;padding:6px 2px 2px}
   .lr-hsc-metric-val{font-size:20px}
   .lr-hsc-metric-val small{font-size:11px}
@@ -2583,7 +2583,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=551"></script>
+  <script src="app.js?v=552"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
