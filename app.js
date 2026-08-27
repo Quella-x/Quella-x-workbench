@@ -1621,7 +1621,7 @@ MODULES['design-commission-detail-fq'] = {
     { section: '制品信息' },
     { key: 'usageType', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'theme', label: '企划/主题名称', type: 'text' },
-    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息</label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><input type="text" class="form-input" data-key="craft"></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">初始为默认尺寸，特殊出血请备注 可直接给模板</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息<span class="form-label-hint">特殊出血请备注 可直接给模板</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><input type="text" class="form-input" data-key="craft"></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">初始为默认尺寸</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">可以给参考图/色卡 请把主色写最前面</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">元素</label><div class="style-color-box elements-box"><div class="style-color-col"><span class="style-color-col-label">必用</span><input type="text" class="form-input" data-key="elementsRequired"></div><div class="style-color-col"><span class="style-color-col-label">可选</span><input type="text" class="form-input" data-key="elementsOptional"></div><div class="style-color-col"><span class="style-color-col-label">避雷</span><input type="text" class="form-input" data-key="elementsAvoid"></div></div></div>' },
@@ -1653,7 +1653,7 @@ MODULES['design-commission-detail-ec'] = {
     { section: '制品信息' },
     { key: 'usageType', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'theme', label: '企划/主题名称', type: 'text' },
-    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息</label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><input type="text" class="form-input" data-key="craft"></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">初始为默认尺寸，特殊出血请备注 可直接给模板</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息<span class="form-label-hint">特殊出血请备注 可直接给模板</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><input type="text" class="form-input" data-key="craft"></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">初始为默认尺寸</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
     { key: 'ipName', label: 'IP', type: 'text' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">可以给参考图/色卡 请把主色写最前面</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
@@ -2075,7 +2075,7 @@ function renderListPage(pageKey, mod) {
     html += '<div class="calendar-header">';
     const calMonthKey = `${ps.calYear}-${String(ps.calMonth + 1).padStart(2, '0')}`;
     const calMonthCount = commissionAllRecords.filter(r => (r.startTime || r.acceptTime || '').startsWith(calMonthKey)).length;
-    html += `<span class="cal-title">${ps.calYear}年${ps.calMonth + 1}月<span class="cal-month-count"> 本月接稿 ${calMonthCount}</span></span>`;
+    html += `<span class="cal-title">${ps.calYear}年${ps.calMonth + 1}月<span class="cal-month-count">本月接稿 ${calMonthCount}</span></span>`;
     html += '<div class="cal-nav" style="gap:2px">';
     html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(-1)">‹ 上月</button>`;
     html += `<button class="btn btn-sm btn-ghost" onclick="commissionCalNav(0)">本月</button>`;
@@ -2145,9 +2145,8 @@ function renderListPage(pageKey, mod) {
           if (pageKey === 'design-commission') return; // 接稿排期在下面用复选框展示
           const names = (r.products || []).map(p => p.name).filter(Boolean); v = names.join('、');
         }
-        if (v == null || v === '') {
-          if (!(pageKey === 'design-commission' && ['startTime','deadline','quoteAmount'].includes(f.key))) return;
-        }
+        // v531：列表卡片空字段也展示标签，无信息就空着
+        if (v == null || v === '') v = '';
         if (f.tag && Array.isArray(v)) {
           const tags = v.map(val => {
             let tc = 'tag-info';
@@ -2165,13 +2164,17 @@ function renderListPage(pageKey, mod) {
         if (f.date) v = fmtDate(v);
         if (f.prefix) v = f.prefix + v;
         if (f.tag) {
-          let tc = 'tag-info';
-          if (['进行中', '全款', '长期合作', '合格', '稳定', '已完结', '尾款', '已接稿', '已交付', '交好', '非常满意', '满意'].includes(v)) tc = 'tag-success';
-          if (['筹备中', '未付', '临时合作', '连载中', '定金', '待接稿', '中等', '变化中', '一般'].includes(v)) tc = 'tag-warning';
-          if (['已截团', '暂停合作', '已取消', '流团'].includes(v)) tc = 'tag-gray';
-          if (['不合格', '不满意'].includes(v)) tc = 'tag-danger';
-          if (['买断', '敌对', '已结算'].includes(v)) tc = 'tag-purple';
-          html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value"><span class="tag ${tc}">${esc(String(v))}</span></span></span>`;
+          if (v === '') {
+            html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value"></span></span>`;
+          } else {
+            let tc = 'tag-info';
+            if (['进行中', '全款', '长期合作', '合格', '稳定', '已完结', '尾款', '已接稿', '已交付', '交好', '非常满意', '满意'].includes(v)) tc = 'tag-success';
+            if (['筹备中', '未付', '临时合作', '连载中', '定金', '待接稿', '中等', '变化中', '一般'].includes(v)) tc = 'tag-warning';
+            if (['已截团', '暂停合作', '已取消', '流团'].includes(v)) tc = 'tag-gray';
+            if (['不合格', '不满意'].includes(v)) tc = 'tag-danger';
+            if (['买断', '敌对', '已结算'].includes(v)) tc = 'tag-purple';
+            html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value"><span class="tag ${tc}">${esc(String(v))}</span></span></span>`;
+          }
         } else if (f.link) {
           if (v && v.startsWith('http')) html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><a href="${esc(v)}" target="_blank" style="color:var(--c-primary)">链接</a></span>`;
         } else {
@@ -8144,7 +8147,7 @@ function buildCdExtraProductsHTML(pageKey, items, parentData) {
     html += cdExtraProductRowHTML(idx, it || {}, isFq, list);
   });
   html += `</div>`;
-  html += `<button type="button" class="btn btn-primary" onclick="addCdExtraProduct()" style="margin-top:12px;width:100%;font-size:13px;padding:8px 12px">+ 新增制品</button>`;
+  html += `<button type="button" class="btn btn-primary" onclick="addCdExtraProduct()" style="margin-top:7px;width:100%;font-size:13px;padding:8px 12px">+ 新增制品</button>`;
   return html;
 }
 // 是否同模下拉：否（独立新柄）/ 初始制品 0 / 其他独立新柄的追加制品（排除自身及非独立新柄的追加制品）
@@ -8215,11 +8218,11 @@ function cdExtraProductRowHTML(idx, it, isFq, items) {
         <div class="cd-ep-field"><label class="form-label">是否同柄<span class="form-label-hint">可选择同柄制品</span></label>${hr.html}</div>
       </div>
       <div class="cd-ep-field" style="margin-top:8px">
-        <label class="form-label">制品信息</label>
+        <label class="form-label">制品信息<span class="form-label-hint">特殊出血请备注 可直接给模板</span></label>
         <div class="style-color-box info-box cd-product-box cd-ep-product-box">
           <div class="style-color-col"><span class="style-color-col-label">制品</span>${cdProductComboboxHTMLForEp('cdEpProduct_' + idx, it.product)}</div>
           <div class="style-color-col"><span class="style-color-col-label">工艺</span><input type="text" class="form-input" data-ep="craft" value="${esc(it.craft || '')}"></div>
-          <div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">初始为默认尺寸，特殊出血请备注 可直接给模板</span></span><input type="text" class="form-input" data-ep="size" value="${esc(it.size || '')}"></div>
+          <div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">初始为默认尺寸</span></span><input type="text" class="form-input" data-ep="size" value="${esc(it.size || '')}"></div>
           <div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-ep="bleed" value="${esc(it.bleed || '')}"></div>
         </div>
       </div>
@@ -8696,7 +8699,7 @@ function cdOpenClientFormFromLink(catKey) {
   const data = { category: mod.category };
   mod.fields.forEach(f => { if (f.default !== undefined && f.key !== 'category') data[f.key] = f.default; });
   const bodyHTML = cdFormShell(buildCdClientForm(catKey, data));
-  openModal('单主填写：' + mod.category + '约稿单', bodyHTML, [
+  openModal((mod.category || '约稿') + '约稿需求', bodyHTML, [
     { label: '取消', class: 'btn-ghost', action: closeModal },
     { label: '提交', class: 'btn-primary', action: () => saveCdClientForm(catKey) },
   ], 'lg');
