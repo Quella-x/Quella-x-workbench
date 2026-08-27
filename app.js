@@ -2000,6 +2000,8 @@ const PAGE_SIZES = {
 const TWO_COL_MODULES = ['design-inspiration', 'oc-profiles'];
 // v515: 九模块列表字段对齐（与接稿排期左栏一致：64px 右对齐标签 + 1fr 值列），仅改内部字段样式，单双列保持原样
 const COMM_LIST_STYLE_MODULES = ['groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'design-inspiration', 'design-commission', 'design-auth', 'oc-profiles', 'oc-stories', 'oc-commission'];
+// v547：八模块(开团/厂家/打样/灵感/授权/人物档案/故事小记/约稿记录)展示模块卡片盒子对齐「接稿排期日历视图」(cal-view 紧凑 padding-top:11px + header margin-top:-3px)，单双列保持原样
+const CAL_VIEW_STYLE_MODULES = COMM_LIST_STYLE_MODULES.filter(k => k !== 'design-commission');
 
 /* ===== Router ===== */
 function navigate(page) {
@@ -2219,7 +2221,7 @@ function renderListPage(pageKey, mod) {
     html += `<div${emptyCls}><div class="empty-icon">📋</div><div class="empty-text">暂无记录，点击新增开始添加</div></div>`;
   } else {
     const twoCol = TWO_COL_MODULES.includes(pageKey) ? ' two-col' : '';
-    if (!isCommDual) { const _calViewCls = (pageKey === 'design-commission' && ps.viewMode === 'calendar') ? ' cal-view' : ''; html += `<div class="record-list${twoCol}${_calViewCls}">`; }
+    if (!isCommDual) { const _calViewCls = ((pageKey === 'design-commission' && ps.viewMode === 'calendar') || CAL_VIEW_STYLE_MODULES.includes(pageKey)) ? ' cal-view' : ''; html += `<div class="record-list${twoCol}${_calViewCls}">`; }
     pagedRecords.forEach(r => {
       const isOverdue = mod.isOverdue && mod.isOverdue(r);
       const cardClick = isCommDual ? `commissionSelectCard('${r.id}')` : `openDetail('${pageKey}','${r.id}')`;
