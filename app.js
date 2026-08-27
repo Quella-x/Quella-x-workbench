@@ -7335,7 +7335,7 @@ function renderDietRecordCard(date) {
   html += `</div></div>`;
   return html;
 }
-function renderSleepWeekLineChart(days) {
+function renderSleepWeekLineChart(days, targetW, targetH) {
   const all = DB.list('lifeRecords');
   const wdLabels = ['周日','周六','周五','周四','周三','周二','周一']; // days已倒序（周日→周一），与下方日卡片对齐
   // v373：夜晚时长(橙) / 午睡时长(黄) 分两条折线；清醒次数按夜晚记录统计
@@ -7347,10 +7347,9 @@ function renderSleepWeekLineChart(days) {
   const nAvg = nightVals.reduce((a, b) => a + b, 0) / nightVals.length;
   const napAvg = napVals.reduce((a, b) => a + b, 0) / napVals.length;
   const wakeAvg = wakeVals.reduce((a, b) => a + b, 0) / wakeVals.length;
-  // 横版睡眠折线图，日期列在左侧；SVG高度568使日期间距~74px；顶部固定16h刻度
-  // v550：桌面端收紧左右边距、加大顶底边距避免刻度与标题重叠/贴底；移动端保持 v548 原样不变
-  const isDesktop = window.innerWidth > 768;
-  const W = 720, H = 568;
+  // v553：桌面端按容器实际宽高重绘；移动端保持默认 720×568
+  const W = targetW || 720, H = targetH || 568;
+  const isDesktop = W > 720 || (W === 720 && H <= 400);
   const LM = isDesktop ? 45 : 80, RM = isDesktop ? 15 : 40, TM = isDesktop ? 70 : 46, BM = isDesktop ? 40 : 4;
   const hourLabelY = isDesktop ? TM - 20 : TM - 55;
   const CW = W - LM - RM, CH = H - TM - BM;
@@ -7403,6 +7402,25 @@ function renderSleepWeekLineChart(days) {
     </svg>
   </div>
 </div>`;
+}
+function redrawSleepChart() {
+  // v553：桌面端渲染后按容器实际宽高重绘睡眠周图，让数据横向铺满且高度固定
+  if (window.innerWidth <= 768) return;
+  const container = document.querySelector('.lr-hsc-chart-body');
+  if (!container) return;
+  const svg = container.querySelector('svg');
+  if (!svg) return;
+  const W = Math.max(720, Math.round(container.clientWidth));
+  const H = Math.round(container.clientHeight) || 394;
+  const ps = pageState['life-record'];
+  if (!ps || ps.view !== 'sleep-history') return;
+  const today = todayStr();
+  const base = weekMondayOf(parseDateStr(today));
+  base.setDate(base.getDate() + (ps.weekOffset || 0) * 7);
+  const days = [];
+  for (let j = 0; j < 7; j++) { const d = new Date(base); d.setDate(base.getDate() + j); days.push(fmtDate(d)); }
+  const daysRev = days.slice().reverse();
+  svg.outerHTML = renderSleepWeekLineChart(daysRev, W, H).match(/<svg[\s\S]*?<\/svg>/)[0];
 }
 function renderDietWeekStats(days) {
   const all = DB.list('lifeRecords');
@@ -7572,6 +7590,7 @@ function renderLifeRecord() {
   }
   html += '</div>';
   body.innerHTML = html;
+  if (ps.view === 'sleep-history') requestAnimationFrame(redrawSleepChart);
 }
 function lifeRecordSetDate(v) { const ps = pageState['life-record']; ps.date = v; ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; ps.historyAddDate = null; renderLifeRecord(); }
 function lifeRecordGoDate(n) { const ps = pageState['life-record']; ps.date = addDaysStr(ps.date, n); if (ps.date > todayStr()) ps.date = todayStr(); ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; renderLifeRecord(); }
@@ -8950,6 +8969,7 @@ function init() {
   }
   const lastState = DB.get('ui_state', {});
   navigate(lastState.lastPage || 'home');
+  window.addEventListener('resize', () => { clearTimeout(window._sleepChartResizeTimer); window._sleepChartResizeTimer = setTimeout(redrawSleepChart, 150); });
   initSwipeBack();
   Sync.startAuto();
 }
