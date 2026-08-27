@@ -420,12 +420,23 @@ function buildFormField(f, data, moduleKey, wrap) {
   if (f.section) return `<div class="form-section">${esc(f.section)}</div>`;
   if (f.type === 'custom') {
     let html = f.html || '';
-    // 饭圈/二次：制品框从价目表导入，将普通输入替换为 combobox
+    // 饭圈/二次：制品框从价目表导入，将普通输入替换为 combobox；工艺下拉框替换为可配置选项
     if (moduleKey === 'design-commission-detail-fq' || moduleKey === 'design-commission-detail-ec') {
       const prodMatch = html.match(/<input([^>]*?)\bclass="([^"]*?\b)?cd-product-combobox(\b[^"]*)?"([^>]*?)>/);
       if (prodMatch) {
         html = html.replace(prodMatch[0], cdProductComboboxHTML('cdProductBoxProd', data.product || ''));
       }
+      try {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const craftInp = doc.querySelector('input[data-key="craft"]');
+        if (craftInp) {
+          const craftWrap = craftInp.closest('.combobox-wrapper');
+          if (craftWrap) {
+            craftWrap.outerHTML = cdCraftComboboxHTML(data.craft || '');
+            html = doc.body.innerHTML;
+          }
+        }
+      } catch (e) {}
     }
     // 将 data 中的值回填到 custom 内的 input/textarea（支持聊天记录解析回填 & 编辑回填）
     html = html.replace(/<(input|textarea)([^>]*?)\bdata-key="([^"]+)"([^>]*)>/g, (mm, tag, pre, k, post) => {
@@ -1544,6 +1555,20 @@ function cdProductComboboxHTMLForEp(id, value) {
   const opts = products.map(n => `<div class="combobox-option" onclick="selectComboboxOption('${id}',this)" data-value="${esc(n)}">${esc(n)}</div>`).join('');
   return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-ep="product" value="${esc(value || '')}" placeholder="选择或输入..." onfocus="showComboboxDropdown('${id}')" onclick="showComboboxDropdown('${id}')" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${opts}</div><input type="hidden" class="combobox-value" data-ep="product" value="${esc(value || '')}"></div>`;
 }
+// 饭圈/二次：工艺下拉框（支持在设置中管理选项，同时允许自由输入）
+function cdCraftComboboxHTML(value) {
+  const opts = getFieldOpts('design-commission-detail-fq', 'craft', [
+    { value: '白墨', label: '白墨' },
+    { value: '逆向', label: '逆向' },
+    { value: '光油', label: '光油' },
+    { value: '烫色', label: '烫色' }
+  ]);
+  const optHTML = opts.map(o => {
+    const v = typeof o === 'string' ? o : (o.value || o);
+    return `<div class="combobox-option" data-value="${esc(v)}" onclick="selectComboboxOption('cdCraftCb',this)">${esc(v)}</div>`;
+  }).join('');
+  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" value="${esc(value || '')}" placeholder="工艺" onfocus="showComboboxDropdown('cdCraftCb')" onclick="showComboboxDropdown('cdCraftCb')" oninput="filterComboboxDropdown('cdCraftCb',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('cdCraftCb')">▼</button><div class="combobox-dropdown" id="cdCraftCb">${optHTML}</div></div>`;
+}
 // 饭圈/二次：选择价目表制品后自动回填默认尺寸/出血（初始大框 + 追加制品大框，仅空值时）
 function cdBindProductAutoFill(container) {
   if (!container) return;
@@ -1648,7 +1673,7 @@ MODULES['design-commission-detail-fq'] = {
     { section: '制品信息' },
     { key: 'usageType', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'theme', label: '企划/主题名称', type: 'text' },
-    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息<span class="form-label-hint">特殊尺寸出血请修改 可直接给模板</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" placeholder="工艺" onfocus="showComboboxDropdown(\'cdCraftCb\')" onclick="showComboboxDropdown(\'cdCraftCb\')" oninput="filterComboboxDropdown(\'cdCraftCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdCraftCb\')">▼</button><div class="combobox-dropdown" id="cdCraftCb"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption(\'cdCraftCb\',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption(\'cdCraftCb\',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption(\'cdCraftCb\',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption(\'cdCraftCb\',this)">烫色</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸</span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">初始为默认出血</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息<span class="form-label-hint">特殊尺寸出血请修改 可直接给模板</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" placeholder="工艺" onfocus="showComboboxDropdown(\'cdCraftCb\')" onclick="showComboboxDropdown(\'cdCraftCb\')" oninput="filterComboboxDropdown(\'cdCraftCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdCraftCb\')">▼</button><div class="combobox-dropdown" id="cdCraftCb"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption(\'cdCraftCb\',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption(\'cdCraftCb\',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption(\'cdCraftCb\',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption(\'cdCraftCb\',this)">烫色</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">初始为默认尺寸</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">初始为默认出血</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">可以给参考图/色卡 请把主色写最前面</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">元素</label><div class="style-color-box elements-box"><div class="style-color-col"><span class="style-color-col-label">必用</span><input type="text" class="form-input" data-key="elementsRequired"></div><div class="style-color-col"><span class="style-color-col-label">可选</span><input type="text" class="form-input" data-key="elementsOptional"></div><div class="style-color-col"><span class="style-color-col-label">避雷</span><input type="text" class="form-input" data-key="elementsAvoid"></div></div></div>' },
@@ -1680,7 +1705,7 @@ MODULES['design-commission-detail-ec'] = {
     { section: '制品信息' },
     { key: 'usageType', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'theme', label: '企划/主题名称', type: 'text' },
-    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息<span class="form-label-hint">特殊尺寸出血请修改 可直接给模板</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" placeholder="工艺" onfocus="showComboboxDropdown(\'cdCraftCb\')" onclick="showComboboxDropdown(\'cdCraftCb\')" oninput="filterComboboxDropdown(\'cdCraftCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdCraftCb\')">▼</button><div class="combobox-dropdown" id="cdCraftCb"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption(\'cdCraftCb\',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption(\'cdCraftCb\',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption(\'cdCraftCb\',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption(\'cdCraftCb\',this)">烫色</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸</span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">初始为默认出血</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息<span class="form-label-hint">特殊尺寸出血请修改 可直接给模板</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" placeholder="工艺" onfocus="showComboboxDropdown(\'cdCraftCb\')" onclick="showComboboxDropdown(\'cdCraftCb\')" oninput="filterComboboxDropdown(\'cdCraftCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdCraftCb\')">▼</button><div class="combobox-dropdown" id="cdCraftCb"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption(\'cdCraftCb\',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption(\'cdCraftCb\',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption(\'cdCraftCb\',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption(\'cdCraftCb\',this)">烫色</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">初始为默认尺寸</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">初始为默认出血</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
     { key: 'ipName', label: 'IP', type: 'text' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">可以给参考图/色卡 请把主色写最前面</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
@@ -2786,7 +2811,7 @@ function prepareFields(pageKey, fields) {
     const prodF = f.find(x => x.key === 'product');
     if (prodF) { prodF.type = 'combobox'; prodF.options = cdProdNames.map(n => ({ value: n, label: n })); }
     const sizeF = f.find(x => x.key === 'size');
-    // sizeF hint removed per v538 feedback
+    if (sizeF) { sizeF.hint = '初始为默认尺寸'; sizeF.hintInline = true; }
   }
   if (pageKey === 'design-commission') {
     const priceList = DB.list('priceList');
@@ -5498,6 +5523,19 @@ function renderFieldSettings(html) {
       html += `</div></div></div>`;
       });
     }
+    // 饭圈/二次：制品信息大框里的「工艺」下拉框支持在设置中管理
+    if (_settingsModule === 'design-commission-detail-fq' || _settingsModule === 'design-commission-detail-ec') {
+      const craftKey = _settingsModule + '.craft';
+      const craftCustomOpts = (s.fieldOptions && s.fieldOptions[craftKey]) || [];
+      const craftDefaultOpts = ['白墨', '逆向', '光油', '烫色'];
+      const craftOpts = craftCustomOpts.length ? craftCustomOpts : craftDefaultOpts;
+      html += `<div style="margin-bottom:12px"><div class="option-field-block"><div class="option-field-title">工艺</div><div class="option-field-inputs" id="opts_craft">`;
+      craftOpts.forEach((opt, i) => {
+        html += `<div class="option-edit-item"><input type="text" value="${esc(opt)}" data-opt-key="craft" data-idx="${i}"><button class="btn-icon danger" onclick="this.parentElement.remove()">🗑️</button></div>`;
+      });
+      html += `<div class="option-edit-item" style="margin-bottom:0"><button class="btn btn-primary add-opt-btn" onclick="addOptionItem('craft')">+ 添加选项</button><span class="option-delete-placeholder"></span></div>`;
+      html += `</div></div></div>`;
+    }
   }
   html += '</div>';
   return html;
@@ -5723,6 +5761,14 @@ function saveSettingsAction() {
       if (items.length) s.fieldOptions[key] = items;
       else delete s.fieldOptions[key];
     });
+    // 饭圈/二次：保存制品信息大框里「工艺」下拉框的自定义选项
+    if (_settingsModule === 'design-commission-detail-fq' || _settingsModule === 'design-commission-detail-ec') {
+      const craftItems = [];
+      $$('#opts_craft input').forEach(input => { if (input.value.trim()) craftItems.push(input.value.trim()); });
+      const craftKey = _settingsModule + '.craft';
+      if (craftItems.length) s.fieldOptions[craftKey] = craftItems;
+      else delete s.fieldOptions[craftKey];
+    }
   }
   // Cloud sync config (数据管理页)
   const su = $('#sync_url'), sk = $('#sync_key'), sc = $('#sync_code');
@@ -7868,8 +7914,28 @@ function renderCommissionDetailPage() {
   if (ps.cdPickerOpen) html += '<div class="life-picker-backdrop" onclick="cdToggleMonthPicker()"></div>';
   html += `</div>`;
 
-  // 当前月记录
-  let monthRecs = recs.filter(r => cdRecMonth(r) === ps.cdMonth);
+  // 当前月记录（支持跨月：关联接稿排期的开稿月~截稿月均显示）
+  let monthRecs = recs.filter(r => {
+    if (r.clientInfo) {
+      const linked = DB.list('commissions').filter(c => (c.clientInfo || '') === (r.clientInfo || ''));
+      if (linked.length) {
+        const c = linked[0];
+        const start = c.startTime || c.acceptTime;
+        const end = c.deadline || start;
+        if (start && end) {
+          const [cy, cm] = ps.cdMonth.split('-').map(Number);
+          const cur = new Date(cy, cm - 1, 1);
+          const s = new Date(start), e = new Date(end);
+          if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
+            const sMonth = new Date(s.getFullYear(), s.getMonth(), 1);
+            const eMonth = new Date(e.getFullYear(), e.getMonth(), 1);
+            return cur >= sMonth && cur <= eMonth;
+          }
+        }
+      }
+    }
+    return cdRecMonth(r) === ps.cdMonth;
+  });
   const PER_PAGE = 10;
   const totalPages = Math.max(1, Math.ceil(monthRecs.length / PER_PAGE));
   if (ps.cdPage > totalPages) ps.cdPage = totalPages;
