@@ -7399,10 +7399,25 @@ function renderSleepWeekLineChart(days) {
         <polyline fill="none" stroke="${nightColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${linePath(nightVals)}"/>
         ${dayLabels}
         ${seriesPoints(napVals, napColor)}
-        ${seriesPoints(nightVals, nightColor)}
-      </svg>
-    </div>
-  </div>`;
+      ${seriesPoints(nightVals, nightColor)}
+    </svg>
+  </div>
+</div>`;
+}
+function adjustSleepChartWidth() {
+  const container = document.querySelector('.lr-hsc-chart-body');
+  if (!container) return;
+  const svg = container.querySelector('svg');
+  if (!svg) return;
+  if (window.innerWidth <= 768) {
+    svg.setAttribute('viewBox', '0 0 720 568');
+    return;
+  }
+  const H = 568;
+  const h = container.clientHeight || 394;
+  const w = container.clientWidth || 720;
+  const W = Math.max(720, Math.round(w * H / h));
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
 }
 function renderDietWeekStats(days) {
   const all = DB.list('lifeRecords');
@@ -7572,6 +7587,7 @@ function renderLifeRecord() {
   }
   html += '</div>';
   body.innerHTML = html;
+  requestAnimationFrame(adjustSleepChartWidth);
 }
 function lifeRecordSetDate(v) { const ps = pageState['life-record']; ps.date = v; ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; ps.historyAddDate = null; renderLifeRecord(); }
 function lifeRecordGoDate(n) { const ps = pageState['life-record']; ps.date = addDaysStr(ps.date, n); if (ps.date > todayStr()) ps.date = todayStr(); ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; renderLifeRecord(); }
@@ -8950,6 +8966,7 @@ function init() {
   }
   const lastState = DB.get('ui_state', {});
   navigate(lastState.lastPage || 'home');
+  window.addEventListener('resize', () => { clearTimeout(window._sleepChartResizeTimer); window._sleepChartResizeTimer = setTimeout(adjustSleepChartWidth, 150); });
   initSwipeBack();
   Sync.startAuto();
 }
