@@ -520,8 +520,8 @@ function buildFormField(f, data, moduleKey, wrap) {
           if (!hint) hint = '请选择日期';
           placeholder = '请选择日期';
         }
-        // 需求③：日期支持手动输入或点选日历（focus 时转为 date 并弹出原生选择器）
-        inner = `${labelHTML}<input type="text" class="form-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(placeholder)}" onfocus="if(this.type!=='date'){this.type='date';if(this.showPicker){try{this.showPicker()}catch(e){}}}">${belowHint}`;
+        // 需求③：日期支持手动输入（type=text 自由输入）或点 📅 打开原生日历选择
+        inner = `${labelHTML}<div class="date-field-wrap"><input type="text" class="form-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(placeholder)}"><button type="button" class="date-pick-btn" onclick="openDatePicker(this)" title="选择日期" aria-label="选择日期"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></button></div>${belowHint}`;
       } else {
         inner = `${labelHTML}<input type="${type}" class="form-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(placeholder)}">${belowHint}`;
       }
@@ -533,6 +533,18 @@ function buildFormField(f, data, moduleKey, wrap) {
     return `<div class="cond-field" data-cond-key="${esc(cw.key)}" data-cond-value="${esc(cw.value)}"${initHidden ? ' style="display:none"' : ''}>${out}</div>`;
   }
   return out;
+}
+// 需求③：日期字段点 📅 打开原生日历选择器（输入保持 type=text 可自由手输）
+function openDatePicker(btn) {
+  const inp = btn.previousElementSibling;
+  if (!inp) return;
+  if (inp.value && !/^\d{4}-\d{2}-\d{2}$/.test(inp.value)) {
+    const d = new Date(inp.value);
+    if (!isNaN(d.getTime())) inp.value = d.toISOString().slice(0, 10);
+  }
+  inp.type = 'date';
+  if (inp.showPicker) { try { inp.showPicker(); } catch (e) { inp.focus(); } }
+  else inp.focus();
 }
 function buildForm(fields, data = {}, moduleKey = '') {
   let html = '';
@@ -1541,7 +1553,7 @@ function cdBindProductAutoFill(container) {
     cb.addEventListener('input', onPick);
     if (hidden) hidden.addEventListener('change', onPick);
   };
-  const initBox = container.querySelector('#cdProductBoxProd');
+  const initBox = container.querySelector('.cd-product-box:not(.cd-ep-product-box)');
   if (initBox) bindBox(initBox);
   container.querySelectorAll('.cd-ep-product-box').forEach(box => bindBox(box));
 }
@@ -8147,7 +8159,7 @@ function buildCdExtraProductsHTML(pageKey, items, parentData) {
     html += cdExtraProductRowHTML(idx, it || {}, isFq, list);
   });
   html += `</div>`;
-  html += `<button type="button" class="btn btn-primary" onclick="addCdExtraProduct()" style="margin-top:7px;width:100%;font-size:13px;padding:8px 12px">+ 新增制品</button>`;
+  html += `<button type="button" class="btn btn-primary" onclick="addCdExtraProduct()" style="margin-top:5px;width:100%;font-size:13px;padding:8px 12px">+ 新增制品</button>`;
   return html;
 }
 // 是否同模下拉：否（独立新柄）/ 初始制品 0 / 其他独立新柄的追加制品（排除自身及非独立新柄的追加制品）

@@ -272,6 +272,8 @@ ul,li{list-style:none}
 .record-list .record-card-header{border-bottom:1px solid var(--c-border-light);padding-bottom:8px}
 /* v529：接稿排期日历视图卡片标题/编辑/删除/分割线整体上移 2px */
 .record-list.cal-view .record-card-header{margin-top:-2px}
+/* v532：接稿排期日历视图展示模块盒子 padding-top 减 1px（16→15）*/
+.record-list.cal-view .record-card{padding-top:15px}
 .record-card-body{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--c-text-light)}
 .record-card-body .field{display:flex;gap:4px}
 .record-card-body .field-label{color:var(--c-text-muted)}
@@ -345,7 +347,7 @@ ul,li{list-style:none}
   display:flex;align-items:center;justify-content:space-between;
   padding:12px 16px;border-bottom:1px solid var(--c-border);
 }
-.calendar-header .cal-title{font-size:16px;font-weight:600;display:inline-flex;align-items:baseline;margin-top:-1px}
+.calendar-header .cal-title{font-size:16px;font-weight:600;display:inline-flex;align-items:center;margin-top:-1px}
 .calendar-header .cal-nav{display:flex;gap:3px}
 .calendar-header .cal-nav .btn{padding:2px 6px;font-size:12px}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);text-align:center}
@@ -449,6 +451,11 @@ ul,li{list-style:none}
 .form-row.inline{flex-direction:row;gap:12px}
 .form-row.inline>*{flex:1}
 .form-label{font-size:13px;font-weight:500;color:var(--c-text)}
+/* v532：日期字段——type=text 自由手输 + 📅 按钮打开原生日历 */
+.date-field-wrap{display:flex;align-items:center;gap:8px}
+.date-field-wrap .form-input{flex:1;min-width:0}
+.date-pick-btn{flex:0 0 auto;width:38px;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border);background:var(--c-primary-bg);border-radius:var(--radius-sm);cursor:pointer;color:var(--c-primary);padding:0;line-height:1}
+.date-pick-btn:hover{background:var(--c-primary-light)}
 .form-input,.form-select,.form-textarea{
   width:100%;padding:8px 12px;border:1px solid var(--c-border);
   border-radius:var(--radius-sm);font-size:13px;background:#fff;
@@ -2325,7 +2332,7 @@ ul,li{list-style:none}
 .cd-month-btn:hover{color:var(--c-primary);background:transparent}
 .cd-month-btn:disabled{opacity:.35;cursor:not-allowed;color:var(--c-text-light);background:transparent}
 .cd-month-label{font-size:15px;font-weight:700;color:var(--c-text);min-width:96px;text-align:center}
-.cal-month-count{display:inline-block;margin-left:6px;vertical-align:middle;white-space:nowrap;font-size:12px;font-weight:500;color:#fff;background:var(--c-primary);padding:2px 8px;border-radius:12px;cursor:default}
+.cal-month-count{display:inline-block;margin-left:3px;vertical-align:middle;white-space:nowrap;font-size:12px;font-weight:700;color:#fff;background:var(--c-primary);padding:2px 8px;border-radius:12px;cursor:default}
 .cd-month-summary{font-size:12px;color:var(--c-text-muted);text-align:center;margin-bottom:10px}
 /* 接稿条列表 */
 .cd-rec-list{display:flex;flex-direction:column;gap:10px}
@@ -2569,7 +2576,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=531"></script>
+  <script src="app.js?v=532"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
