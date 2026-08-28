@@ -2652,7 +2652,7 @@ function renderCommissionCalendar(year, month, records) {
   let html = '<div class="cal-grid commission-cal-grid">';
   ['日', '一', '二', '三', '四', '五', '六'].forEach(w => { html += `<div class="cal-weekday">${w}</div>`; });
   // v542：抽成单元格助手，prev/next 月补位格也渲染真实跨月工期条（不再空壳截断）
-  const barAreaTop = 22; // px from top of cell where bars start (date+开稿 on one row)
+  const barAreaTop = 32; // v589：标签可能换行，工期条起始位置下移避免覆盖日期行
   function renderCommCalCell(cy, cm, cd, isOther) {
     const dateStr = cy + '-' + String(cm + 1).padStart(2, '0') + '-' + String(cd).padStart(2, '0');
     const dayPeriods = periodRecords.filter(r => {
@@ -2688,9 +2688,10 @@ function renderCommissionCalendar(year, month, records) {
       const topPx = barAreaTop + track * (CAL_BAR_HEIGHT + CAL_BAR_GAP);
       bars += `<div class="${cls}" style="background:${color};top:${topPx}px;height:${CAL_BAR_HEIGHT}px;line-height:${CAL_BAR_HEIGHT}px">${label}</div>`;
     });
-    const cellMinHeight = 76; // fits 3 bars (22+3*13=61px) + padding
+    const cellMinHeight = 76; // fits 3 bars (32+3*13=71px) + padding
     const cls = 'cal-day' + (isOther ? ' other-month' : '') + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
-    return `<div class="${cls}" onclick="commissionDateClick('${dateStr}')" style="cursor:pointer;min-height:${cellMinHeight}px"><div class="cal-date-row"><span class="cal-date">${cd}</span>${commTagStr}</div>${bars}</div>`;
+    // v589：工期条 DOM 置于日期行之前，配合 z-index 确保日期行始终在最上方
+    return `<div class="${cls}" onclick="commissionDateClick('${dateStr}')" style="cursor:pointer;min-height:${cellMinHeight}px">${bars}<div class="cal-date-row"><span class="cal-date">${cd}</span>${commTagStr}</div></div>`;
   }
   for (let i = startWeekday - 1; i >= 0; i--) { html += renderCommCalCell(year, month - 1, prevMonthDays - i, true); }
   for (let d = 1; d <= daysInMonth; d++) { html += renderCommCalCell(year, month, d, false); }

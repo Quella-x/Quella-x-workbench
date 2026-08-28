@@ -209,9 +209,10 @@ ul,li{list-style:none}
 }
 .toolbar .spacer{flex:1}
 .toolbar .btn-primary{width:112px;justify-content:center}
-/* v588：首页平台视图 日期输入框与新增记录按钮等宽（不含中间日期选择按钮） */
-.toolbar.home-toolbar .date-field-wrap{flex:0 0 auto;width:auto}
-.toolbar.home-toolbar .date-field-wrap .filter-select{flex:0 0 160px;width:160px}
+/* v589：首页平台视图 日期输入框与新增记录按钮等宽（日历按钮绝对定位不占宽度） */
+.toolbar.home-toolbar .date-field-wrap{flex:0 0 160px;width:160px;position:relative}
+.toolbar.home-toolbar .date-field-wrap .filter-select{width:100%;flex:1 1 auto;padding-right:44px;text-align:center}
+.toolbar.home-toolbar .date-field-wrap .date-pick-btn{position:absolute;right:0;top:0;bottom:0;margin:0}
 .toolbar.home-toolbar .btn-primary{flex:0 0 160px;width:160px}
 .view-toggle-top{
   display:flex;gap:8px;align-items:center;
@@ -391,9 +392,10 @@ ul,li{list-style:none}
 .cal-day-tags{display:inline-flex;align-items:center;flex-wrap:wrap;gap:2px 4px;min-width:0}
 .cal-tag-rows{display:flex;flex-direction:column;gap:1px;width:100%;margin-top:1px}
 .cal-tag-row{min-height:14px;display:flex;align-items:center;flex-wrap:wrap;gap:1px 3px}
-.cal-day-tag{display:inline-flex;align-items:center;gap:2px;font-size:9px;white-space:nowrap}
-.cal-day-tag-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0}
-.cal-day-tag-text{font-size:9px;line-height:1;font-weight:600}
+/* v589：接稿排期日历标签再缩小，防止「开+截」溢出 */
+.cal-day-tag{display:inline-flex;align-items:center;gap:1px;font-size:8px;white-space:nowrap}
+.cal-day-tag-dot{width:3px;height:3px;border-radius:50%;flex-shrink:0}
+.cal-day-tag-text{font-size:8px;line-height:1;font-weight:600}
 .cal-day-tag-end{margin-left:auto}
 .cal-day-tag-more{font-size:9px;color:var(--c-text-muted)}
 /* Calendar period bar (开稿~截稿时间段连续显示) */
@@ -413,9 +415,10 @@ ul,li{list-style:none}
 }
 .cal-day{position:relative;overflow:visible}
 .commission-cal-grid .cal-day{overflow:hidden}
-/* v588：接稿排期日历 日期行（日期+开/截/开+截标签）压在工期条(z-index:1)之上，并左右对称留白 */
+/* v589：接稿排期日历 日期行压在工期条之上，标签再缩小，左右对称留白 2px */
 .commission-cal-grid .cal-day{padding:3px 0}
-.commission-cal-grid .cal-date-row{position:relative;z-index:2;gap:6px;padding:0 6px}
+.commission-cal-grid .cal-date-row{position:relative;z-index:5;gap:2px;padding:0 2px;flex-wrap:wrap}
+.commission-cal-grid .cal-date{font-size:11px}
 
 /* ===== Modal ===== */
 .modal-overlay{
@@ -959,8 +962,9 @@ ul,li{list-style:none}
   .filter-combobox{flex:1 1 0;min-width:0;width:auto;max-width:none}
   .toolbar .btn-primary{flex:1 1 0;min-width:0;width:auto;padding:8px 6px}
   .toolbar .toolbar-eq{flex:1 1 0;min-width:0;width:auto;padding:8px 6px}
-  .toolbar.home-toolbar .date-field-wrap{flex:1 1 0;min-width:0;width:auto}
-  .toolbar.home-toolbar .date-field-wrap .filter-select{flex:1 1 0;min-width:0;width:auto}
+  .toolbar.home-toolbar .date-field-wrap{flex:1 1 0;min-width:0;width:auto;position:relative}
+  .toolbar.home-toolbar .date-field-wrap .filter-select{width:100%;flex:1 1 auto;padding-right:44px;text-align:center}
+  .toolbar.home-toolbar .date-field-wrap .date-pick-btn{position:absolute;right:0;top:0;bottom:0;margin:0}
   .toolbar.home-toolbar .btn-primary{flex:1 1 0;min-width:0;width:auto;padding:8px 6px}
   .sync-badge{font-size:10px;padding:2px 6px;gap:3px}
   .sync-badge .sync-txt{display:none}
@@ -2612,7 +2616,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=588"></script>
+  <script src="app.js?v=589"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
