@@ -668,6 +668,10 @@ function buildDynamicCombobox(col, value) {
   const oninputStr = `filterComboboxDropdown('${cbId}',this.value);${priceLookupAttr}`;
   return `<div class="combobox-wrapper" data-subkey="${col.subkey}" style="min-width:0;flex:1"><input type="text" class="form-input combobox-input" data-subkey="${col.subkey}" value="${esc(value)}" placeholder="${esc(col.label)}" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="${oninputStr}"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
 }
+// 动态列表日期子列：与表单级日期字段统一——文本框可自由手输 + 📅 打开原生日历，选完/失焦统一规范为 YYYY-MM-DD
+function buildDynamicDateCell(col, v) {
+  return `<div class="date-field-wrap"><input type="text" class="form-input" data-subkey="${esc(col.subkey)}" value="${esc(v)}" placeholder="${esc(col.label)}" onchange="normalizeDateValue(this)"><button type="button" class="date-pick-btn" onclick="openDatePicker(this)" title="选择日期" aria-label="选择日期"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></button></div>`;
+}
 
 /* ===== 接稿排期：加价项目「绑定制品」下拉（读取制品序号+制品，首项「无（不绑定）」） ===== */
 function commissionBindOptions(products, cbId) {
@@ -768,6 +772,8 @@ function buildDynamicListHTML(field, data, moduleKey) {
         html += `<select class="form-input" data-subkey="${col.subkey}">${emptyOpt}${opts}</select>`;
       } else if (col.type === 'combobox' || (col.options && col.type !== 'select')) {
         html += buildDynamicCombobox(col, v);
+      } else if (col.type === 'date') {
+        html += buildDynamicDateCell(col, v);
       } else if (col.type === 'checkbox') {
         const chk = v ? 'checked' : '';
         html += `<label class="dl-urgent-cell"><input type="checkbox" data-subkey="${col.subkey}" ${chk}></label>`;
@@ -827,6 +833,9 @@ function addDynamicRow(key) {
     } else if (col.type === 'combobox' || (col.options && col.type !== 'select')) {
       const def = col.default !== undefined ? col.default : '';
       html += buildDynamicCombobox(col, def);
+    } else if (col.type === 'date') {
+      const defVal = col.default !== undefined ? col.default : '';
+      html += buildDynamicDateCell(col, defVal);
     } else if (col.type === 'checkbox') {
       const chk = col.default ? 'checked' : '';
       html += `<label class="dl-urgent-cell"><input type="checkbox" data-subkey="${col.subkey}" ${chk}></label>`;
@@ -1310,6 +1319,7 @@ MODULES['groupbuy-records'] = {
   listFields: [
     { label: '状态', key: 'status', tag: true },
     { label: '制品数', key: '_productCount' },
+    { label: '制品', key: '_productNames' },
     { label: '开团时间', key: 'startTime', date: true },
     { label: '截团时间', key: 'endTime', date: true },
     { label: '购买人数', key: 'purchaseCount' },
@@ -1361,7 +1371,7 @@ MODULES['groupbuy-factories'] = {
       { subkey: 'date', label: '日期', type: 'date' },
       { subkey: 'note', label: '备注', type: 'text' },
     ]},
-    { key: 'factoryEvaluation', label: '厂家评价', type: 'combobox', single: true, options: [{ value: '非常满意', label: '非常满意' }, { value: '满意', label: '满意' }, { value: '一般', label: '一般' }, { value: '不满意', label: '不满意' }] },
+    { key: 'factoryEvaluation', label: '厂家评价', type: 'multiselect', single: true, options: [{ value: '非常满意', label: '非常满意' }, { value: '满意', label: '满意' }, { value: '一般', label: '一般' }, { value: '不满意', label: '不满意' }] },
     { key: 'notes', label: '备注', type: 'textarea' },
     { key: 'images', label: '存档图片', type: 'image' },
   ],
@@ -1377,7 +1387,7 @@ MODULES['groupbuy-factories'] = {
   stats: (records) => {
     const totalCoop = records.reduce((s, r) => s + (r.cooperationRecords || []).length, 0);
     const scoreMap = { '非常满意': 100, '满意': 80, '一般': 60, '不满意': 40 };
-    const scored = records.map(r => scoreMap[(r.factoryEvaluation || '').trim()] || null).filter(v => v != null);
+    const scored = records.map(r => { const ev = Array.isArray(r.factoryEvaluation) ? r.factoryEvaluation[0] : (r.factoryEvaluation || ''); return scoreMap[(ev || '').trim()] || null; }).filter(v => v != null);
     const satisfaction = scored.length ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length) + '%' : '0%';
     return [
       { label: '厂家总数', value: records.length, unit: '家' },
@@ -2303,6 +2313,7 @@ function renderListPage(pageKey, mod) {
         const dispLabel = fieldLabelMap[f.key] || f.label;
         let v = r[f.key];
         if (f.key === '_productCount') v = calcProductQty(r) + '件';
+        if (f.key === '_productNames') { const names = (r.products || []).map(p => p.name).filter(Boolean); v = names.join('、'); }
         if (f.key === '_coopCount') v = (r.cooperationRecords || []).length;
         if (f.key === 'clientInfo') return; // 单主已在卡片标题展示，正文不再重复
         if (f.key === '_firstProduct') {
