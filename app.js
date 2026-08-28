@@ -3423,7 +3423,7 @@ function renderHome() {
     // Toolbar
     html += '<div class="toolbar" style="margin-top:4px">';
     html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="homeSearch(this.value)"><span class="search-icon">🔍</span></div>`;
-    html += `<input type="text" class="filter-select" value="${ps.dateFilter}" placeholder="请选择或输入日期" title="请选择或输入日期" onfocus="this.type='date';try{this.showPicker()}catch(e){}" onblur="if(!this.value)this.type='text'" onchange="homeDateFilter(this.value)">`;
+    html += `<div class="date-field-wrap"><input type="text" class="filter-select" value="${ps.dateFilter}" placeholder="请选择或输入日期" title="请选择或输入日期" onchange="homeDateFilter(this.value)"><button type="button" class="date-pick-btn" onclick="openDatePicker(this)" title="选择日期">📅</button></div>`;
     html += `<button class="filter-select" onclick="homeClearFilter()" style="cursor:pointer;border:1px solid var(--c-border)">清除筛选</button>`;
     html += '<div class="spacer"></div>';
     html += '<button class="btn btn-primary" onclick="openAddForm(\'home\')">+ 新增记录</button>';

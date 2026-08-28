@@ -454,7 +454,7 @@ ul,li{list-style:none}
 .form-label{font-size:13px;font-weight:500;color:var(--c-text)}
 /* v532：日期字段——type=text 自由手输 + 📅 按钮打开原生日历 */
 .date-field-wrap{position:relative;display:flex;align-items:center;gap:8px}
-.date-field-wrap .form-input{flex:1;min-width:0}
+.date-field-wrap .form-input,.date-field-wrap .filter-select{flex:1;min-width:0}
 .date-field-wrap .date-pick-btn{flex:0 0 auto;width:38px;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border)!important;background:var(--c-primary-bg)!important;border-radius:var(--radius-sm);cursor:pointer;color:var(--c-primary)!important;padding:0;line-height:1;-webkit-tap-highlight-color:rgba(0,0,0,0)!important;touch-action:manipulation;-webkit-touch-callout:none}
 .date-field-wrap .date-pick-btn:hover,.date-field-wrap .date-pick-btn:active,.date-field-wrap .date-pick-btn.active,.date-field-wrap .date-pick-btn:focus{background:var(--c-primary)!important;color:#fff!important;border-color:var(--c-primary)!important;outline:none!important;box-shadow:none!important}
 /* v581：自定义居中模态日历弹窗（替代浏览器原生 showPicker，避免弹窗飞到左上角） */
@@ -2601,7 +2601,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=583"></script>
+  <script src="app.js?v=584"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
