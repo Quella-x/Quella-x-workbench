@@ -611,19 +611,32 @@ function buildFormField(f, data, moduleKey, wrap) {
 function openDatePicker(btn) {
   const inp = btn.previousElementSibling;
   if (!inp) return;
-  inp.type = 'date';
-  if (inp.showPicker) { try { inp.showPicker(); } catch (e) { inp.focus(); } }
-  else inp.focus();
+  // v574：用隐藏的临时 date 输入承载 showPicker，避免把可见文本框临时改成 type=date 导致出现原生日期占位
+  const wrap = btn.parentElement;
+  const picker = document.createElement('input');
+  picker.type = 'date';
+  picker.value = inp.value || '';
+  picker.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;border:0;padding:0;margin:0;z-index:-1';
+  wrap.appendChild(picker);
+  const cleanup = () => {
+    picker.removeEventListener('change', onChange);
+    picker.removeEventListener('blur', onBlur);
+    if (picker.parentElement) picker.remove();
+  };
   const finish = () => {
-    normalizeDateValue(inp);   // 统一为 YYYY-MM-DD
-    inp.type = 'text';         // 选完转回文本，显示与手输一致
-    inp.removeEventListener('change', onChange);
-    inp.removeEventListener('blur', onBlur);
+    if (picker.value !== inp.value) {
+      inp.value = picker.value;
+      normalizeDateValue(inp);
+      inp.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    cleanup();
   };
   const onChange = () => { finish(); };
-  const onBlur = () => { finish(); };
-  inp.addEventListener('change', onChange);
-  inp.addEventListener('blur', onBlur);
+  const onBlur = () => { setTimeout(finish, 0); };
+  picker.addEventListener('change', onChange);
+  picker.addEventListener('blur', onBlur);
+  if (picker.showPicker) { try { picker.showPicker(); } catch (e) { picker.focus(); } }
+  else picker.focus();
 }
 // 将任意可解析日期归一化为 YYYY-MM-DD（已是规范格式则不动）
 function normalizeDateValue(inp) {

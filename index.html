@@ -453,7 +453,7 @@ ul,li{list-style:none}
 .form-row.inline>*{flex:1}
 .form-label{font-size:13px;font-weight:500;color:var(--c-text)}
 /* v532：日期字段——type=text 自由手输 + 📅 按钮打开原生日历 */
-.date-field-wrap{display:flex;align-items:center;gap:8px}
+.date-field-wrap{position:relative;display:flex;align-items:center;gap:8px}
 .date-field-wrap .form-input{flex:1;min-width:0}
 .date-pick-btn{flex:0 0 auto;width:38px;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border);background:var(--c-primary-bg);border-radius:var(--radius-sm);cursor:pointer;color:var(--c-primary);padding:0;line-height:1}
 .date-pick-btn:hover{background:var(--c-primary-light)}
@@ -2584,7 +2584,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=573"></script>
+  <script src="app.js?v=574"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
