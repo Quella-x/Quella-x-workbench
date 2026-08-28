@@ -658,7 +658,7 @@ function renderCustomDatePicker() {
     daysHTML += `<div class="date-picker-day${isSel ? ' selected' : ''}${isToday ? ' today' : ''}" data-day="${d}" data-offset="0">${d}</div>`;
   }
   const totalCells = firstDay + daysInMonth;
-  const nextRows = Math.ceil(totalCells / 7) * 7 - totalCells;
+  const nextRows = 42 - totalCells;
   for (let d = 1; d <= nextRows; d++) {
     daysHTML += `<div class="date-picker-day other-month" data-day="${d}" data-offset="1">${d}</div>`;
   }
