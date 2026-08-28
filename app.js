@@ -2313,7 +2313,15 @@ function renderListPage(pageKey, mod) {
         const dispLabel = fieldLabelMap[f.key] || f.label;
         let v = r[f.key];
         if (f.key === '_productCount') v = calcProductQty(r) + '件';
-        if (f.key === '_productNames') { const names = (r.products || []).map(p => p.name).filter(Boolean); v = names.join('、'); }
+        if (f.key === '_productNames') {
+          const names = (r.products || []).map(p => p.name).filter(Boolean);
+          if (!names.length) {
+            html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value"></span></span>`;
+          } else {
+            html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value" style="display:flex;flex-direction:column;gap:2px;align-items:flex-start">${names.map(n => `<span>${esc(String(n))}</span>`).join('')}</span></span>`;
+          }
+          return;
+        }
         if (f.key === '_coopCount') v = (r.cooperationRecords || []).length;
         if (f.key === 'clientInfo') return; // 单主已在卡片标题展示，正文不再重复
         if (f.key === '_firstProduct') {
