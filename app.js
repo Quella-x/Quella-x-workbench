@@ -1853,7 +1853,7 @@ MODULES['design-pricelist'] = {
     { key: 'category', label: '制品分类', type: 'combobox', noSort: true, options: [{ value: '纸片类', label: '纸片类' }, { value: '其他材质类', label: '其他材质类' }, { value: '线上&应援类', label: '线上&应援类' }, { value: '加价项目', label: '加价项目' }, { value: '修改类型', label: '修改类型' }] },
     { key: 'product', label: '制品', type: 'text' },
     { key: 'defaultSize', label: '默认尺寸', type: 'text' },
-    { key: 'defaultBleed', label: '默认出血', type: 'text' },
+    { key: 'defaultBleed', label: '默认出血', type: 'text', default: '3mm' },
     { key: 'price', label: '单价', type: 'number', hint: '元' },
     { key: 'priceUnit', label: '单位', type: 'multiselect', single: true, default: '元', options: [{ value: '元', label: '元' }, { value: '元/p', label: '元/p' }, { value: '元/次', label: '元/次' }] },
     { key: 'description', label: '备注', type: 'textarea' },
