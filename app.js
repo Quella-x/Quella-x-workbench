@@ -585,8 +585,8 @@ function buildFormField(f, data, moduleKey, wrap) {
       if (type === 'date') {
         const isTodayDefault = f.default === todayStr();
         if (!isTodayDefault && !valStr) {
-          if (!hint) hint = '请选择日期';
-          placeholder = '请选择日期';
+          if (!hint) hint = '请选择或输入日期';
+          placeholder = '请选择或输入日期';
         }
         // 需求③：日期支持手动输入（type=text 自由输入）或点 📅 打开原生日历选择；输入/选择后统一规范为 YYYY-MM-DD
         inner = `${labelHTML}<div class="date-field-wrap"><input type="text" class="form-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(placeholder)}" onchange="normalizeDateValue(this)"><button type="button" class="date-pick-btn" onclick="openDatePicker(this)" title="选择日期" aria-label="选择日期"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></button></div>${belowHint}`;
@@ -613,6 +613,7 @@ function openDatePicker(btn) {
   if (!inp) return;
   // v574：用隐藏的临时 date 输入承载 showPicker，避免把可见文本框临时改成 type=date 导致出现原生日期占位
   const wrap = btn.parentElement;
+  btn.classList.add('active');
   const picker = document.createElement('input');
   picker.type = 'date';
   picker.value = inp.value || '';
@@ -622,6 +623,7 @@ function openDatePicker(btn) {
     picker.removeEventListener('change', onChange);
     picker.removeEventListener('blur', onBlur);
     if (picker.parentElement) picker.remove();
+    btn.classList.remove('active');
   };
   const finish = () => {
     if (picker.value !== inp.value) {
@@ -683,7 +685,7 @@ function buildDynamicCombobox(col, value) {
 }
 // 动态列表日期子列：与表单级日期字段统一——文本框可自由手输 + 📅 打开原生日历，选完/失焦统一规范为 YYYY-MM-DD
 function buildDynamicDateCell(col, v) {
-  return `<div class="date-field-wrap"><input type="text" class="form-input" data-subkey="${esc(col.subkey)}" value="${esc(v)}" placeholder="${esc(col.label)}" onchange="normalizeDateValue(this)"><button type="button" class="date-pick-btn" onclick="openDatePicker(this)" title="选择日期" aria-label="选择日期"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></button></div>`;
+  return `<div class="date-field-wrap"><input type="text" class="form-input" data-subkey="${esc(col.subkey)}" value="${esc(v)}" placeholder="请选择或输入日期" onchange="normalizeDateValue(this)"><button type="button" class="date-pick-btn" onclick="openDatePicker(this)" title="选择日期" aria-label="选择日期"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></button></div>`;
 }
 
 /* ===== 接稿排期：加价项目「绑定制品」下拉（读取制品序号+制品，首项「无（不绑定）」） ===== */
