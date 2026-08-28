@@ -2588,140 +2588,126 @@ function goPage(pageKey, pageNo) {
   renderListPage(pageKey, MODULES[pageKey]);
 }
 
-/* ===== Commission Calendar View (v16: 开稿~截稿时间段连续显示, 不同稿件不同颜色) ===== */
-const CAL_URGENCY_COLORS = ['#e8857e', '#f6ad5c', '#7ab5f5']; // soft red, orange, blue — by urgency: ≤2天红, 3-5天橙, >5天蓝（v592：橙降饱和与红绿蓝一致）
+/* ===== Commission Calendar View (v593+: 仅渲染开稿/截稿「节点日」自身任务条，不跨日延伸；节点标记=日期数字右侧色块，工期条=红橙蓝绿) ===== */
+const CAL_URGENCY_COLORS = ['#e8857e', '#f6ad5c', '#7ab5f5']; // 红/橙/蓝 — 截稿紧迫度：≤2天红 / 3-5天橙 / >5天蓝
 const CAL_MAX_TRACKS = 3;
 const CAL_BAR_HEIGHT = 11;
 const CAL_BAR_GAP = 2;
+const CAL_START_COLOR = '#ff9a3c';    // 开稿节点
+const CAL_END_COLOR = '#FFDE75';      // 截稿节点
+const CAL_BOTH_COLOR = '#712258';     // 开+截同天
+const CAL_DELIVERED_COLOR = '#7ec678';
 // Sum product quantities (e.g. 吧唧×4 + 明信片×2 = 6件)
 function calcProductQty(r) {
   const prods = r.products || [];
   if (!prods.length) return 1; // fallback: count as 1 if no products
   return prods.reduce((sum, p) => sum + (parseInt(p.quantity) || 1), 0);
 }
+// 单条节点任务条颜色：已交付绿 > 开+截紫 > 截稿(按紧迫度) > 开稿橙
+function commissionBarColor(r, dateStr, todayTime) {
+  if (valIncludes(r.progress, '已交付')) return CAL_DELIVERED_COLOR;
+  const isStart = (r.startTime || r.acceptTime || '') === dateStr;
+  const isEnd = (r.deadline || '') === dateStr;
+  if (isStart && isEnd) return CAL_BOTH_COLOR;
+  if (isEnd) {
+    const daysLeft = (new Date(r.deadline).getTime() - todayTime) / 86400000;
+    if (daysLeft <= 2) return CAL_URGENCY_COLORS[0];
+    if (daysLeft <= 5) return CAL_URGENCY_COLORS[1];
+    return CAL_URGENCY_COLORS[2];
+  }
+  return CAL_START_COLOR; // 开稿橙
+}
+function loadCalSort(dateStr) {
+  try { const v = localStorage.getItem('xiao_cal_sort_' + dateStr); return v ? JSON.parse(v) : null; } catch (e) { return null; }
+}
+let commissionCalendarRecords = [];
 function renderCommissionCalendar(year, month, records) {
+  commissionCalendarRecords = records || [];
   const firstDay = new Date(year, month, 1);
   const startWeekday = firstDay.getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const prevMonthDays = new Date(year, month, 0).getDate();
   const today = new Date();
   const todayKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
-  const ps = pageState['design-commission'] || {};
-  const START_COLOR = '#ff9a3c', END_COLOR = '#FFDE75', BOTH_COLOR = '#712258';
-  // Filter records with valid periods
-  const periodRecords = records.filter(r => {
-    const start = r.startTime || r.acceptTime || '';
-    const end = r.deadline || '';
-    return start && end;
-  }).sort((a, b) => {
-    const aStart = a.startTime || a.acceptTime || '';
-    const bStart = b.startTime || b.acceptTime || '';
-    return aStart.localeCompare(bStart);
-  });
-  // v591：工期条按截稿 urgency 着色 —— 已交付=绿，≤2天=红，3-5天=橙，>5天=蓝
-  const DELIVERED_COLOR = '#7ec678';
-  const recordColorMap = {};
   const todayTime = today.getTime();
-  periodRecords.forEach(r => {
-    if (valIncludes(r.progress, '已交付')) {
-      recordColorMap[r.id] = DELIVERED_COLOR; // 已交付 = 绿
-      return;
-    }
-    const deadlineTime = new Date(r.deadline).getTime();
-    const daysLeft = (deadlineTime - todayTime) / 86400000;
-    if (daysLeft <= 2) {
-      recordColorMap[r.id] = CAL_URGENCY_COLORS[0]; // red = 紧急（截稿≤2天）
-    } else if (daysLeft <= 5) {
-      recordColorMap[r.id] = CAL_URGENCY_COLORS[1]; // orange = 正常（3-5天）
-    } else {
-      recordColorMap[r.id] = CAL_URGENCY_COLORS[2]; // blue = 充裕（>5天）
-    }
-  });
-  // Greedy track assignment — each task gets a consistent vertical row across all days
-  const tracks = []; // tracks[t] = array of records on that track
-  const recordTrack = {}; // record.id -> track index
-  periodRecords.forEach(r => {
-    const rStart = r.startTime || r.acceptTime || '';
-    const rEnd = r.deadline || '';
-    let assigned = false;
-    for (let t = 0; t < tracks.length; t++) {
-      const conflict = tracks[t].some(o => {
-        const oStart = o.startTime || o.acceptTime || '';
-        const oEnd = o.deadline || '';
-        return !(rEnd < oStart || rStart > oEnd);
-      });
-      if (!conflict) { tracks[t].push(r); recordTrack[r.id] = t; assigned = true; break; }
-    }
-    if (!assigned) { tracks.push([r]); recordTrack[r.id] = tracks.length - 1; }
-  });
+  const ps = pageState['design-commission'] || {};
 
-  let html = '<div class="cal-grid commission-cal-grid">';
-  ['日', '一', '二', '三', '四', '五', '六'].forEach(w => { html += `<div class="cal-weekday">${w}</div>`; });
-  // v542：抽成单元格助手，prev/next 月补位格也渲染真实跨月工期条（不再空壳截断）
-  const barAreaTop = 22; // v590：日期条位置保持不变，日期行靠 z-index 置顶
   function renderCommCalCell(cy, cm, cd, isOther) {
     const dateStr = cy + '-' + String(cm + 1).padStart(2, '0') + '-' + String(cd).padStart(2, '0');
-    const dayPeriods = periodRecords.filter(r => {
-      const start = r.startTime || r.acceptTime || '';
-      const end = r.deadline || '';
-      return dateStr >= start && dateStr <= end;
-    }).sort((a, b) => (recordTrack[a.id] || 0) - (recordTrack[b.id] || 0));
-    // v587：开截同天(开+截)置顶，其次纯开稿，最后纯截稿
-    const bothRecords = records.filter(r => (r.startTime || r.acceptTime || '') === dateStr && r.deadline === dateStr);
-    const startRecords = records.filter(r => (r.startTime || r.acceptTime || '').startsWith(dateStr) && r.deadline !== dateStr);
-    const deadlineRecords = records.filter(r => r.deadline === dateStr && (r.startTime || r.acceptTime || '') !== dateStr);
+    const isStart = r => (r.startTime || r.acceptTime || '') === dateStr;
+    const isEnd = r => (r.deadline || '') === dateStr;
+    const nodeRecs = records.filter(r => isStart(r) || isEnd(r));
+    const saved = loadCalSort(dateStr);
+    if (saved && saved.length) {
+      nodeRecs.sort((a, b) => {
+        const ia = saved.indexOf(a.id), ib = saved.indexOf(b.id);
+        if (ia < 0 && ib < 0) return 0;
+        if (ia < 0) return 1;
+        if (ib < 0) return -1;
+        return ia - ib;
+      });
+    }
+    const bothRecords = nodeRecs.filter(r => isStart(r) && isEnd(r));
+    const startRecords = nodeRecs.filter(r => isStart(r) && !isEnd(r));
+    const deadlineRecords = nodeRecs.filter(r => isEnd(r) && !isStart(r));
     const isToday = dateStr === todayKey;
     const isSelected = ps.dateFilter === dateStr;
     let commTagStr = '';
-    if (bothRecords.length > 0) commTagStr += `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${BOTH_COLOR}"></span><span class="cal-day-tag-text" style="color:${BOTH_COLOR}">开+截</span></span>`;
-    if (startRecords.length > 0) commTagStr += `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${START_COLOR}"></span><span class="cal-day-tag-text" style="color:${START_COLOR}">开稿</span></span>`;
-    if (deadlineRecords.length > 0) commTagStr += `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${END_COLOR}"></span><span class="cal-day-tag-text" style="color:${END_COLOR}">截稿</span></span>`;
+    if (bothRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_BOTH_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_BOTH_COLOR + '">开+截</span></span>';
+    if (startRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_START_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_START_COLOR + '">开稿</span></span>';
+    if (deadlineRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_END_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_END_COLOR + '">截稿</span></span>';
+    const delivered = nodeRecs.filter(r => valIncludes(r.progress, '已交付'));
+    const normal = nodeRecs.filter(r => !valIncludes(r.progress, '已交付'));
+    let shown, hidden;
+    if (normal.length > CAL_MAX_TRACKS) {
+      shown = normal.slice(0, CAL_MAX_TRACKS);
+      hidden = normal.slice(CAL_MAX_TRACKS).concat(delivered);
+    } else {
+      const room = CAL_MAX_TRACKS - normal.length;
+      shown = normal.concat(delivered.slice(0, room));
+      hidden = delivered.slice(0, room);
+    }
     let bars = '';
-    dayPeriods.forEach(r => {
-      const track = recordTrack[r.id] != null ? recordTrack[r.id] : 0;
-      if (track >= CAL_MAX_TRACKS) return; // excess ignored, no folding
-      const start = r.startTime || r.acceptTime || '';
-      const end = r.deadline || '';
-      const isStart = dateStr === start;
-      const isEnd = dateStr === end;
-      const color = recordColorMap[r.id] || '#9DC8FF';
-      let cls = 'cal-period-bar middle';
-      if (isStart && isEnd) cls = 'cal-period-bar full';
-      else if (isStart) cls = 'cal-period-bar start';
-      else if (isEnd) cls = 'cal-period-bar end';
-      const productCount = calcProductQty(r);
-      const label = isStart ? `${esc(r.clientInfo || '未命名')} ${productCount}件` : '';
-      const topPx = barAreaTop + track * (CAL_BAR_HEIGHT + CAL_BAR_GAP);
-      bars += `<div class="${cls}" style="background:${color};top:${topPx}px;height:${CAL_BAR_HEIGHT}px;line-height:${CAL_BAR_HEIGHT}px">${label}</div>`;
+    shown.forEach((r, i) => {
+      const color = commissionBarColor(r, dateStr, todayTime);
+      const qty = calcProductQty(r);
+      const tag = valIncludes(r.progress, '已交付') ? '✓' : (isStart(r) && isEnd(r) ? '开+截' : (isEnd(r) ? '截' : '开'));
+      const name = esc(r.clientInfo || '未命名');
+      bars += '<div class="cal-period-bar full" title="' + name + '" style="background:' + color + ';top:' + (22 + i * (CAL_BAR_HEIGHT + CAL_BAR_GAP)) + 'px;height:' + CAL_BAR_HEIGHT + 'px;line-height:' + CAL_BAR_HEIGHT + 'px">' + name + ' ' + qty + '件·' + tag + '</div>';
     });
-    const cellMinHeight = 76; // fits 3 bars (22+3*13=61px) + padding
+    if (hidden.length) {
+      bars += '<div class="cal-period-overflow" style="top:' + (22 + shown.length * (CAL_BAR_HEIGHT + CAL_BAR_GAP)) + 'px">+' + hidden.length + '</div>';
+    }
+    const cellMinHeight = 76;
     const cls = 'cal-day' + (isOther ? ' other-month' : '') + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
-    // v589：工期条 DOM 置于日期行之前，配合 z-index 确保日期行始终在最上方
-    return `<div class="${cls}" onclick="commissionDateClick('${dateStr}')" style="cursor:pointer;min-height:${cellMinHeight}px">${bars}<div class="cal-date-row"><span class="cal-date">${cd}</span><span class="cal-day-tags comm-tags-center">${commTagStr}</span></div></div>`;
+    return '<div class="' + cls + '" onclick="commissionDateClick(\'' + dateStr + '\')" style="cursor:pointer;min-height:' + cellMinHeight + 'px">' + bars + '<div class="cal-date-row"><span class="cal-date">' + cd + '</span><span class="cal-day-tags comm-tags-center">' + commTagStr + '</span></div></div>';
   }
+
+  let html = '<div class="cal-grid commission-cal-grid">';
+  ['日', '一', '二', '三', '四', '五', '六'].forEach(w => { html += '<div class="cal-weekday">' + w + '</div>'; });
   for (let i = startWeekday - 1; i >= 0; i--) { html += renderCommCalCell(year, month - 1, prevMonthDays - i, true); }
   for (let d = 1; d <= daysInMonth; d++) { html += renderCommCalCell(year, month, d, false); }
   const totalCells = startWeekday + daysInMonth;
   const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
   for (let i = 1; i <= remaining; i++) { html += renderCommCalCell(year, month + 1, i, true); }
   html += '</div>';
-  // Legend (v29-fix4: 改回 v27 样式 — 开稿/截稿 用实际色，加同天开+截)
   html += '<div class="cal-legend-wrap">';
   html += '<div class="cal-legend">';
-  html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>开稿</span>`;
-  html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>截稿</span>`;
-  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>当天同时存在开稿和截稿项目</span>`;
+  html += '<span class="legend-item"><span class="status-dot" style="background:' + CAL_START_COLOR + '"></span>开稿</span>';
+  html += '<span class="legend-item"><span class="status-dot" style="background:' + CAL_END_COLOR + '"></span>截稿</span>';
+  html += '<span class="legend-item"><span class="status-dot" style="background:' + CAL_BOTH_COLOR + '"></span>开+截同天</span>';
   html += '</div>';
   html += '<div class="cal-legend-sep"></div>';
   html += '<div class="cal-legend">';
-  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[0]}"></span>截稿≤2天</span>`;
-  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[1]}"></span>3-5天</span>`;
-  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[2]}"></span>>5天</span>`;
-  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:#7ec678"></span>已交付</span>`;
+  html += '<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:' + CAL_URGENCY_COLORS[0] + '"></span>截稿<=2天</span>';
+  html += '<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:' + CAL_URGENCY_COLORS[1] + '"></span>3-5天</span>';
+  html += '<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:' + CAL_URGENCY_COLORS[2] + '"></span>>5天</span>';
+  html += '<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:' + CAL_DELIVERED_COLOR + '"></span>已交付</span>';
   html += '</div>';
   html += '</div>';
   return html;
 }
+
 function commissionToggleView(mode) {
   const ps = pageState['design-commission'] || (pageState['design-commission'] = { search: '', filters: {} });
   ps.viewMode = mode;
@@ -2734,9 +2720,80 @@ function commissionCalNav(dir) {
   renderListPage('design-commission', MODULES['design-commission']);
 }
 function commissionDateClick(dateStr) {
-  const ps = pageState['design-commission'];
-  ps.dateFilter = (ps.dateFilter === dateStr) ? '' : dateStr;
+  openCommissionDateModal(dateStr);
+}
+/* ===== 接稿日历日期格弹窗：统计 + 明细 + 拖拽排序（仅改视图，排序本地持久化） ===== */
+let calModalDate = null;
+let calModalOrder = [];
+let calDragId = null;
+function closeCalDateModal() {
+  const m = document.getElementById('calDateModal');
+  if (m) m.remove();
+}
+function commissionFilterDate() {
+  const ps = pageState['design-commission'] || (pageState['design-commission'] = {});
+  ps.dateFilter = calModalDate;
+  closeCalDateModal();
   renderListPage('design-commission', MODULES['design-commission']);
+}
+function openCommissionDateModal(dateStr) {
+  calModalDate = dateStr;
+  const recs = commissionCalendarRecords || [];
+  const isStart = r => (r.startTime || r.acceptTime || '') === dateStr;
+  const isEnd = r => (r.deadline || '') === dateStr;
+  const nodeRecs = recs.filter(r => isStart(r) || isEnd(r));
+  const saved = loadCalSort(dateStr);
+  calModalOrder = (saved && saved.length) ? saved.slice() : nodeRecs.map(r => r.id);
+  nodeRecs.forEach(r => { if (!calModalOrder.includes(r.id)) calModalOrder.push(r.id); });
+  const openCount = recs.filter(isStart).length;
+  const closeCount = recs.filter(isEnd).length;
+  let html = '<div class="date-picker-modal" id="calDateModal"><div class="date-picker-backdrop" onclick="closeCalDateModal()"></div><div class="cal-date-popup">';
+  html += '<div class="date-picker-header"><span>' + dateStr + '</span><button onclick="closeCalDateModal()">×</button></div>';
+  html += '<div class="cal-date-stats"><div class="cal-date-stat"><div class="num" style="color:' + CAL_START_COLOR + '">' + openCount + '</div><div class="lbl">今日开稿</div></div><div class="cal-date-stat"><div class="num" style="color:' + CAL_END_COLOR + '">' + closeCount + '</div><div class="lbl">今日截稿</div></div></div>';
+  html += '<div class="cal-date-list" id="calDateList">' + calDateModalItemsHTML() + '</div>';
+  html += '<div class="date-picker-footer"><button onclick="commissionFilterDate()">按此日筛选</button><button onclick="closeCalDateModal()">关闭</button></div>';
+  html += '</div></div>';
+  const existing = document.getElementById('calDateModal');
+  if (existing) existing.remove();
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+function calDateModalItemsHTML() {
+  let h = '';
+  (calModalOrder || []).forEach(id => {
+    const r = (commissionCalendarRecords || []).find(x => x.id === id);
+    if (!r) return;
+    const delivered = valIncludes(r.progress, '已交付');
+    const isStart = (r.startTime || r.acceptTime || '') === calModalDate;
+    const isEnd = (r.deadline || '') === calModalDate;
+    let tagText, tagColor;
+    if (delivered) { tagText = '已交付'; tagColor = CAL_DELIVERED_COLOR; }
+    else if (isStart && isEnd) { tagText = '开+截'; tagColor = CAL_BOTH_COLOR; }
+    else if (isEnd) { tagText = '截稿'; tagColor = CAL_END_COLOR; }
+    else { tagText = '开稿'; tagColor = CAL_START_COLOR; }
+    const qty = calcProductQty(r);
+    h += '<div class="cal-date-item" draggable="true" data-id="' + id + '" ondragstart="calDragStart(event,' + id + ')" ondragover="calDragOver(event)" ondrop="calDrop(event,' + id + ')"><span class="drag-handle">☰</span><span class="ci-name">' + esc(r.clientInfo || '未命名') + '</span><span class="ci-qty">' + qty + '件</span><span class="ci-tag" style="background:' + tagColor + '">' + tagText + '</span></div>';
+  });
+  return h;
+}
+function calDragStart(e, id) {
+  calDragId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', id); } catch (_) {}
+}
+function calDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+function calDrop(e, id) {
+  e.preventDefault();
+  if (!calDragId || calDragId === id) return;
+  const fromIdx = calModalOrder.indexOf(calDragId);
+  const toIdx = calModalOrder.indexOf(id);
+  if (fromIdx < 0 || toIdx < 0) return;
+  calModalOrder.splice(fromIdx, 1);
+  calModalOrder.splice(toIdx, 0, calDragId);
+  try { localStorage.setItem('xiao_cal_sort_' + calModalDate, JSON.stringify(calModalOrder)); } catch (_) {}
+  calDragId = null;
+  const list = document.getElementById('calDateList');
+  if (list) list.innerHTML = calDateModalItemsHTML();
+  try { renderListPage('design-commission', MODULES['design-commission']); } catch (_) {}
 }
 function commissionClearDate() {
   pageState['design-commission'].dateFilter = '';
