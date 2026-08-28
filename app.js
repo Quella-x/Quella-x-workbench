@@ -2626,84 +2626,24 @@ function renderCommissionCalendar(year, month, records) {
   const todayKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
   const todayTime = today.getTime();
   const ps = pageState['design-commission'] || {};
-  // v596：工期条保留「开稿~截稿」连续跨度；同一轨道内高优先级（开始日期晚）盖住低优先级，每格每轨道只显示最高优先级条
+  // v597：接稿日历工期条顺序与底部列表模块一致，使用 commissionRecordSort
   const periodRecords = records.filter(r => {
     const start = r.startTime || r.acceptTime || '';
     const end = r.deadline || '';
     return start && end;
-  }).sort((a, b) => {
-    const aStart = a.startTime || a.acceptTime || '';
-    const bStart = b.startTime || b.acceptTime || '';
-    return aStart.localeCompare(bStart);
-  });
-  const recordPriority = {};
-  periodRecords.forEach((r, idx) => { recordPriority[r.id] = idx; });
-  // 按开始日期降序（越晚开始优先级越高），把它们分配到 3 条轨道，允许同轨道重叠以便覆盖
-  const sortedDesc = periodRecords.slice().sort((a, b) => recordPriority[b.id] - recordPriority[a.id]);
-  const tracks = [[], [], []]; // 每个轨道保存任务 id，从 newest 到 oldest
-  const recordTrack = {};
-  function overlaps(r1, r2) {
-    const s1 = r1.startTime || r1.acceptTime || '';
-    const e1 = r1.deadline || '';
-    const s2 = r2.startTime || r2.acceptTime || '';
-    const e2 = r2.deadline || '';
-    return !(e1 < s2 || s1 > e2);
-  }
-  sortedDesc.forEach(r => {
-    let bestT = -1, bestP = -1;
-    for (let t = 0; t < tracks.length; t++) {
-      if (tracks[t].length === 0) { bestT = t; break; }
-      const cover = tracks[t].find(id => {
-        const o = periodRecords.find(x => x.id === id);
-        return o && overlaps(r, o);
-      });
-      if (cover) {
-        const p = recordPriority[cover];
-        if (p > bestP) { bestP = p; bestT = t; }
-      }
-    }
-    if (bestT < 0) {
-      let minLen = Infinity;
-      for (let t = 0; t < tracks.length; t++) {
-        if (tracks[t].length < minLen) { minLen = tracks[t].length; bestT = t; }
-      }
-    }
-    tracks[bestT].push(r.id);
-    recordTrack[r.id] = bestT;
-  });
+  }).sort(commissionRecordSort);
 
   function renderCommCalCell(cy, cm, cd, isOther) {
     const dateStr = cy + '-' + String(cm + 1).padStart(2, '0') + '-' + String(cd).padStart(2, '0');
     const isStart = r => (r.startTime || r.acceptTime || '') === dateStr;
     const isEnd = r => (r.deadline || '') === dateStr;
-    let bars = '';
-    // 按轨道顺序渲染，每轨道取当日跨度内最高优先级的任务（盖住同轨道其他任务）
-    for (let t = 0; t < CAL_MAX_TRACKS; t++) {
-      let visible = null;
-      tracks[t].forEach(id => {
-        const r = periodRecords.find(x => x.id === id);
-        if (!r) return;
-        const start = r.startTime || r.acceptTime || '';
-        const end = r.deadline || '';
-        if (dateStr < start || dateStr > end) return;
-        if (!visible || recordPriority[r.id] > recordPriority[visible.id]) visible = r;
-      });
-      if (!visible) continue;
-      const start = visible.startTime || visible.acceptTime || '';
-      const end = visible.deadline || '';
-      const sFlag = dateStr === start;
-      const eFlag = dateStr === end;
-      const color = commissionBarColor(visible, todayTime);
-      let cls = 'cal-period-bar middle';
-      if (sFlag && eFlag) cls = 'cal-period-bar full';
-      else if (sFlag) cls = 'cal-period-bar start';
-      else if (eFlag) cls = 'cal-period-bar end';
-      const qty = calcProductQty(visible);
-      const label = sFlag ? (esc(visible.clientInfo || '未命名') + ' ' + qty + '件') : '';
-      const topPx = 22 + t * (CAL_BAR_HEIGHT + CAL_BAR_GAP);
-      const zIndex = (recordPriority[visible.id] || 0) + 1;
-      bars += '<div class="' + cls + '" style="background:' + color + ';top:' + topPx + 'px;height:' + CAL_BAR_HEIGHT + 'px;line-height:' + CAL_BAR_HEIGHT + 'px;z-index:' + zIndex + '">' + label + '</div>';
-    }
+    const dayPeriods = periodRecords.filter(r => {
+      const start = r.startTime || r.acceptTime || '';
+      const end = r.deadline || '';
+      return dateStr >= start && dateStr <= end;
+    });
+    // 直接按 commissionRecordSort 取前 3，与底部列表顺序一致
+    const list = dayPeriods.slice(0, CAL_MAX_TRACKS);
     const bothRecords = records.filter(r => isStart(r) && isEnd(r));
     const startRecords = records.filter(r => isStart(r) && !isEnd(r));
     const deadlineRecords = records.filter(r => isEnd(r) && !isStart(r));
@@ -2713,6 +2653,22 @@ function renderCommissionCalendar(year, month, records) {
     if (bothRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_BOTH_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_BOTH_COLOR + '">开+截</span></span>';
     if (startRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_START_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_START_COLOR + '">开稿</span></span>';
     if (deadlineRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_END_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_END_COLOR + '">截稿</span></span>';
+    let bars = '';
+    list.forEach((r, i) => {
+      const start = r.startTime || r.acceptTime || '';
+      const end = r.deadline || '';
+      const sFlag = dateStr === start;
+      const eFlag = dateStr === end;
+      const color = commissionBarColor(r, todayTime);
+      let cls = 'cal-period-bar middle';
+      if (sFlag && eFlag) cls = 'cal-period-bar full';
+      else if (sFlag) cls = 'cal-period-bar start';
+      else if (eFlag) cls = 'cal-period-bar end';
+      const qty = calcProductQty(r);
+      const label = sFlag ? (esc(r.clientInfo || '未命名') + ' ' + qty + '件') : '';
+      const topPx = 22 + i * (CAL_BAR_HEIGHT + CAL_BAR_GAP);
+      bars += '<div class="' + cls + '" style="background:' + color + ';top:' + topPx + 'px;height:' + CAL_BAR_HEIGHT + 'px;line-height:' + CAL_BAR_HEIGHT + 'px">' + label + '</div>';
+    });
     const cellMinHeight = 76;
     const cls = 'cal-day' + (isOther ? ' other-month' : '') + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
     return '<div class="' + cls + '" onclick="commissionDateClick(\'' + dateStr + '\')" style="cursor:pointer;min-height:' + cellMinHeight + 'px">' + bars + '<div class="cal-date-row"><span class="cal-date">' + cd + '</span><span class="cal-day-tags comm-tags-center">' + commTagStr + '</span></div></div>';
