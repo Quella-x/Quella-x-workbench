@@ -455,8 +455,25 @@ ul,li{list-style:none}
 /* v532：日期字段——type=text 自由手输 + 📅 按钮打开原生日历 */
 .date-field-wrap{position:relative;display:flex;align-items:center;gap:8px}
 .date-field-wrap .form-input{flex:1;min-width:0}
-.date-pick-btn{flex:0 0 auto;width:38px;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border);background:var(--c-primary-bg);border-radius:var(--radius-sm);cursor:pointer;color:var(--c-primary);padding:0;line-height:1;-webkit-tap-highlight-color:rgba(0,0,0,0)!important;touch-action:manipulation;-webkit-touch-callout:none}
-.date-pick-btn:hover,.date-pick-btn:active,.date-pick-btn.active,.date-pick-btn:focus{background:var(--c-primary)!important;color:#fff!important;border-color:var(--c-primary)!important;outline:none!important;box-shadow:none!important}
+.date-field-wrap .date-pick-btn{flex:0 0 auto;width:38px;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border)!important;background:var(--c-primary-bg)!important;border-radius:var(--radius-sm);cursor:pointer;color:var(--c-primary)!important;padding:0;line-height:1;-webkit-tap-highlight-color:rgba(0,0,0,0)!important;touch-action:manipulation;-webkit-touch-callout:none}
+.date-field-wrap .date-pick-btn:hover,.date-field-wrap .date-pick-btn:active,.date-field-wrap .date-pick-btn.active,.date-field-wrap .date-pick-btn:focus{background:var(--c-primary)!important;color:#fff!important;border-color:var(--c-primary)!important;outline:none!important;box-shadow:none!important}
+/* v581：自定义居中模态日历弹窗（替代浏览器原生 showPicker，避免弹窗飞到左上角） */
+.date-picker-modal{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center}
+.date-picker-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+.date-picker-popup{position:relative;background:#fff;border-radius:12px;padding:16px;width:340px;max-width:92vw;box-shadow:0 12px 48px rgba(0,0,0,.22);font-size:14px}
+.date-picker-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:16px;font-weight:600;color:var(--c-text)}
+.date-picker-header button{background:none;border:none;color:var(--c-primary);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:var(--radius-sm)}
+.date-picker-header button:hover{background:var(--c-primary-bg)}
+.date-picker-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:12px;color:var(--c-text-light);margin-bottom:8px}
+.date-picker-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.date-picker-day{height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;font-size:14px;background:transparent;color:var(--c-text)}
+.date-picker-day:hover{background:var(--c-primary-bg)}
+.date-picker-day.other-month{color:var(--c-text-light)}
+.date-picker-day.selected{background:var(--c-primary);color:#fff!important}
+.date-picker-day.today:not(.selected){border:1.5px solid var(--c-primary)}
+.date-picker-footer{display:flex;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--c-border)}
+.date-picker-footer button{background:none;border:none;color:var(--c-primary);font-size:14px;cursor:pointer;padding:4px 8px;border-radius:var(--radius-sm)}
+.date-picker-footer button:hover{background:var(--c-primary-bg)}
 .form-input,.form-select,.form-textarea{
   width:100%;padding:8px 12px;border:1px solid var(--c-border);
   border-radius:var(--radius-sm);font-size:13px;background:#fff;
@@ -2584,7 +2601,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=580"></script>
+  <script src="app.js?v=581"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

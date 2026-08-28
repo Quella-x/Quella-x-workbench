@@ -607,40 +607,126 @@ function buildFormField(f, data, moduleKey, wrap) {
   }
   return out;
 }
-// 需求③：日期字段点 📅 打开原生日历选择器（输入保持 type=text 可自由手输）；选完或失焦后统一规范为 YYYY-MM-DD 文本显示
+// 需求③：日期字段点 📅 打开自定义居中模态日历（输入保持 type=text 可自由手输）；选完或失焦后统一规范为 YYYY-MM-DD 文本显示
+let currentDateInput = null;
+let currentDateBtn = null;
+let customDatePickerState = { year: 0, month: 0 };
+
 function openDatePicker(btn) {
   const inp = btn.previousElementSibling;
   if (!inp) return;
-  // v574/v579/v580：用临时 date 输入承载 showPicker，避免把可见文本框临时改成 type=date 导致出现原生日期占位；
-  // v580 改为按可见输入框的视口坐标创建一个等大的 fixed 临时输入，让浏览器直接以该坐标锚定弹窗，
-  // 彻底解决动态列表 flex 行内 absolute 定位不准导致弹窗飞到左上角的问题。
+  currentDateInput = inp;
+  currentDateBtn = btn;
   btn.classList.add('active');
-  const rect = inp.getBoundingClientRect();
-  const picker = document.createElement('input');
-  picker.type = 'date';
-  picker.value = inp.value || '';
-  picker.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;opacity:0.01;pointer-events:none;border:0;padding:0;margin:0;z-index:9999`;
-  document.body.appendChild(picker);
-  const cleanup = () => {
-    picker.removeEventListener('change', onChange);
-    picker.removeEventListener('blur', onBlur);
-    if (picker.parentElement) picker.remove();
-    btn.classList.remove('active');
-  };
-  const finish = () => {
-    if (picker.value !== inp.value) {
-      inp.value = picker.value;
-      normalizeDateValue(inp);
-      inp.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-    cleanup();
-  };
-  const onChange = () => { finish(); };
-  const onBlur = () => { setTimeout(finish, 0); };
-  picker.addEventListener('change', onChange);
-  picker.addEventListener('blur', onBlur);
-  if (picker.showPicker) { try { picker.showPicker(); } catch (e) { picker.focus(); } }
-  else picker.focus();
+  let init = new Date();
+  const v = (inp.value || '').trim();
+  if (v) {
+    const d = parseDateYMD(v);
+    if (d) init = d;
+  }
+  customDatePickerState.year = init.getFullYear();
+  customDatePickerState.month = init.getMonth();
+  renderCustomDatePicker();
+}
+
+function parseDateYMD(s) {
+  const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const y = parseInt(m[1], 10), M = parseInt(m[2], 10) - 1, d = parseInt(m[3], 10);
+  const date = new Date(y, M, d);
+  if (date.getFullYear() !== y || date.getMonth() !== M || date.getDate() !== d) return null;
+  return date;
+}
+
+function renderCustomDatePicker() {
+  closeCustomDatePicker(true);
+  const { year, month } = customDatePickerState;
+  const selectedValue = (currentDateInput.value || '').trim();
+  const today = new Date();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  let daysHTML = '';
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const d = daysInPrevMonth - i;
+    daysHTML += `<div class="date-picker-day other-month" data-day="${d}" data-offset="-1">${d}</div>`;
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const isSel = ds === selectedValue;
+    const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+    daysHTML += `<div class="date-picker-day${isSel ? ' selected' : ''}${isToday ? ' today' : ''}" data-day="${d}" data-offset="0">${d}</div>`;
+  }
+  const totalCells = firstDay + daysInMonth;
+  const nextRows = Math.ceil(totalCells / 7) * 7 - totalCells;
+  for (let d = 1; d <= nextRows; d++) {
+    daysHTML += `<div class="date-picker-day other-month" data-day="${d}" data-offset="1">${d}</div>`;
+  }
+  const title = `${year}年${String(month + 1).padStart(2, '0')}月`;
+  const modal = document.createElement('div');
+  modal.id = 'customDatePicker';
+  modal.className = 'date-picker-modal';
+  modal.innerHTML = `
+    <div class="date-picker-backdrop" onclick="closeCustomDatePicker()"></div>
+    <div class="date-picker-popup" role="dialog" aria-modal="true">
+      <div class="date-picker-header">
+        <button type="button" onclick="changeCustomMonth(-1)" title="上月">‹</button>
+        <span class="date-picker-title">${title}</span>
+        <button type="button" onclick="changeCustomMonth(1)" title="下月">›</button>
+      </div>
+      <div class="date-picker-weekdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+      <div class="date-picker-days">${daysHTML}</div>
+      <div class="date-picker-footer">
+        <button type="button" onclick="clearCustomDatePicker()">清除</button>
+        <button type="button" onclick="todayCustomDatePicker()">今天</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelectorAll('.date-picker-day').forEach(cell => {
+    cell.addEventListener('click', e => {
+      const day = parseInt(e.currentTarget.dataset.day, 10);
+      const offset = parseInt(e.currentTarget.dataset.offset, 10);
+      let y = year, m = month + offset;
+      if (m < 0) { m = 11; y--; }
+      else if (m > 11) { m = 0; y++; }
+      selectCustomDate(y, m, day);
+    });
+  });
+  modal.querySelector('.date-picker-popup').addEventListener('click', e => e.stopPropagation());
+}
+
+function changeCustomMonth(delta) {
+  customDatePickerState.month += delta;
+  if (customDatePickerState.month < 0) { customDatePickerState.month = 11; customDatePickerState.year--; }
+  else if (customDatePickerState.month > 11) { customDatePickerState.month = 0; customDatePickerState.year++; }
+  renderCustomDatePicker();
+}
+
+function selectCustomDate(y, m, d) {
+  if (!currentDateInput) return;
+  currentDateInput.value = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  normalizeDateValue(currentDateInput);
+  currentDateInput.dispatchEvent(new Event('change', { bubbles: true }));
+  closeCustomDatePicker();
+}
+
+function todayCustomDatePicker() {
+  const now = new Date();
+  selectCustomDate(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function clearCustomDatePicker() {
+  if (!currentDateInput) return;
+  currentDateInput.value = '';
+  currentDateInput.dispatchEvent(new Event('change', { bubbles: true }));
+  closeCustomDatePicker();
+}
+
+function closeCustomDatePicker(silent) {
+  const el = document.getElementById('customDatePicker');
+  if (el) el.remove();
+  if (!silent && currentDateBtn) currentDateBtn.classList.remove('active');
+  if (!silent) { currentDateInput = null; currentDateBtn = null; }
 }
 // 将任意可解析日期归一化为 YYYY-MM-DD（已是规范格式则不动）
 function normalizeDateValue(inp) {
