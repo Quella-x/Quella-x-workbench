@@ -1297,6 +1297,7 @@ MODULES['groupbuy-records'] = {
         { value: '补偿', label: '补偿' }, { value: '补发', label: '补发' }, { value: '补寄', label: '补寄' }, { value: '退款', label: '退款' }
       ]},
       { subkey: 'amount', label: '价格', type: 'number' },
+      { subkey: 'note', label: '备注', type: 'text' },
     ]},
     { key: 'purchaseCount', label: '购买人数', type: 'number', row: 'purchaseInfo' },
     { key: 'purchasePopularity', label: '拼团人气', type: 'number', row: 'purchaseInfo' },
@@ -3172,7 +3173,7 @@ function openDetail(pageKey, id) {
       const commThLabel = c => c.subkey === 'patternId' ? '柄图<br>标识' : esc(c.label);
       const isGb = (pageKey === 'groupbuy-records');
       // v569：开团记录详情「制品列表」与「售后记录」表格宽度统一——固定宽度列(单价/售卖数量/是否流团/单号/价格/补偿方式)均 62px 且两张表一致，其余列(制品名称/对应厂家 与 制品名称/售后数量)由 table-layout:fixed 均分剩余宽度。
-      const gbFixedCols = new Set(['price','salesCount','isDisbanded','orderNo','type','amount']);
+      const gbFixedCols = new Set(['price','salesCount','isDisbanded','orderNo','quantity','type','amount']);
       const gbColStyle = (c, forTh) => {
         const ws = forTh ? '' : 'white-space:nowrap;';
         if (gbFixedCols.has(c.subkey)) return ` style="width:62px;${ws}"`;
