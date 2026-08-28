@@ -3424,7 +3424,6 @@ function renderHome() {
     html += '<div class="toolbar" style="margin-top:4px">';
     html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="homeSearch(this.value)"><span class="search-icon">🔍</span></div>`;
     html += `<div class="date-field-wrap"><input type="text" class="filter-select" value="${ps.dateFilter}" placeholder="请选择或输入日期" title="请选择或输入日期" onchange="homeDateFilter(this.value)"><button type="button" class="date-pick-btn" onclick="openDatePicker(this)" title="选择日期" aria-label="选择日期"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></button></div>`;
-    html += `<button class="filter-select" onclick="homeClearFilter()" style="cursor:pointer;border:1px solid var(--c-border)">清除筛选</button>`;
     html += '<div class="spacer"></div>';
     html += '<button class="btn btn-primary" onclick="openAddForm(\'home\')">+ 新增记录</button>';
     html += '</div>';
@@ -3512,7 +3511,6 @@ function enterPlatformView(tab) {
 function homeBackToMain() { pageState.home.view = 'main'; pageState.home.statusFilter = ''; renderHome(); }
 function homeSearch(val) { pageState.home.search = val; pageState.home.homePageNo = 1; renderHome(); _restoreSearchFocus('#mainBody .toolbar .search-box input'); }
 function homeDateFilter(val) { pageState.home.dateFilter = val; pageState.home.homePageNo = 1; renderHome(); }
-function homeClearFilter() { pageState.home.search = ''; pageState.home.dateFilter = ''; pageState.home.homePageNo = 1; renderHome(); }
 function homeGoPage(pageNo) { pageState.home.homePageNo = pageNo; renderHome(); }
 function homeSetStatusFilter(s) {
   const ps = pageState.home;
