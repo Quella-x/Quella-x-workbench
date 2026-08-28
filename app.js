@@ -5646,59 +5646,47 @@ function renderFieldSettings(html) {
     html += '</div>';
     const optFields = mod.fields.filter(f => (f.type === 'combobox' || f.type === 'multiselect') && !f.noOptionManage);
     const hasCustomManaged = _settingsModule === 'design-commission-detail-twy' || _settingsModule === 'design-commission-detail-fm';
+    function renderOptionBlockHTML(fieldKey, label, defaultOpts, customOpts) {
+      const allOpts = customOpts.length ? customOpts : defaultOpts;
+      let block = `<div style="margin-bottom:12px"><div class="option-field-block"><div class="option-field-title">${esc(label)}</div><div class="option-field-inputs" id="opts_${fieldKey}">`;
+      allOpts.forEach((opt, i) => {
+        block += `<div class="option-edit-item"><input type="text" value="${esc(opt)}" data-opt-key="${fieldKey}" data-idx="${i}"><button class="btn-icon danger" onclick="this.parentElement.remove()">🗑️</button></div>`;
+      });
+      block += `<div class="option-edit-item" style="margin-bottom:0"><button class="btn btn-primary add-opt-btn" onclick="addOptionItem('${fieldKey}')">+ 添加选项</button><span class="option-delete-placeholder"></span></div>`;
+      block += `</div></div></div>`;
+      return block;
+    }
     if (optFields.length || hasCustomManaged) {
       html += '<h4 style="font-size:13px;margin:20px 0 8px;color:var(--c-primary)">选项管理</h4>';
-      optFields.forEach(f => {
-        const key = _settingsModule + '.' + f.key;
-        const customOpts = (s.fieldOptions && s.fieldOptions[key]) || [];
-        const defaultOpts = (f.options || []).map(o => typeof o === 'string' ? o : o.value);
-        const allOpts = customOpts.length ? customOpts : defaultOpts;
-        html += `<div style="margin-bottom:12px"><div class="option-field-block"><div class="option-field-title">${esc(f.label)}</div><div class="option-field-inputs" id="opts_${f.key}">`;
-        allOpts.forEach((opt, i) => {
-          html += `<div class="option-edit-item"><input type="text" value="${esc(opt)}" data-opt-key="${f.key}" data-idx="${i}"><button class="btn-icon danger" onclick="this.parentElement.remove()">🗑️</button></div>`;
-        });
-        html += `<div class="option-edit-item" style="margin-bottom:0"><button class="btn btn-primary add-opt-btn" onclick="addOptionItem('${f.key}')">+ 添加选项</button><span class="option-delete-placeholder"></span></div>`;
-        html += `</div></div></div>`;
+      mod.fields.forEach(f => {
+        if ((f.type === 'combobox' || f.type === 'multiselect') && !f.noOptionManage) {
+          const key = _settingsModule + '.' + f.key;
+          const customOpts = (s.fieldOptions && s.fieldOptions[key]) || [];
+          const defaultOpts = (f.options || []).map(o => typeof o === 'string' ? o : o.value);
+          html += renderOptionBlockHTML(f.key, f.label, defaultOpts, customOpts);
+        }
         // 饭圈/二次：制品信息大框里的「工艺」下拉框，按实际表单顺序放在「稿件用途」后面
         if (f.key === 'usageType' && (_settingsModule === 'design-commission-detail-fq' || _settingsModule === 'design-commission-detail-ec')) {
           const craftKey = _settingsModule + '.craft';
           const craftCustomOpts = (s.fieldOptions && s.fieldOptions[craftKey]) || [];
           const craftDefaultOpts = ['白墨', '逆向', '光油', '烫色'];
-          const craftOpts = craftCustomOpts.length ? craftCustomOpts : craftDefaultOpts;
-          html += `<div style="margin-bottom:12px"><div class="option-field-block"><div class="option-field-title">工艺</div><div class="option-field-inputs" id="opts_craft">`;
-          craftOpts.forEach((opt, i) => {
-            html += `<div class="option-edit-item"><input type="text" value="${esc(opt)}" data-opt-key="craft" data-idx="${i}"><button class="btn-icon danger" onclick="this.parentElement.remove()">🗑️</button></div>`;
-          });
-          html += `<div class="option-edit-item" style="margin-bottom:0"><button class="btn btn-primary add-opt-btn" onclick="addOptionItem('craft')">+ 添加选项</button><span class="option-delete-placeholder"></span></div>`;
-          html += `</div></div></div>`;
+          html += renderOptionBlockHTML('craft', '工艺', craftDefaultOpts, craftCustomOpts);
+        }
+        // 土味约稿单：制品下拉框（默认 9 项 + 自定义），跟随 custom 字段的实际顺序
+        if (_settingsModule === 'design-commission-detail-twy' && f.type === 'custom' && f.html && f.html.includes('cd-twy-product-combobox')) {
+          const prodKey = 'design-commission-detail-twy.product';
+          const prodCustomOpts = (s.fieldOptions && s.fieldOptions[prodKey]) || [];
+          const prodDefaultOpts = ['壁纸', '封口贴', '封面', '海报', '卡套', '手持镜', '手机壳', '小卡', '易拉宝'];
+          html += renderOptionBlockHTML('product', '制品', prodDefaultOpts, prodCustomOpts);
+        }
+        // 封面约稿单：类型下拉框（默认 8 项 + 自定义），跟随 custom 字段的实际顺序
+        if (_settingsModule === 'design-commission-detail-fm' && f.type === 'custom' && f.html && f.html.includes('cdFmGenreCb')) {
+          const genreKey = 'design-commission-detail-fm.genre';
+          const genreCustomOpts = (s.fieldOptions && s.fieldOptions[genreKey]) || [];
+          const genreDefaultOpts = ['都市', '古风', '灵异', 'Q版', '素锦', '玄幻', '校园', '言情'];
+          html += renderOptionBlockHTML('genre', '类型', genreDefaultOpts, genreCustomOpts);
         }
       });
-      // 土味约稿单：制品信息·制品下拉框（默认 9 项 + 自定义）
-      if (_settingsModule === 'design-commission-detail-twy') {
-        const prodKey = 'design-commission-detail-twy.product';
-        const prodCustomOpts = (s.fieldOptions && s.fieldOptions[prodKey]) || [];
-        const prodDefaultOpts = ['壁纸', '封口贴', '封面', '海报', '卡套', '手持镜', '手机壳', '小卡', '易拉宝'];
-        const prodOpts = prodCustomOpts.length ? prodCustomOpts : prodDefaultOpts;
-        html += `<div style="margin-bottom:12px"><div class="option-field-block"><div class="option-field-title">制品信息·制品</div><div class="option-field-inputs" id="opts_product">`;
-        prodOpts.forEach((opt, i) => {
-          html += `<div class="option-edit-item"><input type="text" value="${esc(opt)}" data-opt-key="product" data-idx="${i}"><button class="btn-icon danger" onclick="this.parentElement.remove()">🗑️</button></div>`;
-        });
-        html += `<div class="option-edit-item" style="margin-bottom:0"><button class="btn btn-primary add-opt-btn" onclick="addOptionItem('product')">+ 添加选项</button><span class="option-delete-placeholder"></span></div>`;
-        html += `</div></div></div>`;
-      }
-      // 封面约稿单：类型排版·类型下拉框（默认 8 项 + 自定义）
-      if (_settingsModule === 'design-commission-detail-fm') {
-        const genreKey = 'design-commission-detail-fm.genre';
-        const genreCustomOpts = (s.fieldOptions && s.fieldOptions[genreKey]) || [];
-        const genreDefaultOpts = ['都市', '古风', '灵异', 'Q版', '素锦', '玄幻', '校园', '言情'];
-        const genreOpts = genreCustomOpts.length ? genreCustomOpts : genreDefaultOpts;
-        html += `<div style="margin-bottom:12px"><div class="option-field-block"><div class="option-field-title">类型排版·类型</div><div class="option-field-inputs" id="opts_genre">`;
-        genreOpts.forEach((opt, i) => {
-          html += `<div class="option-edit-item"><input type="text" value="${esc(opt)}" data-opt-key="genre" data-idx="${i}"><button class="btn-icon danger" onclick="this.parentElement.remove()">🗑️</button></div>`;
-        });
-        html += `<div class="option-edit-item" style="margin-bottom:0"><button class="btn btn-primary add-opt-btn" onclick="addOptionItem('genre')">+ 添加选项</button><span class="option-delete-placeholder"></span></div>`;
-        html += `</div></div></div>`;
-      }
     }
   }
   html += '</div>';
