@@ -400,6 +400,34 @@ function commTagClass(key, val) {
   if (key === 'paymentStatus') return COMMISSION_PAYMENT_TAG[val] || 'tag-info';
   return 'tag-info';
 }
+// v588：展示模块胶囊按 (pageKey,字段,取值) 分色（仅展示，不改新增记录表单）
+const FIELD_TAG_MAP = {
+  'groupbuy-records': {
+    status: { '筹备中':'tag-yellow', '进行中':'tag-info', '已截团':'tag-orange', '流团':'tag-danger', '已结算':'tag-success' }
+  },
+  'groupbuy-factories': {
+    cooperationStatus: { '长期合作':'tag-orange', '临时合作':'tag-yellow', '暂停合作':'tag-gray' },
+    factoryEvaluation: { '非常满意':'tag-orange', '满意':'tag-success', '一般':'tag-info', '不满意':'tag-danger' }
+  },
+  'groupbuy-samples': {
+    evaluation: { '合格':'tag-success', '中等':'tag-info', '不合格':'tag-danger' }
+  },
+  'design-auth': {
+    authType: { '自用':'tag-info', '无盈利':'tag-success', '商用':'tag-danger', '买断':'tag-orange', '企业':'tag-yellow' }
+  },
+  'oc-stories': {
+    isComplete: { '连载中':'tag-info', '已完结':'tag-success' }
+  },
+  'oc-commission': {
+    status: { '待接稿':'tag-danger', '已接稿':'tag-info', '已完成':'tag-success', '已取消':'tag-gray' },
+    evaluation: { '非常满意':'tag-orange', '满意':'tag-success', '一般':'tag-info', '不满意':'tag-danger' }
+  }
+};
+function fieldDisplayTagClass(pageKey, key, val) {
+  const m = FIELD_TAG_MAP[pageKey];
+  if (!m || !m[key]) return null;
+  return m[key][val] || null;
+}
 function commissionProgressPriority(r) {
   const vals = Array.isArray(r.progress) ? r.progress : (r.progress ? [r.progress] : []);
   let best = 99;
@@ -2442,6 +2470,7 @@ function renderListPage(pageKey, mod) {
             if (['不合格', '不满意'].includes(val)) tc = 'tag-danger';
             if (['买断', '敌对', '已结算'].includes(val)) tc = 'tag-purple';
             if (f.key === 'progress' || f.key === 'paymentStatus') tc = commTagClass(f.key, val);
+            const _ov = fieldDisplayTagClass(pageKey, f.key, val); if (_ov) tc = _ov;
             return `<span class="tag ${tc}">${esc(String(val))}</span>`;
           }).join(' ');
           html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value field-tags">${tags}</span></span>`;
@@ -2461,6 +2490,7 @@ function renderListPage(pageKey, mod) {
             if (['不合格', '不满意'].includes(v)) tc = 'tag-danger';
             if (['买断', '敌对', '已结算'].includes(v)) tc = 'tag-purple';
             if (f.key === 'progress' || f.key === 'paymentStatus') tc = commTagClass(f.key, v);
+            const _ov = fieldDisplayTagClass(pageKey, f.key, v); if (_ov) tc = _ov;
             html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value"><span class="tag ${tc}">${esc(String(v))}</span></span></span>`;
           }
         } else if (f.link) {
