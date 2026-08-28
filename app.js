@@ -1394,8 +1394,8 @@ MODULES['groupbuy-factories'] = {
 MODULES['groupbuy-samples'] = {
   store: 'samples',
   fields: [
-    { key: 'factory', label: '厂家', type: 'combobox', options: [], hint: '从厂家记录加载', noOptionManage: true },
-    { key: 'category', label: '打样品类', type: 'combobox', options: [], placeholder: '选择或输入品类...' },
+    { key: 'factory', label: '厂家', type: 'combobox', options: [], hint: '从厂家记录加载', placeholder: '请选择或输入厂家', noOptionManage: true },
+    { key: 'category', label: '打样品类', type: 'combobox', options: [], placeholder: '请选择或输入品类' },
     { key: 'sampleName', label: '样品名称', type: 'text' },
     { key: 'sampleTime', label: '打样时间', type: 'date', default: todayStr() },
     { key: 'cost', label: '打样费用', type: 'number', hint: '元', row: 'sampleCostQty' },
@@ -1584,7 +1584,7 @@ function commDetailDisplayField() {
 }
 // 通用「其他/备注」字段
 function commDetailOtherField() {
-  return { key: 'other', label: '备注', type: 'textarea', placeholder: '其他补充需求...' };
+  return { key: 'other', label: '其他补充需求', type: 'textarea' };
 }
 // 通用「接收邮箱」字段（预填邮箱，只读展示）
 function commDetailFixedEmailField() {
@@ -1672,14 +1672,14 @@ function cdTwyProductComboboxHTML(id, value) {
   const defaultOpts = ['壁纸', '封口贴', '封面', '海报', '卡套', '手持镜', '手机壳', '小卡', '易拉宝'];
   const opts = getFieldOpts('design-commission-detail-twy', 'product', defaultOpts.map(v => ({ value: v, label: v }))).map(o => o.value);
   const optHTML = opts.map(n => `<div class="combobox-option" onclick="selectComboboxOption('${id}',this)" data-value="${esc(n)}">${esc(n)}</div>`).join('');
-  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="product" value="${esc(value || '')}" placeholder="选择或输入制品" onfocus="showComboboxDropdown('${id}')" onclick="showComboboxDropdown('${id}')" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${optHTML}</div><input type="hidden" class="combobox-value" data-key="product" value="${esc(value || '')}"></div>`;
+  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="product" value="${esc(value || '')}" placeholder="请选择或输入制品" onfocus="showComboboxDropdown('${id}')" onclick="showComboboxDropdown('${id}')" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${optHTML}</div><input type="hidden" class="combobox-value" data-key="product" value="${esc(value || '')}"></div>`;
 }
 // 封面约稿单：类型排版·类型下拉框（默认 8 项；可在「设置-选项管理」自定义）
 function cdFmGenreComboboxHTML(id, value) {
   const defaultOpts = ['都市', '古风', '灵异', 'Q版', '素锦', '玄幻', '校园', '言情'];
   const opts = getFieldOpts('design-commission-detail-fm', 'genre', defaultOpts.map(v => ({ value: v, label: v }))).map(o => o.value);
   const optHTML = opts.map(n => `<div class="combobox-option" onclick="selectComboboxOption('${id}',this)" data-value="${esc(n)}">${esc(n)}</div>`).join('');
-  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="genre" value="${esc(value || '')}" placeholder="类型" onfocus="showComboboxDropdown('${id}')" onclick="showComboboxDropdown('${id}')" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${optHTML}</div></div>`;
+  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="genre" value="${esc(value || '')}" placeholder="请选择或输入类型" onfocus="showComboboxDropdown('${id}')" onclick="showComboboxDropdown('${id}')" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${optHTML}</div></div>`;
 }
 // 土味约稿单：选择价目表制品后自动回填默认尺寸/出血（仅当制品命中价目表时）
 function cdTwyBindProductAutoFill(container) {
@@ -2196,7 +2196,7 @@ function renderListPage(pageKey, mod) {
 
   // Toolbar (新增置顶)：始终占满顶部，不参与双栏
   html += '<div class="toolbar">';
-  html += `<div class="search-box"><input type="text" placeholder="搜索..." value="${esc(ps.search)}" oninput="onSearch('${pageKey}', this.value)"><span class="search-icon">🔍</span></div>`;
+  html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onSearch('${pageKey}', this.value)"><span class="search-icon">🔍</span></div>`;
   if (mod.filters) {
     let modFilters = mod.filters;
     if (pageKey === 'design-inspiration') {
@@ -3305,7 +3305,7 @@ function renderHome() {
 
     // Toolbar
     html += '<div class="toolbar" style="margin-top:4px">';
-    html += `<div class="search-box"><input type="text" placeholder="搜索..." value="${esc(ps.search)}" oninput="homeSearch(this.value)"><span class="search-icon">🔍</span></div>`;
+    html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="homeSearch(this.value)"><span class="search-icon">🔍</span></div>`;
     html += `<input type="text" class="filter-select" value="${ps.dateFilter}" placeholder="请选择日期" title="请选择日期" onfocus="this.type='date';try{this.showPicker()}catch(e){}" onblur="if(!this.value)this.type='text'" onchange="homeDateFilter(this.value)">`;
     html += `<button class="filter-select" onclick="homeClearFilter()" style="cursor:pointer;border:1px solid var(--c-border)">清除筛选</button>`;
     html += '<div class="spacer"></div>';
@@ -8066,7 +8066,7 @@ function renderCommissionDetailPage() {
 
   // 3) 搜索条（无新增按钮）
   html += '<div class="toolbar cd-toolbar">';
-  html += `<div class="search-box"><input type="text" placeholder="搜索..." value="${esc(ps.search)}" oninput="onCdSearch(this.value)"><span class="search-icon">🔍</span></div>`;
+  html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onCdSearch(this.value)"><span class="search-icon">🔍</span></div>`;
   html += '</div>';
 
   // 4) 接稿条模块：按月分页，一页最多 10 条，开稿日期最近在最上
