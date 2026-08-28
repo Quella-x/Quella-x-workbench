@@ -449,7 +449,7 @@ ul,li{list-style:none}
 .form-row.inline{flex-direction:row;gap:12px}
 /* v26: 动态列表容器所在的 form-row — 标签到容器的间距与普通 form-row label→input 一致 (8px)；v575 收紧合作记录上方间距 */
 .form-row:has(> .dynamic-list-container){gap:8px}
-.form-row:has(> .dynamic-list-container[data-key="cooperationRecords"]){margin-top:-8px}
+.form-row:has(> .dynamic-list-container[data-key="cooperationRecords"]){margin-top:-14px}
 .form-row.inline{flex-direction:row;gap:12px}
 .form-row.inline>*{flex:1}
 .form-label{font-size:13px;font-weight:500;color:var(--c-text)}
@@ -2585,7 +2585,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=575"></script>
+  <script src="app.js?v=576"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
