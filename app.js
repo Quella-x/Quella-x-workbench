@@ -2589,7 +2589,7 @@ function goPage(pageKey, pageNo) {
 }
 
 /* ===== Commission Calendar View (v16: 开稿~截稿时间段连续显示, 不同稿件不同颜色) ===== */
-const CAL_URGENCY_COLORS = ['#e8857e', '#fa8c16', '#7ab5f5']; // soft red, orange, blue — by urgency: ≤2天红, 3-5天橙, >5天蓝
+const CAL_URGENCY_COLORS = ['#e8857e', '#f6ad5c', '#7ab5f5']; // soft red, orange, blue — by urgency: ≤2天红, 3-5天橙, >5天蓝（v592：橙降饱和与红绿蓝一致）
 const CAL_MAX_TRACKS = 3;
 const CAL_BAR_HEIGHT = 11;
 const CAL_BAR_GAP = 2;
@@ -2697,7 +2697,7 @@ function renderCommissionCalendar(year, month, records) {
     const cellMinHeight = 76; // fits 3 bars (22+3*13=61px) + padding
     const cls = 'cal-day' + (isOther ? ' other-month' : '') + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
     // v589：工期条 DOM 置于日期行之前，配合 z-index 确保日期行始终在最上方
-    return `<div class="${cls}" onclick="commissionDateClick('${dateStr}')" style="cursor:pointer;min-height:${cellMinHeight}px">${bars}<div class="cal-date-row"><span class="cal-date">${cd}</span>${commTagStr}</div></div>`;
+    return `<div class="${cls}" onclick="commissionDateClick('${dateStr}')" style="cursor:pointer;min-height:${cellMinHeight}px">${bars}<div class="cal-date-row"><span class="cal-date">${cd}</span><span class="cal-day-tags comm-tags-center">${commTagStr}</span></div></div>`;
   }
   for (let i = startWeekday - 1; i >= 0; i--) { html += renderCommCalCell(year, month - 1, prevMonthDays - i, true); }
   for (let d = 1; d <= daysInMonth; d++) { html += renderCommCalCell(year, month, d, false); }
@@ -2714,9 +2714,9 @@ function renderCommissionCalendar(year, month, records) {
   html += '</div>';
   html += '<div class="cal-legend-sep"></div>';
   html += '<div class="cal-legend">';
-  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[0]}"></span>紧急（截稿≤2天）</span>`;
-  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[1]}"></span>正常（3-5天）</span>`;
-  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[2]}"></span>充裕（>5天）</span>`;
+  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[0]}"></span>截稿≤2天</span>`;
+  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[1]}"></span>3-5天</span>`;
+  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[2]}"></span>>5天</span>`;
   html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:#7ec678"></span>已交付</span>`;
   html += '</div>';
   html += '</div>';
