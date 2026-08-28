@@ -3172,15 +3172,12 @@ function openDetail(pageKey, id) {
       };
       const commThLabel = c => c.subkey === 'patternId' ? '柄图<br>标识' : esc(c.label);
       const isGb = (pageKey === 'groupbuy-records');
-      // v454：售后记录 orderNo/quantity/amount 固定62px，其余三列(name/type/note)自动均分；制品列表保持原宽(name90+price62+factory104+salesCount62+isDisbanded62=380)。
+      // v568：制品列表与售后记录表格宽度保持一致——两者均保留数字列固定 62px，文本列(制品名称/对应厂家 与 制品名称/补偿方式/备注)改为自适应，由 table-layout:fixed 把剩余宽度均分填满 100%，避免制品列表因全列写死宽度而不撑满、比售后记录窄。
       const isAfterSales = f.key === 'afterSales';
       const gbColStyle = (c, forTh) => {
         const ws = forTh ? '' : 'white-space:nowrap;';
         if (isAfterSales && ['orderNo','quantity','amount'].includes(c.subkey)) return ` style="width:62px;${ws}"`;
         if (!isAfterSales && ['price','salesCount','isDisbanded'].includes(c.subkey)) return ` style="width:62px;${ws}"`;
-        if (!isAfterSales && c.subkey === 'factory') return ` style="width:104px;${ws}"`;
-        if (!isAfterSales && c.subkey === 'name') return ` style="width:90px;${ws}"`;
-        if (!isAfterSales && c.subkey === 'note') return ` style="width:90px;${ws}"`;
         return '';
       };
       const thStyle = c => isCommProd ? commColStyle(c, true) : (isGb ? gbColStyle(c, true) : '');
