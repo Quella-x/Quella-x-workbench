@@ -481,6 +481,20 @@ function buildFormField(f, data, moduleKey, wrap) {
         html = html.replace(twyMatch[0], cdTwyProductComboboxHTML('cdTwyProductBox', data.product || ''));
       }
     }
+    // 封面约稿单：类型排版·类型下拉框改为从「设置-选项管理」读取（默认 8 项 + 自定义）
+    if (moduleKey === 'design-commission-detail-fm') {
+      try {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const genreInp = doc.querySelector('input[data-key="genre"]');
+        if (genreInp) {
+          const genreWrap = genreInp.closest('.combobox-wrapper');
+          if (genreWrap) {
+            genreWrap.outerHTML = cdFmGenreComboboxHTML('cdFmGenreCb', data.genre || '');
+            html = doc.body.innerHTML;
+          }
+        }
+      } catch (e) {}
+    }
     // 将 data 中的值回填到 custom 内的 input/textarea（支持聊天记录解析回填 & 编辑回填）
     html = html.replace(/<(input|textarea)([^>]*?)\bdata-key="([^"]+)"([^>]*)>/g, (mm, tag, pre, k, post) => {
       const v = data[k];
@@ -1380,7 +1394,7 @@ MODULES['groupbuy-factories'] = {
 MODULES['groupbuy-samples'] = {
   store: 'samples',
   fields: [
-    { key: 'factory', label: '厂家', type: 'combobox', options: [], hint: '从厂家记录加载' },
+    { key: 'factory', label: '厂家', type: 'combobox', options: [], hint: '从厂家记录加载', noOptionManage: true },
     { key: 'category', label: '打样品类', type: 'combobox', options: [], placeholder: '选择或输入品类...' },
     { key: 'sampleName', label: '样品名称', type: 'text' },
     { key: 'sampleTime', label: '打样时间', type: 'date', default: todayStr() },
@@ -1653,11 +1667,19 @@ function cdBindProductAutoFill(container) {
   container.querySelectorAll('.cd-ep-product-box').forEach(box => bindBox(box));
 }
 
-// 土味约稿单：制品下拉框（固定 9 项，按拼音 A-Z 排序；与价目表联动，选择后自动回填尺寸/出血）
+// 土味约稿单：制品下拉框（默认 9 项；可在「设置-选项管理」自定义，选择后自动回填尺寸/出血）
 function cdTwyProductComboboxHTML(id, value) {
-  const opts = ['壁纸', '封口贴', '封面', '海报', '卡套', '手持镜', '手机壳', '小卡', '易拉宝'];
+  const defaultOpts = ['壁纸', '封口贴', '封面', '海报', '卡套', '手持镜', '手机壳', '小卡', '易拉宝'];
+  const opts = getFieldOpts('design-commission-detail-twy', 'product', defaultOpts.map(v => ({ value: v, label: v }))).map(o => o.value);
   const optHTML = opts.map(n => `<div class="combobox-option" onclick="selectComboboxOption('${id}',this)" data-value="${esc(n)}">${esc(n)}</div>`).join('');
   return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="product" value="${esc(value || '')}" placeholder="选择或输入制品" onfocus="showComboboxDropdown('${id}')" onclick="showComboboxDropdown('${id}')" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${optHTML}</div><input type="hidden" class="combobox-value" data-key="product" value="${esc(value || '')}"></div>`;
+}
+// 封面约稿单：类型排版·类型下拉框（默认 8 项；可在「设置-选项管理」自定义）
+function cdFmGenreComboboxHTML(id, value) {
+  const defaultOpts = ['都市', '古风', '灵异', 'Q版', '素锦', '玄幻', '校园', '言情'];
+  const opts = getFieldOpts('design-commission-detail-fm', 'genre', defaultOpts.map(v => ({ value: v, label: v }))).map(o => o.value);
+  const optHTML = opts.map(n => `<div class="combobox-option" onclick="selectComboboxOption('${id}',this)" data-value="${esc(n)}">${esc(n)}</div>`).join('');
+  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="genre" value="${esc(value || '')}" placeholder="类型" onfocus="showComboboxDropdown('${id}')" onclick="showComboboxDropdown('${id}')" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${optHTML}</div></div>`;
 }
 // 土味约稿单：选择价目表制品后自动回填默认尺寸/出血（仅当制品命中价目表时）
 function cdTwyBindProductAutoFill(container) {
@@ -1916,8 +1938,8 @@ MODULES['oc-profiles'] = {
 MODULES['oc-relations'] = {
   store: 'ocRelations',
   fields: [
-    { key: 'charA', label: '人物1', type: 'combobox', options: [], hint: '从人物档案加载' },
-    { key: 'charB', label: '人物2', type: 'combobox', options: [], hint: '从人物档案加载' },
+    { key: 'charA', label: '人物1', type: 'combobox', options: [], hint: '从人物档案加载', noOptionManage: true },
+    { key: 'charB', label: '人物2', type: 'combobox', options: [], hint: '从人物档案加载', noOptionManage: true },
     { key: 'relationType', label: '关系类型', type: 'multiselect', allowCustom: true, options: [{ value: '表亲', label: '表亲' }, { value: '道侣', label: '道侣' }, { value: '敌对', label: '敌对' }, { value: '父女', label: '父女' }, { value: '父子', label: '父子' }, { value: '好友', label: '好友' }, { value: '姐弟', label: '姐弟' }, { value: '交好', label: '交好' }, { value: '姐妹', label: '姐妹' }, { value: '母女', label: '母女' }, { value: '母子', label: '母子' }, { value: '师徒', label: '师徒' }, { value: '上下级', label: '上下级' }, { value: '同门', label: '同门' }, { value: '堂亲', label: '堂亲' }, { value: '兄弟', label: '兄弟' }, { value: '兄妹', label: '兄妹' }] },
     { key: 'relationDetail', label: '关系细节', type: 'textarea' },
     { key: 'relationStatus', label: '关系状态', type: 'multiselect', single: true, default: '稳定', options: [{ value: '稳定', label: '稳定' }, { value: '变化中', label: '变化中' }] },
@@ -1935,7 +1957,7 @@ MODULES['oc-stories'] = {
   store: 'ocStories',
   fields: [
     { key: 'title', label: '剧情标题', type: 'text' },
-    { key: 'characterIds', label: '关联OC', type: 'multiselect', options: [], hint: '从人物档案加载' },
+    { key: 'characterIds', label: '关联OC', type: 'multiselect', options: [], hint: '从人物档案加载', noOptionManage: true },
     { key: 'tags', label: '剧情标签', type: 'multiselect', single: true, default: '灵感', options: [{ value: '主线', label: '主线' }, { value: '支线', label: '支线' }, { value: '日常', label: '日常' }, { value: '随笔', label: '随笔' }, { value: '灵感', label: '灵感' }] },
     { key: 'isComplete', label: '剧情状态', type: 'multiselect', single: true, default: '连载中', options: [{ value: '连载中', label: '连载中' }, { value: '已完结', label: '已完结' }] },
     { key: 'content', label: '剧情内容', type: 'textarea', hint: '支持多段落写作' },
@@ -1964,7 +1986,7 @@ MODULES['oc-timeline'] = {
       { value: '绿', label: '一般' },
       { value: '蓝', label: '次要' },
     ]},
-    { key: 'characterIds', label: '关联人物', type: 'multiselect', options: [], hint: '从人物档案加载' },
+    { key: 'characterIds', label: '关联人物', type: 'multiselect', options: [], hint: '从人物档案加载', noOptionManage: true },
     { key: 'source', label: '事件来源', type: 'text', hint: '手动创建或从故事小记导入' },
   ],
   listFields: [
@@ -1978,7 +2000,7 @@ MODULES['oc-timeline'] = {
 MODULES['oc-commission'] = {
   store: 'ocCommissions',
   fields: [
-    { key: 'oc', label: 'OC', type: 'combobox', options: [], hint: '从人物档案加载' },
+    { key: 'oc', label: 'OC', type: 'combobox', options: [], hint: '从人物档案加载', noOptionManage: true },
     { key: 'artistName', label: '画师名称', type: 'text' },
     { key: 'commissionType', label: '约稿类型', type: 'multiselect', options: [{ value: '头像', label: '头像' }, { value: '半身', label: '半身' }, { value: '立绘', label: '立绘' }, { value: '插画', label: '插画' }, { value: 'Q版', label: 'Q版' }, { value: '服装', label: '服装' }, { value: '武器', label: '武器' }, { value: '小物', label: '小物' }, { value: '印象', label: '印象' }] },
     { key: 'usageType', label: '稿件用途', type: 'multiselect', single: true, default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
@@ -5622,8 +5644,9 @@ function renderFieldSettings(html) {
       html += `<div class="field-edit-row"><label>${esc(f.label)}</label><input type="text" id="fld_${f.key}" value="${esc(customLabel)}" placeholder="${esc(f.label)}"></div>`;
     });
     html += '</div>';
-    const optFields = mod.fields.filter(f => f.type === 'combobox' || f.type === 'multiselect');
-    if (optFields.length) {
+    const optFields = mod.fields.filter(f => (f.type === 'combobox' || f.type === 'multiselect') && !f.noOptionManage);
+    const hasCustomManaged = _settingsModule === 'design-commission-detail-twy' || _settingsModule === 'design-commission-detail-fm';
+    if (optFields.length || hasCustomManaged) {
       html += '<h4 style="font-size:13px;margin:20px 0 8px;color:var(--c-primary)">选项管理</h4>';
       optFields.forEach(f => {
         const key = _settingsModule + '.' + f.key;
@@ -5650,6 +5673,32 @@ function renderFieldSettings(html) {
           html += `</div></div></div>`;
         }
       });
+      // 土味约稿单：制品信息·制品下拉框（默认 9 项 + 自定义）
+      if (_settingsModule === 'design-commission-detail-twy') {
+        const prodKey = 'design-commission-detail-twy.product';
+        const prodCustomOpts = (s.fieldOptions && s.fieldOptions[prodKey]) || [];
+        const prodDefaultOpts = ['壁纸', '封口贴', '封面', '海报', '卡套', '手持镜', '手机壳', '小卡', '易拉宝'];
+        const prodOpts = prodCustomOpts.length ? prodCustomOpts : prodDefaultOpts;
+        html += `<div style="margin-bottom:12px"><div class="option-field-block"><div class="option-field-title">制品信息·制品</div><div class="option-field-inputs" id="opts_product">`;
+        prodOpts.forEach((opt, i) => {
+          html += `<div class="option-edit-item"><input type="text" value="${esc(opt)}" data-opt-key="product" data-idx="${i}"><button class="btn-icon danger" onclick="this.parentElement.remove()">🗑️</button></div>`;
+        });
+        html += `<div class="option-edit-item" style="margin-bottom:0"><button class="btn btn-primary add-opt-btn" onclick="addOptionItem('product')">+ 添加选项</button><span class="option-delete-placeholder"></span></div>`;
+        html += `</div></div></div>`;
+      }
+      // 封面约稿单：类型排版·类型下拉框（默认 8 项 + 自定义）
+      if (_settingsModule === 'design-commission-detail-fm') {
+        const genreKey = 'design-commission-detail-fm.genre';
+        const genreCustomOpts = (s.fieldOptions && s.fieldOptions[genreKey]) || [];
+        const genreDefaultOpts = ['都市', '古风', '灵异', 'Q版', '素锦', '玄幻', '校园', '言情'];
+        const genreOpts = genreCustomOpts.length ? genreCustomOpts : genreDefaultOpts;
+        html += `<div style="margin-bottom:12px"><div class="option-field-block"><div class="option-field-title">类型排版·类型</div><div class="option-field-inputs" id="opts_genre">`;
+        genreOpts.forEach((opt, i) => {
+          html += `<div class="option-edit-item"><input type="text" value="${esc(opt)}" data-opt-key="genre" data-idx="${i}"><button class="btn-icon danger" onclick="this.parentElement.remove()">🗑️</button></div>`;
+        });
+        html += `<div class="option-edit-item" style="margin-bottom:0"><button class="btn btn-primary add-opt-btn" onclick="addOptionItem('genre')">+ 添加选项</button><span class="option-delete-placeholder"></span></div>`;
+        html += `</div></div></div>`;
+      }
     }
   }
   html += '</div>';
@@ -5868,7 +5917,7 @@ function saveSettingsAction() {
         else delete s.fieldLabels[key];
       }
     });
-    const optFields = mod.fields.filter(f => f.type === 'combobox' || f.type === 'multiselect');
+    const optFields = mod.fields.filter(f => (f.type === 'combobox' || f.type === 'multiselect') && !f.noOptionManage);
     optFields.forEach(f => {
       const key = _settingsModule + '.' + f.key;
       const items = [];
@@ -5883,6 +5932,22 @@ function saveSettingsAction() {
       const craftKey = _settingsModule + '.craft';
       if (craftItems.length) s.fieldOptions[craftKey] = craftItems;
       else delete s.fieldOptions[craftKey];
+    }
+    // 土味约稿单：保存制品信息·制品下拉框的自定义选项
+    if (_settingsModule === 'design-commission-detail-twy') {
+      const prodItems = [];
+      $$('#opts_product input').forEach(input => { if (input.value.trim()) prodItems.push(input.value.trim()); });
+      const prodKey = 'design-commission-detail-twy.product';
+      if (prodItems.length) s.fieldOptions[prodKey] = prodItems;
+      else delete s.fieldOptions[prodKey];
+    }
+    // 封面约稿单：保存类型排版·类型下拉框的自定义选项
+    if (_settingsModule === 'design-commission-detail-fm') {
+      const genreItems = [];
+      $$('#opts_genre input').forEach(input => { if (input.value.trim()) genreItems.push(input.value.trim()); });
+      const genreKey = 'design-commission-detail-fm.genre';
+      if (genreItems.length) s.fieldOptions[genreKey] = genreItems;
+      else delete s.fieldOptions[genreKey];
     }
   }
   // Cloud sync config (数据管理页)
