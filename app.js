@@ -1690,7 +1690,7 @@ MODULES['design-commission-detail-twy'] = {
     { key: 'clientInfo', label: '单主', type: 'text', placeholder: '单主姓名（用于与接稿排期联动）', localOnly: true },
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
-    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息<span class="form-label-hint">特殊尺寸出血请修改 可直接给模板</span></label><div class="style-color-box info-box cd-product-box cd-twy-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input combobox-input cd-twy-product-combobox" data-key="product" placeholder="选择或输入制品"></div><div class="style-color-col"><span class="style-color-col-label">排版</span><input type="text" class="form-input" data-key="layout" placeholder="排版"></div><div class="style-color-col"><span class="style-color-col-label">尺寸</span><input type="text" class="form-input" data-key="size" placeholder="随制品自动填入"></div><div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-key="bleed" placeholder="出血"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">制品信息<span class="form-label-hint">特殊尺寸出血请修改 可直接给模板</span></label><div class="style-color-box info-box cd-product-box cd-twy-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input combobox-input cd-twy-product-combobox" data-key="product" placeholder="选择或输入制品"></div><div class="style-color-col"><span class="style-color-col-label">排版</span><input type="text" class="form-input" data-key="layout" placeholder="排版"></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">初始为默认尺寸</span></span><input type="text" class="form-input" data-key="size" placeholder="随制品自动填入"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">初始为默认出血</span></span><input type="text" class="form-input" data-key="bleed" placeholder="出血"></div></div></div>' },
     { key: 'bookName', label: '书名/文字', type: 'text' },
     { key: 'authorName', label: '作者名', type: 'text' },
     { key: 'copyText', label: '文案/小字', type: 'textarea' },
@@ -7972,7 +7972,7 @@ function renderCommissionDetailPage() {
     </div>
     <div class="cd-import-btn" onclick="openCdImportJson()">
       <div class="cd-import-btn-icon">📋</div>
-      <div class="cd-import-btn-name">腾讯问卷导入</div>
+      <div class="cd-import-btn-name">JSON 导入</div>
     </div>
     <div class="cd-import-btn" onclick="openCdClientForm()">
       <div class="cd-import-btn-icon">📨</div>
@@ -8808,16 +8808,16 @@ function runCdChatParse() {
   setTimeout(() => { setupFormInteractions(catKey); }, 50);
   Toast.success('已识别 ' + hit + ' 个字段，请核对后保存');
 }
-// 2. 腾讯问卷 / JSON 导入：粘贴 JSON 批量导入
+// 2. JSON 导入：粘贴 JSON 批量导入
 function openCdImportJson() {
   let html = '<div class="cd-import-modal">';
-  html += '<div class="cd-import-tip">支持两种来源：①腾讯问卷导出的 JSON（字段名需与表单一致）；②本系统「生成约稿单导入」导出的回填 JSON。粘贴后选择分类批量导入。</div>';
+  html += '<div class="cd-import-tip">支持本系统「生成约稿单导入」导出的回填 JSON。粘贴后选择分类批量导入。</div>';
   // v451：上边距设 0（蓝块下边距已提供 8px 上留白），下边距 8px，使下拉框上下对称
   html += `<div style="margin-top:0;margin-bottom:10px"><label class="form-label">选择分类</label>${cdCatComboboxHTML('cdJsonCat', COMM_DETAIL_CATS[0].key)}</div>`;
   html += `<textarea class="form-textarea cd-chat-input" id="cdJsonInput" placeholder='[{"category":"土味","clientInfo":"小明","bookName":"青春纪事",...}]'></textarea>`;
   html += `<div class="cd-import-actions"><button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="runCdJsonImport()">解析并导入</button></div>`;
   html += '</div>';
-  openModal('腾讯问卷 / JSON 导入', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'lg add60');
+  openModal('JSON 导入', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'lg add60');
 }
 function runCdJsonImport() {
   const text = ($('#cdJsonInput').value || '').trim();
