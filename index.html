@@ -467,7 +467,7 @@ ul,li{list-style:none}
 .form-select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237f8c9a' d='M6 9L1 4h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px}
 .form-hint{font-size:11px;color:var(--c-text-muted)}
 /* v450-5：展示/录入模块分组标题（含九大模块详情分组），底部分割线与接稿详情右侧 .cdc-header 一致 */
-.form-section{font-size:13px;font-weight:600;color:var(--c-primary);margin:16px 0 14px;padding-bottom:6px;border-bottom:1.5px solid var(--c-border)}
+.form-section{font-size:13px;font-weight:600;color:var(--c-primary);margin:16px 0 10px;padding-bottom:6px;border-bottom:1.5px solid var(--c-border)}
 .form-section:first-child{margin-top:0}
 /* v32: 同行字段（row 属性）——一行多列 */
 .form-row-inline{margin-bottom:14px}
@@ -478,6 +478,7 @@ ul,li{list-style:none}
 .form-inline-field .form-input,.form-inline-field .form-select,.form-inline-field .form-textarea{width:100%}
 /* 风格颜色：一个大框内分两列（风格 / 颜色） */
 .style-color-row{margin-bottom:14px}
+.cd-title-gap14{margin-top:14px}
 .style-color-row>.form-label{display:block;margin-bottom:0}
 .form-label-hint{display:inline;font-size:11px;color:var(--c-text-muted);font-weight:400;margin-left:8px}
 .style-color-box{display:flex;gap:12px;border:1px solid var(--c-border-light);border-radius:10px;padding:12px;background:#fff}
@@ -2583,7 +2584,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=559"></script>
+  <script src="app.js?v=560"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
