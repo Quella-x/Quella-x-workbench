@@ -489,10 +489,10 @@ ul,li{list-style:none}
 .date-picker-footer{display:flex;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--c-border)}
 .date-picker-footer button{background:none;border:none;color:var(--c-primary);font-size:14px;cursor:pointer;padding:4px 8px;border-radius:var(--radius-sm)}
 .date-picker-footer button:hover{background:var(--c-primary-bg)}
-/* v593：接稿日历日期格弹窗（统计 + 拖拽排序） */
+/* v593：接稿日历日期格弹窗（统计 + 拖拽排序）；v595 统计卡去掉蓝底 */
 .cal-date-popup{position:relative;background:var(--c-card);border-radius:12px;padding:16px;width:340px;max-width:92vw;box-shadow:0 12px 48px rgba(0,0,0,.22);font-size:14px;max-height:80vh;display:flex;flex-direction:column}
 .cal-date-stats{display:flex;gap:12px;margin:12px 0}
-.cal-date-stat{flex:1;background:var(--c-primary-bg);border-radius:10px;padding:10px 12px;text-align:center}
+.cal-date-stat{flex:1;border-radius:10px;padding:10px 12px;text-align:center}
 .cal-date-stat .num{font-size:22px;font-weight:700;line-height:1.1}
 .cal-date-stat .lbl{font-size:12px;color:var(--c-text-muted);margin-top:2px}
 .cal-date-list{overflow-y:auto;flex:1;margin:0;padding:0;list-style:none}
@@ -2636,7 +2636,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=594"></script>
+  <script src="app.js?v=595"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

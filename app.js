@@ -2603,20 +2603,15 @@ function calcProductQty(r) {
   if (!prods.length) return 1; // fallback: count as 1 if no products
   return prods.reduce((sum, p) => sum + (parseInt(p.quantity) || 1), 0);
 }
-// 单条节点任务条颜色：已交付绿 > 开+截紫 > 截稿(按紧迫度) > 开稿橙
-function commissionBarColor(r, dateStr, todayTime) {
+// 工期条颜色：只按「已交付 / 截稿紧迫度」出红橙蓝绿四色，不出现其他任何颜色
+function commissionBarColor(r, todayTime) {
   if (valIncludes(r.progress, '已交付')) return CAL_DELIVERED_COLOR;
-  const isStart = (r.startTime || r.acceptTime || '') === dateStr;
-  const isEnd = (r.deadline || '') === dateStr;
-  if (isStart && isEnd) return CAL_BOTH_COLOR;
-  if (isEnd) {
-    const daysLeft = (new Date(r.deadline).getTime() - todayTime) / 86400000;
-    if (daysLeft <= 2) return CAL_URGENCY_COLORS[0];
-    if (daysLeft <= 5) return CAL_URGENCY_COLORS[1];
-    return CAL_URGENCY_COLORS[2];
-  }
-  return CAL_START_COLOR; // 开稿橙
+  const daysLeft = (new Date(r.deadline).getTime() - todayTime) / 86400000;
+  if (daysLeft <= 2) return CAL_URGENCY_COLORS[0];
+  if (daysLeft <= 5) return CAL_URGENCY_COLORS[1];
+  return CAL_URGENCY_COLORS[2];
 }
+
 function loadCalSort(dateStr) {
   try { const v = localStorage.getItem('xiao_cal_sort_' + dateStr); return v ? JSON.parse(v) : null; } catch (e) { return null; }
 }
@@ -2631,53 +2626,94 @@ function renderCommissionCalendar(year, month, records) {
   const todayKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
   const todayTime = today.getTime();
   const ps = pageState['design-commission'] || {};
+  // v595：工期条保留「开稿~截稿」连续跨度（不做跨格截断）
+  const periodRecords = records.filter(r => {
+    const start = r.startTime || r.acceptTime || '';
+    const end = r.deadline || '';
+    return start && end;
+  }).sort((a, b) => {
+    const aStart = a.startTime || a.acceptTime || '';
+    const bStart = b.startTime || b.acceptTime || '';
+    return aStart.localeCompare(bStart);
+  });
+  // 贪心分配轨道：同一任务跨天保持同一行
+  const tracks = [];
+  const recordTrack = {};
+  periodRecords.forEach(r => {
+    const rStart = r.startTime || r.acceptTime || '';
+    const rEnd = r.deadline || '';
+    let assigned = false;
+    for (let t = 0; t < tracks.length; t++) {
+      const conflict = tracks[t].some(o => {
+        const oStart = o.startTime || o.acceptTime || '';
+        const oEnd = o.deadline || '';
+        return !(rEnd < oStart || rStart > oEnd);
+      });
+      if (!conflict) { tracks[t].push(r); recordTrack[r.id] = t; assigned = true; break; }
+    }
+    if (!assigned) { tracks.push([r]); recordTrack[r.id] = tracks.length - 1; }
+  });
 
   function renderCommCalCell(cy, cm, cd, isOther) {
     const dateStr = cy + '-' + String(cm + 1).padStart(2, '0') + '-' + String(cd).padStart(2, '0');
     const isStart = r => (r.startTime || r.acceptTime || '') === dateStr;
     const isEnd = r => (r.deadline || '') === dateStr;
-    const nodeRecs = records.filter(r => isStart(r) || isEnd(r));
+    const dayPeriods = periodRecords.filter(r => {
+      const start = r.startTime || r.acceptTime || '';
+      const end = r.deadline || '';
+      return dateStr >= start && dateStr <= end;
+    });
     const saved = loadCalSort(dateStr);
-    if (saved && saved.length) {
-      nodeRecs.sort((a, b) => {
-        const ia = saved.indexOf(a.id), ib = saved.indexOf(b.id);
-        if (ia < 0 && ib < 0) return 0;
-        if (ia < 0) return 1;
-        if (ib < 0) return -1;
-        return ia - ib;
-      });
+    // v595：当日「开稿/截稿」节点任务置顶，其余按轨道顺序保持跨天同行；同组内应用本地拖拽排序
+    const ordered = dayPeriods.slice().sort((a, b) => {
+      const na = (isStart(a) || isEnd(a)) ? 0 : 1;
+      const nb = (isStart(b) || isEnd(b)) ? 0 : 1;
+      if (na !== nb) return na - nb;
+      const ta = recordTrack[a.id] || 0, tb = recordTrack[b.id] || 0;
+      if (ta !== tb) return ta - tb;
+      const sa = saved ? saved.indexOf(a.id) : -1, sb = saved ? saved.indexOf(b.id) : -1;
+      if (sa < 0 && sb < 0) return 0;
+      if (sa < 0) return 1;
+      if (sb < 0) return -1;
+      return sa - sb;
+    });
+    // 上限 3 条：优先隐藏已交付（从尾部删），仍超则截断；不再显示 +N
+    let list = ordered;
+    if (list.length > CAL_MAX_TRACKS) {
+      const drop = new Set();
+      let need = list.length - CAL_MAX_TRACKS;
+      for (let i = list.length - 1; i >= 0 && need > 0; i--) {
+        if (valIncludes(list[i].progress, '已交付')) { drop.add(i); need--; }
+      }
+      let rest = list.filter((r, i) => !drop.has(i));
+      if (rest.length > CAL_MAX_TRACKS) rest = rest.slice(0, CAL_MAX_TRACKS);
+      list = rest;
     }
-    const bothRecords = nodeRecs.filter(r => isStart(r) && isEnd(r));
-    const startRecords = nodeRecs.filter(r => isStart(r) && !isEnd(r));
-    const deadlineRecords = nodeRecs.filter(r => isEnd(r) && !isStart(r));
+    const bothRecords = records.filter(r => isStart(r) && isEnd(r));
+    const startRecords = records.filter(r => isStart(r) && !isEnd(r));
+    const deadlineRecords = records.filter(r => isEnd(r) && !isStart(r));
     const isToday = dateStr === todayKey;
     const isSelected = ps.dateFilter === dateStr;
     let commTagStr = '';
     if (bothRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_BOTH_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_BOTH_COLOR + '">开+截</span></span>';
     if (startRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_START_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_START_COLOR + '">开稿</span></span>';
     if (deadlineRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_END_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_END_COLOR + '">截稿</span></span>';
-    const delivered = nodeRecs.filter(r => valIncludes(r.progress, '已交付'));
-    const normal = nodeRecs.filter(r => !valIncludes(r.progress, '已交付'));
-    let shown, hidden;
-    if (normal.length > CAL_MAX_TRACKS) {
-      shown = normal.slice(0, CAL_MAX_TRACKS);
-      hidden = normal.slice(CAL_MAX_TRACKS).concat(delivered);
-    } else {
-      const room = CAL_MAX_TRACKS - normal.length;
-      shown = normal.concat(delivered.slice(0, room));
-      hidden = delivered.slice(0, room);
-    }
     let bars = '';
-    shown.forEach((r, i) => {
-      const color = commissionBarColor(r, dateStr, todayTime);
+    list.forEach((r, i) => {
+      const start = r.startTime || r.acceptTime || '';
+      const end = r.deadline || '';
+      const sFlag = dateStr === start;
+      const eFlag = dateStr === end;
+      const color = commissionBarColor(r, todayTime);
+      let cls = 'cal-period-bar middle';
+      if (sFlag && eFlag) cls = 'cal-period-bar full';
+      else if (sFlag) cls = 'cal-period-bar start';
+      else if (eFlag) cls = 'cal-period-bar end';
       const qty = calcProductQty(r);
-      const tag = valIncludes(r.progress, '已交付') ? '✓' : (isStart(r) && isEnd(r) ? '开+截' : (isEnd(r) ? '截' : '开'));
-      const name = esc(r.clientInfo || '未命名');
-      bars += '<div class="cal-period-bar full" title="' + name + '" style="background:' + color + ';top:' + (22 + i * (CAL_BAR_HEIGHT + CAL_BAR_GAP)) + 'px;height:' + CAL_BAR_HEIGHT + 'px;line-height:' + CAL_BAR_HEIGHT + 'px">' + name + ' ' + qty + '件·' + tag + '</div>';
+      const label = sFlag ? (esc(r.clientInfo || '未命名') + ' ' + qty + '件') : '';
+      const topPx = 22 + i * (CAL_BAR_HEIGHT + CAL_BAR_GAP);
+      bars += '<div class="' + cls + '" style="background:' + color + ';top:' + topPx + 'px;height:' + CAL_BAR_HEIGHT + 'px;line-height:' + CAL_BAR_HEIGHT + 'px">' + label + '</div>';
     });
-    if (hidden.length) {
-      bars += '<div class="cal-period-overflow" style="top:' + (22 + shown.length * (CAL_BAR_HEIGHT + CAL_BAR_GAP)) + 'px">+' + hidden.length + '</div>';
-    }
     const cellMinHeight = 76;
     const cls = 'cal-day' + (isOther ? ' other-month' : '') + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
     return '<div class="' + cls + '" onclick="commissionDateClick(\'' + dateStr + '\')" style="cursor:pointer;min-height:' + cellMinHeight + 'px">' + bars + '<div class="cal-date-row"><span class="cal-date">' + cd + '</span><span class="cal-day-tags comm-tags-center">' + commTagStr + '</span></div></div>';
