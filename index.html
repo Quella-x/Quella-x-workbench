@@ -209,11 +209,13 @@ ul,li{list-style:none}
 }
 .toolbar .spacer{flex:1}
 .toolbar .btn-primary{width:112px;justify-content:center}
-/* v589：首页平台视图 日期输入框与新增记录按钮等宽（日历按钮绝对定位不占宽度） */
-.toolbar.home-toolbar .date-field-wrap{flex:0 0 160px;width:160px;position:relative}
-.toolbar.home-toolbar .date-field-wrap .filter-select{width:100%;flex:1 1 auto;padding-right:44px;text-align:center}
-.toolbar.home-toolbar .date-field-wrap .date-pick-btn{position:absolute;right:0;top:0;bottom:0;margin:0}
-.toolbar.home-toolbar .btn-primary{flex:0 0 160px;width:160px}
+/* v590：首页平台视图 日期输入框45% : 选择日期按钮10% : 新增记录按钮45% */
+.toolbar.home-toolbar{gap:0}
+.toolbar.home-toolbar .search-box{flex:1 1 100%;margin-bottom:8px}
+.toolbar.home-toolbar .date-field-wrap.home-date-wrap{flex:0 0 45%;width:45%}
+.toolbar.home-toolbar .date-field-wrap.home-date-wrap .filter-select{width:100%;padding-right:8px;text-align:center}
+.toolbar.home-toolbar .date-pick-btn.home-date-pick{flex:0 0 10%;width:10%;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border)!important;background:var(--c-primary-bg)!important;border-radius:var(--radius-sm);cursor:pointer;color:var(--c-primary)!important;padding:0;line-height:1;-webkit-tap-highlight-color:rgba(0,0,0,0)!important;touch-action:manipulation;-webkit-touch-callout:none}
+.toolbar.home-toolbar .btn-primary{flex:0 0 45%;width:45%}
 .view-toggle-top{
   display:flex;gap:8px;align-items:center;
   margin-bottom:8px;/* v225: 用户要求搜索框到切换按钮间距 8px */
@@ -962,10 +964,12 @@ ul,li{list-style:none}
   .filter-combobox{flex:1 1 0;min-width:0;width:auto;max-width:none}
   .toolbar .btn-primary{flex:1 1 0;min-width:0;width:auto;padding:8px 6px}
   .toolbar .toolbar-eq{flex:1 1 0;min-width:0;width:auto;padding:8px 6px}
-  .toolbar.home-toolbar .date-field-wrap{flex:1 1 0;min-width:0;width:auto;position:relative}
-  .toolbar.home-toolbar .date-field-wrap .filter-select{width:100%;flex:1 1 auto;padding-right:44px;text-align:center}
-  .toolbar.home-toolbar .date-field-wrap .date-pick-btn{position:absolute;right:0;top:0;bottom:0;margin:0}
-  .toolbar.home-toolbar .btn-primary{flex:1 1 0;min-width:0;width:auto;padding:8px 6px}
+  .toolbar.home-toolbar{gap:0}
+  .toolbar.home-toolbar .search-box{flex:1 1 100%;margin-bottom:6px}
+  .toolbar.home-toolbar .date-field-wrap.home-date-wrap{flex:0 0 45%;width:45%}
+  .toolbar.home-toolbar .date-field-wrap.home-date-wrap .filter-select{width:100%;padding-right:8px;text-align:center}
+  .toolbar.home-toolbar .date-pick-btn.home-date-pick{flex:0 0 10%;width:10%;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border)!important;background:var(--c-primary-bg)!important;border-radius:var(--radius-sm);cursor:pointer;color:var(--c-primary)!important;padding:0;line-height:1;-webkit-tap-highlight-color:rgba(0,0,0,0)!important;touch-action:manipulation;-webkit-touch-callout:none}
+  .toolbar.home-toolbar .btn-primary{flex:0 0 45%;width:45%;padding:8px 6px}
   .sync-badge{font-size:10px;padding:2px 6px;gap:3px}
   .sync-badge .sync-txt{display:none}
 }
@@ -2616,7 +2620,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=589"></script>
+  <script src="app.js?v=590"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

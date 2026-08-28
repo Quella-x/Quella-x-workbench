@@ -641,7 +641,12 @@ let currentDateBtn = null;
 let customDatePickerState = { year: 0, month: 0 };
 
 function openDatePicker(btn) {
-  const inp = btn.previousElementSibling;
+  let inp = btn.previousElementSibling;
+  if (!inp || !inp.matches('input')) {
+    // v590：首页 toolbar 中日期按钮与输入框不再是相邻兄弟，需从 toolbar 中查找
+    const toolbar = btn.closest('.home-toolbar');
+    if (toolbar) inp = toolbar.querySelector('.home-date-wrap input, .date-field-wrap input');
+  }
   if (!inp) return;
   currentDateInput = inp;
   currentDateBtn = btn;
@@ -2652,7 +2657,7 @@ function renderCommissionCalendar(year, month, records) {
   let html = '<div class="cal-grid commission-cal-grid">';
   ['日', '一', '二', '三', '四', '五', '六'].forEach(w => { html += `<div class="cal-weekday">${w}</div>`; });
   // v542：抽成单元格助手，prev/next 月补位格也渲染真实跨月工期条（不再空壳截断）
-  const barAreaTop = 32; // v589：标签可能换行，工期条起始位置下移避免覆盖日期行
+  const barAreaTop = 22; // v590：日期条位置保持不变，日期行靠 z-index 置顶
   function renderCommCalCell(cy, cm, cd, isOther) {
     const dateStr = cy + '-' + String(cm + 1).padStart(2, '0') + '-' + String(cd).padStart(2, '0');
     const dayPeriods = periodRecords.filter(r => {
@@ -2688,7 +2693,7 @@ function renderCommissionCalendar(year, month, records) {
       const topPx = barAreaTop + track * (CAL_BAR_HEIGHT + CAL_BAR_GAP);
       bars += `<div class="${cls}" style="background:${color};top:${topPx}px;height:${CAL_BAR_HEIGHT}px;line-height:${CAL_BAR_HEIGHT}px">${label}</div>`;
     });
-    const cellMinHeight = 76; // fits 3 bars (32+3*13=71px) + padding
+    const cellMinHeight = 76; // fits 3 bars (22+3*13=61px) + padding
     const cls = 'cal-day' + (isOther ? ' other-month' : '') + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
     // v589：工期条 DOM 置于日期行之前，配合 z-index 确保日期行始终在最上方
     return `<div class="${cls}" onclick="commissionDateClick('${dateStr}')" style="cursor:pointer;min-height:${cellMinHeight}px">${bars}<div class="cal-date-row"><span class="cal-date">${cd}</span>${commTagStr}</div></div>`;
@@ -3453,8 +3458,8 @@ function renderHome() {
     // Toolbar
     html += '<div class="toolbar home-toolbar" style="margin-top:4px">';
     html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="homeSearch(this.value)"><span class="search-icon">🔍</span></div>`;
-    html += `<div class="date-field-wrap"><input type="text" class="filter-select" value="${ps.dateFilter}" placeholder="请选择或输入日期" title="请选择或输入日期" onchange="homeDateFilter(this.value)"><button type="button" class="date-pick-btn" onclick="openDatePicker(this)" title="选择日期" aria-label="选择日期"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></button></div>`;
-    html += '<div class="spacer"></div>';
+    html += `<div class="date-field-wrap home-date-wrap"><input type="text" class="filter-select" value="${ps.dateFilter}" placeholder="请选择或输入日期" title="请选择或输入日期" onchange="homeDateFilter(this.value)"></div>`;
+    html += `<button type="button" class="date-pick-btn home-date-pick" onclick="openDatePicker(this)" title="选择日期" aria-label="选择日期"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></button>`;
     html += '<button class="btn btn-primary" onclick="openAddForm(\'home\')">+ 新增记录</button>';
     html += '</div>';
 
