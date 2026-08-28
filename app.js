@@ -1637,7 +1637,7 @@ MODULES['design-commission'] = {
     { label: '稿件用途', key: 'usageType' },
     { label: '开稿日期', key: 'startTime', date: true },
     { label: '截稿日期', key: 'deadline', date: true },
-    { label: '报价金额', key: 'quoteAmount' },
+    { label: '报价金额', key: 'quoteAmount', prefix: '¥' },
     { label: '支付状态', key: 'paymentStatus', tag: true },
     { label: '制品', key: '_firstProduct' },
   ],
@@ -2077,7 +2077,7 @@ MODULES['oc-stories'] = {
   ],
   filters: [{ key: 'tags', label: '全部标签', options: [{ value: '', label: '全部标签' }, { value: '主线', label: '主线' }, { value: '支线', label: '支线' }, { value: '日常', label: '日常' }, { value: '随笔', label: '随笔' }, { value: '灵感', label: '灵感' }] }],
   listFields: [
-    { label: '标签', key: 'tags', tag: true },
+    { label: '标签', key: 'tags' },
     { label: '状态', key: 'isComplete', tag: true },
     { label: '关联', key: 'characterIds' },
     { label: '创作', key: 'createTime', date: true },
@@ -2630,17 +2630,16 @@ function renderCommissionCalendar(year, month, records) {
       const end = r.deadline || '';
       return dateStr >= start && dateStr <= end;
     }).sort((a, b) => (recordTrack[a.id] || 0) - (recordTrack[b.id] || 0));
-    const startRecords = records.filter(r => (r.startTime || r.acceptTime || '').startsWith(dateStr));
-    const deadlineRecords = records.filter(r => r.deadline === dateStr);
+    // v587：开截同天(开+截)置顶，其次纯开稿，最后纯截稿
+    const bothRecords = records.filter(r => (r.startTime || r.acceptTime || '') === dateStr && r.deadline === dateStr);
+    const startRecords = records.filter(r => (r.startTime || r.acceptTime || '').startsWith(dateStr) && r.deadline !== dateStr);
+    const deadlineRecords = records.filter(r => r.deadline === dateStr && (r.startTime || r.acceptTime || '') !== dateStr);
     const isToday = dateStr === todayKey;
     const isSelected = ps.dateFilter === dateStr;
-    let startTag = '', endTag = '';
-    if (startRecords.length > 0 && deadlineRecords.length > 0) {
-      startTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${BOTH_COLOR}"></span><span class="cal-day-tag-text" style="color:${BOTH_COLOR}">开+截</span></span>`;
-    } else {
-      if (startRecords.length > 0) startTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${START_COLOR}"></span><span class="cal-day-tag-text" style="color:${START_COLOR}">开稿</span></span>`;
-      if (deadlineRecords.length > 0) endTag = `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${END_COLOR}"></span><span class="cal-day-tag-text" style="color:${END_COLOR}">截稿</span></span>`;
-    }
+    let commTagStr = '';
+    if (bothRecords.length > 0) commTagStr += `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${BOTH_COLOR}"></span><span class="cal-day-tag-text" style="color:${BOTH_COLOR}">开+截</span></span>`;
+    if (startRecords.length > 0) commTagStr += `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${START_COLOR}"></span><span class="cal-day-tag-text" style="color:${START_COLOR}">开稿</span></span>`;
+    if (deadlineRecords.length > 0) commTagStr += `<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:${END_COLOR}"></span><span class="cal-day-tag-text" style="color:${END_COLOR}">截稿</span></span>`;
     let bars = '';
     dayPeriods.forEach(r => {
       const track = recordTrack[r.id] != null ? recordTrack[r.id] : 0;
@@ -2661,7 +2660,7 @@ function renderCommissionCalendar(year, month, records) {
     });
     const cellMinHeight = 76; // fits 3 bars (22+3*13=61px) + padding
     const cls = 'cal-day' + (isOther ? ' other-month' : '') + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
-    return `<div class="${cls}" onclick="commissionDateClick('${dateStr}')" style="cursor:pointer;min-height:${cellMinHeight}px"><div class="cal-date-row"><span class="cal-date">${cd}</span>${startTag}${endTag}</div>${bars}</div>`;
+    return `<div class="${cls}" onclick="commissionDateClick('${dateStr}')" style="cursor:pointer;min-height:${cellMinHeight}px"><div class="cal-date-row"><span class="cal-date">${cd}</span>${commTagStr}</div>${bars}</div>`;
   }
   for (let i = startWeekday - 1; i >= 0; i--) { html += renderCommCalCell(year, month - 1, prevMonthDays - i, true); }
   for (let d = 1; d <= daysInMonth; d++) { html += renderCommCalCell(year, month, d, false); }
@@ -3421,7 +3420,7 @@ function renderHome() {
     const records = allRecords.filter(r => valIncludes(r.platform, ps.tab));
 
     // Toolbar
-    html += '<div class="toolbar" style="margin-top:4px">';
+    html += '<div class="toolbar home-toolbar" style="margin-top:4px">';
     html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="homeSearch(this.value)"><span class="search-icon">🔍</span></div>`;
     html += `<div class="date-field-wrap"><input type="text" class="filter-select" value="${ps.dateFilter}" placeholder="请选择或输入日期" title="请选择或输入日期" onchange="homeDateFilter(this.value)"><button type="button" class="date-pick-btn" onclick="openDatePicker(this)" title="选择日期" aria-label="选择日期"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></button></div>`;
     html += '<div class="spacer"></div>';
