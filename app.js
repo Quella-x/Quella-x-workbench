@@ -1584,7 +1584,7 @@ function commDetailDisplayField() {
 }
 // 通用「其他/备注」字段
 function commDetailOtherField() {
-  return { key: 'other', label: '其他补充需求', type: 'textarea' };
+  return { key: 'other', label: '备注', type: 'textarea', placeholder: '其他补充需求' };
 }
 // 通用「接收邮箱」字段（预填邮箱，只读展示）
 function commDetailFixedEmailField() {
