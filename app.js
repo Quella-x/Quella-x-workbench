@@ -1671,7 +1671,7 @@ function cdTwyBindProductAutoFill(container) {
   const onPick = () => {
     const name = (cb.value || '').trim();
     if (!name) return;
-    const pl = DB.list('priceList').find(p => p.product === name && PRODUCT_CATEGORIES.includes(p.category));
+    const pl = DB.list('priceList').find(p => p.product === name);
     if (pl) {
       if (sizeInp) sizeInp.value = pl.defaultSize || '';
       if (bleedInp) bleedInp.value = pl.defaultBleed || '';
@@ -1690,7 +1690,7 @@ MODULES['design-commission-detail-twy'] = {
     { key: 'clientInfo', label: '单主', type: 'text', placeholder: '单主姓名（用于与接稿排期联动）', localOnly: true },
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
-    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">特殊尺寸出血请修改 可直接给模板</span></label><div class="style-color-box info-box cd-product-box cd-twy-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input combobox-input cd-twy-product-combobox" data-key="product" placeholder="选择或输入制品"></div><div class="style-color-col"><span class="style-color-col-label">排版</span><input type="text" class="form-input" data-key="layout" placeholder="排版"></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">初始为默认尺寸</span></span><input type="text" class="form-input" data-key="size" placeholder="随制品自动填入"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">初始为默认出血</span></span><input type="text" class="form-input" data-key="bleed" placeholder="出血"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">特殊尺寸出血请修改 可直接给模板</span></label><div class="style-color-box info-box cd-product-box cd-twy-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input combobox-input cd-twy-product-combobox" data-key="product" placeholder="选择或输入制品"></div><div class="style-color-col"><span class="style-color-col-label">排版</span><input type="text" class="form-input" data-key="layout" placeholder="排版"></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">初始为默认尺寸</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">初始为默认出血</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
     { key: 'bookName', label: '书名/文字', type: 'text' },
     { key: 'authorName', label: '作者名', type: 'text' },
     { key: 'copyText', label: '文案/小字', type: 'textarea' },
