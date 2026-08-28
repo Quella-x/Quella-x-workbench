@@ -1853,7 +1853,7 @@ MODULES['design-pricelist'] = {
     { key: 'category', label: '制品分类', type: 'combobox', noSort: true, options: [{ value: '纸片类', label: '纸片类' }, { value: '其他材质类', label: '其他材质类' }, { value: '线上&应援类', label: '线上&应援类' }, { value: '加价项目', label: '加价项目' }, { value: '修改类型', label: '修改类型' }] },
     { key: 'product', label: '制品', type: 'text' },
     { key: 'defaultSize', label: '默认尺寸', type: 'text' },
-    { key: 'defaultBleed', label: '默认出血', type: 'text', default: '3mm' },
+    { key: 'defaultBleed', label: '默认出血', type: 'text' },
     { key: 'price', label: '单价', type: 'number', hint: '元' },
     { key: 'priceUnit', label: '单位', type: 'multiselect', single: true, default: '元', options: [{ value: '元', label: '元' }, { value: '元/p', label: '元/p' }, { value: '元/次', label: '元/次' }] },
     { key: 'description', label: '备注', type: 'textarea' },
@@ -3026,6 +3026,25 @@ function setupFormInteractions(pageKey) {
     cdBindProductAutoFill(container);
     // 土味约稿单：选择制品后联动价目表自动回填尺寸/出血
     if (pageKey === 'design-commission-detail-twy') cdTwyBindProductAutoFill(container);
+  }
+  // 价目表：分类为纸片类/其他材质类时，默认出血空值自动填 3mm（仅默认值，不影响手动输入）
+  if (pageKey === 'design-pricelist') {
+    const container = $('#modalBody') || $('#mainBody');
+    if (container) {
+      const cat = $('[data-key="category"]', container);
+      const bleed = $('[data-key="defaultBleed"]', container);
+      const APPLY_CATS = ['纸片类', '其他材质类'];
+      const syncBleed = () => {
+        if (!cat || !bleed) return;
+        if (APPLY_CATS.includes(cat.value)) {
+          if (!bleed.value.trim()) bleed.value = '3mm';
+        } else {
+          if (bleed.value.trim() === '3mm') bleed.value = '';
+        }
+      };
+      if (cat) { cat.addEventListener('input', syncBleed); cat.addEventListener('change', syncBleed); }
+      setTimeout(syncBleed, 0);
+    }
   }
 }
 
