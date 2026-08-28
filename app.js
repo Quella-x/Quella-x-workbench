@@ -611,14 +611,13 @@ function buildFormField(f, data, moduleKey, wrap) {
 function openDatePicker(btn) {
   const inp = btn.previousElementSibling;
   if (!inp) return;
-  // v574：用隐藏的临时 date 输入承载 showPicker，避免把可见文本框临时改成 type=date 导致出现原生日期占位
-  const wrap = btn.parentElement;
+  // v574/v577：用临时 date 输入承载 showPicker，避免把可见文本框临时改成 type=date 导致出现原生日期占位；v577 将临时输入 fixed 到视口中心，使弹窗居中而非左上角
   btn.classList.add('active');
   const picker = document.createElement('input');
   picker.type = 'date';
   picker.value = inp.value || '';
-  picker.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;border:0;padding:0;margin:0;z-index:-1';
-  wrap.appendChild(picker);
+  picker.style.cssText = 'position:fixed;left:50%;top:50%;width:0;height:0;opacity:0;pointer-events:none;border:0;padding:0;margin:0;z-index:-1';
+  document.body.appendChild(picker);
   const cleanup = () => {
     picker.removeEventListener('change', onChange);
     picker.removeEventListener('blur', onBlur);

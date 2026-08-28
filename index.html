@@ -447,17 +447,16 @@ ul,li{list-style:none}
 /* ===== Forms ===== */
 .form-row{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
 .form-row.inline{flex-direction:row;gap:12px}
-/* v26: 动态列表容器所在的 form-row — 标签到容器的间距与普通 form-row label→input 一致 (8px)；v575 收紧合作记录上方间距 */
+/* v26: 动态列表容器所在的 form-row — 标签到容器的间距与普通 form-row label→input 一致 (8px) */
 .form-row:has(> .dynamic-list-container){gap:8px}
-.form-row:has(> .dynamic-list-container[data-key="cooperationRecords"]){margin-top:-14px}
 .form-row.inline{flex-direction:row;gap:12px}
 .form-row.inline>*{flex:1}
 .form-label{font-size:13px;font-weight:500;color:var(--c-text)}
 /* v532：日期字段——type=text 自由手输 + 📅 按钮打开原生日历 */
 .date-field-wrap{position:relative;display:flex;align-items:center;gap:8px}
 .date-field-wrap .form-input{flex:1;min-width:0}
-.date-pick-btn{flex:0 0 auto;width:38px;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border);background:var(--c-primary-bg);border-radius:var(--radius-sm);cursor:pointer;color:var(--c-primary);padding:0;line-height:1}
-.date-pick-btn:hover,.date-pick-btn.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary)}
+.date-pick-btn{flex:0 0 auto;width:38px;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border);background:var(--c-primary-bg);border-radius:var(--radius-sm);cursor:pointer;color:var(--c-primary);padding:0;line-height:1;-webkit-tap-highlight-color:transparent}
+.date-pick-btn:hover,.date-pick-btn:active,.date-pick-btn.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary)}
 .form-input,.form-select,.form-textarea{
   width:100%;padding:8px 12px;border:1px solid var(--c-border);
   border-radius:var(--radius-sm);font-size:13px;background:#fff;
@@ -2585,7 +2584,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=576"></script>
+  <script src="app.js?v=577"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
