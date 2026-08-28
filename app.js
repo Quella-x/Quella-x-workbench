@@ -2589,7 +2589,7 @@ function goPage(pageKey, pageNo) {
 }
 
 /* ===== Commission Calendar View (v16: 开稿~截稿时间段连续显示, 不同稿件不同颜色) ===== */
-const CAL_URGENCY_COLORS = ['#e8857e', '#7ec678', '#7ab5f5']; // soft red, green, blue — by urgency, matched to theme
+const CAL_URGENCY_COLORS = ['#e8857e', '#fa8c16', '#7ab5f5']; // soft red, orange, blue — by urgency: ≤2天红, 3-5天橙, >5天蓝
 const CAL_MAX_TRACKS = 3;
 const CAL_BAR_HEIGHT = 11;
 const CAL_BAR_GAP = 2;
@@ -2618,22 +2618,23 @@ function renderCommissionCalendar(year, month, records) {
     const bStart = b.startTime || b.acceptTime || '';
     return aStart.localeCompare(bStart);
   });
-  // Assign colors by urgency based on absolute deadline thresholds (not ranking)
-  // 紧急(截稿临近)=红, 正常=绿, 充裕=蓝
+  // v591：工期条按截稿 urgency 着色 —— 已交付=绿，≤2天=红，3-5天=橙，>5天=蓝
+  const DELIVERED_COLOR = '#7ec678';
   const recordColorMap = {};
   const todayTime = today.getTime();
-  const URGENT_MS = 3 * 86400000;   // ≤3 days = 紧急 (red)
-  const NORMAL_MS = 7 * 86400000;   // 4-7 days = 正常 (green)
-  // >7 days = 充裕 (blue)
   periodRecords.forEach(r => {
+    if (valIncludes(r.progress, '已交付')) {
+      recordColorMap[r.id] = DELIVERED_COLOR; // 已交付 = 绿
+      return;
+    }
     const deadlineTime = new Date(r.deadline).getTime();
-    const timeLeft = deadlineTime - todayTime;
-    if (timeLeft <= URGENT_MS) {
-      recordColorMap[r.id] = CAL_URGENCY_COLORS[0]; // red = 紧急
-    } else if (timeLeft <= NORMAL_MS) {
-      recordColorMap[r.id] = CAL_URGENCY_COLORS[1]; // green = 正常
+    const daysLeft = (deadlineTime - todayTime) / 86400000;
+    if (daysLeft <= 2) {
+      recordColorMap[r.id] = CAL_URGENCY_COLORS[0]; // red = 紧急（截稿≤2天）
+    } else if (daysLeft <= 5) {
+      recordColorMap[r.id] = CAL_URGENCY_COLORS[1]; // orange = 正常（3-5天）
     } else {
-      recordColorMap[r.id] = CAL_URGENCY_COLORS[2]; // blue = 充裕
+      recordColorMap[r.id] = CAL_URGENCY_COLORS[2]; // blue = 充裕（>5天）
     }
   });
   // Greedy track assignment — each task gets a consistent vertical row across all days
@@ -2713,9 +2714,10 @@ function renderCommissionCalendar(year, month, records) {
   html += '</div>';
   html += '<div class="cal-legend-sep"></div>';
   html += '<div class="cal-legend">';
-  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[0]}"></span>紧急（截稿≤3天）</span>`;
-  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[1]}"></span>正常（4-7天）</span>`;
-  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[2]}"></span>充裕（>7天）</span>`;
+  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[0]}"></span>紧急（截稿≤2天）</span>`;
+  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[1]}"></span>正常（3-5天）</span>`;
+  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:${CAL_URGENCY_COLORS[2]}"></span>充裕（>5天）</span>`;
+  html += `<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:#7ec678"></span>已交付</span>`;
   html += '</div>';
   html += '</div>';
   return html;
@@ -5810,6 +5812,17 @@ function renderFieldSettings(html) {
       html += '<h4 style="font-size:13px;margin:20px 0 8px;color:var(--c-primary)">选项管理</h4>';
       mod.fields.forEach(f => {
         if ((f.type === 'combobox' || f.type === 'multiselect') && !f.noOptionManage) {
+          // v591：打样记录「打样品类」/ 灵感记录「制品」选项来自独立 store，单独渲染并持久化
+          if (_settingsModule === 'groupbuy-samples' && f.key === 'category') {
+            const sampleCustom = DB.get('customSampleCategories', []) || [];
+            html += renderOptionBlockHTML('sampleCategory', f.label, SAMPLE_DEFAULTS, sampleCustom);
+            return;
+          }
+          if (_settingsModule === 'design-inspiration' && f.key === 'category') {
+            const inspCustom = DB.get('customCategories', []) || [];
+            html += renderOptionBlockHTML('inspCategory', f.label, ['封面', '明信片', '其他', '镭射票', '壁纸', '海报'], inspCustom);
+            return;
+          }
           const key = _settingsModule + '.' + f.key;
           const customOpts = (s.fieldOptions && s.fieldOptions[key]) || [];
           const defaultOpts = (f.options || []).map(o => typeof o === 'string' ? o : o.value);
@@ -6086,6 +6099,17 @@ function saveSettingsAction() {
       const genreKey = 'design-commission-detail-fm.genre';
       if (genreItems.length) s.fieldOptions[genreKey] = genreItems;
       else delete s.fieldOptions[genreKey];
+    }
+    // v591：打样记录「打样品类」/ 灵感记录「制品」选项存入各自独立 store（剔除默认项）
+    if (_settingsModule === 'groupbuy-samples') {
+      const sampleItems = [];
+      $$('#opts_sampleCategory input').forEach(input => { const v = input.value.trim(); if (v) sampleItems.push(v); });
+      DB.set('customSampleCategories', sampleItems.filter(v => !SAMPLE_DEFAULTS.includes(v)));
+    }
+    if (_settingsModule === 'design-inspiration') {
+      const inspItems = [];
+      $$('#opts_inspCategory input').forEach(input => { const v = input.value.trim(); if (v) inspItems.push(v); });
+      DB.set('customCategories', inspItems.filter(v => !['封面', '明信片', '其他', '镭射票', '壁纸', '海报'].includes(v)));
     }
   }
   // Cloud sync config (数据管理页)

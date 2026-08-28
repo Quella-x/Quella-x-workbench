@@ -209,13 +209,13 @@ ul,li{list-style:none}
 }
 .toolbar .spacer{flex:1}
 .toolbar .btn-primary{width:112px;justify-content:center}
-/* v590：首页平台视图 日期输入框45% : 选择日期按钮10% : 新增记录按钮45% */
-.toolbar.home-toolbar{gap:0}
+/* v591：首页平台视图 日期输入框 : 选择日期按钮(固定38px) : 新增记录按钮，三者之间加间隔 */
+.toolbar.home-toolbar{gap:8px}
 .toolbar.home-toolbar .search-box{flex:1 1 100%;margin-bottom:8px}
-.toolbar.home-toolbar .date-field-wrap.home-date-wrap{flex:0 0 45%;width:45%}
+.toolbar.home-toolbar .date-field-wrap.home-date-wrap{flex:1 1 0;min-width:0}
 .toolbar.home-toolbar .date-field-wrap.home-date-wrap .filter-select{width:100%;padding-right:8px;text-align:center}
-.toolbar.home-toolbar .date-pick-btn.home-date-pick{flex:0 0 10%;width:10%;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border)!important;background:var(--c-primary-bg)!important;border-radius:var(--radius-sm);cursor:pointer;color:var(--c-primary)!important;padding:0;line-height:1;-webkit-tap-highlight-color:rgba(0,0,0,0)!important;touch-action:manipulation;-webkit-touch-callout:none}
-.toolbar.home-toolbar .btn-primary{flex:0 0 45%;width:45%}
+.toolbar.home-toolbar .date-pick-btn.home-date-pick{width:38px;flex:0 0 38px;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border)!important;background:var(--c-primary-bg)!important;border-radius:var(--radius-sm);cursor:pointer;color:var(--c-primary)!important;padding:0;line-height:1;-webkit-tap-highlight-color:rgba(0,0,0,0)!important;touch-action:manipulation;-webkit-touch-callout:none}
+.toolbar.home-toolbar .btn-primary{flex:1 1 0;min-width:0}
 .view-toggle-top{
   display:flex;gap:8px;align-items:center;
   margin-bottom:8px;/* v225: 用户要求搜索框到切换按钮间距 8px */
@@ -417,9 +417,9 @@ ul,li{list-style:none}
 }
 .cal-day{position:relative;overflow:visible}
 .commission-cal-grid .cal-day{overflow:hidden}
-/* v589：接稿排期日历 日期行压在工期条之上，标签再缩小，左右对称留白 2px */
+/* v591：接稿排期日历 日期行压在工期条之上，标签整体居中使左右留白对称 */
 .commission-cal-grid .cal-day{padding:3px 0}
-.commission-cal-grid .cal-date-row{position:relative;z-index:5;gap:2px;padding:0 2px;flex-wrap:wrap}
+.commission-cal-grid .cal-date-row{position:relative;z-index:5;gap:2px;padding:0;justify-content:center;flex-wrap:wrap}
 .commission-cal-grid .cal-date{font-size:11px}
 
 /* ===== Modal ===== */
@@ -964,12 +964,12 @@ ul,li{list-style:none}
   .filter-combobox{flex:1 1 0;min-width:0;width:auto;max-width:none}
   .toolbar .btn-primary{flex:1 1 0;min-width:0;width:auto;padding:8px 6px}
   .toolbar .toolbar-eq{flex:1 1 0;min-width:0;width:auto;padding:8px 6px}
-  .toolbar.home-toolbar{gap:0}
+  .toolbar.home-toolbar{gap:8px}
   .toolbar.home-toolbar .search-box{flex:1 1 100%;margin-bottom:6px}
-  .toolbar.home-toolbar .date-field-wrap.home-date-wrap{flex:0 0 45%;width:45%}
+  .toolbar.home-toolbar .date-field-wrap.home-date-wrap{flex:1 1 0;min-width:0}
   .toolbar.home-toolbar .date-field-wrap.home-date-wrap .filter-select{width:100%;padding-right:8px;text-align:center}
-  .toolbar.home-toolbar .date-pick-btn.home-date-pick{flex:0 0 10%;width:10%;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border)!important;background:var(--c-primary-bg)!important;border-radius:var(--radius-sm);cursor:pointer;color:var(--c-primary)!important;padding:0;line-height:1;-webkit-tap-highlight-color:rgba(0,0,0,0)!important;touch-action:manipulation;-webkit-touch-callout:none}
-  .toolbar.home-toolbar .btn-primary{flex:0 0 45%;width:45%;padding:8px 6px}
+  .toolbar.home-toolbar .date-pick-btn.home-date-pick{width:38px;flex:0 0 38px;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border)!important;background:var(--c-primary-bg)!important;border-radius:var(--radius-sm);cursor:pointer;color:var(--c-primary)!important;padding:0;line-height:1;-webkit-tap-highlight-color:rgba(0,0,0,0)!important;touch-action:manipulation;-webkit-touch-callout:none}
+  .toolbar.home-toolbar .btn-primary{flex:1 1 0;min-width:0;padding:8px 6px}
   .sync-badge{font-size:10px;padding:2px 6px;gap:3px}
   .sync-badge .sync-txt{display:none}
 }
@@ -2620,7 +2620,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=590"></script>
+  <script src="app.js?v=591"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
