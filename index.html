@@ -405,9 +405,9 @@ ul,li{list-style:none}
 .home-comm-tags .cal-day-tag,
 .home-deep-tags .cal-day-tag{font-size:12px;gap:2px}
 .home-comm-tags .cal-day-tag-dot,
-.home-deep-tags .cal-day-tag-dot{width:5px;height:5px}
+.home-deep-tags .cal-day-tag-dot{width:4px;height:4px;min-width:4px;min-height:4px;box-sizing:border-box;border-radius:50%}
 .home-comm-tags .cal-day-tag-text,
-.home-deep-tags .cal-day-tag-text{font-size:9px;font-weight:500}
+.home-deep-tags .cal-day-tag-text{font-size:9px;font-weight:600}
 /* Calendar period bar (开稿~截稿时间段连续显示) */
 .cal-period-bar{
   position:absolute;left:1px;right:1px;opacity:.85;font-size:8px;color:#fff;
@@ -2643,7 +2643,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=606"></script>
+  <script src="app.js?v=607"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
