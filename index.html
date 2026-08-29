@@ -773,7 +773,7 @@ ul,li{list-style:none}
 .detail-images{display:flex;flex-wrap:wrap;gap:8px;margin-top:0}
 /* v611：人物档案详情「人物关系」区块（与人物关系模块双向绑定） */
 .detail-relations{margin:4px 0 2px;display:flex;flex-wrap:nowrap;align-items:stretch;overflow-x:auto}
-.detail-rel-item,.detail-rel-sub{padding:4px 12px;display:flex;flex-direction:column;gap:3px;flex:0 0 auto}
+.detail-rel-item,.detail-rel-sub{padding:4px 12px;display:flex;flex-direction:row;align-items:center;gap:8px;flex:0 0 auto}
 .detail-rel-item:not(:first-child){border-left:1px solid var(--c-border)}
 .detail-rel-divider{width:1px;background:var(--c-border);margin:4px 6px;align-self:stretch;flex:0 0 auto}
 .detail-rel-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -2652,7 +2652,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=617"></script>
+  <script src="app.js?v=618"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

@@ -4072,13 +4072,27 @@ function importStoriesToTimeline() {
 
 /* ===== OC Relations — Mind Map (需求10: 箭头标明, 档案社会关系自动同步, 缩略姓名按钮) ===== */
 const RELATION_COLORS = {
-  '母女': '#ff9f43', '母子': '#ff9f43', '父女': '#ff9f43', '父子': '#ff9f43',
-  '姐妹': '#ff9f43', '姐弟': '#ff9f43', '兄妹': '#ff9f43', '兄弟': '#ff9f43',
-  '表亲': '#ffb380', '堂亲': '#ffb380',
-  '师徒': '#faad14', '道侣': '#ff6b81', '好友': '#7ec678',
-  '同门': '#9DC8FF', '交好': '#95de64', '敌对': '#e8857e', '上下级': '#722ed1',
-  '亲属': '#ff9f43', '恋人': '#ff6b81', '自动同步': '#b0b8c0',
-  '父母': '#ff9f43', '兄弟姐妹': '#ff9f43',
+  // 粉色：道侣、恋人
+  '道侣': '#ff6b81', '恋人': '#ff6b81',
+  // 红色：敌对、仇人
+  '敌对': '#e74c3c', '仇人': '#e74c3c',
+  // 橙色：师徒
+  '师徒': '#faad14',
+  // 黄色：同门
+  '同门': '#f1c40f',
+  // 蓝色：家人、亲属、父母、兄弟姐妹等
+  '家人': '#3498db', '亲属': '#3498db',
+  '父母': '#3498db', '兄弟姐妹': '#3498db',
+  '母女': '#3498db', '母子': '#3498db', '父女': '#3498db', '父子': '#3498db',
+  '姐妹': '#3498db', '姐弟': '#3498db', '兄妹': '#3498db', '兄弟': '#3498db',
+  // 青色：远亲、表亲、堂亲
+  '远亲': '#1abc9c', '表亲': '#1abc9c', '堂亲': '#1abc9c',
+  // 绿色：好友、交好
+  '好友': '#7ec678', '交好': '#7ec678',
+  // 紫色：上下级
+  '上下级': '#722ed1',
+  // 默认
+  '自动同步': '#b0b8c0',
 };
 /* ===== OC Relations ↔ OC Profiles 双向绑定（v611） ===== */
 function syncOcRelationToChars(rel) {
@@ -4312,11 +4326,17 @@ function renderRelations() {
         html += '<div class="record-card-body detail-relations" style="margin:0">';
         group.forEach((r, idx) => {
           if (idx > 0) html += '<div class="detail-rel-divider"></div>';
-          const rt = arrVal(r.relationType).join('、');
+          const rtArr = arrVal(r.relationType);
           const rs = arrVal(r.relationStatus).join('、');
           const other = pureOcName(r.charA) === a ? pureOcName(r.charB) : pureOcName(r.charA);
           html += '<div class="detail-rel-sub">';
-          html += '<div class="detail-rel-head"><span class="tag tag-purple">' + esc(rt) + '</span>' + (rs ? '<span class="detail-rel-status">' + esc(rs) + '</span>' : '') + '</div>';
+          html += '<div class="detail-rel-head">';
+          rtArr.forEach(rt => {
+            const color = RELATION_COLORS[rt] || '#b0b8c0';
+            html += '<span class="tag" style="background:' + color + '20;color:' + color + '">' + esc(rt) + '</span>';
+          });
+          html += (rs ? '<span class="detail-rel-status">' + esc(rs) + '</span>' : '');
+          html += '</div>';
           html += '<div class="detail-rel-other">→ <b>' + esc(other) + '</b></div>';
           html += '</div>';
         });
@@ -4366,9 +4386,13 @@ function showAllPersonRelations(btn) {
   } else {
     relations.forEach(r => {
       const a = pureOcName(r.charA), b = pureOcName(r.charB);
-      const rt = arrVal(r.relationType).join('、');
-      const color = RELATION_COLORS[rt] || '#b0b8c0';
-      html += `<div style="padding:4px 0"><span class="tag" style="background:${color}20;color:${color}">${esc(rt)}</span> <b>${esc(a)}</b> <span style="color:var(--c-text-muted)">↔</span> <b>${esc(b)}</b></div>`;
+      const rtArr = arrVal(r.relationType);
+      html += `<div style="padding:4px 0;display:flex;align-items:center;gap:6px;flex-wrap:wrap">`;
+      rtArr.forEach(rt => {
+        const color = RELATION_COLORS[rt] || '#b0b8c0';
+        html += `<span class="tag" style="background:${color}20;color:${color}">${esc(rt)}</span>`;
+      });
+      html += `<span style="color:var(--c-text-muted)"><b>${esc(a)}</b> ↔ <b>${esc(b)}</b></span></div>`;
     });
   }
   expand.innerHTML = html;
@@ -4550,44 +4574,25 @@ function drawMindMap(chars, relations) {
     const a = positions[conn.a], b = positions[conn.b];
     if (!a || !b) return;
     const color = RELATION_COLORS[conn.type] || '#b0b8c0';
-    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-    const dx = b.x - a.x, dy = b.y - a.y;
-    const len = Math.hypot(dx, dy) || 1;
-    const nx = -dy / len, ny = dx / len; // 垂直单位向量
-    const off = (conn._pi - (conn._pc - 1) / 2) * 16; // 多条关系平行错开
-    const ctrlX = mx + dy * 0.15 + nx * off, ctrlY = my - dx * 0.15 + ny * off;
-    const dashArray = 'none';
-    const opacity = 0.6;
-    // Adjust endpoints to circle edge (radius ~25, circular node 60px)
+    // Adjust endpoints to circle edge (radius ~25)
     const nodeR = 25;
-    const angA = Math.atan2(a.y - cy, a.x - cx);
-    const angB = Math.atan2(b.y - cy, b.x - cx);
-    // Use direction from center to node, then offset
     const aDir = Math.atan2(b.y - a.y, b.x - a.x);
     const bDir = Math.atan2(a.y - b.y, a.x - b.x);
     const ax = a.x + nodeR * Math.cos(aDir), ay = a.y + nodeR * Math.sin(aDir);
     const bx = b.x + nodeR * Math.cos(bDir), by = b.y + nodeR * Math.sin(bDir);
-    inner += `<path d="M${ax},${ay} Q${ctrlX},${ctrlY} ${bx},${by}" fill="none" stroke="${color}" stroke-width="2" opacity="${opacity}" stroke-dasharray="${dashArray}"/>`;
-    // Arrow head at end
-    const angle = Math.atan2(by - ctrlY, bx - ctrlX);
-    const arrowSize = 8;
-    const arx = bx - arrowSize * Math.cos(angle - 0.4);
-    const ary = by - arrowSize * Math.sin(angle - 0.4);
-    const arx2 = bx - arrowSize * Math.cos(angle + 0.4);
-    const ary2 = by - arrowSize * Math.sin(angle + 0.4);
-    inner += `<polygon points="${bx},${by} ${arx},${ary} ${arx2},${ary2}" fill="${color}" opacity="${opacity}"/>`;
-    // Label on arrow: 每条关系按其索引沿曲线错开，并沿各自线条所在侧轻微外移，自然分散到两侧
-    const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.1;
-    const mt = 1 - t;
-    const lx = mt * mt * ax + 2 * mt * t * ctrlX + t * t * bx;
-    const ly = mt * mt * ay + 2 * mt * t * ctrlY + t * t * by;
-    const tx = 2 * mt * (ctrlX - ax) + 2 * t * (bx - ctrlX);
-    const ty = 2 * mt * (ctrlY - ay) + 2 * t * (by - ctrlY);
-    const tLen = Math.hypot(tx, ty) || 1;
-    // 线条已按索引垂直错开，标签贴各自线条（同侧轻移避免压线），多条关系即分散不再挤在一边
-    const labOff = 13;
-    const labX = lx + (ty / tLen) * labOff;
-    const labY = ly - (tx / tLen) * labOff;
+    // v618: 参考图为直线连接；同 pair 多条关系按垂直方向平行错开
+    const dx = bx - ax, dy = by - ay;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len, ny = dx / len; // 垂直单位向量
+    const off = (conn._pi - (conn._pc - 1) / 2) * 12; // 平行线间距
+    const aox = ax + nx * off, aoy = ay + ny * off;
+    const box = bx + nx * off, boy = by + ny * off;
+    const opacity = 0.65;
+    inner += `<line x1="${aox}" y1="${aoy}" x2="${box}" y2="${boy}" stroke="${color}" stroke-width="2" opacity="${opacity}"/>`;
+    // Label at midpoint, slightly offset perpendicular so it doesn't sit on the line
+    const labOff = 7;
+    const labX = (aox + box) / 2 + nx * labOff;
+    const labY = (aoy + boy) / 2 + ny * labOff;
     inner += `<text x="${labX}" y="${labY}" text-anchor="middle" dominant-baseline="middle" font-size="10" fill="${color}" style="paint-order:stroke;stroke:#fff;stroke-width:3" font-weight="600">${esc(conn.type)}</text>`;
   });
   inner += '</svg>';
@@ -5710,10 +5715,10 @@ function dcRecalc() {
       r += `<div class="dc-rr"><span>${_mt} × ${_cnt}</span><span>¥${_sub.toFixed(2)}</span></div>`;
     });
     r += `<div class="dc-rr total"><span>最终总价</span><span>¥${finalTotal.toFixed(2)}</span></div>`;
-    // DY6轮：双按钮改为与「最终报价」(.dc-r-final) 同款实心蓝块（白字居中），仅并排两列
+    // v618: 需付尾款改回与最终总价同款实心蓝块（双按钮并排）
     r += '<div class="dc-r-final-balance">';
     r += `<div class="dc-r-final"><div class="dc-r-final-label">最终总价</div><div class="dc-r-final-val">¥${finalTotal.toFixed(2)}</div></div>`;
-    r += `<div class="dc-r-balance"><div class="dc-r-db-label">需付尾款</div><div class="dc-r-db-val">¥${balancePayable.toFixed(2)}</div></div>`;
+    r += `<div class="dc-r-final"><div class="dc-r-final-label">需付尾款</div><div class="dc-r-final-val">¥${balancePayable.toFixed(2)}</div></div>`;
     r += '</div>';
     r += '</div>';
   }
