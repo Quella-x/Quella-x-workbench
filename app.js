@@ -11,6 +11,8 @@ const valIncludes = (val, target) => { if (Array.isArray(val)) return val.includ
 // 金额解析：兼容「12,345」这类带千分位逗号的输入（否则 parseFloat 只读到逗号前，导致金额显示缩水）
 const parseNum = (v) => { const n = parseFloat(String(v == null ? '' : v).replace(/[,\s¥￥]/g, '')); return isNaN(n) ? 0 : n; };
 const arrVal = (val) => Array.isArray(val) ? val : (val ? [val] : []);
+// 去掉人物姓名后附带的「(道号/外号)」后缀，仅保留纯姓名
+function pureOcName(s) { if (!s) return s; return String(s).replace(/\s*\([^)]*\)\s*$/, '').trim(); }
 const fmtDate = (d) => { if (!d) return ''; try { const dt = new Date(d); if (isNaN(dt)) return d; return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0'); } catch { return d; } };
 const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const thisMonthStr = () => todayStr().slice(0, 7);
@@ -2069,7 +2071,7 @@ MODULES['oc-profiles'] = {
     { key: 'friends', label: '好友', type: 'text' },
     { key: 'fellow', label: '同门', type: 'text' },
     { section: '人物立绘' },
-    { key: 'images', label: '人物立绘/图片存档', type: 'image' },
+    { key: 'images', label: '人物稿件', type: 'image' },
   ],
   listFields: [
     { label: '性别', key: 'gender' },
@@ -2078,14 +2080,30 @@ MODULES['oc-profiles'] = {
     { label: '境界', key: 'realm' },
   ],
   cardImage: (r) => r.images && r.images[0] ? r.images[0] : null,
+  detailExtra: function (r) {
+    const name = r.name;
+    const relations = DB.list('ocRelations');
+    const myRels = relations.filter(x => pureOcName(x.charA) === name || pureOcName(x.charB) === name);
+    if (!myRels.length) return '';
+    let html = '<div class="form-section">人物关系</div>';
+    html += '<div class="detail-relations">';
+    myRels.forEach(rel => {
+      const other = pureOcName(rel.charA) === name ? pureOcName(rel.charB) : pureOcName(rel.charA);
+      const rt = arrVal(rel.relationType).join('、');
+      const rs = arrVal(rel.relationStatus).join('、');
+      html += '<div class="detail-rel-row"><span class="tag tag-purple">' + esc(rt) + '</span> → <b>' + esc(other) + '</b>' + (rs ? ' <span class="detail-rel-status">(' + esc(rs) + ')</span>' : '') + '</div>';
+    });
+    html += '</div>';
+    return html;
+  },
 };
 
 // --- OC Relations (需求10: 箭头标明, 档案社会关系自动同步, 缩略姓名按钮可展开) ---
 MODULES['oc-relations'] = {
   store: 'ocRelations',
   fields: [
-    { key: 'charA', label: '人物1', type: 'combobox', options: [], hint: '从人物档案加载', noOptionManage: true },
-    { key: 'charB', label: '人物2', type: 'combobox', options: [], hint: '从人物档案加载', noOptionManage: true },
+    { key: 'charA', label: '人物1', type: 'combobox', options: [], hint: '请选择或输入oc姓名', placeholder: '请选择或输入oc姓名', noOptionManage: true },
+    { key: 'charB', label: '人物2', type: 'combobox', options: [], hint: '请选择或输入oc姓名', placeholder: '请选择或输入oc姓名', noOptionManage: true },
     { key: 'relationType', label: '关系类型', type: 'multiselect', allowCustom: true, options: [{ value: '表亲', label: '表亲' }, { value: '道侣', label: '道侣' }, { value: '敌对', label: '敌对' }, { value: '父女', label: '父女' }, { value: '父子', label: '父子' }, { value: '好友', label: '好友' }, { value: '姐弟', label: '姐弟' }, { value: '交好', label: '交好' }, { value: '姐妹', label: '姐妹' }, { value: '母女', label: '母女' }, { value: '母子', label: '母子' }, { value: '师徒', label: '师徒' }, { value: '上下级', label: '上下级' }, { value: '同门', label: '同门' }, { value: '堂亲', label: '堂亲' }, { value: '兄弟', label: '兄弟' }, { value: '兄妹', label: '兄妹' }] },
     { key: 'relationDetail', label: '关系细节', type: 'textarea' },
     { key: 'relationStatus', label: '关系状态', type: 'multiselect', single: true, default: '稳定', options: [{ value: '稳定', label: '稳定' }, { value: '变化中', label: '变化中' }] },
@@ -2146,7 +2164,7 @@ MODULES['oc-timeline'] = {
 MODULES['oc-commission'] = {
   store: 'ocCommissions',
   fields: [
-    { key: 'oc', label: 'OC', type: 'combobox', options: [], hint: '从人物档案加载', noOptionManage: true },
+    { key: 'oc', label: 'OC', type: 'combobox', options: [], hint: '请选择或输入oc姓名', placeholder: '请选择或输入oc姓名', noOptionManage: true },
     { key: 'artistName', label: '画师名称', type: 'text' },
     { key: 'commissionType', label: '约稿类型', type: 'multiselect', options: [{ value: '头像', label: '头像' }, { value: '半身', label: '半身' }, { value: '立绘', label: '立绘' }, { value: '插画', label: '插画' }, { value: 'Q版', label: 'Q版' }, { value: '服装', label: '服装' }, { value: '武器', label: '武器' }, { value: '小物', label: '小物' }, { value: '印象', label: '印象' }] },
     { key: 'usageType', label: '稿件用途', type: 'multiselect', single: true, default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
@@ -3175,7 +3193,7 @@ function prepareFields(pageKey, fields) {
   let f = JSON.parse(JSON.stringify(fields));
   if (pageKey === 'oc-relations') {
     const chars = DB.list('ocCharacters');
-    const opts = chars.map(c => ({ value: c.name, label: c.name + (c.alias ? ' (' + c.alias + ')' : '') }));
+    const opts = chars.map(c => ({ value: c.name, label: c.name }));
     const fa = f.find(ff => ff.key === 'charA'); if (fa) fa.options = opts;
     const fb = f.find(ff => ff.key === 'charB'); if (fb) fb.options = opts;
   }
@@ -3398,8 +3416,10 @@ function saveForm(pageKey, mod, id) {
   if (pageKey === 'design-inspiration' && data.category) saveCustomCategory(data.category);
   if (pageKey === 'groupbuy-samples' && data.category) saveCustomSampleCategory(data.category);
   if (pageKey.indexOf('design-commission-detail') === 0) cdSyncPlatformNick(data);
-  if (id) { DB.update(mod.store, id, data); Toast.success('记录已更新'); }
-  else { DB.add(mod.store, data); Toast.success('记录已添加'); }
+  let saved;
+  if (id) { DB.update(mod.store, id, data); saved = DB.getById(mod.store, id); Toast.success('记录已更新'); }
+  else { saved = DB.add(mod.store, data); Toast.success('记录已添加'); }
+  if (pageKey === 'oc-relations' && saved) syncOcRelationToChars(saved);
   closeModal();
   navigate(pageKey);
 }
@@ -3547,6 +3567,7 @@ async function onDelete(pageKey, id) {
   if (!r) return;
   const name = r.title || r.name || r.theme || r.artworkName || r.clientInfo || '此记录';
   if (await confirmDialog(`确定要删除「${name}」吗？此操作不可撤销。`)) {
+    if (pageKey === 'oc-relations') removeOcRelationRefs(r);
     DB.remove(mod.store, id); Toast.success('已删除'); navigate(pageKey);
   }
 }
@@ -3636,7 +3657,7 @@ function renderHome() {
     if (!filteredRecords.length) {
       html += '<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-text">暂无发布记录</div></div>';
     } else {
-      html += '<div class="record-list">';
+      html += '<div class="record-list cal-view">';
       homePaged.forEach(r => { html += renderHomeRecordCard(r); });
       html += '</div>';
       if (homeTotalPages > 1) {
@@ -3652,9 +3673,28 @@ function renderHome() {
     html += '<div class="stats-divider"></div>';
     html += renderAnnualChart(records, 'publishTime', { title: ps.tab + '年度发布', isCount: true, color: PLATFORM_COLORS[ps.tab] || '#9DC8FF' });
 
-    // Stats: only current platform
+    // Stats: only current platform（6 项：本月/总计 的发布数、平均更新频次、最高浏览）
+    const thisMonth = todayStr().slice(0, 7);
+    const published = records.filter(r => statusOf(r) === '已发布');
+    const monthPublished = published.filter(r => (r.publishTime || '').startsWith(thisMonth));
+    const recViews = (r) => Number(r.data7d_reads || 0) || Number(r.data24h_reads || 0);
+    const monthMaxViews = monthPublished.reduce((m, r) => Math.max(m, recViews(r)), 0);
+    const totalMaxViews = published.reduce((m, r) => Math.max(m, recViews(r)), 0);
+    const weeksThisMonth = Math.max(1, Math.ceil(new Date().getDate() / 7));
+    const earliest = published.reduce((min, r) => { const t = (r.publishTime || '').slice(0, 7); return t && t < min ? t : min; }, thisMonth);
+    let activeMonths = 1;
+    if (published.length) {
+      const ey = parseInt(earliest.slice(0, 4), 10), em = parseInt(earliest.slice(5, 7), 10);
+      const cy = new Date().getFullYear(), cm = new Date().getMonth() + 1;
+      activeMonths = Math.max(1, (cy - ey) * 12 + (cm - em) + 1);
+    }
     html += renderStatsSection([
-      { label: ps.tab + '发布数', value: records.length, sub: '当前平台' },
+      { label: '本月发布数', value: monthPublished.length },
+      { label: '本月平均更新频次', value: (monthPublished.length / weeksThisMonth).toFixed(1), unit: '篇/周' },
+      { label: '本月最高浏览', value: monthMaxViews, unit: '次' },
+      { label: '总发布数', value: published.length },
+      { label: '总平均更新频次', value: (published.length / activeMonths).toFixed(1), unit: '篇/周' },
+      { label: '总最高浏览', value: totalMaxViews, unit: '次' },
     ], ps.tab + '统计');
   }
 
@@ -3906,7 +3946,7 @@ function renderTimeline() {
   html += '</div>';
   // Toolbar
   html += '<div class="toolbar">';
-  html += `<div class="search-box"><input type="text" placeholder="搜索事件..." value="${esc(ps.search)}" oninput="onSearch('oc-timeline', this.value)"><span class="search-icon">🔍</span></div>`;
+  html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onSearch('oc-timeline', this.value)"><span class="search-icon">🔍</span></div>`;
   html += '<div class="spacer"></div>';
   html += '<button class="btn btn-outline toolbar-eq" onclick="importStoriesToTimeline()">📥 导入故事小记</button>';
   html += '<button class="btn btn-primary" onclick="openAddForm(\'oc-timeline\')">+ 新增事件</button>';
@@ -4041,6 +4081,42 @@ const RELATION_COLORS = {
   '同门': '#9DC8FF', '交好': '#95de64', '敌对': '#e8857e', '上下级': '#722ed1',
   '亲属': '#ff9f43', '恋人': '#ff6b81', '自动同步': '#b0b8c0',
 };
+/* ===== OC Relations ↔ OC Profiles 双向绑定（v611） ===== */
+function syncOcRelationToChars(rel) {
+  if (!rel) return;
+  const a = pureOcName(rel.charA), b = pureOcName(rel.charB);
+  [a, b].forEach(n => {
+    if (!n) return;
+    const c = DB.list('ocCharacters').find(x => x.name === n);
+    if (!c) return;
+    let refs = (c.ocRelationRefs || []).filter(x => x.relId !== rel.id);
+    const other = (n === a) ? b : a;
+    if (other) refs.push({ relId: rel.id, other, type: arrVal(rel.relationType).join('、'), status: arrVal(rel.relationStatus).join('、') });
+    DB.update('ocCharacters', c.id, { ocRelationRefs: refs });
+  });
+}
+function removeOcRelationRefs(rel) {
+  if (!rel) return;
+  const a = pureOcName(rel.charA), b = pureOcName(rel.charB);
+  [a, b].forEach(n => {
+    if (!n) return;
+    const c = DB.list('ocCharacters').find(x => x.name === n);
+    if (!c) return;
+    const refs = (c.ocRelationRefs || []).filter(x => x.relId !== rel.id);
+    DB.update('ocCharacters', c.id, { ocRelationRefs: refs });
+  });
+}
+// 一次性迁移：清理历史关系记录中携带的「(道号/外号)」后缀，并重建人物反向引用
+function normalizeOcRelationsAlias() {
+  if (DB.get('oc_rels_normalized_v611')) return;
+  DB.list('ocRelations').forEach(r => {
+    const a = pureOcName(r.charA), b = pureOcName(r.charB);
+    if (a !== r.charA || b !== r.charB) DB.update('ocRelations', r.id, { charA: a, charB: b });
+    syncOcRelationToChars(r);
+  });
+  DB.set('oc_rels_normalized_v611', true);
+}
+
 function renderRelations() {
   const body = $('#mainBody');
   const chars = DB.list('ocCharacters');
@@ -4090,7 +4166,7 @@ function renderRelations() {
       pagedRelations.forEach(r => {
         html += `<div class="record-card" onclick="openDetail('oc-relations','${r.id}')">`;
         html += '<div class="record-card-header"><div class="record-card-title">';
-        html += `${esc(r.charA)} <span style="color:var(--c-text-muted)">↔</span> ${esc(r.charB)}`;
+        html += `${esc(pureOcName(r.charA))} <span style="color:var(--c-text-muted)">↔</span> ${esc(pureOcName(r.charB))}`;
         html += '</div><div class="record-card-actions">';
         html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('oc-relations','${r.id}')">✏️</span>`;
         html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('oc-relations','${r.id}')">🗑️</span>`;
@@ -4151,11 +4227,11 @@ function togglePersonRelations(name, btn) {
   if (!char) return;
   let html = `<div style="font-weight:600;margin-bottom:6px">${esc(name)}的关系网络</div>`;
   // Explicit relations
-  const myRels = relations.filter(r => r.charA === name || r.charB === name);
+  const myRels = relations.filter(r => pureOcName(r.charA) === name || pureOcName(r.charB) === name);
   if (myRels.length) {
     html += '<div style="margin-bottom:8px"><b>显式关系:</b></div>';
     myRels.forEach(r => {
-      const other = r.charA === name ? r.charB : r.charA;
+      const other = pureOcName(r.charA) === name ? pureOcName(r.charB) : pureOcName(r.charA);
       const rtArr = arrVal(r.relationType);
       const rsArr = arrVal(r.relationStatus);
       rtArr.forEach(rt => {
@@ -4296,7 +4372,7 @@ function drawMindMap(chars, relations) {
   relations.forEach(r => {
     const types = arrVal(r.relationType);
     const type = types[0] || '关系';
-    allConnections.push({ a: r.charA, b: r.charB, type, auto: false });
+    allConnections.push({ a: pureOcName(r.charA), b: pureOcName(r.charB), type, auto: false });
   });
   // Auto-sync from profile social fields
   const socialFields = [
@@ -9387,6 +9463,7 @@ function init() {
   applyTheme(s.theme);
   if (DB.get('ui_sidebar_collapsed', false)) $('#sidebar').classList.add('collapsed');
   migrateData();
+  normalizeOcRelationsAlias();
   Sync.load();
   initEvents();
   // 单主填写链接优先接管：在渲染首页之前检测，避免先闪出工作台
