@@ -1211,7 +1211,7 @@ function renderCalendar(year, month, records, commissionRecords = []) {
   const prevMonthDays = new Date(year, month, 0).getDate();
   const today = new Date();
   const todayKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
-  const START_COLOR = '#ff9a3c', END_COLOR = '#FFDE75', BOTH_COLOR = '#712258';
+  const START_COLOR = '#f6ad5c', END_COLOR = '#FFDE75', BOTH_COLOR = '#712258'; // v625 开稿橙与工期条橙一致
   // v193: 深空打卡日期集合（固定位置在开稿/接稿/同天下方）
   const lifeDeepspaceDates = new Set(DB.list('lifeCheckins').filter(r => r.type === 'deepspace').map(r => r.date));
   let html = '<div class="cal-grid">';
@@ -2601,7 +2601,7 @@ const CAL_URGENCY_COLORS = ['#e8857e', '#f6ad5c', '#7ab5f5']; // 红/橙/蓝 —
 const CAL_MAX_TRACKS = 3;
 const CAL_BAR_HEIGHT = 11;
 const CAL_BAR_GAP = 2;
-const CAL_START_COLOR = '#ff9a3c';    // 开稿节点
+const CAL_START_COLOR = '#f6ad5c';    // 开稿节点（v625 与工期条橙色一致）
 const CAL_END_COLOR = '#FFDE75';      // 截稿节点
 const CAL_BOTH_COLOR = '#712258';     // 开+截同天
 const CAL_DELIVERED_COLOR = '#7ec678';
@@ -8128,8 +8128,8 @@ function renderSleepWeekLineChart(days) {
   const CW = W - LM - RM, CH = H - TM - BM;
   const xOf = v => LM + (maxV > 0 ? v / maxV * CW : 0);
   const yOf = i => TM + CH * i / 6;
-  const nightColor = '#ff9a3c'; // 接稿排期「开稿」橙色
-  const napColor = '#FFDE75'; // 接稿排期「截稿」黄色（更亮）
+  const nightColor = '#ff9a3c'; // 每日记录睡眠图「夜晚」橙色（与开稿橙无关，勿随开稿色改动）
+  const napColor = '#FFDE75'; // 每日记录睡眠图「午间」黄色
   const mkGrad = (id, color) => `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${color}" stop-opacity="0.05"/><stop offset="100%" stop-color="${color}" stop-opacity="0.30"/></linearGradient>`;
   const linePath = vals => vals.map((v, i) => `${xOf(v).toFixed(1)} ${yOf(i).toFixed(1)}`).join(' ');
   const areaPath = vals => `M ${LM} ${yOf(0)} L ${vals.map((v, i) => `${xOf(v).toFixed(1)} ${yOf(i).toFixed(1)}`).join(' L ')} L ${LM} ${yOf(6)} Z`;
