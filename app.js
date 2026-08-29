@@ -540,7 +540,7 @@ function buildFormField(f, data, moduleKey, wrap) {
   const valStr = typeof val === 'string' ? val : (Array.isArray(val) ? '' : String(val ?? ''));
   const showInlineHint = !!(f.hintInline && f.hint);
   const hintText = f.hint || '';
-  const labelHTML = `<label class="form-label">${esc(label)}${showInlineHint ? `<span class="form-label-hint">${esc(hintText)}</span>` : ''}</label>`;
+  const labelHTML = `<label class="form-label">${esc(label)}${showInlineHint ? `<span class="form-label-hint">（${esc(hintText)}）</span>` : ''}</label>`;
   const belowHint = (!showInlineHint && f.hint) ? `<span class="form-hint">${esc(hintText)}</span>` : '';
   let inner = '';
   if (f.type === 'textarea') {
@@ -2099,7 +2099,10 @@ MODULES['oc-profiles'] = {
       const other = pureOcName(rel.charA) === name ? pureOcName(rel.charB) : pureOcName(rel.charA);
       const rt = arrVal(rel.relationType).join('、');
       const rs = arrVal(rel.relationStatus).join('、');
-      html += '<div class="detail-rel-row"><span class="tag tag-purple">' + esc(rt) + '</span> → <b>' + esc(other) + '</b>' + (rs ? ' <span class="detail-rel-status">(' + esc(rs) + ')</span>' : '') + '</div>';
+      html += '<div class="detail-rel-item">';
+      html += '<div class="detail-rel-head"><span class="tag tag-purple">' + esc(rt) + '</span>' + (rs ? '<span class="detail-rel-status">' + esc(rs) + '</span>' : '') + '</div>';
+      html += '<div class="detail-rel-other">→ <b>' + esc(other) + '</b></div>';
+      html += '</div>';
     });
     html += '</div>';
     return html;
@@ -3433,6 +3436,7 @@ function saveForm(pageKey, mod, id) {
   if (id) { DB.update(mod.store, id, data); saved = DB.getById(mod.store, id); Toast.success('记录已更新'); }
   else { saved = DB.add(mod.store, data); Toast.success('记录已添加'); }
   if (pageKey === 'oc-relations' && saved) syncOcRelationToChars(saved);
+  if (pageKey === 'oc-profiles' && saved) syncProfileSocialToRelations(saved.name, saved);
   closeModal();
   navigate(pageKey);
 }
@@ -3827,12 +3831,12 @@ function renderPriceCalc() {
   // Left: Input column
   html += '<div class="calc-input-col">';
   html += '<div class="calc-card"><div class="calc-card-title price-calc-title">成本参数 <span class="calc-card-hint">输入各项成本自动计算</span></div>';
-  html += '<div class="form-row"><label class="form-label">单品成本（元）</label><input type="number" class="form-input" id="calc_itemCost" value="" placeholder="0" oninput="calcPrice()"></div>';
-  html += '<div class="form-row"><label class="form-label">样品成本（元）</label><input type="number" class="form-input" id="calc_sampleCost" value="" placeholder="0" oninput="calcPrice()"></div>';
-  html += '<div class="form-row"><label class="form-label">人工成本（元/件）</label><input type="number" class="form-input" id="calc_laborCost" value="" placeholder="0" oninput="calcPrice()"></div>';
-  html += '<div class="form-row"><label class="form-label">运费（元/件）</label><input type="number" class="form-input" id="calc_shipping" value="" placeholder="0" oninput="calcPrice()"></div>';
-  html += '<div class="form-row"><label class="form-label">抽成比例（%）</label><input type="number" class="form-input" id="calc_commissionRate" value="" placeholder="0" oninput="calcPrice()"></div>';
-  html += '<div class="form-row"><label class="form-label">预期利润率（%）</label><input type="number" class="form-input" id="calc_profitMargin" value="30" oninput="calcPrice()"></div>';
+  html += '<div class="form-row"><label class="form-label">单品成本</label><input type="number" class="form-input" id="calc_itemCost" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">元</span></div>';
+  html += '<div class="form-row"><label class="form-label">样品成本</label><input type="number" class="form-input" id="calc_sampleCost" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">元</span></div>';
+  html += '<div class="form-row"><label class="form-label">人工成本</label><input type="number" class="form-input" id="calc_laborCost" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">元/件</span></div>';
+  html += '<div class="form-row"><label class="form-label">运费</label><input type="number" class="form-input" id="calc_shipping" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">元/件</span></div>';
+  html += '<div class="form-row"><label class="form-label">抽成比例</label><input type="number" class="form-input" id="calc_commissionRate" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">%</span></div>';
+  html += '<div class="form-row"><label class="form-label">预期利润率</label><input type="number" class="form-input" id="calc_profitMargin" value="30" oninput="calcPrice()"><span class="form-hint">%</span></div>';
   html += '<div class="form-row"><label class="form-label">开团数量</label><input type="number" class="form-input" id="calc_quantity" value="100" oninput="calcPrice()"></div>';
   html += '<div class="form-row"><label class="form-label">模板名称</label><input type="text" class="form-input" id="calc_templateName" placeholder="保存为模板便于复用"></div>';
   html += '<div style="display:flex;gap:8px;margin-top:12px">';
@@ -4096,6 +4100,7 @@ const RELATION_COLORS = {
   '师徒': '#faad14', '道侣': '#ff6b81', '好友': '#7ec678',
   '同门': '#9DC8FF', '交好': '#95de64', '敌对': '#e8857e', '上下级': '#722ed1',
   '亲属': '#ff9f43', '恋人': '#ff6b81', '自动同步': '#b0b8c0',
+  '父母': '#ff9f43', '兄弟姐妹': '#ff9f43',
 };
 /* ===== OC Relations ↔ OC Profiles 双向绑定（v611） ===== */
 function syncOcRelationToChars(rel) {
@@ -4156,6 +4161,16 @@ const RELATION_TYPE_SOCIAL_MAP = {
   '表亲': { field: 'siblings', dir: 'both' },
   '堂亲': { field: 'siblings', dir: 'both' }
 };
+// v615：人物档案社会关系字段 → 关系类型（双向绑定：档案 → 关系，反向回填）
+const SOCIAL_FIELD_RELATION_TYPE = {
+  parents: '父母', siblings: '兄弟姐妹', master: '师徒', companion: '道侣', friends: '好友', fellow: '同门'
+};
+const RELATION_TYPE_SOCIAL_FIELD = {
+  '父母': 'parents', '兄弟姐妹': 'siblings', '师徒': 'master', '道侣': 'companion', '好友': 'friends', '同门': 'fellow'
+};
+function splitOcNames(v) {
+  return (v || '').split(/[、,，]/).map(s => pureOcName(s.trim())).filter(Boolean);
+}
 // 从 ocRelations 推导某人物档案的六类社会关系字段（双向绑定：关系 → 档案）
 function deriveSocialFieldsFromRelations(charName) {
   const result = { parents: '', siblings: '', master: '', companion: '', friends: '', fellow: '' };
@@ -4186,7 +4201,15 @@ function deriveSocialFieldsFromRelations(charName) {
 function syncOcRelationSocialFields(charName) {
   const c = DB.list('ocCharacters').find(x => x.name === charName);
   if (!c) return;
-  DB.update('ocCharacters', c.id, deriveSocialFieldsFromRelations(charName));
+  const derived = deriveSocialFieldsFromRelations(charName);
+  const merged = {};
+  ['parents', 'siblings', 'master', 'companion', 'friends', 'fellow'].forEach(f => {
+    const set = new Set();
+    splitOcNames(c[f]).forEach(s => set.add(s));
+    splitOcNames(derived[f]).forEach(s => set.add(s));
+    merged[f] = [...set].join('、');
+  });
+  DB.update('ocCharacters', c.id, merged);
 }
 // v614：一次性迁移，用已有关系回填所有人物档案的社会关系字段
 function normalizeOcRelationSocial() {
@@ -4195,6 +4218,53 @@ function normalizeOcRelationSocial() {
     DB.update('ocCharacters', c.id, deriveSocialFieldsFromRelations(c.name));
   });
   DB.set('oc_rels_social_v614', true);
+}
+// v615：人物档案社会关系字段 → 人物关系记录（双向绑定：档案 → 关系）
+// 在档案保存时调用：为档案社会关系里填写的每个人自动建立/清理对应的人物关系记录
+function syncProfileSocialToRelations(charName, socialData) {
+  if (!charName) return;
+  const name = pureOcName(charName);
+  let relations = DB.list('ocRelations');
+  // 1) 新增：档案社会关系里存在、但 ocRelations 中尚无对应记录的人 → 建立关系
+  ['parents', 'siblings', 'master', 'companion', 'friends', 'fellow'].forEach(field => {
+    const type = SOCIAL_FIELD_RELATION_TYPE[field];
+    splitOcNames(socialData && socialData[field]).forEach(other => {
+      if (other === name) return;
+      const exists = relations.some(r =>
+        arrVal(r.relationType).includes(type) &&
+        ((pureOcName(r.charA) === name && pureOcName(r.charB) === other) ||
+         (pureOcName(r.charA) === other && pureOcName(r.charB) === name))
+      );
+      if (exists) return;
+      const rec = { charA: name, charB: other, relationType: [type], relationStatus: [], _syncedFromProfile: true };
+      const saved = DB.add('ocRelations', rec);
+      relations.push(saved);
+      syncOcRelationToChars(saved);
+    });
+  });
+  // 2) 清理：由档案同步生成、且已不在档案社会关系中的关系记录（仅删 _syncedFromProfile 标记项，不动手动关系）
+  relations.filter(r => r._syncedFromProfile).forEach(r => {
+    const involves = pureOcName(r.charA) === name || pureOcName(r.charB) === name;
+    if (!involves) return;
+    const other = pureOcName(r.charA) === name ? pureOcName(r.charB) : pureOcName(r.charA);
+    const stillThere = arrVal(r.relationType).some(t => {
+      const f = RELATION_TYPE_SOCIAL_FIELD[t];
+      if (!f) return false;
+      return splitOcNames(socialData && socialData[f]).includes(other);
+    });
+    if (!stillThere) {
+      DB.remove('ocRelations', r.id);
+      removeOcRelationRefs(r);
+    }
+  });
+}
+// v615：一次性迁移，用已有档案社会关系回填对应人物关系记录（保证历史数据双向一致）
+function normalizeOcProfileSocial() {
+  if (DB.get('oc_profile_social_v615')) return;
+  DB.list('ocCharacters').forEach(c => {
+    syncProfileSocialToRelations(c.name, c);
+  });
+  DB.set('oc_profile_social_v615', true);
 }
 
 function renderRelations() {
@@ -4500,15 +4570,22 @@ function drawMindMap(chars, relations) {
   // Wrap everything in a zoomable inner div
   let inner = `<div class="mindmap-inner" id="mindmapInner" style="position:relative;width:${w}px;height:${h}px;transform-origin:center center;transform:translate(${_mmPanX}px,${_mmPanY}px) scale(${_mmZoom});transition:transform .15s">`;
   inner += `<svg class="mindmap-svg" width="${w}" height="${h}">`;
+  // 同 pair 的多个关系并排多条线（按垂直方向错开控制点）
+  const _pairMap = {};
+  allConnections.forEach(c => { const k = [c.a, c.b].sort().join('\u0000'); (_pairMap[k] = _pairMap[k] || []).push(c); });
+  Object.keys(_pairMap).forEach(k => { _pairMap[k].forEach((c, i) => { c._pi = i; c._pc = _pairMap[k].length; }); });
   allConnections.forEach(conn => {
     const a = positions[conn.a], b = positions[conn.b];
     if (!a || !b) return;
     const color = RELATION_COLORS[conn.type] || '#b0b8c0';
     const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
     const dx = b.x - a.x, dy = b.y - a.y;
-    const ctrlX = mx + dy * 0.15, ctrlY = my - dx * 0.15;
-    const dashArray = conn.auto ? '4,3' : 'none';
-    const opacity = conn.auto ? 0.4 : 0.6;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len, ny = dx / len; // 垂直单位向量
+    const off = (conn._pi - (conn._pc - 1) / 2) * 16; // 多条关系平行错开
+    const ctrlX = mx + dy * 0.15 + nx * off, ctrlY = my - dx * 0.15 + ny * off;
+    const dashArray = 'none';
+    const opacity = 0.6;
     // Adjust endpoints to circle edge (radius ~25, circular node 60px)
     const nodeR = 25;
     const angA = Math.atan2(a.y - cy, a.x - cx);
@@ -5653,7 +5730,7 @@ function dcRecalc() {
     // DY6轮：双按钮改为与「最终报价」(.dc-r-final) 同款实心蓝块（白字居中），仅并排两列
     r += '<div class="dc-r-final-balance">';
     r += `<div class="dc-r-final"><div class="dc-r-final-label">最终总价</div><div class="dc-r-final-val">¥${finalTotal.toFixed(2)}</div></div>`;
-    r += `<div class="dc-r-final"><div class="dc-r-final-label">需付尾款</div><div class="dc-r-final-val">¥${balancePayable.toFixed(2)}</div></div>`;
+    r += `<div class="dc-r-balance"><div class="dc-r-db-label">需付尾款</div><div class="dc-r-db-val">¥${balancePayable.toFixed(2)}</div></div>`;
     r += '</div>';
     r += '</div>';
   }
@@ -5778,7 +5855,7 @@ function renderPriceList() {
   let html = '<div class="fade-in">';
   // v27: toolbar→其他说明 8px（用 inline mb 覆盖 .toolbar 默认 mb:16，避免塌陷）
   html += '<div class="toolbar" style="margin-bottom:8px">';
-  html += `<div class="search-box"><input type="text" placeholder="搜索制品/分类..." value="${esc(ps.search)}" oninput="onSearch('design-pricelist', this.value)"><span class="search-icon">🔍</span></div>`;
+  html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onSearch('design-pricelist', this.value)"><span class="search-icon">🔍</span></div>`;
   html += '<div class="spacer"></div>';
   html += '<button class="btn btn-outline toolbar-eq" onclick="togglePriceListNotes()">📝 其他说明</button>';
   html += '<button class="btn btn-outline toolbar-eq" onclick="openPriceListSort()">↕️ 排序编辑</button>';
@@ -9566,6 +9643,7 @@ function init() {
   migrateData();
   normalizeOcRelationsAlias();
   normalizeOcRelationSocial();
+  normalizeOcProfileSocial();
   Sync.load();
   initEvents();
   // 单主填写链接优先接管：在渲染首页之前检测，避免先闪出工作台

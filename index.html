@@ -772,9 +772,12 @@ ul,li{list-style:none}
 .cd-rec-body .form-section-title.cd-extra-subtitle{padding-left:11px}
 .detail-images{display:flex;flex-wrap:wrap;gap:8px;margin-top:0}
 /* v611：人物档案详情「人物关系」区块（与人物关系模块双向绑定） */
-.detail-relations{margin:4px 0 2px}
-.detail-rel-row{padding:4px 0;font-size:13px;line-height:1.6}
-.detail-rel-status{color:var(--c-text-muted);font-size:12px;margin-left:2px}
+.detail-relations{margin:4px 0 2px;display:flex;flex-wrap:wrap;align-items:stretch}
+.detail-rel-item{padding:4px 12px;display:flex;flex-direction:column;gap:3px}
+.detail-rel-item:not(:first-child){border-left:1px solid var(--c-border)}
+.detail-rel-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.detail-rel-status{color:var(--c-text-muted);font-size:12px}
+.detail-rel-other{font-size:13px;line-height:1.5}
 .detail-images img{width:100px;height:100px;object-fit:cover;border-radius:6px;border:1px solid var(--c-border);cursor:pointer}
 .detail-table{width:100%;border-collapse:collapse;font-size:12px;margin:0;table-layout:fixed}
 .detail-row:has(.detail-table) .detail-value{padding:0;margin:0}
@@ -2648,7 +2651,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=614"></script>
+  <script src="app.js?v=615"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
