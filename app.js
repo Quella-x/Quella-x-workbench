@@ -2743,14 +2743,16 @@ function renderCommissionCalendar(year, month, records) {
       if (win) list.push({ track: t, rec: win });
     }
     const bothRecords = records.filter(r => isStart(r) && isEnd(r));
-    const startRecords = records.filter(r => isStart(r) && !isEnd(r));
-    const deadlineRecords = records.filter(r => isEnd(r) && !isStart(r));
+    const startOnlyRecords = records.filter(r => isStart(r) && !isEnd(r));
+    const endOnlyRecords = records.filter(r => isEnd(r) && !isStart(r));
+    const hasStart = records.some(r => isStart(r));
+    const hasEnd = records.some(r => isEnd(r));
     const isToday = dateStr === todayKey;
     const isSelected = ps.dateFilter === dateStr;
     let commTagStr = '';
-    if (bothRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_BOTH_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_BOTH_COLOR + '">开+截</span></span>';
-    if (startRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_START_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_START_COLOR + '">开稿</span></span>';
-    if (deadlineRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_END_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_END_COLOR + '">截稿</span></span>';
+    if (bothRecords.length > 0 || (hasStart && hasEnd)) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_BOTH_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_BOTH_COLOR + '">开+截</span></span>';
+    else if (startOnlyRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_START_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_START_COLOR + '">开稿</span></span>';
+    else if (endOnlyRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_END_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_END_COLOR + '">截稿</span></span>';
     let bars = '';
     list.forEach(item => {
       const r = item.rec;
