@@ -539,7 +539,7 @@ function buildFormField(f, data, moduleKey, wrap) {
   const val = data[f.key] ?? f.default ?? '';
   const valStr = typeof val === 'string' ? val : (Array.isArray(val) ? '' : String(val ?? ''));
   const showInlineHint = !!(f.hintInline && f.hint);
-  const hintText = f.hint ? '（' + f.hint + '）' : '';
+  const hintText = f.hint || '';
   const labelHTML = `<label class="form-label">${esc(label)}${showInlineHint ? `<span class="form-label-hint">${esc(hintText)}</span>` : ''}</label>`;
   const belowHint = (!showInlineHint && f.hint) ? `<span class="form-hint">${esc(hintText)}</span>` : '';
   let inner = '';
@@ -1543,7 +1543,7 @@ MODULES['groupbuy-factories'] = {
 MODULES['groupbuy-samples'] = {
   store: 'samples',
   fields: [
-    { key: 'factory', label: '厂家', type: 'combobox', options: [], hint: '从厂家记录加载', placeholder: '请选择或输入厂家', noOptionManage: true },
+    { key: 'factory', label: '厂家', type: 'combobox', options: [], hint: '从厂家记录加载', hintInline: true, placeholder: '请选择或输入厂家', noOptionManage: true },
     { key: 'category', label: '打样品类', type: 'combobox', options: [], placeholder: '请选择或输入品类' },
     { key: 'sampleName', label: '样品名称', type: 'text' },
     { key: 'sampleTime', label: '打样时间', type: 'date', default: todayStr() },
@@ -1654,7 +1654,7 @@ MODULES['design-commission'] = {
     { key: 'balance', label: '尾款', type: 'readonly', row: 'depositBalance', hint: '自动计算' },
     { key: 'paymentStatus', label: '支付状态', type: 'multiselect', single: true, default: '定金', options: [{ value: '未付', label: '未付' }, { value: '定金', label: '定金' }, { value: '尾款', label: '尾款' }, { value: '全款', label: '全款' }] },
     { key: 'progress', label: '稿件进度', type: 'multiselect', single: true, default: '已接稿', options: [{ value: '待接稿', label: '待接稿' }, { value: '已接稿', label: '已接稿' }, { value: '制作中', label: '制作中' }, { value: '修改中', label: '修改中' }, { value: '已交付', label: '已交付' }] },
-    { key: 'deliveredTime', label: '交付时间', type: 'date', hint: '设为「已交付」时自动记录；用于报价导入接稿过滤' },
+    { key: 'deliveredTime', label: '交付时间', type: 'date', hint: '设为「已交付」时自动记录，用于报价导入接稿过滤', hintInline: true },
     { key: 'modifications', label: '修改项目', type: 'dynamic-list', maxRows: 2, columns: [
       { subkey: 'modifyType', label: '修改类型', type: 'combobox', datalistId: 'comm_modify_dl', priceLookup: 'modify', options: [] },
       { subkey: 'modifyCount', label: '次数', type: 'number' },
@@ -2021,7 +2021,7 @@ MODULES['design-auth'] = {
 MODULES['design-pricelist'] = {
   store: 'priceList',
   fields: [
-    { key: 'category', label: '制品分类', type: 'combobox', noSort: true, options: [{ value: '纸片类', label: '纸片类' }, { value: '其他材质类', label: '其他材质类' }, { value: '线上&应援类', label: '线上&应援类' }, { value: '加价项目', label: '加价项目' }, { value: '修改类型', label: '修改类型' }] },
+    { key: 'category', label: '制品分类', type: 'combobox', noSort: true, placeholder: '请选择或输入分类', options: [{ value: '纸片类', label: '纸片类' }, { value: '其他材质类', label: '其他材质类' }, { value: '线上&应援类', label: '线上&应援类' }, { value: '加价项目', label: '加价项目' }, { value: '修改类型', label: '修改类型' }] },
     { key: 'product', label: '制品', type: 'text' },
     { key: 'defaultSize', label: '默认尺寸', type: 'text' },
     { key: 'defaultBleed', label: '默认出血', type: 'text' },
@@ -2110,8 +2110,8 @@ MODULES['oc-profiles'] = {
 MODULES['oc-relations'] = {
   store: 'ocRelations',
   fields: [
-    { key: 'charA', label: '人物1', type: 'combobox', options: [], hint: '请选择或输入oc姓名', placeholder: '请选择或输入oc姓名', noOptionManage: true },
-    { key: 'charB', label: '人物2', type: 'combobox', options: [], hint: '请选择或输入oc姓名', placeholder: '请选择或输入oc姓名', noOptionManage: true },
+    { key: 'charA', label: '人物1', type: 'combobox', options: [], placeholder: '请选择或输入oc姓名', noOptionManage: true },
+    { key: 'charB', label: '人物2', type: 'combobox', options: [], placeholder: '请选择或输入oc姓名', noOptionManage: true },
     { key: 'relationType', label: '关系类型', type: 'multiselect', allowCustom: true, options: [{ value: '表亲', label: '表亲' }, { value: '道侣', label: '道侣' }, { value: '敌对', label: '敌对' }, { value: '父女', label: '父女' }, { value: '父子', label: '父子' }, { value: '好友', label: '好友' }, { value: '姐弟', label: '姐弟' }, { value: '交好', label: '交好' }, { value: '姐妹', label: '姐妹' }, { value: '母女', label: '母女' }, { value: '母子', label: '母子' }, { value: '师徒', label: '师徒' }, { value: '上下级', label: '上下级' }, { value: '同门', label: '同门' }, { value: '堂亲', label: '堂亲' }, { value: '兄弟', label: '兄弟' }, { value: '兄妹', label: '兄妹' }] },
     { key: 'relationDetail', label: '关系细节', type: 'textarea' },
     { key: 'relationStatus', label: '关系状态', type: 'multiselect', single: true, default: '稳定', options: [{ value: '稳定', label: '稳定' }, { value: '变化中', label: '变化中' }] },
@@ -2132,7 +2132,7 @@ MODULES['oc-stories'] = {
     { key: 'characterIds', label: '关联OC', type: 'multiselect', options: [], hint: '从人物档案加载', noOptionManage: true },
     { key: 'tags', label: '剧情标签', type: 'multiselect', single: true, default: '灵感', options: [{ value: '主线', label: '主线' }, { value: '支线', label: '支线' }, { value: '日常', label: '日常' }, { value: '随笔', label: '随笔' }, { value: '灵感', label: '灵感' }] },
     { key: 'isComplete', label: '剧情状态', type: 'multiselect', single: true, default: '连载中', options: [{ value: '连载中', label: '连载中' }, { value: '已完结', label: '已完结' }] },
-    { key: 'content', label: '剧情内容', type: 'textarea', hint: '支持多段落写作' },
+    { key: 'content', label: '剧情内容', type: 'textarea', hint: '支持多段落写作', hintInline: true },
     { key: 'createTime', label: '创作时间', type: 'date', default: todayStr() },
   ],
   filters: [{ key: 'tags', label: '全部标签', options: [{ value: '', label: '全部标签' }, { value: '主线', label: '主线' }, { value: '支线', label: '支线' }, { value: '日常', label: '日常' }, { value: '随笔', label: '随笔' }, { value: '灵感', label: '灵感' }] }],
@@ -2159,7 +2159,7 @@ MODULES['oc-timeline'] = {
       { value: '蓝', label: '次要' },
     ]},
     { key: 'characterIds', label: '关联人物', type: 'multiselect', options: [], hint: '从人物档案加载', noOptionManage: true },
-    { key: 'source', label: '事件来源', type: 'text', hint: '手动创建或从故事小记导入' },
+    { key: 'source', label: '事件来源', type: 'text', hint: '手动创建或从故事小记导入', hintInline: true },
   ],
   listFields: [
     { label: '重要性', key: 'importance', tag: true },
@@ -2172,7 +2172,7 @@ MODULES['oc-timeline'] = {
 MODULES['oc-commission'] = {
   store: 'ocCommissions',
   fields: [
-    { key: 'oc', label: 'OC', type: 'combobox', options: [], hint: '请选择或输入oc姓名', placeholder: '请选择或输入oc姓名', noOptionManage: true },
+    { key: 'oc', label: 'OC', type: 'combobox', options: [], placeholder: '请选择或输入oc姓名', noOptionManage: true },
     { key: 'artistName', label: '画师名称', type: 'text' },
     { key: 'commissionType', label: '约稿类型', type: 'multiselect', options: [{ value: '头像', label: '头像' }, { value: '半身', label: '半身' }, { value: '立绘', label: '立绘' }, { value: '插画', label: '插画' }, { value: 'Q版', label: 'Q版' }, { value: '服装', label: '服装' }, { value: '武器', label: '武器' }, { value: '小物', label: '小物' }, { value: '印象', label: '印象' }] },
     { key: 'usageType', label: '稿件用途', type: 'multiselect', single: true, default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
@@ -4110,6 +4110,8 @@ function syncOcRelationToChars(rel) {
     if (other) refs.push({ relId: rel.id, other, type: arrVal(rel.relationType).join('、'), status: arrVal(rel.relationStatus).join('、') });
     DB.update('ocCharacters', c.id, { ocRelationRefs: refs });
   });
+  syncOcRelationSocialFields(a);
+  syncOcRelationSocialFields(b);
 }
 function removeOcRelationRefs(rel) {
   if (!rel) return;
@@ -4121,6 +4123,8 @@ function removeOcRelationRefs(rel) {
     const refs = (c.ocRelationRefs || []).filter(x => x.relId !== rel.id);
     DB.update('ocCharacters', c.id, { ocRelationRefs: refs });
   });
+  syncOcRelationSocialFields(a);
+  syncOcRelationSocialFields(b);
 }
 // 一次性迁移：清理历史关系记录中携带的「(道号/外号)」后缀，并重建人物反向引用
 function normalizeOcRelationsAlias() {
@@ -4131,6 +4135,66 @@ function normalizeOcRelationsAlias() {
     syncOcRelationToChars(r);
   });
   DB.set('oc_rels_normalized_v612', true);
+}
+
+// v614：关系类型 → 人物档案社会关系字段 映射（双向绑定：关系录入后自动回填档案社会关系）
+const RELATION_TYPE_SOCIAL_MAP = {
+  '道侣': { field: 'companion', dir: 'both' },
+  '师徒': { field: 'master', dir: 'junior' },
+  '好友': { field: 'friends', dir: 'both' },
+  '交好': { field: 'friends', dir: 'both' },
+  '同门': { field: 'fellow', dir: 'both' },
+  '上下级': { field: 'fellow', dir: 'both' },
+  '父女': { field: 'parents', dir: 'junior' },
+  '父子': { field: 'parents', dir: 'junior' },
+  '母女': { field: 'parents', dir: 'junior' },
+  '母子': { field: 'parents', dir: 'junior' },
+  '姐妹': { field: 'siblings', dir: 'both' },
+  '兄弟': { field: 'siblings', dir: 'both' },
+  '姐弟': { field: 'siblings', dir: 'both' },
+  '兄妹': { field: 'siblings', dir: 'both' },
+  '表亲': { field: 'siblings', dir: 'both' },
+  '堂亲': { field: 'siblings', dir: 'both' }
+};
+// 从 ocRelations 推导某人物档案的六类社会关系字段（双向绑定：关系 → 档案）
+function deriveSocialFieldsFromRelations(charName) {
+  const result = { parents: '', siblings: '', master: '', companion: '', friends: '', fellow: '' };
+  const addUnique = (field, name) => {
+    if (!name) return;
+    const cur = result[field] ? result[field].split('、').map(s => s.trim()).filter(Boolean) : [];
+    if (!cur.includes(name)) cur.push(name);
+    result[field] = cur.join('、');
+  };
+  DB.list('ocRelations').forEach(r => {
+    const a = pureOcName(r.charA), b = pureOcName(r.charB);
+    if (a !== charName && b !== charName) return;
+    const other = (a === charName) ? b : a;
+    if (!other) return;
+    arrVal(r.relationType).forEach(rt => {
+      const m = RELATION_TYPE_SOCIAL_MAP[rt];
+      if (!m) return;
+      if (m.dir === 'both') {
+        addUnique(m.field, other);
+      } else {
+        // junior：charA 为长辈/师父，仅把对应长辈写入晚辈(charB)的社会关系字段
+        if (charName === b) addUnique(m.field, a);
+      }
+    });
+  });
+  return result;
+}
+function syncOcRelationSocialFields(charName) {
+  const c = DB.list('ocCharacters').find(x => x.name === charName);
+  if (!c) return;
+  DB.update('ocCharacters', c.id, deriveSocialFieldsFromRelations(charName));
+}
+// v614：一次性迁移，用已有关系回填所有人物档案的社会关系字段
+function normalizeOcRelationSocial() {
+  if (DB.get('oc_rels_social_v614')) return;
+  DB.list('ocCharacters').forEach(c => {
+    DB.update('ocCharacters', c.id, deriveSocialFieldsFromRelations(c.name));
+  });
+  DB.set('oc_rels_social_v614', true);
 }
 
 function renderRelations() {
@@ -7365,8 +7429,8 @@ function renderLifeCheckin() {
   }
   html += '</div>';
   html += '<div class="life-block-toggle">';
-  html += `<button class="lbt-btn ${block === 'day' ? 'active' : ''}" onclick="lifeCheckinToggleBlock('day')">日</button>`;
   html += `<button class="lbt-btn ${block === 'week' ? 'active' : ''}" onclick="lifeCheckinToggleBlock('week')">周</button>`;
+  html += `<button class="lbt-btn ${block === 'day' ? 'active' : ''}" onclick="lifeCheckinToggleBlock('day')">月</button>`;
   html += `<button class="lbt-btn ${block === 'year' ? 'active' : ''}" onclick="lifeCheckinToggleBlock('year')">年</button>`;
   html += '</div>';
   if (block === 'year') {
@@ -9501,6 +9565,7 @@ function init() {
   if (DB.get('ui_sidebar_collapsed', false)) $('#sidebar').classList.add('collapsed');
   migrateData();
   normalizeOcRelationsAlias();
+  normalizeOcRelationSocial();
   Sync.load();
   initEvents();
   // 单主填写链接优先接管：在渲染首页之前检测，避免先闪出工作台
