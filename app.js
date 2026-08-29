@@ -539,8 +539,9 @@ function buildFormField(f, data, moduleKey, wrap) {
   const val = data[f.key] ?? f.default ?? '';
   const valStr = typeof val === 'string' ? val : (Array.isArray(val) ? '' : String(val ?? ''));
   const showInlineHint = !!(f.hintInline && f.hint);
-  const labelHTML = `<label class="form-label">${esc(label)}${showInlineHint ? `<span class="form-label-hint">${esc(f.hint)}</span>` : ''}</label>`;
-  const belowHint = (!showInlineHint && f.hint) ? `<span class="form-hint">${esc(f.hint)}</span>` : '';
+  const hintText = f.hint ? '（' + f.hint + '）' : '';
+  const labelHTML = `<label class="form-label">${esc(label)}${showInlineHint ? `<span class="form-label-hint">${esc(hintText)}</span>` : ''}</label>`;
+  const belowHint = (!showInlineHint && f.hint) ? `<span class="form-hint">${esc(hintText)}</span>` : '';
   let inner = '';
   if (f.type === 'textarea') {
     inner = `${labelHTML}<textarea class="form-textarea" data-key="${f.key}" placeholder="${esc(f.placeholder || '')}">${esc(valStr)}</textarea>${belowHint}`;
@@ -2083,7 +2084,14 @@ MODULES['oc-profiles'] = {
   detailExtra: function (r) {
     const name = r.name;
     const relations = DB.list('ocRelations');
-    const myRels = relations.filter(x => pureOcName(x.charA) === name || pureOcName(x.charB) === name);
+    let myRels = relations.filter(x => pureOcName(x.charA) === name || pureOcName(x.charB) === name);
+    // 反向引用兜底（按人物 id 同步，防名称匹配遗漏，确保双向绑定生效）
+    if (r.ocRelationRefs && r.ocRelationRefs.length) {
+      r.ocRelationRefs.forEach(ref => {
+        const rel = relations.find(x => x.id === ref.relId);
+        if (rel && !myRels.includes(rel)) myRels.push(rel);
+      });
+    }
     if (!myRels.length) return '';
     let html = '<div class="form-section">人物关系</div>';
     html += '<div class="detail-relations">';
@@ -3400,6 +3408,11 @@ function setupFormInteractions(pageKey) {
 
 function saveForm(pageKey, mod, id) {
   const data = readForm($('#modalBody'));
+  // 人物关系：保存前把人物姓名归一为纯姓名（去「(道号/外号)」后缀），确保双向绑定匹配稳定
+  if (pageKey === 'oc-relations') {
+    data.charA = pureOcName(data.charA);
+    data.charB = pureOcName(data.charB);
+  }
   const imgs = readFormImages($('#modalBody'));
   if (imgs.length) data.images = imgs;
   else if (id) delete data.images;
@@ -3693,10 +3706,10 @@ function renderHome() {
     }
     html += renderStatsSection([
       { label: '本月发布数', value: monthPublished.length, unit: '篇' },
-      { label: '本月平均更新', value: (monthPublished.length / daysThisMonth).toFixed(1) },
+      { label: '本月平均更新', value: (monthPublished.length / daysThisMonth).toFixed(1), unit: '篇/天' },
       { label: '本月最高浏览', value: monthMaxViews, unit: '次' },
       { label: '总发布数', value: published.length, unit: '篇' },
-      { label: '总平均更新', value: (published.length / activeMonths).toFixed(1) },
+      { label: '总平均更新', value: (published.length / activeMonths).toFixed(1), unit: '篇/月' },
       { label: '总最高浏览', value: totalMaxViews, unit: '次' },
     ], ps.tab + '统计');
   }
@@ -4111,13 +4124,13 @@ function removeOcRelationRefs(rel) {
 }
 // 一次性迁移：清理历史关系记录中携带的「(道号/外号)」后缀，并重建人物反向引用
 function normalizeOcRelationsAlias() {
-  if (DB.get('oc_rels_normalized_v611')) return;
+  if (DB.get('oc_rels_normalized_v612')) return;
   DB.list('ocRelations').forEach(r => {
     const a = pureOcName(r.charA), b = pureOcName(r.charB);
     if (a !== r.charA || b !== r.charB) DB.update('ocRelations', r.id, { charA: a, charB: b });
     syncOcRelationToChars(r);
   });
-  DB.set('oc_rels_normalized_v611', true);
+  DB.set('oc_rels_normalized_v612', true);
 }
 
 function renderRelations() {
@@ -4145,7 +4158,7 @@ function renderRelations() {
     if (chars.length) {
       html += '<div style="margin-top:16px"><div style="font-size:13px;font-weight:600;color:var(--c-primary-dark);margin-bottom:8px">👥 人物关系快捷查看</div>';
       html += '<div class="relation-person-row">';
-      html += '<div class="relation-person-btn active" onclick="clearPersonRelations()"><span>📋 全部</span></div>';
+      html += '<div class="relation-person-btn active" onclick="showAllPersonRelations(this)"><span>📋 全部</span></div>';
       html += '<div class="relation-person-grid collapsed distribute">';
       chars.forEach(c => {
         html += `<div class="relation-person-btn" onclick="togglePersonRelations('${esc(c.name)}', this)"><span>${esc(c.name)}</span></div>`;
@@ -4156,16 +4169,16 @@ function renderRelations() {
       html += '<div id="personRelationsExpand" class="relation-expand"></div>';
       html += '</div>';
     }
-    // Relations list (two-column, paginated)
+    // Relations list (single-column, 5 per page)
     if (relations.length) {
       if (!pageState['oc-relations']) pageState['oc-relations'] = { pageNo: 1 };
       const ps = pageState['oc-relations'];
-      const pageSize = 10;
+      const pageSize = 5;
       const totalPages = Math.ceil(relations.length / pageSize);
       if (ps.pageNo > totalPages) ps.pageNo = 1;
       const pageNo = ps.pageNo || 1;
       const pagedRelations = relations.slice((pageNo - 1) * pageSize, pageNo * pageSize);
-      html += '<div class="record-list two-col" style="margin-top:16px">';
+      html += '<div class="record-list" style="margin-top:16px">';
       pagedRelations.forEach(r => {
         html += `<div class="record-card" onclick="openDetail('oc-relations','${r.id}')">`;
         html += '<div class="record-card-header"><div class="record-card-title">';
@@ -4213,6 +4226,27 @@ function clearPersonRelations() {
   $$('.relation-person-btn').forEach(b => b.classList.remove('active'));
   const expand = $('#personRelationsExpand');
   if (expand) { expand.classList.remove('show'); expand.dataset.current = ''; expand.innerHTML = ''; }
+}
+function showAllPersonRelations(btn) {
+  $$('.relation-person-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const expand = $('#personRelationsExpand');
+  if (!expand) return;
+  const relations = DB.list('ocRelations');
+  let html = '<div style="font-weight:600;margin-bottom:6px">全部人物关系</div>';
+  if (!relations.length) {
+    html += '<div style="color:var(--c-text-muted)">暂无关系记录</div>';
+  } else {
+    relations.forEach(r => {
+      const a = pureOcName(r.charA), b = pureOcName(r.charB);
+      const rt = arrVal(r.relationType).join('、');
+      const color = RELATION_COLORS[rt] || '#b0b8c0';
+      html += `<div style="padding:4px 0"><span class="tag" style="background:${color}20;color:${color}">${esc(rt)}</span> <b>${esc(a)}</b> <span style="color:var(--c-text-muted)">↔</span> <b>${esc(b)}</b></div>`;
+    });
+  }
+  expand.innerHTML = html;
+  expand.classList.add('show');
+  expand.dataset.current = '__all__';
 }
 function togglePersonRelations(name, btn) {
   $$('.relation-person-btn').forEach(b => b.classList.remove('active'));
@@ -6958,7 +6992,7 @@ function renderLifeYearOverview(year) {
       <div class="lgc-head">
         <div class="lgc-title-wrap">
           <div class="lgc-name">${esc(t.label)}</div>
-          <div class="lgc-desc">${t.period === 'day' ? '每日打卡' : '每周打卡'} · ${yr}年</div>
+          <div class="lgc-desc">${t.period === 'day' ? '每日打卡' : '每周打卡'}</div>
         </div>
       </div>
       <div class="lgc-body">
