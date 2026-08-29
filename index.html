@@ -772,9 +772,9 @@ ul,li{list-style:none}
 .cd-rec-body .form-section-title.cd-extra-subtitle{padding-left:11px}
 .detail-images{display:flex;flex-wrap:wrap;gap:8px;margin-top:0}
 /* v611：人物档案详情「人物关系」区块（与人物关系模块双向绑定） */
-/* v622: 人物关系卡片内关系改为 flex 自然换行，每格均分居中，用右边框作竖分割线 */
-.detail-relations{margin:4px 0 2px;display:flex;flex-wrap:wrap;align-items:stretch;justify-content:flex-start}
-.detail-rel-item,.detail-rel-sub{padding:4px 12px;min-width:90px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;border-right:1px solid var(--c-border)}
+/* v623: 人物关系卡片内关系改为一排等宽列，内容居中，用右边框作竖分割线 */
+.detail-relations{margin:4px 0 2px;display:flex;flex-wrap:nowrap;align-items:stretch;overflow-x:auto}
+.detail-rel-item,.detail-rel-sub{flex:1 0 0;min-width:80px;padding:4px 8px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;white-space:nowrap;border-right:1px solid var(--c-border)}
 .detail-rel-item:last-child,.detail-rel-sub:last-child{border-right:none}
 .detail-rel-divider{display:none}
 .detail-rel-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -2653,7 +2653,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=622"></script>
+  <script src="app.js?v=623"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
