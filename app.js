@@ -4669,11 +4669,11 @@ function drawMindMap(chars, relations) {
     const box = bx + nx * off, boy = by + ny * off;
     const opacity = 0.65;
     inner += `<line x1="${aox}" y1="${aoy}" x2="${box}" y2="${boy}" stroke="${color}" stroke-width="2" opacity="${opacity}"/>`;
-    // Label 沿连线大幅错开；v623 按线的角度动态调整法线偏移：越水平偏移越小（10px），越竖直偏移越大（22px）
+    // Label 沿连线大幅错开；v624 调转方向放线条底下，并按角度动态调整法线偏移：越水平偏移越小，越竖直偏移越大
     const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.20;
     const lx = aox + t * (box - aox);
     const ly = aoy + t * (boy - aoy);
-    const sign = (conn._pi % 2 === 0 ? -1 : 1);
+    const sign = (conn._pi % 2 === 0 ? 1 : -1);
     const angle = Math.atan2(Math.abs(dy), Math.abs(dx)); // 0=水平，PI/2=垂直
     const labOff = Math.round(10 + Math.sin(angle) * 12) * sign;
     const labX = lx + nx * labOff;
