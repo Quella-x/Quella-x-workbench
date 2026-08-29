@@ -4660,7 +4660,7 @@ function drawMindMap(chars, relations) {
     const bDir = Math.atan2(a.y - b.y, a.x - b.x);
     const ax = a.x + nodeR * Math.cos(aDir), ay = a.y + nodeR * Math.sin(aDir);
     const bx = b.x + nodeR * Math.cos(bDir), by = b.y + nodeR * Math.sin(bDir);
-    // v620: 参考图为直线连接；同 pair 多条关系平行错开 12，标签沿连线错开并交替两侧，避免重叠
+    // v621: 参考图为直线连接；同 pair 多条关系平行错开 12，标签彻底错开到各自线条外侧
     const dx = bx - ax, dy = by - ay;
     const len = Math.hypot(dx, dy) || 1;
     const nx = -dy / len, ny = dx / len; // 垂直单位向量
@@ -4669,12 +4669,12 @@ function drawMindMap(chars, relations) {
     const box = bx + nx * off, boy = by + ny * off;
     const opacity = 0.65;
     inner += `<line x1="${aox}" y1="${aoy}" x2="${box}" y2="${boy}" stroke="${color}" stroke-width="2" opacity="${opacity}"/>`;
-    // Label 沿连线错开不同位置（单条居中，多条分散），并沿法线交替两侧偏移，避免标签重叠
-    const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.12;
+    // Label 沿连线大幅错开，并沿法线向各自线条外侧大幅偏移，彻底避免重叠
+    const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.20;
     const lx = aox + t * (box - aox);
     const ly = aoy + t * (boy - aoy);
     const sign = (conn._pi % 2 === 0 ? 1 : -1);
-    const labOff = 12 * sign;
+    const labOff = 22 * sign;
     const labX = lx + nx * labOff;
     const labY = ly + ny * labOff;
     inner += `<text x="${labX}" y="${labY}" text-anchor="middle" dominant-baseline="middle" font-size="10" fill="${color}" style="paint-order:stroke;stroke:#fff;stroke-width:3" font-weight="600">${esc(conn.type)}</text>`;
