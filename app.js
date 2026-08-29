@@ -2291,8 +2291,8 @@ function renderListPage(pageKey, mod) {
   if (ps.search) records = records.filter(r => JSON.stringify(r).toLowerCase().includes(ps.search.toLowerCase()));
   if (mod.filters) { mod.filters.forEach(f => { const fv = ps.filters[f.key]; if (fv) records = records.filter(r => valIncludes(r[f.key], fv)); }); }
   if (pageKey === 'design-commission') {
-    records.sort(commissionRecordSort);
-  } else if (pageKey === 'oc-profiles') {
+    records = applyCommOrder(records.slice().sort(commissionRecordSort));
+  } else if (pageKey === 'oc-profiles') {  } else if (pageKey === 'oc-profiles') {
     records.sort((a, b) => {
       const ao = a.order != null ? a.order : 999999;
       const bo = b.order != null ? b.order : 999999;
@@ -2615,6 +2615,49 @@ function commissionBarColor(r, todayTime) {
 function loadCalSort(dateStr) {
   try { const v = localStorage.getItem('xiao_cal_sort_' + dateStr); return v ? JSON.parse(v) : null; } catch (e) { return null; }
 }
+/* ===== v599：接稿全局排期顺序（弹窗拖拽联动日历格 + 底部展示模块） ===== */
+const COMM_ORDER_KEY = 'xiao_comm_order';
+let commOrderCache = null;
+function loadCommOrder() {
+  if (commOrderCache) return commOrderCache;
+  let arr = [];
+  try { arr = JSON.parse(localStorage.getItem(COMM_ORDER_KEY) || '[]'); } catch (e) { arr = []; }
+  commOrderCache = Array.isArray(arr) ? arr : [];
+  return commOrderCache;
+}
+// 把自定义顺序叠加到已按 commissionRecordSort 排好的数组上（稳定排序，未登记的记录保持原相对顺序排在其后）
+function applyCommOrder(list) {
+  const ord = loadCommOrder();
+  if (!ord || !ord.length) return list;
+  const idx = {};
+  ord.forEach((id, i) => { if (idx[id] === undefined) idx[id] = i; });
+  const BIG = 1e9;
+  return list.slice().sort((a, b) => {
+    const ia = idx[a.id] === undefined ? BIG : idx[a.id];
+    const ib = idx[b.id] === undefined ? BIG : idx[b.id];
+    return ia - ib;
+  });
+}
+// 弹窗拖拽后同步：以 allIds 为基准补全顺序表，再把 dateIds 按新顺序原地重排回它们原来的位置区间
+function syncCommOrder(dateIds, allIds) {
+  let ord = loadCommOrder().slice();
+  if (!ord.length) ord = allIds.slice();
+  const valid = {};
+  allIds.forEach(id => { valid[id] = 1; });
+  ord = ord.filter(id => valid[id]);
+  allIds.forEach(id => { if (ord.indexOf(id) < 0) ord.push(id); });
+  const pos = dateIds.map(id => ord.indexOf(id)).filter(i => i >= 0).sort((a, b) => a - b);
+  if (pos.length) {
+    const lo = pos[0], hi = pos[pos.length - 1];
+    const seg = ord.slice(lo, hi + 1);
+    const others = seg.filter(id => dateIds.indexOf(id) < 0);
+    const newSeg = dateIds.filter(id => ord.indexOf(id) >= 0).concat(others);
+    ord.splice.apply(ord, [lo, hi - lo + 1].concat(newSeg));
+  }
+  commOrderCache = ord;
+  try { localStorage.setItem(COMM_ORDER_KEY, JSON.stringify(ord)); } catch (e) {}
+  return ord;
+}
 let commissionCalendarRecords = [];
 function renderCommissionCalendar(year, month, records) {
   commissionCalendarRecords = records || [];
@@ -2626,61 +2669,24 @@ function renderCommissionCalendar(year, month, records) {
   const todayKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
   const todayTime = today.getTime();
   const ps = pageState['design-commission'] || {};
-  // v598：工期条顺序与底部列表模块一致（commissionRecordSort）；并做「稳定轨道」分配，
-  // 同一任务跨天固定占用同一行（不会天天换行），三条轨道都排满时才与最早开稿的一条同轨、由后开稿者覆盖
-  const periodRecords = records.filter(r => {
+  // v599：顺序与底部列表模块一致（commissionRecordSort），再叠加弹窗拖拽产生的全局自定义顺序
+  const periodRecords = applyCommOrder(records.filter(r => {
     const start = r.startTime || r.acceptTime || '';
     const end = r.deadline || '';
     return start && end;
-  }).sort(commissionRecordSort);
+  }).sort(commissionRecordSort));
   const recStart = r => r.startTime || r.acceptTime || '';
   const recEnd = r => r.deadline || '';
-  const recOverlap = (a, b) => !(recEnd(a) < recStart(b) || recStart(a) > recEnd(b));
-  const listIdx = {};
-  const byId = {};
-  periodRecords.forEach((r, i) => { listIdx[r.id] = i; byId[r.id] = r; });
-  const tracks = [];
-  for (let t = 0; t < CAL_MAX_TRACKS; t++) tracks.push([]);
-  const recordTrack = {};
-  periodRecords.forEach(r => {
-    let target = -1;
-    for (let t = 0; t < tracks.length; t++) {
-      if (!tracks[t].some(id => recOverlap(r, byId[id]))) { target = t; break; }
-    }
-    if (target < 0) {
-      let earliest = '', et = 0;
-      for (let t = 0; t < tracks.length; t++) {
-        tracks[t].forEach(id => {
-          const o = byId[id];
-          if (o && recOverlap(r, o) && (!earliest || recStart(o) < earliest)) { earliest = recStart(o); et = t; }
-        });
-      }
-      target = et;
-    }
-    tracks[target].push(r.id);
-    recordTrack[r.id] = target;
-  });
-
   function renderCommCalCell(cy, cm, cd, isOther) {
     const dateStr = cy + '-' + String(cm + 1).padStart(2, '0') + '-' + String(cd).padStart(2, '0');
     const isStart = r => (r.startTime || r.acceptTime || '') === dateStr;
     const isEnd = r => (r.deadline || '') === dateStr;
-    // 每条轨道当日只显示一条：开稿日更晚的任务覆盖同轨内更早开稿任务的延伸段（位置固定，不会逐日跳动）
-    const list = [];
-    for (let t = 0; t < tracks.length; t++) {
-      let win = null;
-      tracks[t].forEach(id => {
-        const r = byId[id];
-        if (!r) return;
-        if (recStart(r) > dateStr || recEnd(r) < dateStr) return;
-        if (!win) { win = r; return; }
-        // 同轨内「开稿日更晚」的始终置顶（保证新开稿任务在自己开稿日一定可见，且后续日期不再被早开稿的抢回）
-        const ws = recStart(win), rs = recStart(r);
-        if (rs > ws) win = r;
-        else if (rs === ws && listIdx[r.id] < listIdx[win.id]) win = r;
-      });
-      if (win) list.push({ track: t, rec: win });
-    }
+    // v599：当日新增开稿层级最高 —— 全部叠在跨日延伸条之上并按排期顺序排列；剩余名额用延伸条补满 3 条
+    const dayAll = periodRecords.filter(r => recStart(r) <= dateStr && recEnd(r) >= dateStr);
+    const newOnes = dayAll.filter(r => recStart(r) === dateStr);
+    const carryOn = dayAll.filter(r => recStart(r) !== dateStr);
+    const list = newOnes.slice(0, CAL_MAX_TRACKS)
+      .concat(carryOn.slice(0, CAL_MAX_TRACKS - Math.min(newOnes.length, CAL_MAX_TRACKS)));
     const bothRecords = records.filter(r => isStart(r) && isEnd(r));
     const startRecords = records.filter(r => isStart(r) && !isEnd(r));
     const deadlineRecords = records.filter(r => isEnd(r) && !isStart(r));
@@ -2691,8 +2697,7 @@ function renderCommissionCalendar(year, month, records) {
     if (startRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_START_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_START_COLOR + '">开稿</span></span>';
     if (deadlineRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_END_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_END_COLOR + '">截稿</span></span>';
     let bars = '';
-    list.forEach(item => {
-      const r = item.rec;
+    list.forEach((r, i) => {
       const start = recStart(r);
       const end = recEnd(r);
       const sFlag = dateStr === start;
@@ -2704,7 +2709,7 @@ function renderCommissionCalendar(year, month, records) {
       else if (eFlag) cls = 'cal-period-bar end';
       const qty = calcProductQty(r);
       const label = sFlag ? (esc(r.clientInfo || '未命名') + ' ' + qty + '件') : '';
-      const topPx = 22 + item.track * (CAL_BAR_HEIGHT + CAL_BAR_GAP);
+      const topPx = 22 + i * (CAL_BAR_HEIGHT + CAL_BAR_GAP);
       bars += '<div class="' + cls + '" style="background:' + color + ';top:' + topPx + 'px;height:' + CAL_BAR_HEIGHT + 'px;line-height:' + CAL_BAR_HEIGHT + 'px">' + label + '</div>';
     });
     const cellMinHeight = 76;
@@ -2819,6 +2824,8 @@ function calDrop(e, id) {
   calModalOrder.splice(fromIdx, 1);
   calModalOrder.splice(toIdx, 0, calDragId);
   try { localStorage.setItem('xiao_cal_sort_' + calModalDate, JSON.stringify(calModalOrder)); } catch (_) {}
+  // v599：同步到全局排期顺序 —— 日历格与底部展示模块一起跟随弹窗的手动排序
+  try { syncCommOrder(calModalOrder.slice(), DB.list('commissions').map(r => r.id)); } catch (_) {}
   calDragId = null;
   const list = document.getElementById('calDateList');
   if (list) list.innerHTML = calDateModalItemsHTML();
