@@ -3673,14 +3673,17 @@ function renderHome() {
     html += '<div class="stats-divider"></div>';
     html += renderAnnualChart(records, 'publishTime', { title: ps.tab + '年度发布', isCount: true, color: PLATFORM_COLORS[ps.tab] || '#9DC8FF' });
 
-    // Stats: only current platform（6 项：本月/总计 的发布数、平均更新频次、最高浏览）
+    // Stats: only current platform（6 项：本月/总计 的发布数、平均更新、最高浏览）
     const thisMonth = todayStr().slice(0, 7);
     const published = records.filter(r => statusOf(r) === '已发布');
     const monthPublished = published.filter(r => (r.publishTime || '').startsWith(thisMonth));
-    const recViews = (r) => Number(r.data7d_reads || 0) || Number(r.data24h_reads || 0);
+    // 最高浏览取 7 天数据
+    const recViews = (r) => Number(r.data7d_reads || 0);
     const monthMaxViews = monthPublished.reduce((m, r) => Math.max(m, recViews(r)), 0);
     const totalMaxViews = published.reduce((m, r) => Math.max(m, recViews(r)), 0);
-    const weeksThisMonth = Math.max(1, Math.ceil(new Date().getDate() / 7));
+    // 本月平均更新 = 本月发布条数 ÷ 当月天数(30/31)
+    const y = parseInt(thisMonth.slice(0, 4), 10), m = parseInt(thisMonth.slice(5, 7), 10);
+    const daysThisMonth = new Date(y, m, 0).getDate();
     const earliest = published.reduce((min, r) => { const t = (r.publishTime || '').slice(0, 7); return t && t < min ? t : min; }, thisMonth);
     let activeMonths = 1;
     if (published.length) {
@@ -3689,11 +3692,11 @@ function renderHome() {
       activeMonths = Math.max(1, (cy - ey) * 12 + (cm - em) + 1);
     }
     html += renderStatsSection([
-      { label: '本月发布数', value: monthPublished.length },
-      { label: '本月平均更新频次', value: (monthPublished.length / weeksThisMonth).toFixed(1), unit: '篇/周' },
+      { label: '本月发布数', value: monthPublished.length, unit: '篇' },
+      { label: '本月平均更新', value: (monthPublished.length / daysThisMonth).toFixed(1) },
       { label: '本月最高浏览', value: monthMaxViews, unit: '次' },
-      { label: '总发布数', value: published.length },
-      { label: '总平均更新频次', value: (published.length / activeMonths).toFixed(1), unit: '篇/周' },
+      { label: '总发布数', value: published.length, unit: '篇' },
+      { label: '总平均更新', value: (published.length / activeMonths).toFixed(1) },
       { label: '总最高浏览', value: totalMaxViews, unit: '次' },
     ], ps.tab + '统计');
   }
@@ -3703,22 +3706,22 @@ function renderHome() {
 }
 
 function renderHomeRecordCard(r) {
-  let html = `<div class="record-card record-card-minimal" onclick="openDetail('home','${r.id}')">`;
+  let html = `<div class="record-card" onclick="openDetail('home','${r.id}')">`;
   html += '<div class="record-card-header">';
   html += '<div class="record-card-title">' + esc(r.title || '未命名') + '</div>';
   html += '<div class="record-card-actions">';
   html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('home','${r.id}')">✏️</span>`;
   html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('home','${r.id}')">🗑️</span>`;
   html += '</div></div>';
-  html += '<div class="record-card-body-minimal">';
+  html += '<div class="record-card-body comm-list-style">';
   const platforms = arrVal(r.platform);
   platforms.forEach(p => {
     const pColor = PLATFORM_COLORS[p] || '#9DC8FF';
-    html += `<span class="field"><span class="field-label">平台:</span><span class="tag" style="background:${pColor}20;color:${pColor}">${esc(p)}</span></span>`;
+    html += `<span class="field"><span class="field-label">平台</span><span class="field-value"><span class="tag" style="background:${pColor}20;color:${pColor}">${esc(p)}</span></span></span>`;
   });
   const ct = arrVal(r.contentType);
-  html += `<span class="field"><span class="field-label">内容类型:</span><span class="field-value">${esc(ct.join('、') || '-')}</span></span>`;
-  html += `<span class="field"><span class="field-label">发布时间:</span><span class="field-value">${fmtDate(r.publishTime)}</span></span>`;
+  html += `<span class="field"><span class="field-label">内容类型</span><span class="field-value">${esc(ct.join('、') || '-')}</span></span>`;
+  html += `<span class="field"><span class="field-label">发布时间</span><span class="field-value">${fmtDate(r.publishTime)}</span></span>`;
   html += '</div></div>';
   return html;
 }
