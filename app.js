@@ -4250,6 +4250,89 @@ function syncProfileSocialToRelations(charName, socialData) {
     }
   });
 }
+// v620: 人物关系按 pair 组合编辑/删除（卡片已按 pair 合并展示）
+function getOcRelationGroup(id) {
+  const all = DB.list('ocRelations');
+  const first = all.find(r => r.id === id);
+  if (!first) return null;
+  const a = pureOcName(first.charA), b = pureOcName(first.charB);
+  return all.filter(r => {
+    const ra = pureOcName(r.charA), rb = pureOcName(r.charB);
+    return (ra === a && rb === b) || (ra === b && rb === a);
+  });
+}
+function openOcRelationGroupEdit(id) {
+  const group = getOcRelationGroup(id);
+  if (!group || !group.length) return Toast.error('记录不存在');
+  const first = group[0];
+  const merged = { ...first };
+  const types = new Set(), statuses = new Set(), details = [];
+  group.forEach(r => {
+    arrVal(r.relationType).forEach(t => types.add(t));
+    arrVal(r.relationStatus).forEach(s => statuses.add(s));
+    if (r.relationDetail) details.push(r.relationDetail);
+  });
+  merged.relationType = Array.from(types);
+  merged.relationStatus = Array.from(statuses);
+  merged.relationDetail = details[0] || '';
+  const mod = MODULES['oc-relations'];
+  let fields = prepareFields('oc-relations', mod.fields);
+  const bodyHTML = buildForm(fields, merged, 'oc-relations');
+  openModal('编辑关系组', bodyHTML, [
+    { label: '取消', class: 'btn-ghost', action: closeModal },
+    { label: '保存', class: 'btn-primary', action: () => saveOcRelationGroupForm(group.map(r => r.id)) }
+  ]);
+  setTimeout(() => setupFormInteractions('oc-relations'), 50);
+}
+function saveOcRelationGroupForm(groupIds) {
+  const data = readForm($('#modalBody'));
+  data.charA = pureOcName(data.charA);
+  data.charB = pureOcName(data.charB);
+  const all = DB.list('ocRelations');
+  const existing = groupIds.map(id => all.find(r => r.id === id)).filter(Boolean);
+  if (!existing.length) return;
+  const newTypes = arrVal(data.relationType);
+  const base = { ...data };
+  delete base.relationType;
+  // 按类型复用旧记录或创建新记录
+  const oldByType = {};
+  existing.forEach(r => {
+    arrVal(r.relationType).forEach(t => { if (!oldByType[t]) oldByType[t] = r; });
+  });
+  const keptIds = new Set();
+  newTypes.forEach(t => {
+    if (oldByType[t]) {
+      DB.update('ocRelations', oldByType[t].id, { ...base, relationType: [t] });
+      keptIds.add(oldByType[t].id);
+      syncOcRelationToChars(DB.getById('ocRelations', oldByType[t].id));
+    } else {
+      const created = DB.add('ocRelations', { ...base, relationType: [t] });
+      keptIds.add(created.id);
+      syncOcRelationToChars(created);
+    }
+  });
+  // 删除被移除的旧记录
+  existing.forEach(r => {
+    if (!keptIds.has(r.id)) {
+      removeOcRelationRefs(r);
+      DB.remove('ocRelations', r.id);
+    }
+  });
+  Toast.success('关系组已更新');
+  closeModal();
+  navigate('oc-relations');
+}
+async function onDeleteOcRelationGroup(id) {
+  const group = getOcRelationGroup(id);
+  if (!group || !group.length) return;
+  const a = pureOcName(group[0].charA), b = pureOcName(group[0].charB);
+  if (await confirmDialog(`确定要删除「${a} ↔ ${b}」的 ${group.length} 条关系吗？此操作不可撤销。`)) {
+    group.forEach(r => { removeOcRelationRefs(r); DB.remove('ocRelations', r.id); });
+    Toast.success('已删除');
+    navigate('oc-relations');
+  }
+}
+
 // v615：一次性迁移，用已有档案社会关系回填对应人物关系记录（保证历史数据双向一致）
 function normalizeOcProfileSocial() {
   if (DB.get('oc_profile_social_v615')) return;
@@ -4320,14 +4403,13 @@ function renderRelations() {
         html += '<div class="record-card-header"><div class="record-card-title">';
         html += `${esc(a)} <span style="color:var(--c-text-muted)">↔</span> ${esc(b)}`;
         html += '</div><div class="record-card-actions">';
-        html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('oc-relations','${first.id}')">✏️</span>`;
-        html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('oc-relations','${first.id}')">🗑️</span>`;
+        html += `<span class="btn-icon" onclick="event.stopPropagation();openOcRelationGroupEdit('${first.id}')">✏️</span>`;
+        html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDeleteOcRelationGroup('${first.id}')">🗑️</span>`;
         html += '</div></div>';
         html += '<div class="record-card-body detail-relations" style="margin:0">';
         group.forEach(r => {
           const rtArr = arrVal(r.relationType);
           const rs = arrVal(r.relationStatus).join('、');
-          const other = pureOcName(r.charA) === a ? pureOcName(r.charB) : pureOcName(r.charA);
           html += '<div class="detail-rel-sub">';
           html += '<div class="detail-rel-head">';
           rtArr.forEach(rt => {
@@ -4336,7 +4418,6 @@ function renderRelations() {
           });
           html += (rs ? '<span class="detail-rel-status">' + esc(rs) + '</span>' : '');
           html += '</div>';
-          html += '<div class="detail-rel-other">→ <b>' + esc(other) + '</b></div>';
           html += '</div>';
         });
         html += '</div></div>';
@@ -4579,11 +4660,11 @@ function drawMindMap(chars, relations) {
     const bDir = Math.atan2(a.y - b.y, a.x - b.x);
     const ax = a.x + nodeR * Math.cos(aDir), ay = a.y + nodeR * Math.sin(aDir);
     const bx = b.x + nodeR * Math.cos(bDir), by = b.y + nodeR * Math.sin(bDir);
-    // v619: 参考图为直线连接；同 pair 多条关系加大平行错开，标签沿连线错开并交替两侧，避免重叠
+    // v620: 参考图为直线连接；同 pair 多条关系平行错开 12，标签沿连线错开并交替两侧，避免重叠
     const dx = bx - ax, dy = by - ay;
     const len = Math.hypot(dx, dy) || 1;
     const nx = -dy / len, ny = dx / len; // 垂直单位向量
-    const off = (conn._pi - (conn._pc - 1) / 2) * 18; // 平行线间距加大
+    const off = (conn._pi - (conn._pc - 1) / 2) * 12; // 平行线间距
     const aox = ax + nx * off, aoy = ay + ny * off;
     const box = bx + nx * off, boy = by + ny * off;
     const opacity = 0.65;
