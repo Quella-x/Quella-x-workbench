@@ -2669,7 +2669,8 @@ function renderCommissionCalendar(year, month, records) {
   const todayKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
   const todayTime = today.getTime();
   const ps = pageState['design-commission'] || {};
-  // v599：顺序与底部列表模块一致（commissionRecordSort），再叠加弹窗拖拽产生的全局自定义顺序
+  // v600：顺序与底部列表/弹窗自定义一致；稳定 3 条轨道（同任务跨天行号不变）
+  // 轨道分配规则：①优先放入「无重叠」且「无同开始日期」的轨道；②再找无重叠轨道；③最后找「有重叠但无同开始日期」的轨道；④不得已才与「开稿日最早」的任务同轨
   const periodRecords = applyCommOrder(records.filter(r => {
     const start = r.startTime || r.acceptTime || '';
     const end = r.deadline || '';
@@ -2677,16 +2678,70 @@ function renderCommissionCalendar(year, month, records) {
   }).sort(commissionRecordSort));
   const recStart = r => r.startTime || r.acceptTime || '';
   const recEnd = r => r.deadline || '';
+  const recOverlap = (a, b) => !(recEnd(a) < recStart(b) || recStart(a) > recEnd(b));
+  const listIdx = {};
+  const byId = {};
+  periodRecords.forEach((r, i) => { listIdx[r.id] = i; byId[r.id] = r; });
+  const tracks = [];
+  for (let t = 0; t < CAL_MAX_TRACKS; t++) tracks.push([]);
+  const recordTrack = {};
+  periodRecords.forEach(r => {
+    const rs = recStart(r);
+    let target = -1;
+    // 1) 无重叠 且 无同开始日期
+    for (let t = 0; t < tracks.length; t++) {
+      if (tracks[t].some(id => recOverlap(r, byId[id]))) continue;
+      if (tracks[t].some(id => recStart(byId[id]) === rs)) continue;
+      target = t; break;
+    }
+    // 2) 无重叠
+    if (target < 0) {
+      for (let t = 0; t < tracks.length; t++) {
+        if (!tracks[t].some(id => recOverlap(r, byId[id]))) { target = t; break; }
+      }
+    }
+    // 3) 有重叠但无同开始日期
+    if (target < 0) {
+      for (let t = 0; t < tracks.length; t++) {
+        if (tracks[t].some(id => recStart(byId[id]) === rs)) continue;
+        target = t; break;
+      }
+    }
+    // 4) 不得已：与重叠任务中「开稿日最早」的任务同轨
+    if (target < 0) {
+      let earliest = '', et = 0;
+      for (let t = 0; t < tracks.length; t++) {
+        tracks[t].forEach(id => {
+          const o = byId[id];
+          if (o && recOverlap(r, o) && (!earliest || recStart(o) < earliest)) { earliest = recStart(o); et = t; }
+        });
+      }
+      target = et;
+    }
+    tracks[target].push(r.id);
+    recordTrack[r.id] = target;
+  });
+
   function renderCommCalCell(cy, cm, cd, isOther) {
     const dateStr = cy + '-' + String(cm + 1).padStart(2, '0') + '-' + String(cd).padStart(2, '0');
     const isStart = r => (r.startTime || r.acceptTime || '') === dateStr;
     const isEnd = r => (r.deadline || '') === dateStr;
-    // v599：当日新增开稿层级最高 —— 全部叠在跨日延伸条之上并按排期顺序排列；剩余名额用延伸条补满 3 条
-    const dayAll = periodRecords.filter(r => recStart(r) <= dateStr && recEnd(r) >= dateStr);
-    const newOnes = dayAll.filter(r => recStart(r) === dateStr);
-    const carryOn = dayAll.filter(r => recStart(r) !== dateStr);
-    const list = newOnes.slice(0, CAL_MAX_TRACKS)
-      .concat(carryOn.slice(0, CAL_MAX_TRACKS - Math.min(newOnes.length, CAL_MAX_TRACKS)));
+    // v600：稳定轨道 + 同轨覆盖。每条轨道当日取「开稿日最晚」的任务；同日开稿并列时取列表序号小的。
+    // 这样 28 号的新增任务会分别占据不同轨道（避免同开始日互相覆盖），并盖住 27 号延伸过来的旧条。
+    const list = [];
+    for (let t = 0; t < tracks.length; t++) {
+      let win = null;
+      tracks[t].forEach(id => {
+        const r = byId[id];
+        if (!r) return;
+        if (recStart(r) > dateStr || recEnd(r) < dateStr) return;
+        if (!win) { win = r; return; }
+        const ws = recStart(win), rs = recStart(r);
+        if (rs > ws) win = r;
+        else if (rs === ws && listIdx[r.id] < listIdx[win.id]) win = r;
+      });
+      if (win) list.push({ track: t, rec: win });
+    }
     const bothRecords = records.filter(r => isStart(r) && isEnd(r));
     const startRecords = records.filter(r => isStart(r) && !isEnd(r));
     const deadlineRecords = records.filter(r => isEnd(r) && !isStart(r));
@@ -2697,7 +2752,8 @@ function renderCommissionCalendar(year, month, records) {
     if (startRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_START_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_START_COLOR + '">开稿</span></span>';
     if (deadlineRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_END_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_END_COLOR + '">截稿</span></span>';
     let bars = '';
-    list.forEach((r, i) => {
+    list.forEach(item => {
+      const r = item.rec;
       const start = recStart(r);
       const end = recEnd(r);
       const sFlag = dateStr === start;
@@ -2709,7 +2765,7 @@ function renderCommissionCalendar(year, month, records) {
       else if (eFlag) cls = 'cal-period-bar end';
       const qty = calcProductQty(r);
       const label = sFlag ? (esc(r.clientInfo || '未命名') + ' ' + qty + '件') : '';
-      const topPx = 22 + i * (CAL_BAR_HEIGHT + CAL_BAR_GAP);
+      const topPx = 22 + item.track * (CAL_BAR_HEIGHT + CAL_BAR_GAP);
       bars += '<div class="' + cls + '" style="background:' + color + ';top:' + topPx + 'px;height:' + CAL_BAR_HEIGHT + 'px;line-height:' + CAL_BAR_HEIGHT + 'px">' + label + '</div>';
     });
     const cellMinHeight = 76;
