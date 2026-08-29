@@ -772,10 +772,10 @@ ul,li{list-style:none}
 .cd-rec-body .form-section-title.cd-extra-subtitle{padding-left:11px}
 .detail-images{display:flex;flex-wrap:wrap;gap:8px;margin-top:0}
 /* v611：人物档案详情「人物关系」区块（与人物关系模块双向绑定） */
-/* v621: 人物关系卡片内关系改为 2 列网格并均分居中 */
-.detail-relations{margin:4px 0 2px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px 0;align-items:stretch;justify-items:center}
-.detail-rel-item,.detail-rel-sub{padding:4px 10px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
-.detail-rel-item:nth-child(even),.detail-rel-sub:nth-child(even){border-left:1px solid var(--c-border)}
+/* v622: 人物关系卡片内关系改为 flex 自然换行，每格均分居中，用右边框作竖分割线 */
+.detail-relations{margin:4px 0 2px;display:flex;flex-wrap:wrap;align-items:stretch;justify-content:flex-start}
+.detail-rel-item,.detail-rel-sub{padding:4px 12px;min-width:90px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;border-right:1px solid var(--c-border)}
+.detail-rel-item:last-child,.detail-rel-sub:last-child{border-right:none}
 .detail-rel-divider{display:none}
 .detail-rel-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .detail-rel-status{color:var(--c-text-muted);font-size:12px}
@@ -2653,7 +2653,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=621"></script>
+  <script src="app.js?v=622"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
