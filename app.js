@@ -1861,7 +1861,7 @@ MODULES['design-commission-detail-twy'] = {
     { key: 'clientInfo', label: '单主', type: 'text', placeholder: '单主姓名（用于与接稿排期联动）', localOnly: true },
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
-    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">特殊尺寸出血请修改 可直接给模板</span></label><div class="style-color-box info-box cd-product-box cd-twy-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input combobox-input cd-twy-product-combobox" data-key="product" placeholder="选择或输入制品"></div><div class="style-color-col"><span class="style-color-col-label">排版</span><input type="text" class="form-input" data-key="layout" placeholder="排版"></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">初始为默认尺寸</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">初始为默认出血</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">（特殊尺寸出血请修改 可直接给模板）</span></label><div class="style-color-box info-box cd-product-box cd-twy-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input combobox-input cd-twy-product-combobox" data-key="product" placeholder="请输入或选择制品"></div><div class="style-color-col"><span class="style-color-col-label">排版</span><input type="text" class="form-input" data-key="layout" placeholder="排版"></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">（初始为默认尺寸）</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">（初始为默认出血）</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
     { key: 'bookName', label: '书名/文字', type: 'text' },
     { key: 'authorName', label: '作者名', type: 'text' },
     { key: 'copyText', label: '文案/小字', type: 'textarea' },
@@ -1926,9 +1926,9 @@ MODULES['design-commission-detail-fq'] = {
     { section: '制品信息' },
     { key: 'usageType', cls: 'cd-title-gap14', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'theme', label: '企划/主题名称', type: 'text' },
-    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">特殊尺寸出血请修改 可直接给模板</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" placeholder="工艺" onfocus="showComboboxDropdown(\'cdCraftCb\')" onclick="showComboboxDropdown(\'cdCraftCb\')" oninput="filterComboboxDropdown(\'cdCraftCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdCraftCb\')">▼</button><div class="combobox-dropdown" id="cdCraftCb"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption(\'cdCraftCb\',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption(\'cdCraftCb\',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption(\'cdCraftCb\',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption(\'cdCraftCb\',this)">烫色</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">初始为默认尺寸</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">初始为默认出血</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">（特殊尺寸出血请修改 可直接给模板）</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="请输入或选择制品"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" placeholder="工艺" onfocus="showComboboxDropdown(\'cdCraftCb\')" onclick="showComboboxDropdown(\'cdCraftCb\')" oninput="filterComboboxDropdown(\'cdCraftCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdCraftCb\')">▼</button><div class="combobox-dropdown" id="cdCraftCb"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption(\'cdCraftCb\',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption(\'cdCraftCb\',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption(\'cdCraftCb\',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption(\'cdCraftCb\',this)">烫色</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">（初始为默认尺寸）</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">（初始为默认出血）</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div></div>' },
-    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">可以给参考图/色卡 请把主色写最前面</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">（可以给参考图/色卡 请把主色写最前面）</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">元素</label><div class="style-color-box elements-box"><div class="style-color-col"><span class="style-color-col-label">必用</span><input type="text" class="form-input" data-key="elementsRequired"></div><div class="style-color-col"><span class="style-color-col-label">可选</span><input type="text" class="form-input" data-key="elementsOptional"></div><div class="style-color-col"><span class="style-color-col-label">避雷</span><input type="text" class="form-input" data-key="elementsAvoid"></div></div></div>' },
     { key: 'copyText', label: '文案', type: 'textarea' },
     commDetailOtherField(),
@@ -1958,10 +1958,10 @@ MODULES['design-commission-detail-ec'] = {
     { section: '制品信息' },
     { key: 'usageType', cls: 'cd-title-gap14', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'theme', label: '企划/主题名称', type: 'text' },
-    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">特殊尺寸出血请修改 可直接给模板</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="制品名称"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" placeholder="工艺" onfocus="showComboboxDropdown(\'cdCraftCb\')" onclick="showComboboxDropdown(\'cdCraftCb\')" oninput="filterComboboxDropdown(\'cdCraftCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdCraftCb\')">▼</button><div class="combobox-dropdown" id="cdCraftCb"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption(\'cdCraftCb\',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption(\'cdCraftCb\',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption(\'cdCraftCb\',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption(\'cdCraftCb\',this)">烫色</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">初始为默认尺寸</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">初始为默认出血</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">（特殊尺寸出血请修改 可直接给模板）</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="请输入或选择制品"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" placeholder="工艺" onfocus="showComboboxDropdown(\'cdCraftCb\')" onclick="showComboboxDropdown(\'cdCraftCb\')" oninput="filterComboboxDropdown(\'cdCraftCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdCraftCb\')">▼</button><div class="combobox-dropdown" id="cdCraftCb"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption(\'cdCraftCb\',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption(\'cdCraftCb\',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption(\'cdCraftCb\',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption(\'cdCraftCb\',this)">烫色</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">（初始为默认尺寸）</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">（初始为默认出血）</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
     { key: 'ipName', label: 'IP', type: 'text' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div></div>' },
-    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">可以给参考图/色卡 请把主色写最前面</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">（可以给参考图/色卡 请把主色写最前面）</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">元素</label><div class="style-color-box elements-box"><div class="style-color-col"><span class="style-color-col-label">必用</span><input type="text" class="form-input" data-key="elementsRequired"></div><div class="style-color-col"><span class="style-color-col-label">可选</span><input type="text" class="form-input" data-key="elementsOptional"></div><div class="style-color-col"><span class="style-color-col-label">避雷</span><input type="text" class="form-input" data-key="elementsAvoid"></div></div></div>' },
     { key: 'copyText', label: '文案', type: 'textarea' },
     commDetailOtherField(),
@@ -2082,30 +2082,8 @@ MODULES['oc-profiles'] = {
   ],
   cardImage: (r) => r.images && r.images[0] ? r.images[0] : null,
   detailExtra: function (r) {
-    const name = r.name;
-    const relations = DB.list('ocRelations');
-    let myRels = relations.filter(x => pureOcName(x.charA) === name || pureOcName(x.charB) === name);
-    // 反向引用兜底（按人物 id 同步，防名称匹配遗漏，确保双向绑定生效）
-    if (r.ocRelationRefs && r.ocRelationRefs.length) {
-      r.ocRelationRefs.forEach(ref => {
-        const rel = relations.find(x => x.id === ref.relId);
-        if (rel && !myRels.includes(rel)) myRels.push(rel);
-      });
-    }
-    if (!myRels.length) return '';
-    let html = '<div class="form-section">人物关系</div>';
-    html += '<div class="detail-relations">';
-    myRels.forEach(rel => {
-      const other = pureOcName(rel.charA) === name ? pureOcName(rel.charB) : pureOcName(rel.charA);
-      const rt = arrVal(rel.relationType).join('、');
-      const rs = arrVal(rel.relationStatus).join('、');
-      html += '<div class="detail-rel-item">';
-      html += '<div class="detail-rel-head"><span class="tag tag-purple">' + esc(rt) + '</span>' + (rs ? '<span class="detail-rel-status">' + esc(rs) + '</span>' : '') + '</div>';
-      html += '<div class="detail-rel-other">→ <b>' + esc(other) + '</b></div>';
-      html += '</div>';
-    });
-    html += '</div>';
-    return html;
+    // v616: 人物档案记录详情底部不再重复展示人物关系，统一在「人物关系」模块查看
+    return '';
   },
 };
 
@@ -3635,7 +3613,7 @@ function renderHome() {
     const inspCats = getInspirationCategories();
     const hCatOpts = inspCats.map(c => `<div class="combobox-option" onclick="selectComboboxOption('hInspCatList',this)" data-value="${esc(c)}">${esc(c)}</div>`).join('');
     html += '<div class="home-insp">';
-    html += '<div class="home-insp-title">💡 灵感速记 <span class="hint">随手记，保存后收入「灵感记录」</span></div>';
+    html += '<div class="home-insp-title">💡 灵感速记 <span class="hint">（随手记，保存后收入「灵感记录」）</span></div>';
     html += '<div class="home-insp-row">';
     html += '<input type="text" class="form-input" id="hInspTheme" placeholder="灵感主题">';
     html += '<div class="combobox-wrapper home-insp-combo"><input type="text" class="form-input combobox-input" id="hInspCat" placeholder="请选择或输入制品" onfocus="showComboboxDropdown(\'hInspCatList\')" onclick="showComboboxDropdown(\'hInspCatList\')" oninput="filterComboboxDropdown(\'hInspCatList\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'hInspCatList\')">▼</button><div class="combobox-dropdown" id="hInspCatList">' + hCatOpts + '</div></div>';
@@ -3830,7 +3808,7 @@ function renderPriceCalc() {
   html += '<div class="calc-page-grid">';
   // Left: Input column
   html += '<div class="calc-input-col">';
-  html += '<div class="calc-card"><div class="calc-card-title price-calc-title">成本参数 <span class="calc-card-hint">输入各项成本自动计算</span></div>';
+  html += '<div class="calc-card"><div class="calc-card-title price-calc-title">成本参数 <span class="calc-card-hint">（输入各项成本自动计算）</span></div>';
   html += '<div class="form-row"><label class="form-label">单品成本</label><input type="number" class="form-input" id="calc_itemCost" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">元</span></div>';
   html += '<div class="form-row"><label class="form-label">样品成本</label><input type="number" class="form-input" id="calc_sampleCost" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">元</span></div>';
   html += '<div class="form-row"><label class="form-label">人工成本</label><input type="number" class="form-input" id="calc_laborCost" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">元/件</span></div>';
@@ -4308,33 +4286,48 @@ function renderRelations() {
       if (!pageState['oc-relations']) pageState['oc-relations'] = { pageNo: 1 };
       const ps = pageState['oc-relations'];
       const pageSize = 5;
-      const totalPages = Math.ceil(relations.length / pageSize);
-      if (ps.pageNo > totalPages) ps.pageNo = 1;
+      // v616: 同一对人物的多条关系合并为一个卡片，类型与状态并排，子关系用竖分割线分隔
+      const pairGroups = {};
+      relations.forEach(r => {
+        const a = pureOcName(r.charA), b = pureOcName(r.charB);
+        const k = [a, b].sort().join('\u0000');
+        (pairGroups[k] = pairGroups[k] || []).push(r);
+      });
+      const pairList = Object.values(pairGroups);
+      const totalPairPages = Math.ceil(pairList.length / pageSize);
+      if (ps.pageNo > totalPairPages) ps.pageNo = 1;
       const pageNo = ps.pageNo || 1;
-      const pagedRelations = relations.slice((pageNo - 1) * pageSize, pageNo * pageSize);
+      const pagedPairs = pairList.slice((pageNo - 1) * pageSize, pageNo * pageSize);
       html += '<div class="record-list" style="margin-top:16px">';
-      pagedRelations.forEach(r => {
-        html += `<div class="record-card" onclick="openDetail('oc-relations','${r.id}')">`;
+      pagedPairs.forEach(group => {
+        const first = group[0];
+        const a = pureOcName(first.charA), b = pureOcName(first.charB);
+        html += `<div class="record-card" onclick="openDetail('oc-relations','${first.id}')">`;
         html += '<div class="record-card-header"><div class="record-card-title">';
-        html += `${esc(pureOcName(r.charA))} <span style="color:var(--c-text-muted)">↔</span> ${esc(pureOcName(r.charB))}`;
+        html += `${esc(a)} <span style="color:var(--c-text-muted)">↔</span> ${esc(b)}`;
         html += '</div><div class="record-card-actions">';
-        html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('oc-relations','${r.id}')">✏️</span>`;
-        html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('oc-relations','${r.id}')">🗑️</span>`;
+        html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('oc-relations','${first.id}')">✏️</span>`;
+        html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('oc-relations','${first.id}')">🗑️</span>`;
         html += '</div></div>';
-        html += '<div class="record-card-body">';
-        const rtArr = arrVal(r.relationType);
-        rtArr.forEach(rt => { html += `<span class="field"><span class="tag tag-purple">${esc(rt)}</span></span>`; });
-        const rsArr = arrVal(r.relationStatus);
-        rsArr.forEach(rs => { html += `<span class="field"><span class="tag tag-info">${esc(rs)}</span></span>`; });
-        if (r.relationDetail) html += `<span class="field"><span class="field-value">${esc(r.relationDetail)}</span></span>`;
+        html += '<div class="record-card-body detail-relations" style="margin:0">';
+        group.forEach((r, idx) => {
+          if (idx > 0) html += '<div class="detail-rel-divider"></div>';
+          const rt = arrVal(r.relationType).join('、');
+          const rs = arrVal(r.relationStatus).join('、');
+          const other = pureOcName(r.charA) === a ? pureOcName(r.charB) : pureOcName(r.charA);
+          html += '<div class="detail-rel-sub">';
+          html += '<div class="detail-rel-head"><span class="tag tag-purple">' + esc(rt) + '</span>' + (rs ? '<span class="detail-rel-status">' + esc(rs) + '</span>' : '') + '</div>';
+          html += '<div class="detail-rel-other">→ <b>' + esc(other) + '</b></div>';
+          html += '</div>';
+        });
         html += '</div></div>';
       });
       html += '</div>';
-      if (totalPages > 1) {
+      if (totalPairPages > 1) {
         html += '<div class="pagination">';
         html += `<button class="page-link" ${pageNo <= 1 ? 'disabled' : ''} onclick="goRelationPage(${pageNo - 1})">‹ 上一页</button>`;
-        html += `<span class="page-info">第 ${pageNo} / ${totalPages} 页 (共 ${relations.length} 条)</span>`;
-        html += `<button class="page-link" ${pageNo >= totalPages ? 'disabled' : ''} onclick="goRelationPage(${pageNo + 1})">下一页 ›</button>`;
+        html += `<span class="page-info">第 ${pageNo} / ${totalPairPages} 页 (共 ${pairList.length} 对)</span>`;
+        html += `<button class="page-link" ${pageNo >= totalPairPages ? 'disabled' : ''} onclick="goRelationPage(${pageNo + 1})">下一页 ›</button>`;
         html += '</div>';
       }
     }
@@ -4411,28 +4404,7 @@ function togglePersonRelations(name, btn) {
       });
     });
   }
-  // Auto-synced from profile social fields
-  const socialFields = [
-    { key: 'parents', type: '亲属' }, { key: 'siblings', type: '亲属' },
-    { key: 'master', type: '师徒' }, { key: 'companion', type: '道侣' },
-    { key: 'friends', type: '好友' }, { key: 'fellow', type: '同门' },
-  ];
-  const autoRels = [];
-  socialFields.forEach(sf => {
-    const val = char[sf.key];
-    if (val) {
-      const targets = chars.filter(c => c.name !== name && (val.includes(c.name) || (c.alias && val.includes(c.alias))));
-      targets.forEach(t => autoRels.push({ name: t.name, type: sf.type, field: sf.key }));
-    }
-  });
-  if (autoRels.length) {
-    html += '<div style="margin:8px 0"><b>档案自动同步:</b></div>';
-    autoRels.forEach(ar => {
-      const color = RELATION_COLORS[ar.type] || '#b0b8c0';
-      html += `<div style="padding:4px 0"><span class="tag" style="background:${color}20;color:${color}">${esc(ar.type)}</span> → <b>${esc(ar.name)}</b> <span style="font-size:10px;color:var(--c-text-muted)">(档案同步)</span></div>`;
-    });
-  }
-  if (!myRels.length && !autoRels.length) html += '<div style="color:var(--c-text-muted)">暂无关系记录</div>';
+  if (!myRels.length) html += '<div style="color:var(--c-text-muted)">暂无关系记录</div>';
   expand.innerHTML = html;
   expand.classList.add('show');
 }
@@ -4604,8 +4576,18 @@ function drawMindMap(chars, relations) {
     const arx2 = bx - arrowSize * Math.cos(angle + 0.4);
     const ary2 = by - arrowSize * Math.sin(angle + 0.4);
     inner += `<polygon points="${bx},${by} ${arx},${ary} ${arx2},${ary2}" fill="${color}" opacity="${opacity}"/>`;
-    // Label on arrow
-    inner += `<text x="${ctrlX}" y="${ctrlY}" text-anchor="middle" font-size="10" fill="${color}" style="paint-order:stroke;stroke:#fff;stroke-width:3" font-weight="600">${esc(conn.type)}</text>`;
+    // Label on arrow: 多条关系时沿曲线分散并交替两侧，避免挤在同一侧
+    const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.12;
+    const mt = 1 - t;
+    const lx = mt * mt * ax + 2 * mt * t * ctrlX + t * t * bx;
+    const ly = mt * mt * ay + 2 * mt * t * ctrlY + t * t * by;
+    const tx = 2 * mt * (ctrlX - ax) + 2 * t * (bx - ctrlX);
+    const ty = 2 * mt * (ctrlY - ay) + 2 * t * (by - ctrlY);
+    const tLen = Math.hypot(tx, ty) || 1;
+    const sign = (conn._pi % 2 === 0 ? 1 : -1);
+    const labX = lx + sign * (ty / tLen) * 14;
+    const labY = ly - sign * (tx / tLen) * 14;
+    inner += `<text x="${labX}" y="${labY}" text-anchor="middle" dominant-baseline="middle" font-size="10" fill="${color}" style="paint-order:stroke;stroke:#fff;stroke-width:3" font-weight="600">${esc(conn.type)}</text>`;
   });
   inner += '</svg>';
   // Nodes (circular, text only — no images)
@@ -7133,7 +7115,7 @@ function renderLifeYearOverview(year) {
       <div class="lgc-head">
         <div class="lgc-title-wrap">
           <div class="lgc-name">${esc(t.label)}</div>
-          <div class="lgc-desc">${t.period === 'day' ? '每日打卡' : '每周打卡'}</div>
+          <div class="lgc-desc">${t.period === 'day' ? '（每日打卡）' : '（每周打卡）'}</div>
         </div>
       </div>
       <div class="lgc-body">
@@ -7254,7 +7236,7 @@ function renderGoalCard(t, vy, vm) {
     <div class="lgc-head">
       <div class="lgc-title-wrap">
         <div class="lgc-name">${esc(t.label)}</div>
-        <div class="lgc-desc">${t.period === 'day' ? '每日打卡' : '每周打卡'}</div>
+        <div class="lgc-desc">${t.period === 'day' ? '（每日打卡）' : '（每周打卡）'}</div>
       </div>
       <div class="lgc-arrow">›</div>
     </div>
@@ -9055,7 +9037,7 @@ function cdExtraProductRowHTML(idx, it, isFq, items) {
       <div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-ep="birthday" value="${esc(it.birthday || '')}"></div>
     </div></div>`;
   }
-  fullFields += `<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">可以给参考图/色卡 请把主色写最前面</span></label><div class="style-color-box">
+  fullFields += `<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">（可以给参考图/色卡 请把主色写最前面）</span></label><div class="style-color-box">
       <div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-ep="style" value="${esc(it.style || '')}"></div>
       <div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-ep="color" value="${esc(it.color || '')}"></div>
     </div></div>`
@@ -9074,15 +9056,15 @@ function cdExtraProductRowHTML(idx, it, isFq, items) {
     <div class="cd-ep-grid">
       <div class="cd-ep-inline">
         <div class="cd-ep-field"><label class="form-label">稿件用途</label>${usageCb}</div>
-        <div class="cd-ep-field"><label class="form-label">是否同柄<span class="form-label-hint">可选择同柄制品</span></label>${hr.html}</div>
+        <div class="cd-ep-field"><label class="form-label">是否同柄<span class="form-label-hint">（可选择同柄制品）</span></label>${hr.html}</div>
       </div>
       <div class="cd-ep-field" style="margin-top:0px">
-        <label class="form-label">制品信息<span class="form-label-hint">特殊尺寸出血请修改 可直接给模板</span></label>
+        <label class="form-label">制品信息<span class="form-label-hint">（特殊尺寸出血请修改 可直接给模板）</span></label>
         <div class="style-color-box info-box cd-product-box cd-ep-product-box">
           <div class="style-color-col"><span class="style-color-col-label">制品</span>${cdProductComboboxHTMLForEp('cdEpProduct_' + idx, it.product)}</div>
           <div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-ep="craft" value="${esc(it.craft || '')}" placeholder="工艺" onfocus="showComboboxDropdown('cdEpCraftCb_${idx}')" onclick="showComboboxDropdown('cdEpCraftCb_${idx}')" oninput="filterComboboxDropdown('cdEpCraftCb_${idx}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('cdEpCraftCb_${idx}')">▼</button><div class="combobox-dropdown" id="cdEpCraftCb_${idx}"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption('cdEpCraftCb_${idx}',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption('cdEpCraftCb_${idx}',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption('cdEpCraftCb_${idx}',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption('cdEpCraftCb_${idx}',this)">烫色</div></div></div></div>
           <div class="style-color-col"><span class="style-color-col-label">尺寸</span><input type="text" class="form-input" data-ep="size" value="${esc(it.size || '')}"></div>
-          <div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">初始为默认出血</span></span><input type="text" class="form-input" data-ep="bleed" value="${esc(it.bleed || '')}"></div>
+          <div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">（初始为默认出血）</span></span><input type="text" class="form-input" data-ep="bleed" value="${esc(it.bleed || '')}"></div>
         </div>
       </div>
       <div class="${fullClass}">${fullFields}</div>
