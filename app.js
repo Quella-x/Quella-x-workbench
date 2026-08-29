@@ -1270,9 +1270,9 @@ function renderCalendar(year, month, records, commissionRecords = []) {
   html += '</div>';
   html += '<div class="cal-legend-sep"></div>';
   html += '<div class="cal-legend">';
-  html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>开稿</span>`;
-  html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>截稿</span>`;
-  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>当天同时存在开稿和截稿项目</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:${START_COLOR}"></span>当日有开稿</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:${END_COLOR}"></span>当日有截稿</span>`;
+  html += `<span class="legend-item"><span class="status-dot" style="background:${BOTH_COLOR}"></span>当日既有开稿又有截稿</span>`;
   html += `<span class="legend-item"><span class="status-dot" style="background:#9DC8FF"></span>进入临空</span>`;
   html += '</div>';
   html += '</div>';
@@ -2783,9 +2783,9 @@ function renderCommissionCalendar(year, month, records) {
   html += '</div>';
   html += '<div class="cal-legend-wrap">';
   html += '<div class="cal-legend">';
-  html += '<span class="legend-item"><span class="status-dot" style="background:' + CAL_START_COLOR + '"></span>开稿</span>';
-  html += '<span class="legend-item"><span class="status-dot" style="background:' + CAL_END_COLOR + '"></span>截稿</span>';
-  html += '<span class="legend-item"><span class="status-dot" style="background:' + CAL_BOTH_COLOR + '"></span>开+截同天</span>';
+  html += '<span class="legend-item"><span class="status-dot" style="background:' + CAL_START_COLOR + '"></span>当日有开稿</span>';
+  html += '<span class="legend-item"><span class="status-dot" style="background:' + CAL_END_COLOR + '"></span>当日有截稿</span>';
+  html += '<span class="legend-item"><span class="status-dot" style="background:' + CAL_BOTH_COLOR + '"></span>当日既有开稿又有截稿</span>';
   html += '</div>';
   html += '<div class="cal-legend-sep"></div>';
   html += '<div class="cal-legend">';
