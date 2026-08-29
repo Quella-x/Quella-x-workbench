@@ -1764,14 +1764,14 @@ function cdProductComboboxHTML(id, value) {
   const priceList = DB.list('priceList');
   const products = [...new Set(priceList.filter(p => PRODUCT_CATEGORIES.includes(p.category) && p.product).map(p => p.product))];
   const opts = products.map(n => `<div class="combobox-option" onclick="selectComboboxOption('${id}',this)" data-value="${esc(n)}">${esc(n)}</div>`).join('');
-  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="product" value="${esc(value || '')}" placeholder="选择或输入..." onfocus="showComboboxDropdown('${id}')" onclick="showComboboxDropdown('${id}')" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${opts}</div><input type="hidden" class="combobox-value" data-key="product" value="${esc(value || '')}"></div>`;
+  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="product" value="${esc(value || '')}" placeholder="请输入或选择制品" onfocus="showComboboxDropdown('${id}')" onclick="showComboboxDropdown('${id}')" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${opts}</div><input type="hidden" class="combobox-value" data-key="product" value="${esc(value || '')}"></div>`;
 }
 // 追加制品专用：制品下拉框（使用 data-ep 命名空间，与初始制品信息大框一致）
 function cdProductComboboxHTMLForEp(id, value) {
   const priceList = DB.list('priceList');
   const products = [...new Set(priceList.filter(p => PRODUCT_CATEGORIES.includes(p.category) && p.product).map(p => p.product))];
   const opts = products.map(n => `<div class="combobox-option" onclick="selectComboboxOption('${id}',this)" data-value="${esc(n)}">${esc(n)}</div>`).join('');
-  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-ep="product" value="${esc(value || '')}" placeholder="选择或输入..." onfocus="showComboboxDropdown('${id}')" onclick="showComboboxDropdown('${id}')" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${opts}</div><input type="hidden" class="combobox-value" data-ep="product" value="${esc(value || '')}"></div>`;
+  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-ep="product" value="${esc(value || '')}" placeholder="请输入或选择制品" onfocus="showComboboxDropdown('${id}')" onclick="showComboboxDropdown('${id}')" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${opts}</div><input type="hidden" class="combobox-value" data-ep="product" value="${esc(value || '')}"></div>`;
 }
 // 饭圈/二次：工艺下拉框（支持在设置中管理选项，同时允许自由输入）
 function cdCraftComboboxHTML(value) {
@@ -4576,17 +4576,18 @@ function drawMindMap(chars, relations) {
     const arx2 = bx - arrowSize * Math.cos(angle + 0.4);
     const ary2 = by - arrowSize * Math.sin(angle + 0.4);
     inner += `<polygon points="${bx},${by} ${arx},${ary} ${arx2},${ary2}" fill="${color}" opacity="${opacity}"/>`;
-    // Label on arrow: 多条关系时沿曲线分散并交替两侧，避免挤在同一侧
-    const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.12;
+    // Label on arrow: 每条关系按其索引沿曲线错开，并沿各自线条所在侧轻微外移，自然分散到两侧
+    const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.1;
     const mt = 1 - t;
     const lx = mt * mt * ax + 2 * mt * t * ctrlX + t * t * bx;
     const ly = mt * mt * ay + 2 * mt * t * ctrlY + t * t * by;
     const tx = 2 * mt * (ctrlX - ax) + 2 * t * (bx - ctrlX);
     const ty = 2 * mt * (ctrlY - ay) + 2 * t * (by - ctrlY);
     const tLen = Math.hypot(tx, ty) || 1;
-    const sign = (conn._pi % 2 === 0 ? 1 : -1);
-    const labX = lx + sign * (ty / tLen) * 14;
-    const labY = ly - sign * (tx / tLen) * 14;
+    // 线条已按索引垂直错开，标签贴各自线条（同侧轻移避免压线），多条关系即分散不再挤在一边
+    const labOff = 13;
+    const labX = lx + (ty / tLen) * labOff;
+    const labY = ly - (tx / tLen) * labOff;
     inner += `<text x="${labX}" y="${labY}" text-anchor="middle" dominant-baseline="middle" font-size="10" fill="${color}" style="paint-order:stroke;stroke:#fff;stroke-width:3" font-weight="600">${esc(conn.type)}</text>`;
   });
   inner += '</svg>';
@@ -9005,7 +9006,7 @@ function cdHandleRefCombobox(idx, items, currentVal) {
   const optHTML = opts.map(o => `<div class="combobox-option" onclick="selectComboboxOption('${cbId}',this);toggleCdExtraProductFull(this.closest('.combobox-wrapper'))" data-value="${esc(o.value)}">${esc(o.label)}</div>`).join('');
   const val = (currentVal === '否' || currentVal === '0' || (currentVal && !isNaN(currentVal))) ? currentVal : '0';
   const lbl = (val === '否') ? '否（独立新柄）' : (val === '0' ? '初始制品 0' : '追加制品 ' + val);
-  return { id: cbId, html: `<div class="combobox-wrapper cd-ep-handleref"><input type="text" class="form-input combobox-input" value="${esc(lbl)}" placeholder="选择或输入..." onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div><input type="hidden" class="combobox-value" data-ep="sameHandleRef" value="${esc(val)}"></div>` };
+  return { id: cbId, html: `<div class="combobox-wrapper cd-ep-handleref"><input type="text" class="form-input combobox-input" value="${esc(lbl)}" placeholder="请输入或选择制品" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div><input type="hidden" class="combobox-value" data-ep="sameHandleRef" value="${esc(val)}"></div>` };
 }
 function cdExtraProductRowHTML(idx, it, isFq, items) {
   const sameHandleRef = it.sameHandleRef || '0';
@@ -9014,7 +9015,7 @@ function cdExtraProductRowHTML(idx, it, isFq, items) {
   const usageOpts = [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }];
   const usageCbId = 'epu_' + idx + '_' + Math.random().toString(36).slice(2, 7);
   const usageCbOpts = usageOpts.map(o => '<div class="combobox-option" onclick="selectComboboxOption(\'' + usageCbId + '\',this)" data-value="' + esc(o.value) + '">' + esc(o.label) + '</div>').join('');
-  const usageCb = '<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-ep="usageType" value="' + esc(it.usageType || '') + '" placeholder="选择或输入..." onfocus="showComboboxDropdown(\'' + usageCbId + '\')" onclick="showComboboxDropdown(\'' + usageCbId + '\')" oninput="filterComboboxDropdown(\'' + usageCbId + '\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'' + usageCbId + '\')">▼</button><div class="combobox-dropdown" id="' + usageCbId + '">' + usageCbOpts + '</div></div>';
+  const usageCb = '<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-ep="usageType" value="' + esc(it.usageType || '') + '" placeholder="请输入或选择制品" onfocus="showComboboxDropdown(\'' + usageCbId + '\')" onclick="showComboboxDropdown(\'' + usageCbId + '\')" oninput="filterComboboxDropdown(\'' + usageCbId + '\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'' + usageCbId + '\')">▼</button><div class="combobox-dropdown" id="' + usageCbId + '">' + usageCbOpts + '</div></div>';
   const hr = cdHandleRefCombobox(idx, items, sameHandleRef);
   const sameModelSel = COMM_DETAIL_SAME_MODEL_OPTS.map(o => {
     const checked = (it.sameModel || '否') === o.value ? 'checked' : '';

@@ -772,10 +772,10 @@ ul,li{list-style:none}
 .cd-rec-body .form-section-title.cd-extra-subtitle{padding-left:11px}
 .detail-images{display:flex;flex-wrap:wrap;gap:8px;margin-top:0}
 /* v611：人物档案详情「人物关系」区块（与人物关系模块双向绑定） */
-.detail-relations{margin:4px 0 2px;display:flex;flex-wrap:wrap;align-items:stretch}
-.detail-rel-item,.detail-rel-sub{padding:4px 12px;display:flex;flex-direction:column;gap:3px}
+.detail-relations{margin:4px 0 2px;display:flex;flex-wrap:nowrap;align-items:stretch;overflow-x:auto}
+.detail-rel-item,.detail-rel-sub{padding:4px 12px;display:flex;flex-direction:column;gap:3px;flex:0 0 auto}
 .detail-rel-item:not(:first-child){border-left:1px solid var(--c-border)}
-.detail-rel-divider{width:1px;background:var(--c-border);margin:4px 0;align-self:stretch}
+.detail-rel-divider{width:1px;background:var(--c-border);margin:4px 6px;align-self:stretch;flex:0 0 auto}
 .detail-rel-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .detail-rel-status{color:var(--c-text-muted);font-size:12px}
 .detail-rel-other{font-size:13px;line-height:1.5}
@@ -1926,9 +1926,9 @@ ul,li{list-style:none}
 .life-goal-card:hover{box-shadow:var(--shadow);transform:translateY(-2px);border-color:var(--c-primary-light)}
 .lgc-head{display:flex;align-items:center;gap:12px}
 .lgc-ico{width:44px;height:44px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
-.lgc-title-wrap{flex:1;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lgc-title-wrap{flex:1;min-width:0;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .lgc-name{font-size:17px;font-weight:700;color:var(--c-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:1}
-.lgc-desc{display:inline;font-size:11px;color:var(--c-text-muted);font-weight:400;margin-left:8px;flex-shrink:0}
+.lgc-desc{display:inline;font-size:11px;color:var(--c-text-muted);font-weight:400;margin-left:0;flex-shrink:0}
 .lgc-arrow{display:none}
 .lgc-body{display:flex;gap:16px;align-items:center;flex-wrap:nowrap}
 .lgc-stats{display:flex;gap:8px;flex:1;min-width:0;align-items:center;margin:0}
@@ -2652,7 +2652,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=616"></script>
+  <script src="app.js?v=617"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
