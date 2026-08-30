@@ -2097,6 +2097,28 @@ ul,li{list-style:none}
 .lc-add-form .combobox-wrapper{width:100%}
 .life-modal-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--c-border-light);font-size:13px;color:var(--c-text)}
 .life-modal-item:last-child{border-bottom:none}
+/* ===== v627 每日打卡配色局部调整（仅覆盖点名位置，全局 token 不动） ===== */
+/* ① 顶部「今日打卡」日卡未完成按钮底 */
+.life-quick-checkin .lqc-btn:not(.lqc-weekly):not(.done){background:#eef7ff;border-color:#d6e6fb}
+/* ② 底部日卡目标卡·汇总统计块底（周卡统计块底保持原版 rgba(250,140,22,.12)） */
+.life-goal-card:not(.week-card) .lgc-stat{background:#e7f5ff}
+/* ③ 底部周卡·汇总数字/进度数字/进度条 橙 */
+.life-goal-card.week-card .lgc-num{color:#ff9e4f}
+.life-goal-card.week-card .lgc-mp-num.week{color:#ff9e4f}
+.life-goal-card.week-card .lgc-mp-fill.week{background:#ff9e4f}
+/* ④ 弹窗热图里的进度数字（周卡）和外面保持一致 */
+.life-modal-prog .lmp-num.week{color:#ff9e4f}
+/* ⑤ 热图·日卡未完成（弹窗 + 底部小热图，不含 other-month） */
+.life-modal-heatmap:not(.week) .life-heatmap .hm-day:not(.done):not(.other-month){background:#eef7ff}
+.life-goal-card:not(.week-card) .life-heatmap .hm-day:not(.done):not(.other-month){background:#eef7ff}
+/* ⑥ 热图·日卡选中当日(已打卡) */
+.life-modal-heatmap:not(.week) .life-heatmap .hm-day.selected.done{background:#c6e4ff}
+/* ⑦ 热图·周卡已打卡（底部小热图 + 弹窗 + 周视图） */
+.life-goal-card.week-card .life-heatmap .hm-day.week{background:#ff9e4f}
+.life-modal-heatmap.week .life-heatmap .hm-day.week{background:#ff9e4f}
+.lwm-cell.week.done{background:#ff9e4f;border-color:#ff9e4f}
+/* ===== /v627 每日打卡配色局部调整 ===== */
+
 /* 本周概览（主页面大模块） */
 .life-week-module{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow-sm);max-width:420px;margin:0 auto 14px}
 .lwm-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap;padding-left:0;padding-right:0}
@@ -2653,7 +2675,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=625"></script>
+  <script src="app.js?v=627"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
