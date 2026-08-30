@@ -7814,8 +7814,8 @@ function renderLifeRecordTopCard(all, date) {
   const noonDur = noon ? getSleepDuration(noon) : 0;
   const total = nightDur + noonDur;
   const dietSubs = lifeRecordSubtypes('diet');
-  return `<div class="lr-top-card">
-    <div class="lr-top-left">
+  const hasSleep = sleepRecs.length > 0;
+  const leftContent = hasSleep ? `
       <div class="lr-ring-col">
         ${renderSleepRing(total)}
       </div>
@@ -7825,7 +7825,9 @@ function renderLifeRecordTopCard(all, date) {
         <div class="lr-top-stat"><span class="lts-label">清醒次数</span><span class="lts-val">${night && night.wakeCount != null ? night.wakeCount + '<span class="lts-unit">次</span>' : '—'}</span></div>
         <div class="lr-top-stat"><span class="lts-label">午休时长</span><span class="lts-val">${noonDur > 0 ? formatSleepDurationHTML(noonDur) : '—'}</span></div>
       </div>
-    </div>
+    ` : '';
+  return `<div class="lr-top-card">
+    <div class="lr-top-left${hasSleep ? '' : ' empty'}">${leftContent}</div>
     <div class="lr-diet-btns">
       ${dietSubs.map(st => {
         const filled = all.some(r => r.type === 'diet' && r.subtype === st.key && r.date === date);

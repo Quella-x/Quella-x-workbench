@@ -2220,10 +2220,10 @@ ul,li{list-style:none}
 .lts-val .dur-unit{font-size:18px}
 .lts-val .lts-unit{font-size:28px;font-weight:600}
 .lr-diet-btns{min-width:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px;align-content:center;justify-content:center;padding:16px 16px 16px 28px;width:100%;box-sizing:border-box;height:100%}
-.lr-diet-qbtn{box-sizing:border-box;width:100%;border:1px solid var(--c-border);border-radius:12px;background:var(--c-bg);color:var(--c-text);font-size:22px;font-weight:700;padding:20px 8px;cursor:pointer;transition:.15s}
-.lr-diet-qbtn:hover{background:#e0f2ff;color:var(--c-text)}
-.lr-diet-qbtn.filled{background:rgba(24,144,255,.24);color:var(--c-text)}
-.lr-diet-qbtn.filled:hover{background:rgba(24,144,255,.24);color:var(--c-text)}
+.lr-diet-qbtn{box-sizing:border-box;width:100%;border:1px solid #d6e6fb;border-radius:var(--radius-sm);background:#eef7ff;color:var(--c-text);font-size:22px;font-weight:700;padding:20px 8px;cursor:pointer;transition:.15s}
+.lr-diet-qbtn:hover{background:#e0f2ff;border-color:var(--c-primary-light);color:var(--c-text)}
+.lr-diet-qbtn.filled{background:rgba(24,144,255,.24);border-color:rgba(24,144,255,.24);color:var(--c-text)}
+.lr-diet-qbtn.filled:hover{background:rgba(24,144,255,.24);border-color:rgba(24,144,255,.24);color:var(--c-text)}
 
 /* Toggle buttons */
 .lr-toggle-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
@@ -2368,7 +2368,7 @@ ul,li{list-style:none}
   .lts-val .dur-unit{font-size:16px}
   .lts-val .lts-unit{font-size:22px;font-weight:600}
   .lr-diet-btns{gap:5px;padding:10px 10px 10px 18px}
-  .lr-diet-qbtn{font-size:18px;font-weight:700;padding:14px 6px;border-radius:10px}
+  .lr-diet-qbtn{font-size:18px;font-weight:700;padding:14px 6px;border-radius:var(--radius-sm)}
   .lqc-grid{gap:6px;grid-template-columns:repeat(auto-fit,minmax(64px,1fr))}
   .lqc-btn{font-size:18px;font-weight:550;background:var(--c-bg);color:var(--c-text);padding:12px 4px}
   .lqc-label{font-size:18px;font-weight:550;white-space:nowrap}
@@ -2676,7 +2676,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=629"></script>
+  <script src="app.js?v=630"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
