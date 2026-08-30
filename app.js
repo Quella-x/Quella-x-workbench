@@ -7669,7 +7669,7 @@ function lifeCheckinRenderModal(typeKey) {
   // selected-date records (with precise check-in time)
   html += `<div class="life-modal-list">`;
   const selRecs = recs.filter(r => r.date === lifeCheckinSelDate).sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
-  if (!selRecs.length) html += '<div class="life-empty">该日期暂无打卡记录</div>';
+  if (!selRecs.length) html += '<div class="life-modal-item">该日期暂无打卡记录</div>';
   else selRecs.forEach(r => { const tm = fmtHM(r.createdAt); html += `<div class="life-modal-item"><span>${lifeCheckinSelDate}${tm ? ' ' + tm : ''}</span><span>${r.isMakeup ? '补卡' : '已打卡'}</span></div>`; });
   html += `</div>`;
   // foot: delete (custom only)
