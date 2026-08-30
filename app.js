@@ -1219,7 +1219,7 @@ function renderCalendar(year, month, records, commissionRecords = []) {
   // v542：抽成单元格助手，prev/next 月补位格也渲染开稿/截稿标签（跨月不再空壳）
   function renderHomeCalCell(cy, cm, cd, isOther) {
     const dateStr = cy + '-' + String(cm + 1).padStart(2, '0') + '-' + String(cd).padStart(2, '0');
-    const dayRecords = records.filter(r => (r.publishTime || '').startsWith(dateStr));
+    const dayRecords = records.filter(r => (r.publishTime || '').startsWith(dateStr) && r.status === '已发布');
     const isToday = dateStr === todayKey;
     let topDots = '';
     const dayPlatforms = new Set();
@@ -1228,13 +1228,13 @@ function renderCalendar(year, month, records, commissionRecords = []) {
     const publishedDayRecords = dayRecords.filter(r => r.status === '已发布');
     const dayCount = publishedDayRecords.length > 0 ? `<span class="cal-day-count">${publishedDayRecords.length}条</span>` : '';
     const dayComms = commissionRecords.filter(r => {
-      const s = r.startTime || '';
+      const s = r.startTime || r.acceptTime || '';
       const e = r.deadline || '';
       if (!s && !e) return false;
       if (s && e) return dateStr >= s && dateStr <= e;
       return s.startsWith(dateStr) || e.startsWith(dateStr);
     });
-    const hasStart = dayComms.some(r => (r.startTime || '').startsWith(dateStr));
+    const hasStart = dayComms.some(r => (r.startTime || r.acceptTime || '').startsWith(dateStr));
     const hasEnd = dayComms.some(r => (r.deadline || '').startsWith(dateStr));
     let commTag = '';
     if (hasStart && hasEnd) {
@@ -2184,7 +2184,7 @@ MODULES['oc-commission'] = {
     const done = records.filter(r => valIncludes(r.status, '已完成')).length;
     const scoreMap = { '非常满意': 100, '满意': 80, '一般': 60, '不满意': 40 };
     const scored = records.map(r => scoreMap[(r.evaluation || '').trim()] || null).filter(v => v != null);
-    const satisfaction = scored.length ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length) + '%' : '—';
+    const satisfaction = scored.length ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length) + '%' : '';
     return [
       { label: '本月约稿数', value: monthCount, unit: '单' },
       { label: '本月花费', value: '¥' + monthFee.toLocaleString() },
@@ -3046,33 +3046,33 @@ function renderCommDetailPreview(selectedId) {
   let thumbRows = [];
   if (cat === '土味' || cat === '封面') {
     thumbRows = [
-      ['书名/文字', d.bookName || '—'],
-      ['制品', d.product || (cat === '封面' ? (d.type || '—') : '—')],
-      ['尺寸', d.size || '—'],
-      ['颜色', d.color || '—'],
+      ['书名/文字', d.bookName || ''],
+      ['制品', d.product || (cat === '封面' ? (d.type || '') : '—')],
+      ['尺寸', d.size || ''],
+      ['颜色', d.color || ''],
     ];
   } else if (cat === '饭圈') {
     thumbRows = [
-      ['姓名', d.charName || '—'],
-      ['制品', d.product || '—'],
-      ['尺寸', d.size || '—'],
-      ['风格', d.style || '—'],
-      ['颜色', d.color || '—'],
+      ['姓名', d.charName || ''],
+      ['制品', d.product || ''],
+      ['尺寸', d.size || ''],
+      ['风格', d.style || ''],
+      ['颜色', d.color || ''],
     ];
   } else if (cat === '二次') {
     thumbRows = [
-      ['角色名', d.charName || '—'],
-      ['制品', d.product || '—'],
-      ['尺寸', d.size || '—'],
-      ['风格', d.style || '—'],
-      ['颜色', d.color || '—'],
+      ['角色名', d.charName || ''],
+      ['制品', d.product || ''],
+      ['尺寸', d.size || ''],
+      ['风格', d.style || ''],
+      ['颜色', d.color || ''],
     ];
   } else {
     thumbRows = [
-      ['类型', d.type || '—'],
-      ['制品', d.product || '—'],
-      ['尺寸', d.size || '—'],
-      ['颜色', d.color || d.styleColor || '—'],
+      ['类型', d.type || ''],
+      ['制品', d.product || ''],
+      ['尺寸', d.size || ''],
+      ['颜色', d.color || d.styleColor || ''],
     ];
   }
   html += `<div class="comm-preview-thumb" onclick="cdJumpToDetail('${d.id}')">`;
@@ -7201,7 +7201,7 @@ function renderLifeYearOverview(year) {
     const rk = t.key + '_' + yr;
     const cur = ratings[rk];
     const rateLabel = cur != null ? (cur + '分') : '未评分';
-    const rateNum = cur != null ? cur : '—';
+    const rateNum = cur != null ? cur : '';
     html += `<div class="life-goal-card ${t.period === 'week' ? 'week-card' : ''}">
       <div class="lgc-head">
         <div class="lgc-title-wrap">
@@ -9320,7 +9320,7 @@ function openCdDetail(id) {
   if (r.clientInfo && linked.length) {
     html += '<div class="cd-link-list">';
     linked.forEach(c => {
-      const pnames = (c.products || []).map(p => p.name).filter(Boolean).join('、') || '—';
+      const pnames = (c.products || []).map(p => p.name).filter(Boolean).join('、') || '';
       const acceptTime = c.acceptTime ? `开稿 ${c.acceptTime}` : '';
       const deadline = c.deadline ? `截稿 ${c.deadline}` : '无截稿';
       const timeInfo = [acceptTime, deadline].filter(Boolean).join(' · ');

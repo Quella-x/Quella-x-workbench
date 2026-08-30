@@ -289,7 +289,7 @@ ul,li{list-style:none}
 /* v517：对齐样式模块标签不再显示冒号；默认流式布局仍保留冒号 */
 .record-card-body:not(.comm-list-style) .field-label::after{content:':'}
 /* v515: 九模块列表字段对齐（与接稿排期左栏一致：64px 右对齐标签 + 1fr 值列），仅内部字段样式，单双列保持原样 */
-.record-card-body.comm-list-style{gap:2px 0;margin-left:2px;margin-top:1px}
+.record-card-body.comm-list-style{display:flex;flex-direction:column;gap:2px 0;margin-left:2px;margin-top:1px}
 .record-card-body.comm-list-style .field:not(.comm-products-field){display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:baseline;margin:0}
 .record-card-body.comm-list-style .field:not(.comm-products-field) .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;white-space:nowrap;line-height:1.4}
 .record-card-body.comm-list-style .field:not(.comm-products-field) .field-value{font-size:13px;color:var(--c-text);line-height:1.4;min-width:0;word-break:break-word}
@@ -409,6 +409,16 @@ ul,li{list-style:none}
 .home-deep-tags .cal-day-tag-dot{width:4px;height:4px;min-width:4px;min-height:4px;box-sizing:border-box;border-radius:50%}
 .home-comm-tags .cal-day-tag-text,
 .home-deep-tags .cal-day-tag-text{font-size:9px;font-weight:600}
+/* v635：电脑端两个日历（首页+接稿排期）圆点+文字适当放大（仅桌面，移动保持小尺寸） */
+@media (min-width:641px){
+  .cal-day-tag-dot{width:6px;height:6px;min-width:6px;min-height:6px}
+  .cal-day-tag-text{font-size:12px}
+  .home-comm-tags .cal-day-tag-dot,
+  .home-deep-tags .cal-day-tag-dot{width:6px;height:6px;min-width:6px;min-height:6px}
+  .home-comm-tags .cal-day-tag-text,
+  .home-deep-tags .cal-day-tag-text{font-size:12px}
+  .cal-day .cal-dot{width:6px;height:6px;min-width:6px;min-height:6px}
+}
 /* Calendar period bar (开稿~截稿时间段连续显示) */
 .cal-period-bar{
   position:absolute;left:1px;right:1px;opacity:.85;font-size:8px;color:#fff;
@@ -1767,7 +1777,7 @@ ul,li{list-style:none}
 /* AH轮修正：时间线选中胶囊加高(垂直padding)、外框内边距取消；全局toolbar间距回16px */
 .timeline-filter-bar{
   display:flex;flex-wrap:nowrap;gap:0;align-items:center;justify-content:center;
-  width:200px;background:#fff;border:1px solid var(--c-border);border-radius:999px;
+  width:auto;min-width:340px;max-width:100%;background:#fff;border:1px solid var(--c-border);border-radius:999px;
   padding:0;margin:8px auto 16px;overflow:hidden;box-sizing:border-box;
 }
 @media (max-width:768px){
@@ -1776,7 +1786,7 @@ ul,li{list-style:none}
 /* 时间线页面toolbar与重要性按钮间距回退8px（与toolbar内部按钮gap一致） */
 .toolbar:has(+ .timeline-filter-bar){margin-bottom:8px}
 .timeline-color-filter{
-  flex:0 0 25%;display:inline-flex;align-items:center;justify-content:center;gap:4px;
+  flex:1 1 0;display:inline-flex;align-items:center;justify-content:center;gap:4px;
   padding:6px 0;font-size:13px;font-weight:600;white-space:nowrap;
   cursor:pointer;border:none;transition:all .2s;background:transparent;color:var(--c-text);
   box-sizing:border-box;min-width:0;overflow:hidden;
@@ -1799,7 +1809,7 @@ ul,li{list-style:none}
   padding:5px 4px;box-sizing:border-box;max-width:100%;
 }
 .timeline-color-filter.active .timeline-color-label{
-  padding:5px 22px;border-radius:999px;color:#fff;
+  padding:5px 14px;border-radius:999px;color:#fff;
 }
 .timeline-color-filter[data-color="红"].active .timeline-color-label{background:#e74c3c}
 .timeline-color-filter[data-color="橙"].active .timeline-color-label{background:#fa8c16}
@@ -2043,7 +2053,7 @@ ul,li{list-style:none}
 .life-picker-backdrop{position:fixed;inset:0;z-index:50;background:transparent}
 #lifePickerBackdrop{display:none}
 #lifePickerBackdrop.show{display:block}
-.life-year-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.life-year-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .life-year-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow-sm)}
 .lyc-name{font-size:15px;font-weight:700;color:var(--c-text);display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .lyc-tag{font-size:11px;font-weight:500;color:var(--c-text-light);background:transparent;border:none;padding:1px 4px}
@@ -2343,6 +2353,8 @@ ul,li{list-style:none}
 
 @media (max-width:640px){
   .life-goal-grid{grid-template-columns:1fr}
+  .life-year-grid{grid-template-columns:1fr}
+  .cd-rec-list{grid-template-columns:1fr}
   .life-goal-card{padding:12px}
   .lgc-body{flex-wrap:nowrap;align-items:center}
   .lgc-heatmap{width:74px;flex-shrink:0}
@@ -2429,7 +2441,7 @@ ul,li{list-style:none}
 .cal-month-count{display:inline-block;margin-left:5px;vertical-align:middle;white-space:nowrap;font-size:12px;font-weight:750;color:#fff;background:var(--c-primary);padding:2px 8px;border-radius:12px;cursor:default}.cal-month-count .n{display:inline-block;margin-left:1px}
 .cd-month-summary{font-size:12px;color:var(--c-text-muted);text-align:center;margin-bottom:10px}
 /* 接稿条列表 */
-.cd-rec-list{display:flex;flex-direction:column;gap:10px}
+.cd-rec-list{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .cd-rec-card{border:1px solid var(--c-border-light);border-radius:12px;background:#fff;overflow:hidden}
 .cd-rec-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
 .cd-rec-head:hover{background:var(--c-primary-bg)}
@@ -2676,7 +2688,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=634"></script>
+  <script src="app.js?v=635"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
