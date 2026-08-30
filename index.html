@@ -2092,14 +2092,16 @@ ul,li{list-style:none}
 .life-modal-del{color:var(--c-danger)}
 .life-modal-hd .lm-name{font-size:16px;font-weight:700;color:var(--c-text);display:flex;align-items:center;gap:8px}
 .life-modal-hd .lm-tag{font-size:11px;font-weight:400;color:var(--c-text-light);margin-top:1px}
-.life-modal-list{background:var(--c-bg);border:1px solid var(--c-border);border-radius:var(--radius);padding:8px 12px}
+.life-modal-list{background:var(--c-bg);border:1px solid var(--c-border);border-radius:var(--radius);padding:8px 12px;min-height:40px}
 .lc-add-form{min-height:210px}
 .lc-add-form .combobox-wrapper{width:100%}
 .life-modal-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--c-border-light);font-size:13px;color:var(--c-text)}
 .life-modal-item:last-child{border-bottom:none}
+.life-empty{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:13px;color:var(--c-text-muted);line-height:1.4}
 /* ===== v627 每日打卡配色局部调整（仅覆盖点名位置，全局 token 不动） ===== */
 /* ① 顶部「今日打卡」日卡未完成按钮底 */
 .life-quick-checkin .lqc-btn:not(.lqc-weekly):not(.done){background:#eef7ff;border-color:#d6e6fb}
+.life-quick-checkin .lqc-btn:not(.lqc-weekly):not(.done):hover{background:#e0f2ff;border-color:var(--c-primary-light)}
 /* ② 底部日卡目标卡·汇总统计块底（周卡统计块底保持原版 rgba(250,140,22,.12)） */
 .life-goal-card:not(.week-card) .lgc-stat{background:#e7f5ff}
 /* ③ 底部周卡·汇总数字/进度数字/进度条 橙 */
@@ -2675,7 +2677,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=627"></script>
+  <script src="app.js?v=628"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

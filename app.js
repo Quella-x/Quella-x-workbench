@@ -1571,7 +1571,7 @@ MODULES['groupbuy-samples'] = {
     ];
   },
   statsTitle: '打样统计',
-  chart: (records) => renderAnnualChart(records, 'sampleTime', { title: '打样费用', valueField: 'cost', color: '#fa8c16', year: getChartYear('groupbuy-samples') }, 'groupbuy-samples'),
+  chart: (records) => renderAnnualChart(records, 'sampleTime', { title: '打样费用', valueField: 'cost', color: '#f6ad5c', year: getChartYear('groupbuy-samples') }, 'groupbuy-samples'),
   statsYearField: 'sampleTime',
 };
 
@@ -1693,7 +1693,7 @@ MODULES['design-commission'] = {
   chart: (records) => {
     const processed = records.map(r => ({ ...r, acceptTime: r.acceptTime || r.startTime || r.deadline || '' }));
     return renderAnnualChart(processed, 'acceptTime', { title: '接稿收入', series: [
-      { name: '最终金额', compute: r => parseNum(r.quoteAmount) || parseNum(r.amount) || 0, color: '#ff9a3c' },
+      { name: '最终金额', compute: r => parseNum(r.quoteAmount) || parseNum(r.amount) || 0, color: '#f6ad5c' },
     ], year: getChartYear('design-commission') }, 'design-commission');
   },
   isOverdue: (r) => { const now = todayStr(); return r.deadline && r.deadline < now && !valIncludes(r.progress, '已交付'); },
@@ -2013,7 +2013,7 @@ MODULES['design-auth'] = {
     return [{ label: '本月授权数', value: monthAuth, unit: '条' }, { label: '授权总数', value: records.length, unit: '条' }, { label: '授权总收入', value: '¥' + totalFee.toLocaleString(), sub: '' }];
   },
   statsTitle: '授权统计',
-  chart: (records) => renderAnnualChart(records, 'authDate', { title: '授权收入', valueField: 'authFee', color: '#fa8c16', year: getChartYear('design-auth') }, 'design-auth'),
+  chart: (records) => renderAnnualChart(records, 'authDate', { title: '授权收入', valueField: 'authFee', color: '#f6ad5c', year: getChartYear('design-auth') }, 'design-auth'),
   statsYearField: 'authDate',
 };
 
@@ -2195,7 +2195,7 @@ MODULES['oc-commission'] = {
     ];
   },
   statsTitle: '约稿统计',
-  chart: (records) => renderAnnualChart(records, 'commissionTime', { title: '约稿花费', valueField: 'fee', color: '#fa8c16', year: getChartYear('oc-commission') }, 'oc-commission'),
+  chart: (records) => renderAnnualChart(records, 'commissionTime', { title: '约稿花费', valueField: 'fee', color: '#f6ad5c', year: getChartYear('oc-commission') }, 'oc-commission'),
   statsYearField: 'commissionTime',
   personFilterField: 'oc',
 };
