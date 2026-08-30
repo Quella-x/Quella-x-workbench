@@ -7793,8 +7793,8 @@ function renderSleepRing(totalHours) {
   const offset = circumference * (1 - pct);
   const reached = totalHours >= 8;
   const color = '#620712';
-  const statusText = reached ? '睡眠达到8小时' : '睡眠未达到8小时';
-  const timeText = totalHours > 0 ? formatSleepDurationHTML(totalHours) : '—';
+  const statusText = totalHours > 0 ? (reached ? '睡眠达到8小时' : '睡眠未达到8小时') : '&nbsp;';
+  const timeText = totalHours > 0 ? formatSleepDurationHTML(totalHours) : '&nbsp;';
   return `<div class="sleep-ring-col">
     <div class="sleep-ring-wrap">
       <svg class="sleep-ring" viewBox="0 0 90 90">
@@ -7839,7 +7839,7 @@ function renderLifeRecordTopCard(all, date) {
 function renderDietRecordRow(r, st) {
   let info = '';
   if (st.key === 'snack') {
-    info = `<span><b>零食记录:</b> ${r.note || '—'}</span>${r.qty != null ? `<span><b>数量:</b> ${r.qty}${r.unit || '包'}</span>` : ''}`;
+    info = `<span><b>零食记录:</b> ${r.note || '&nbsp;'}</span>${r.qty != null ? `<span><b>数量:</b> ${r.qty}${r.unit || '包'}</span>` : ''}`;
   } else if (st.key === 'milktea') {
     const extras = [];
     if (r.size) extras.push(r.size);
@@ -7847,9 +7847,9 @@ function renderDietRecordRow(r, st) {
     if (r.temperature) extras.push(r.temperature);
     const flavors = Array.isArray(r.flavors) ? r.flavors : (r.flavors ? [r.flavors] : []);
     if (flavors.length) extras.push(flavors.join('、'));
-    info = `<span><b>奶茶记录:</b> ${r.note || '—'}</span>${extras.length ? `<span><b>配置:</b> ${extras.join(' / ')}</span>` : ''}`;
+    info = `<span><b>奶茶记录:</b> ${r.note || '&nbsp;'}</span>${extras.length ? `<span><b>配置:</b> ${extras.join(' / ')}</span>` : ''}`;
   } else {
-    info = `<span><b>餐食记录:</b> ${r.note || '—'}</span>`;
+    info = `<span><b>餐食记录:</b> ${r.note || '&nbsp;'}</span>`;
   }
   if (r.time) info += `<span><b>${st.key === 'snack' || st.key === 'milktea' || st.key === 'midnight' ? '享用时间' : '吃饭时间'}:</b> ${r.time}</span>`;
   return `<div class="lr-record-row">
@@ -8038,10 +8038,10 @@ function renderSleepRecordRows(recs) {
     const dur = formatSleepDuration(getSleepDuration(r));
     return `<div class="lr-record-row">
       <div class="lr-record-info lr-record-info-2col">
-        <div class="lr-info-line"><span class="lr-info-label">入睡时间:</span><span class="lr-info-val">${r.sleepTime || '—'}</span></div>
-        <div class="lr-info-line"><span class="lr-info-label">清醒时间:</span><span class="lr-info-val">${r.wakeTime || '—'}</span></div>
+        <div class="lr-info-line"><span class="lr-info-label">入睡时间:</span><span class="lr-info-val">${r.sleepTime || '&nbsp;'}</span></div>
+        <div class="lr-info-line"><span class="lr-info-label">清醒时间:</span><span class="lr-info-val">${r.wakeTime || '&nbsp;'}</span></div>
         <div class="lr-info-line"><span class="lr-info-label">睡眠时长:</span><span class="lr-info-val">${dur}</span></div>
-        <div class="lr-info-line"><span class="lr-info-label">清醒次数:</span><span class="lr-info-val">${r.wakeCount != null ? r.wakeCount + '次' : '—'}</span></div>
+        <div class="lr-info-line"><span class="lr-info-label">清醒次数:</span><span class="lr-info-val">${r.wakeCount != null ? r.wakeCount + '次' : '&nbsp;'}</span></div>
       </div>
       <div class="lr-record-ops"><button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('sleep','${r.id}')">编辑</button><button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button></div>
     </div>`;
@@ -8055,7 +8055,7 @@ function renderDietRecordRows(recs, st) {
     if (st.key === 'snack') {
       const unitNote = r.unit ? `<span class="lr-size-note">（${esc(r.unit)}）</span>` : '';
       const qtyLine = r.qty != null ? `<div class="lr-info-line"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}</span></div>` : '';
-      lines = `<div class="lr-info-line"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '—'}${unitNote}</span></div>`;
+      lines = `<div class="lr-info-line"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${unitNote}</span></div>`;
       trailingOps = opsHtml;
     } else if (st.key === 'milktea') {
       const notes = [];
@@ -8065,9 +8065,9 @@ function renderDietRecordRows(recs, st) {
       const flavors = Array.isArray(r.flavors) ? r.flavors : (r.flavors ? [r.flavors] : []);
       flavors.forEach(f => notes.push('+' + f));
       const noteHtml = notes.length ? `<span class="lr-size-note">（${notes.map(x => esc(x)).join(' / ')}）</span>` : '';
-      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '—'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">奶茶记录:</span><span class="lr-info-val">${r.note || '—'}${noteHtml}</span></div>`;
+      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">奶茶记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${noteHtml}</span></div>`;
     } else {
-      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">${st.key === 'midnight' ? '享用时间' : '吃饭时间'}:</span><span class="lr-info-val">${r.time || '—'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">餐食记录:</span><span class="lr-info-val">${r.note || '—'}</span></div>`;
+      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">${st.key === 'midnight' ? '享用时间' : '吃饭时间'}:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">餐食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}</span></div>`;
     }
     return `<div class="lr-record-row">
       <div class="lr-record-info lr-record-info-2col">${lines}</div>${trailingOps}

@@ -2254,9 +2254,9 @@ ul,li{list-style:none}
 .lr-head-add{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);border:1px solid var(--c-primary);background:var(--c-primary);color:#fff;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;line-height:1}
 .lr-head-add:hover{background:var(--c-primary-dark)}
 .lr-head-add::before{content:'+';font-size:13px;font-weight:500;line-height:1;display:inline-flex;align-items:center;justify-content:center}
-.lr-record-row{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border:1px solid #d6e6fb;border-radius:var(--radius-sm);background:#eef7ff;margin-bottom:6px}
-.lr-record-row:last-child{margin-bottom:0}
-.lr-record-row:first-child{margin-top:0}
+.lr-record-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px dashed var(--c-border-light);background:#eef7ff}
+.lr-record-row:last-child{border-bottom:none;padding-bottom:0}
+.lr-record-row:first-child{padding-top:0}
 .lr-record-info{flex:1;min-width:0}
 .lr-record-info-2col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 40px}
 .lr-record-info-2col .lr-info-val{overflow:visible;text-overflow:clip}
@@ -2674,7 +2674,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=631"></script>
+  <script src="app.js?v=632"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
