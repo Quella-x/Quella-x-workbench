@@ -2120,18 +2120,6 @@ ul,li{list-style:none}
 .lwm-sum-label{font-size:11px;color:var(--c-text-light)}
 .lwm-sum-val{font-size:18px;font-weight:800;color:var(--c-text)}
 
-/* v626: 每日打卡配色局部微调（只改点名的 6 处，全局 token 不动） */
-.lqc-btn:not(.lqc-weekly):not(.done){background:#eef7ff}
-.lqc-btn:not(.lqc-weekly):not(.done):hover{background:#e0f2ff;border-color:var(--c-primary-light)}
-.lqc-btn.done:not(.lqc-weekly){background:#e7f5ff;border-color:#c6e4ff}
-.life-goal-card.week-card .lgc-num{color:#ff9e4f}
-.life-goal-card.week-card .lgc-mp-num{color:#ff9e4f}
-.life-goal-card.week-card .lgc-mp-fill.week{background:#ff9e4f}
-.life-heatmap .hm-day{background:#eef7ff}
-.life-modal-heatmap .life-heatmap .hm-day.selected.done{background:#c6e4ff}
-.life-goal-card.week-card .life-heatmap .hm-day.week{background:#ff9e4f}
-.life-modal-heatmap.week .life-heatmap .hm-day.week{background:#ff9e4f}
-
 /* Daily record */
 .life-record-datebar{display:flex;align-items:center;gap:10px;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:10px 14px;margin-bottom:4px;flex-wrap:wrap}
 .life-record-datebar input[type=date]{padding:7px 9px;font-size:15px;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:#fff;color-scheme:light}
@@ -2665,7 +2653,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=626"></script>
+  <script src="app.js?v=625"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
