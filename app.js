@@ -462,37 +462,28 @@ function normCi(s) {
     .toLowerCase();
 }
 function commissionDetailSort(a, b) {
-  // v653：严格相等 clientInfo 匹配拿真实 progress；不再用宽松匹配（v652 的子串包含会让「看」匹配上「看看看」，groupOf 误判为已接稿而不是已交付）
-  // 用户明确：「不用管单主姓名，稿件进度显示已交付这个模块就放最后」——只看 progress
-  const keyA = normCi(a.clientInfo || a.platformNick || '');
-  const keyB = normCi(b.clientInfo || b.platformNick || '');
-  const allComm = DB.list('commissions');
-  function findLinked(key) {
-    return allComm.find(c => normCi(c.clientInfo || c.platformNick || '') === key) || null;
+  // v654：简化——直接按"卡片显示的稿件进度"是否含"已交付"二分，已交付的最末
+  // progress 计算与 renderCommissionDetailPage 完全一致（r.progress || linkedComm.progress || ''），
+  // 避免之前 sort 与卡片显示逻辑不一致导致的"卡片显示已接稿但 sort 看到已交付"问题
+  function getDisplayedProg(r) {
+    const linkedComm = DB.list('commissions').find(c => (c.clientInfo || '') === (r.clientInfo || ''));
+    return r.progress || (linkedComm && linkedComm.progress) || '';
   }
-  const linkedA = findLinked(keyA);
-  const linkedB = findLinked(keyB);
-  const ra = linkedA[0] || a, rb = linkedB[0] || b;
-  // v647：分组权重——正常(关联且未交付) → 未关联(默认置尾) → 已交付(最末)
-  // 约稿单自身无 progress 字段，已交付状态取自关联接稿的 progress
-  function groupOf(linked) {
-    if (!linked) return 1;
-    if (valIncludes(linked.progress || '', '已交付')) return 2;
-    return 0;
-  }
-  const ga = groupOf(linkedA), gb = groupOf(linkedB);
-  if (ga !== gb) return ga - gb;
-  // 组内：跟随接稿排期全局手动顺序(xiao_comm_order)，与手机端/接稿排期展示模块一致；
-  // id 统一转字符串比较，避免数字 id 与字符串 id 对不上
+  const progA = getDisplayedProg(a);
+  const progB = getDisplayedProg(b);
+  const delivA = valIncludes(progA, '已交付');
+  const delivB = valIncludes(progB, '已交付');
+  if (delivA !== delivB) return delivA ? 1 : -1; // 已交付排最后
+  // 其他按接稿排期手动顺序(xiao_comm_order) + id 升序，与接稿排期展示模块一致
   const ord = loadCommOrder().map(String);
-  const idA = String(ra.id), idB = String(rb.id);
+  const idA = String(a.id), idB = String(b.id);
   const ia = ord.indexOf(idA), ib = ord.indexOf(idB);
   const BIG = 1e9;
   const ja = ia < 0 ? BIG : ia, jb = ib < 0 ? BIG : ib;
   if (ja !== jb) return ja - jb;
-  // v650：xiao_comm_order 没有的（兜底）直接委托 commissionRecordSort
-  // 跟接稿排期共用同一份兜底逻辑（progress 优先级 → 接稿日期 → id 升序），保证两边顺序一致
-  return commissionRecordSort(ra, rb);
+  const na = Number(idA), nb = Number(idB);
+  if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+  return idA.localeCompare(idB);
 }
 function applyTheme(theme) {
   const root = document.documentElement;
