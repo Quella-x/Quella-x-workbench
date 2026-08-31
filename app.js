@@ -2826,6 +2826,7 @@ function loadCommOrder() {
   return commOrderCache;
 }
 // 把自定义顺序叠加到已按 commissionRecordSort 排好的数组上（稳定排序，未登记的记录保持原相对顺序排在其后）
+// v656：已交付接稿永远置最后（不论 xiao_comm_order 位置），保证「不论怎么改，稿件进度变成已交付模块放最后」
 function applyCommOrder(list) {
   const ord = loadCommOrder();
   if (!ord || !ord.length) return list;
@@ -2833,6 +2834,9 @@ function applyCommOrder(list) {
   ord.forEach((id, i) => { if (idx[id] === undefined) idx[id] = i; });
   const BIG = 1e9;
   return list.slice().sort((a, b) => {
+    const da = valIncludes(a.progress || '', '已交付');
+    const db = valIncludes(b.progress || '', '已交付');
+    if (da !== db) return da ? 1 : -1; // 已交付在后
     const ia = idx[a.id] === undefined ? BIG : idx[a.id];
     const ib = idx[b.id] === undefined ? BIG : idx[b.id];
     return ia - ib;
