@@ -8685,7 +8685,7 @@ function cdMonthLabel(m) {
 }
 function renderCommissionDetailPage() {
   const body = $('#mainBody');
-  if (!pageState['design-commission-detail']) pageState['design-commission-detail'] = { tab: '', search: '', cdMonth: thisMonthStr(), recCollapsed: {}, cdPage: 1, cdPickerOpen: false };
+  if (!pageState['design-commission-detail']) pageState['design-commission-detail'] = { tab: '', search: '', cdMonth: thisMonthStr(), recCollapsed: {}, cdPage: 1, cdPickerOpen: false, showUnlinked: false };
   const ps = pageState['design-commission-detail'];
   // v456：接稿详情页月份不再跟随接稿排期表的 dateFilter，独立按记录自身开稿/截稿月份归月显示
   const allRecords = DB.list('commissionDetails');
@@ -8745,6 +8745,7 @@ function renderCommissionDetailPage() {
   }
   html += '</div></div>';
   if (ps.cdPickerOpen) html += '<div class="life-picker-backdrop" onclick="cdToggleMonthPicker()"></div>';
+  html += `<button class="cd-unlinked-btn ${ps.showUnlinked ? 'active' : ''}" onclick="cdToggleUnlinked()">未关联</button>`;
   html += `</div>`;
 
   // 当前月记录（支持跨月：关联接稿排期的开稿月~截稿月均显示）
@@ -8770,6 +8771,9 @@ function renderCommissionDetailPage() {
     return cdRecMonth(r) === ps.cdMonth;
   });
   monthRecs.sort(commissionDetailSort);
+  if (ps.showUnlinked) {
+    monthRecs = monthRecs.filter(r => !r.clientInfo || !DB.list('commissions').some(c => (c.clientInfo || '') === (r.clientInfo || '')));
+  }
   const PER_PAGE = 10;
   const totalPages = Math.max(1, Math.ceil(monthRecs.length / PER_PAGE));
   if (ps.cdPage > totalPages) ps.cdPage = totalPages;
@@ -9033,6 +9037,12 @@ function cdJumpMonth(y, m) {
 function cdSetPage(p) {
   const ps = pageState['design-commission-detail'];
   ps.cdPage = p;
+  renderCommissionDetailPage();
+}
+function cdToggleUnlinked() {
+  const ps = pageState['design-commission-detail'];
+  ps.showUnlinked = !ps.showUnlinked;
+  ps.cdPage = 1;
   renderCommissionDetailPage();
 }
 function setCdTab(tabKey) {
