@@ -2881,7 +2881,7 @@ function calDateModalItemsHTML() {
     else if (isEnd) { tagText = '截稿'; tagColor = CAL_END_COLOR; }
     else { tagText = '开稿'; tagColor = CAL_START_COLOR; }
     const qty = calcProductQty(r);
-    h += '<div class="cal-date-item" data-id="' + id + '"><span class="ci-name">' + esc(r.clientInfo || '未命名') + '</span><span class="ci-qty">' + qty + '件</span><span class="ci-tag" style="background:' + tagColor + '">' + tagText + '</span><button type="button" class="ci-move" onclick="calMoveUp(' + id + ')">↑</button><button type="button" class="ci-move" onclick="calMoveDown(' + id + ')">↓</button></div>';
+    h += '<div class="cal-date-item" data-id="' + id + '"><span class="ci-name">' + esc(r.clientInfo || '未命名') + '</span><span class="ci-qty">' + qty + '件</span><span class="ci-tag" style="background:' + tagColor + '">' + tagText + '</span><button type="button" class="ci-move" onclick="calMoveUp(\'' + id + '\')">▲</button><button type="button" class="ci-move" onclick="calMoveDown(\'' + id + '\')">▼</button></div>';
   });
   return h;
 }
@@ -4655,8 +4655,8 @@ function drawMindMap(chars, relations) {
     const a = positions[conn.a], b = positions[conn.b];
     if (!a || !b) return;
     const color = RELATION_COLORS[conn.type] || '#b0b8c0';
-    // Adjust endpoints to circle edge (radius ~25)
-    const nodeR = 25;
+    // Adjust endpoints to circle edge（节点实际 60px，半径 30；v642 推到圆外避免箭头被节点盖住）
+    const nodeR = 30;
     const aDir = Math.atan2(b.y - a.y, b.x - a.x);
     const bDir = Math.atan2(a.y - b.y, a.x - b.x);
     const ax = a.x + nodeR * Math.cos(aDir), ay = a.y + nodeR * Math.sin(aDir);
@@ -4670,13 +4670,14 @@ function drawMindMap(chars, relations) {
     const box = bx + nx * off, boy = by + ny * off;
     const opacity = 0.65;
     inner += `<line x1="${aox}" y1="${aoy}" x2="${box}" y2="${boy}" stroke="${color}" stroke-width="2" opacity="${opacity}"/>`;
-    // v641：关系状态含「单向」时，在 人物2(端点 b) 处画出箭头，表示 人物1→人物2 单向
+    // v642：关系状态含「单向」时，在 人物2(端点 b) 处画出箭头，表示 人物1→人物2 单向；箭头推到节点圆外避免被盖住
     if (conn.status && conn.status.includes('单向')) {
       const ang = Math.atan2(by - ay, bx - ax);
-      const aLen = 9, aW = 4.5;
-      const tx = box - aLen * Math.cos(ang), ty = boy - aLen * Math.sin(ang);
+      const aLen = 10, aW = 5;
+      // tip 在节点圆外（沿 a→b 方向再延伸 aLen），base 落在节点边缘 box 处
+      const tx = box + aLen * Math.cos(ang), ty = boy + aLen * Math.sin(ang);
       const px = -Math.sin(ang) * aW, py = Math.cos(ang) * aW;
-      inner += `<polygon points="${box},${boy} ${tx + px},${ty + py} ${tx - px},${ty - py}" fill="${color}" opacity="${opacity + 0.2}"/>`;
+      inner += `<polygon points="${tx},${ty} ${box + px},${boy + py} ${box - px},${boy - py}" fill="${color}" opacity="${opacity + 0.2}"/>`;
     }
     // Label 沿连线错开；v641：靠左的连线和文字放线左侧、靠右的放线右侧、单条放外侧，文字不压线
     const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.20;
@@ -5941,7 +5942,7 @@ function renderPriceList() {
   html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onSearch('design-pricelist', this.value)"><span class="search-icon">🔍</span></div>`;
   html += '<div class="spacer"></div>';
   html += '<button class="btn btn-outline toolbar-eq" onclick="togglePriceListNotes()">📝 其他说明</button>';
-  html += '<button class="btn btn-outline toolbar-eq" onclick="openPriceListSort()">↕️ 排序编辑</button>';
+  html += '<button class="btn btn-outline toolbar-eq" onclick="openPriceListSort()">调整排序</button>';
   html += '<button class="btn btn-primary" onclick="openAddForm(\'design-pricelist\')">+ 新增价目</button>';
   html += '</div>';
 
@@ -5982,6 +5983,7 @@ function renderPriceList() {
         const unitSuffix = priceUnit === '元' ? '' : priceUnit.replace('元', '');
         const priceText = `¥${esc(r.price || 0)}${esc(unitSuffix)}`;
         html += `<span class="menu-price">${priceText}</span>`;
+        html += `<span class="btn-icon danger" style="font-size:13px;margin-left:8px;flex-shrink:0" onclick="event.stopPropagation();onDelete('design-pricelist','${r.id}')">🗑️</span>`;
         html += '</div>';
       });
       if (desc) {
@@ -6041,8 +6043,6 @@ function openPriceListSort() {
       html += `<span class="sort-btns">`;
       html += `<button class="btn btn-ghost btn-sm" ${isFirst ? 'disabled' : ''} onclick="event.stopPropagation();priceItemMove('${r.id}',-1);openPriceListSort();">▲</button>`;
       html += `<button class="btn btn-ghost btn-sm" ${isLast ? 'disabled' : ''} onclick="event.stopPropagation();priceItemMove('${r.id}',1);openPriceListSort();">▼</button>`;
-      html += `<span class="btn-icon" style="font-size:12px;width:24px;height:24px" onclick="event.stopPropagation();openEditForm('design-pricelist','${r.id}')">✏️</span>`;
-      html += `<span class="btn-icon danger" style="font-size:12px;width:24px;height:24px" onclick="event.stopPropagation();onDelete('design-pricelist','${r.id}')">🗑️</span>`;
       html += '</span></div>';
     });
   });
