@@ -462,28 +462,42 @@ function normCi(s) {
     .toLowerCase();
 }
 function commissionDetailSort(a, b) {
-  // v654：简化——直接按"卡片显示的稿件进度"是否含"已交付"二分，已交付的最末
-  // progress 计算与 renderCommissionDetailPage 完全一致（r.progress || linkedComm.progress || ''），
-  // 避免之前 sort 与卡片显示逻辑不一致导致的"卡片显示已接稿但 sort 看到已交付"问题
-  function getDisplayedProg(r) {
-    const linkedComm = DB.list('commissions').find(c => (c.clientInfo || '') === (r.clientInfo || ''));
-    return r.progress || (linkedComm && linkedComm.progress) || '';
+  // v655：3 组细分
+  // group 0 = linked 接稿 + 未交付 → 完全跟随接稿排期 sort（commissionRecordSort + xiao_comm_order）
+  // group 1 = 未关联（clientInfo 没匹配上任何接稿）→ 按 约稿单 id
+  // group 2 = 已交付（任何，含 linked 或未关联）→ 最后，按 约稿单 id
+  function getLinked(r) {
+    return DB.list('commissions').find(c => (c.clientInfo || '') === (r.clientInfo || ''));
   }
-  const progA = getDisplayedProg(a);
-  const progB = getDisplayedProg(b);
-  const delivA = valIncludes(progA, '已交付');
-  const delivB = valIncludes(progB, '已交付');
-  if (delivA !== delivB) return delivA ? 1 : -1; // 已交付排最后
-  // 其他按接稿排期手动顺序(xiao_comm_order) + id 升序，与接稿排期展示模块一致
-  const ord = loadCommOrder().map(String);
-  const idA = String(a.id), idB = String(b.id);
-  const ia = ord.indexOf(idA), ib = ord.indexOf(idB);
-  const BIG = 1e9;
-  const ja = ia < 0 ? BIG : ia, jb = ib < 0 ? BIG : ib;
-  if (ja !== jb) return ja - jb;
-  const na = Number(idA), nb = Number(idB);
+  function getDisplayedProg(r, linked) {
+    return r.progress || (linked && linked.progress) || '';
+  }
+  const linkedA = getLinked(a);
+  const linkedB = getLinked(b);
+  const progA = getDisplayedProg(a, linkedA);
+  const progB = getDisplayedProg(b, linkedB);
+  function groupOf(prog, linked) {
+    if (valIncludes(prog, '已交付')) return 2;
+    if (!linked) return 1;
+    return 0;
+  }
+  const ga = groupOf(progA, linkedA);
+  const gb = groupOf(progB, linkedB);
+  if (ga !== gb) return ga - gb;
+  // group 0：linked 接稿的 sort（与接稿排期完全一致：先按 commissionRecordSort 兜底，再 xiao_comm_order 手动顺序）
+  if (ga === 0 && gb === 0) {
+    const ord = loadCommOrder().map(String);
+    const idA = String(linkedA.id), idB = String(linkedB.id);
+    const ia = ord.indexOf(idA), ib = ord.indexOf(idB);
+    const BIG = 1e9;
+    const ja = ia < 0 ? BIG : ia, jb = ib < 0 ? BIG : ib;
+    if (ja !== jb) return ja - jb;
+    return commissionRecordSort(linkedA, linkedB);
+  }
+  // groups 1/2：按 约稿单 id 升序
+  const na = Number(a.id), nb = Number(b.id);
   if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
-  return idA.localeCompare(idB);
+  return String(a.id).localeCompare(String(b.id));
 }
 function applyTheme(theme) {
   const root = document.documentElement;
