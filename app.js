@@ -462,11 +462,23 @@ function normCi(s) {
     .toLowerCase();
 }
 function commissionDetailSort(a, b) {
-  // 关联到接稿排期：优先用单主，其次平台昵称；归一化匹配避免空格/大小写/全角差异
+  // v652：宽匹配——严格 === 没匹配到时，用「去掉所有空格后相等」/「子串包含」再匹配一次
+  // 解决约稿单 clientInfo 与接稿排期 clientInfo 因空格/emoji/特殊字符差异导致无法归入 group 2（已交付置尾）
+  function looseMatch(c, key, keyLoose) {
+    const ci = normCi(c.clientInfo || c.platformNick || '');
+    if (ci === key) return true;
+    const ciLoose = ci.replace(/\s+/g, '');
+    if (keyLoose && ciLoose === keyLoose) return true;
+    if (key && ci && (ci.includes(key) || key.includes(ci))) return true;
+    return false;
+  }
   const keyA = normCi(a.clientInfo || a.platformNick || '');
   const keyB = normCi(b.clientInfo || b.platformNick || '');
-  const linkedA = DB.list('commissions').filter(c => normCi(c.clientInfo || c.platformNick || '') === keyA);
-  const linkedB = DB.list('commissions').filter(c => normCi(c.clientInfo || c.platformNick || '') === keyB);
+  const keyALoose = keyA.replace(/\s+/g, '');
+  const keyBLoose = keyB.replace(/\s+/g, '');
+  const allComm = DB.list('commissions');
+  const linkedA = allComm.filter(c => looseMatch(c, keyA, keyALoose));
+  const linkedB = allComm.filter(c => looseMatch(c, keyB, keyBLoose));
   const ra = linkedA[0] || a, rb = linkedB[0] || b;
   // v647：分组权重——正常(关联且未交付) → 未关联(默认置尾) → 已交付(最末)
   // 约稿单自身无 progress 字段，已交付状态取自关联接稿的 progress
@@ -1796,7 +1808,8 @@ MODULES['design-commission'] = {
     { key: 'quoteAmount', label: '报价金额', type: 'number', hint: '元（手动输入）' },
     { key: 'deposit', label: '定金', type: 'readonly', row: 'depositBalance', hint: '自动计算（报价金额50%）' },
     { key: 'balance', label: '尾款', type: 'readonly', row: 'depositBalance', hint: '自动计算' },
-    { key: 'paymentStatus', label: '支付状态', type: 'multiselect', single: true, default: '定金', options: [{ value: '未付', label: '未付' }, { value: '定金', label: '定金' }, { value: '尾款', label: '尾款' }, { value: '全款', label: '全款' }] },
+    // v652：支付状态改纯多选（去掉 single:true），允许同时记录定金+尾款等组合
+    { key: 'paymentStatus', label: '支付状态', type: 'multiselect', default: '定金', options: [{ value: '未付', label: '未付' }, { value: '定金', label: '定金' }, { value: '尾款', label: '尾款' }, { value: '全款', label: '全款' }] },
     { key: 'progress', label: '稿件进度', type: 'multiselect', single: true, default: '已接稿', options: [{ value: '待接稿', label: '待接稿' }, { value: '已接稿', label: '已接稿' }, { value: '制作中', label: '制作中' }, { value: '修改中', label: '修改中' }, { value: '已交付', label: '已交付' }] },
     { key: 'deliveredTime', label: '交付时间', type: 'date', hint: '设为「已交付」时自动记录，用于报价导入接稿过滤', hintInline: true },
     { key: 'modifications', label: '修改项目', type: 'dynamic-list', maxRows: 2, columns: [
@@ -2349,7 +2362,7 @@ MODULES['oc-commission'] = {
 MODULES['life-record'] = {
   store: 'lifeRecords',
   fields: [
-    { key: 'snack_unit', label: '零食·数量单位', type: 'combobox',
+    { key: 'snack_unit', label: '零食·单位', type: 'combobox',
       options: ['包','个','颗','根','袋','盒','瓶','片','粒','份','条','罐','把'] },
     { key: 'milktea_size', label: '奶茶·杯型', type: 'combobox',
       options: ['mini杯','小杯','中杯','标准杯','大杯','胖胖杯','双拼杯','超大杯','超长杯','吨吨杯','奶茶桶'] },
@@ -2364,6 +2377,12 @@ MODULES['life-record'] = {
     { key: 'milktea_milkBase', label: '奶茶·奶底', type: 'combobox',
       options: ['植脂末','鲜奶','厚乳','燕麦奶','椰乳','杏仁奶','脱脂奶','轻乳'] },
   ],
+};
+
+// v652：每日打卡模块加入设置·版块设置（fields 留空，renderFieldSettings 里动态读取 LIFE_CHECKIN_DEFS + DB.custom defs 生成）
+MODULES['life-checkin'] = {
+  store: 'lifeCheckins',
+  fields: [],
 };
 
 /* ===== State ===== */
@@ -6435,7 +6454,10 @@ function renderNavIconEditItem(key, label, currentIcon) {
 function renderFieldSettings(html) {
   html += '<div class="settings-section active">';
   html += '<div class="module-selector"><label style="font-size:13px;margin-right:4px">选择模块</label>';
-  const modules = Object.keys(MODULES).filter(k => MODULES[k] && MODULES[k].fields);
+  // v652：版块设置下拉框按侧边栏导航顺序排（home 在前，再各分组 children），不在导航里的模块排末尾
+  const navOrder = NAV.flatMap(n => (n.group && n.children) ? n.children.map(c => c.key) : [n.key]);
+  const allMods = Object.keys(MODULES).filter(k => MODULES[k] && MODULES[k].fields);
+  const modules = navOrder.filter(k => allMods.includes(k)).concat(allMods.filter(k => !navOrder.includes(k)));
   if (!modules.length) {
     html += '<span style="font-size:12px;color:var(--c-text-light)">暂无可配置模块</span></div></div>';
     return html;
@@ -6458,6 +6480,15 @@ function renderFieldSettings(html) {
       const customLabel = (s.fieldLabels && s.fieldLabels[key]) || '';
       html += `<div class="field-edit-row"><label>${esc(f.label)}</label><input type="text" id="fld_${f.key}" value="${esc(customLabel)}" placeholder="${esc(f.label)}"></div>`;
     });
+    // v652：每日打卡模块的 fields 是动态的（内建 LIFE_CHECKIN_DEFS + DB 自定义 def），单独生成可编辑项
+    if (_settingsModule === 'life-checkin') {
+      const ckDefs = Object.values(LIFE_CHECKIN_DEFS).concat(DB.list('lifeCheckinDefs'));
+      ckDefs.forEach(d => {
+        const key = 'life-checkin.' + d.key;
+        const customLabel = (s.fieldLabels && s.fieldLabels[key]) || '';
+        html += `<div class="field-edit-row"><label>${esc(d.label)}</label><input type="text" id="fld_${d.key}" value="${esc(customLabel)}" placeholder="${esc(d.label)}"></div>`;
+      });
+    }
     html += '</div>';
     const optFields = mod.fields.filter(f => (f.type === 'combobox' || f.type === 'multiselect') && !f.noOptionManage);
     const hasCustomManaged = _settingsModule === 'design-commission-detail-twy' || _settingsModule === 'design-commission-detail-fm';
@@ -6596,7 +6627,11 @@ function renderDisplayFieldsSettings(html) {
   ensureDisplayDraft();
   html += '<div class="settings-section active">';
   html += '<div class="module-selector"><label style="font-size:13px;margin-right:4px">选择模块</label>';
-  const modules = Object.keys(MODULES).filter(k => MODULES[k] && MODULES[k].fields);
+  // v652：展示字段去掉生活模块（每日打卡/每日记录）——这两个模块走独立页面，不走通用展示字段配置
+  const LIFE_MODULES = ['life-checkin', 'life-record'];
+  const navOrder = NAV.flatMap(n => (n.group && n.children) ? n.children.map(c => c.key) : [n.key]);
+  const allMods = Object.keys(MODULES).filter(k => MODULES[k] && MODULES[k].fields && !LIFE_MODULES.includes(k));
+  const modules = navOrder.filter(k => allMods.includes(k)).concat(allMods.filter(k => !navOrder.includes(k)));
   if (!modules.length) {
     html += '<span style="font-size:12px;color:var(--c-text-light)">暂无可配置模块</span></div></div>';
     return html;
@@ -6739,6 +6774,18 @@ function saveSettingsAction() {
         else delete s.fieldLabels[key];
       }
     });
+    // v652：每日打卡模块的动态 fields（内建 + 自定义 def），单独处理 label 修改
+    if (_settingsModule === 'life-checkin') {
+      const ckDefs = Object.values(LIFE_CHECKIN_DEFS).concat(DB.list('lifeCheckinDefs'));
+      ckDefs.forEach(d => {
+        const labelEl = $('#fld_' + d.key);
+        if (labelEl) {
+          const key = 'life-checkin.' + d.key;
+          if (labelEl.value && labelEl.value !== d.label) s.fieldLabels[key] = labelEl.value;
+          else delete s.fieldLabels[key];
+        }
+      });
+    }
     const optFields = mod.fields.filter(f => (f.type === 'combobox' || f.type === 'multiselect') && !f.noOptionManage);
     optFields.forEach(f => {
       const key = _settingsModule + '.' + f.key;
@@ -7086,6 +7133,15 @@ const LIFE_CHECKIN_DEFS = {
   vacuum: { key: 'vacuum', label: '吸尘打卡', icon: '🧹', period: 'week' },
   mask: { key: 'mask', label: '面膜打卡', icon: '🧖', period: 'week' },
 };
+// v652：每日打卡模块 label 支持用户自定义（设置·版块设置里改）；优先用 settings.fieldLabels['life-checkin.'+key]，fallback 到 LIFE_CHECKIN_DEFS[key].label / DB.custom def
+function getLifeCheckinLabel(key) {
+  const s = getSettings();
+  const override = s.fieldLabels && s.fieldLabels['life-checkin.' + key];
+  if (override) return override;
+  if (LIFE_CHECKIN_DEFS[key]) return LIFE_CHECKIN_DEFS[key].label;
+  const custom = DB.list('lifeCheckinDefs').find(d => d.key === key);
+  return custom ? custom.label : key;
+}
 function renderQuickCheckin() {
   const today = todayStr();
   const allDefs = Object.values(LIFE_CHECKIN_DEFS).concat(DB.list('lifeCheckinDefs'));
@@ -7104,7 +7160,8 @@ function renderQuickCheckin() {
     if (t.period === 'day') done = DB.list('lifeCheckins').some(r => r.type === t.key && r.date === today);
     else { const thisWeek = weekKeyOf(today); done = DB.list('lifeCheckins').some(r => r.type === t.key && (r.week || weekKeyOf(r.date)) === thisWeek); }
     html += `<button class="lqc-btn ${t.period === 'week' ? 'lqc-weekly' : ''} ${done ? 'done' : ''}" onclick="lifeQuickCheckin('${t.key}',event)">`;
-    const shortLabel = (t.label || '').replace(/打卡$/, '').slice(0, 4);
+    // v652：用 getLifeCheckinLabel 优先返回用户自定义 label
+    const shortLabel = (getLifeCheckinLabel(t.key) || '').replace(/打卡$/, '').slice(0, 4);
     html += `<span class="lqc-label">${esc(shortLabel)}</span>`;
     html += '</button>';
   });
@@ -7410,7 +7467,7 @@ function renderLifeYearOverview(year) {
     html += `<div class="life-goal-card ${t.period === 'week' ? 'week-card' : ''}">
       <div class="lgc-head">
         <div class="lgc-title-wrap">
-          <div class="lgc-name">${esc(t.label)}</div>
+          <div class="lgc-name">${esc(getLifeCheckinLabel(t.key))}</div>
           <div class="lgc-desc">${t.period === 'day' ? '（每日打卡）' : '（每周打卡）'}</div>
         </div>
       </div>
@@ -7531,7 +7588,7 @@ function renderGoalCard(t, vy, vm) {
   return `<div class="life-goal-card ${t.period === 'week' ? 'week-card' : ''}" onclick="lifeCheckinOpenCard('${t.key}')">
     <div class="lgc-head">
       <div class="lgc-title-wrap">
-        <div class="lgc-name">${esc(t.label)}</div>
+        <div class="lgc-name">${esc(getLifeCheckinLabel(t.key))}</div>
         <div class="lgc-desc">${t.period === 'day' ? '（每日打卡）' : '（每周打卡）'}</div>
       </div>
       <div class="lgc-arrow">›</div>
@@ -7854,7 +7911,7 @@ function lifeCheckinRenderModal(typeKey) {
     mpDone = lifeWeeklyMonthCount(typeKey, v.y, v.m);
   }
   let html = `<div class="life-modal-body">`;
-  html += `<div class="life-modal-hd"><div><div class="lm-name">${esc(t.label)}<span class="lm-tag">${t.period === 'day' ? '每日打卡' : '每周打卡'}</span></div></div></div>`;
+  html += `<div class="life-modal-hd"><div><div class="lm-name">${esc(getLifeCheckinLabel(t.key))}<span class="lm-tag">${t.period === 'day' ? '每日打卡' : '每周打卡'}</span></div></div></div>`;
   // month nav (replaces date input)
   html += `<div class="life-modal-monthbar">`;
   html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinModalPrevMonth()">‹ 上月</button>`;
@@ -7884,7 +7941,7 @@ function lifeCheckinRenderModal(typeKey) {
     html += `</div>`;
   }
   html += `</div>`;
-  openModal(esc(t.label) + ' 打卡详情', html, '');
+  openModal(esc(getLifeCheckinLabel(t.key)) + ' 打卡详情', html, '');
 }
 function renderLifeWeekOverview() {
   const today = todayStr();
@@ -7933,7 +7990,7 @@ function renderLifeSingleWeek(label, days, today, withSummary) {
   for (let i = 0; i < 7; i++) html += '<div class="lwm-day">' + wd[i] + '</div>';
   html += '</div>';
   allDefs.forEach(t => {
-    html += '<div class="lwm-row"><div class="lwm-habit"><span class="lwm-habit-name">' + esc(t.label) + '</span><span class="lwm-tag">' + (t.period === 'day' ? '每日打卡' : '每周打卡') + '</span></div>';
+    html += '<div class="lwm-row"><div class="lwm-habit"><span class="lwm-habit-name">' + esc(getLifeCheckinLabel(t.key)) + '</span><span class="lwm-tag">' + (t.period === 'day' ? '每日打卡' : '每周打卡') + '</span></div>';
     for (let i = 0; i < 7; i++) {
       const ds = days[i];
       const done = checkins.some(r => r.type === t.key && r.date === ds);
@@ -9456,7 +9513,7 @@ function buildCdExtraProductsHTML(pageKey, items, parentData) {
     html += cdExtraProductRowHTML(idx, it || {}, isFq, list);
   });
   html += `</div>`;
-  html += `<button type="button" class="btn btn-primary" onclick="addCdExtraProduct()" style="margin-top:12px;width:100%;font-size:13px;padding:8px 12px">+ 新增制品</button>`;
+  html += `<button type="button" class="btn btn-primary" onclick="addCdExtraProduct()" style="margin-top:14px;width:100%;font-size:13px;padding:8px 12px">+ 新增制品</button>`;
   return html;
 }
 // 是否同模下拉：否（独立新柄）/ 初始制品 0 / 其他独立新柄的追加制品（排除自身及非独立新柄的追加制品）
