@@ -2888,7 +2888,7 @@ function calDateModalItemsHTML() {
     else if (isEnd) { tagText = '截稿'; tagColor = CAL_END_COLOR; }
     else { tagText = '开稿'; tagColor = CAL_START_COLOR; }
     const qty = calcProductQty(r);
-    h += '<div class="cal-date-item" data-id="' + id + '"><span class="ci-name">' + esc(r.clientInfo || '未命名') + '</span><span class="ci-qty">' + qty + '件</span><span class="ci-tag" style="background:' + tagColor + '">' + tagText + '</span><button type="button" class="ci-move" onclick="calMoveUp(\'' + id + '\')">▲</button><button type="button" class="ci-move" onclick="calMoveDown(\'' + id + '\')">▼</button></div>';
+    h += '<div class="cal-date-item" data-id="' + id + '"><button type="button" class="ci-move" onclick="calMoveUp(\'' + id + '\')">▲</button><button type="button" class="ci-move" onclick="calMoveDown(\'' + id + '\')">▼</button><span class="ci-name">' + esc(r.clientInfo || '未命名') + '</span><span class="ci-qty">' + qty + '件</span><span class="ci-tag" style="background:' + tagColor + '">' + tagText + '</span></div>';
   });
   return h;
 }
@@ -2924,7 +2924,7 @@ function renderCommDetailCard(r, isSelected) {
   const client = r.clientInfo || '';
   const details = DB.list('commissionDetails')
     .filter(d => (d.clientInfo || '') === client)
-    .sort((a, b) => (b._ct || 0) - (a._ct || 0));
+    .sort(commissionDetailSort);
   const selCls = isSelected ? ' selected' : '';
   if (!details.length) {
     return `<div class="record-card comm-detail-card${selCls}">
@@ -3042,7 +3042,7 @@ function renderCommDetailPreview(selectedId) {
   const client = commission.clientInfo || '';
   const details = DB.list('commissionDetails')
     .filter(d => (d.clientInfo || '') === client)
-    .sort((a, b) => (b._ct || 0) - (a._ct || 0));
+    .sort(commissionDetailSort);
   html += `<div class="comm-preview-client">单主：<b>${esc(client || '未填写')}</b></div>`;
   if (!details.length) {
     html += '<div class="comm-preview-empty">该单主暂无接稿详情档案。</div>';
@@ -4208,7 +4208,7 @@ function deriveSocialFieldsFromRelations(charName) {
   return result;
 }
 function syncOcRelationSocialFields(charName) {
-  const c = DB.list('ocCharacters').find(x => x.name === charName);
+  const c = DB.list('ocCharacters').find(x => pureOcName(x.name) === charName || x.name === charName);
   if (!c) return;
   // v641：删除关系后必须用「重新推导」的值覆盖，不能和旧的 c[f] 取并集，
   // 否则被删关系的名字会残留，导致思维导图自动同步仍画出该连线（删除后导图不变）。
@@ -4246,14 +4246,18 @@ function syncProfileSocialToRelations(charName, socialData) {
       syncOcRelationToChars(saved);
     });
   });
-  // 2) 清理：由档案同步生成、且已不在档案社会关系中的关系记录（仅删 _syncedFromProfile 标记项，不动手动关系）
-  relations.filter(r => r._syncedFromProfile).forEach(r => {
+  // 2) 清理：档案社会关系里已不再包含的人，其对应的关系记录（含手动建立的关系）同步删除，实现「档案↔关系」双向联动删除
+  // 仅当关系所有类型都能映射到某个社会关系字段、且对应字段均已不含对方时才删除；无法由档案驱动的类型（如死敌）保留，避免误删
+  relations.forEach(r => {
     const involves = pureOcName(r.charA) === name || pureOcName(r.charB) === name;
     if (!involves) return;
     const other = pureOcName(r.charA) === name ? pureOcName(r.charB) : pureOcName(r.charA);
-    const stillThere = arrVal(r.relationType).some(t => {
+    const types = arrVal(r.relationType);
+    if (!types.length) return;
+    const allMapped = types.every(t => !!RELATION_TYPE_SOCIAL_FIELD[t]);
+    if (!allMapped) return; // 含无法由档案驱动的类型，保留该关系
+    const stillThere = types.some(t => {
       const f = RELATION_TYPE_SOCIAL_FIELD[t];
-      if (!f) return false;
       return splitOcNames(socialData && socialData[f]).includes(other);
     });
     if (!stillThere) {
@@ -4682,15 +4686,13 @@ function drawMindMap(chars, relations) {
     const box = bx + nx * off, boy = by + ny * off;
     const opacity = 0.65;
     inner += `<line x1="${aox}" y1="${aoy}" x2="${box}" y2="${boy}" stroke="${color}" stroke-width="2" opacity="${opacity}"/>`;
-    // v642：关系状态含「单向」时，在 人物2(端点 b) 处画出箭头，表示 人物1→人物2 单向；箭头推到节点圆外避免被盖住
-    if (conn.status && conn.status.includes('单向')) {
-      const ang = Math.atan2(by - ay, bx - ax);
-      const aLen = 10, aW = 5;
-      // tip 在节点圆外（沿 a→b 方向再延伸 aLen），base 落在节点边缘 box 处
-      const tx = box + aLen * Math.cos(ang), ty = boy + aLen * Math.sin(ang);
-      const px = -Math.sin(ang) * aW, py = Math.cos(ang) * aW;
-      inner += `<polygon points="${tx},${ty} ${box + px},${boy + py} ${box - px},${boy - py}" fill="${color}" opacity="${opacity + 0.2}"/>`;
-    }
+    // v644：所有连线在端点 b(人物2)绘制箭头，表示方向 人物1→人物2；箭尖落在节点圆边缘、箭身推到圆外，避免被节点盖住看不见
+    const ang = Math.atan2(by - ay, bx - ax);
+    const aLen = 10, aW = 5;
+    const tipX = box, tipY = boy;
+    const bcx = box - aLen * Math.cos(ang), bcy = boy - aLen * Math.sin(ang);
+    const px = -Math.sin(ang) * aW, py = Math.cos(ang) * aW;
+    inner += `<polygon points="${tipX},${tipY} ${bcx + px},${bcy + py} ${bcx - px},${bcy - py}" fill="${color}" opacity="${opacity + 0.2}"/>`;
     // Label 沿连线错开；v641：靠左的连线和文字放线左侧、靠右的放线右侧、单条放外侧，文字不压线
     const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.20;
     const lx = aox + t * (box - aox);
@@ -7920,7 +7922,7 @@ function renderFlavorMultiselect(selected) {
     const qty = selMap[o] != null ? selMap[o] : 1;
     html += `<label class="checkbox-item flavor-item ${checked ? 'selected' : ''}" data-name="${esc(o)}" data-qty="${qty}">` +
       `<input type="checkbox" value="${esc(o)}" ${checked} onclick="toggleFlavorItem(this)"> <span class="flavor-name">${esc(o)}</span>` +
-      `<span class="flavor-qty" style="${checked ? '' : 'display:none'}"><button type="button" class="fq-btn" onclick="flavorQtyStep(this,-1)">−</button><span class="fq-val">${qty}</span><button type="button" class="fq-btn" onclick="flavorQtyStep(this,1)">＋</button></span>` +
+      `<span class="flavor-qty" style="${checked ? '' : 'display:none'}"><button type="button" class="fq-btn" onclick="flavorQtyStep(this,-1)" aria-label="减少份数"><svg viewBox="0 0 12 12" width="11" height="11" style="display:block"><path d="M2.5 6h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg></button><span class="fq-val">${qty}</span><button type="button" class="fq-btn" onclick="flavorQtyStep(this,1)" aria-label="增加份数"><svg viewBox="0 0 12 12" width="11" height="11" style="display:block"><path d="M2.5 6h7M6 2.5v7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg></button></span>` +
       `</label>`;
   });
   html += `</div>`;

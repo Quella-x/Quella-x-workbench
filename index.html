@@ -2326,7 +2326,7 @@ ul,li{list-style:none}
 .life-rec-form .pill-group .checkbox-item input,.life-rec-form .tag-group .checkbox-item input{margin:0;cursor:pointer}
 .life-rec-form .pill-group .checkbox-item.selected,.life-rec-form .tag-group .checkbox-item.selected,.life-rec-form .pill-group .checkbox-item:has(input:checked),.life-rec-form .tag-group .checkbox-item:has(input:checked){background:var(--c-primary-bg);border-color:var(--c-primary);color:var(--c-primary);font-weight:500}
 /* v641：小料份数步进器 */
-.life-rec-form .tag-group .flavor-item{position:relative}
+.life-rec-form .tag-group .flavor-item{position:relative;max-width:100%;min-width:0}
 .life-rec-form .flavor-qty{display:inline-flex;align-items:center;gap:3px;margin-left:5px}
 .life-rec-form .fq-btn{width:18px;height:18px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border);border-radius:4px;background:#fff;color:var(--c-text);font-size:13px;line-height:1;cursor:pointer;padding:0}
 .life-rec-form .fq-btn:hover{border-color:var(--c-primary)}
@@ -2740,7 +2740,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=643"></script>
+  <script src="app.js?v=644"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
