@@ -485,10 +485,9 @@ function commissionDetailSort(a, b) {
   const BIG = 1e9;
   const ja = ia < 0 ? BIG : ia, jb = ib < 0 ? BIG : ib;
   if (ja !== jb) return ja - jb;
-  // 未在手动序里的，按记录自身 id 数字顺序兜底（1,2,3...）
-  const na = Number(idA), nb = Number(idB);
-  if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
-  return idA.localeCompare(idB);
+  // v650：xiao_comm_order 没有的（兜底）直接委托 commissionRecordSort
+  // 跟接稿排期共用同一份兜底逻辑（progress 优先级 → 接稿日期 → id 升序），保证两边顺序一致
+  return commissionRecordSort(ra, rb);
 }
 function applyTheme(theme) {
   const root = document.documentElement;
@@ -8035,10 +8034,10 @@ function renderLifeRecordTopCard(all, date) {
         ${renderSleepRing(0)}
       </div>
       <div class="lr-top-stats">
-        <div class="lr-top-stat"><span class="lts-label">入睡时间</span><span class="lts-val lts-val-empty">—</span></div>
-        <div class="lr-top-stat"><span class="lts-label">清醒时间</span><span class="lts-val lts-val-empty">—</span></div>
-        <div class="lr-top-stat"><span class="lts-label">清醒次数</span><span class="lts-val lts-val-empty">—</span></div>
-        <div class="lr-top-stat"><span class="lts-label">午休时长</span><span class="lts-val lts-val-empty">—</span></div>
+        <div class="lr-top-stat"><span class="lts-label">入睡时间</span><span class="lts-val"></span></div>
+        <div class="lr-top-stat"><span class="lts-label">清醒时间</span><span class="lts-val"></span></div>
+        <div class="lr-top-stat"><span class="lts-label">清醒次数</span><span class="lts-val"></span></div>
+        <div class="lr-top-stat"><span class="lts-label">午休时长</span><span class="lts-val"></span></div>
       </div>
     `;
   return `<div class="lr-top-card">
