@@ -458,17 +458,24 @@ function normCi(s) {
     .toLowerCase();
 }
 function commissionDetailSort(a, b) {
-  const linkedA = DB.list('commissions').filter(c => normCi(c.clientInfo) === normCi(a.clientInfo));
-  const linkedB = DB.list('commissions').filter(c => normCi(c.clientInfo) === normCi(b.clientInfo));
+  // 关联到接稿排期：优先用单主，其次平台昵称；归一化匹配避免空格/大小写/全角差异
+  const keyA = normCi(a.clientInfo || a.platformNick || '');
+  const keyB = normCi(b.clientInfo || b.platformNick || '');
+  const linkedA = DB.list('commissions').filter(c => normCi(c.clientInfo || c.platformNick || '') === keyA);
+  const linkedB = DB.list('commissions').filter(c => normCi(c.clientInfo || c.platformNick || '') === keyB);
   const ra = linkedA[0] || a, rb = linkedB[0] || b;
-  // v643：约稿单跟随接稿排期全局手动顺序(xiao_comm_order)，与手机端/接稿排期展示模块一致；
-  // 同一接稿排期下的多条约稿单保持各自创建顺序（tie-break 走 commissionRecordSort 返回 0，稳定排序保留原序）
-  const ord = loadCommOrder();
-  const ia = ord.indexOf(ra.id), ib = ord.indexOf(rb.id);
+  // v643/v646：约稿单跟随接稿排期全局手动顺序(xiao_comm_order)，与手机端/接稿排期展示模块一致；
+  // id 统一转字符串比较，避免数字 id 与字符串 id 对不上
+  const ord = loadCommOrder().map(String);
+  const idA = String(ra.id), idB = String(rb.id);
+  const ia = ord.indexOf(idA), ib = ord.indexOf(idB);
   const BIG = 1e9;
   const ja = ia < 0 ? BIG : ia, jb = ib < 0 ? BIG : ib;
   if (ja !== jb) return ja - jb;
-  return commissionRecordSort(ra, rb);
+  // 未在手动序里的，按记录自身 id 数字顺序兜底（1,2,3...）
+  const na = Number(idA), nb = Number(idB);
+  if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+  return idA.localeCompare(idB);
 }
 function applyTheme(theme) {
   const root = document.documentElement;
@@ -7884,7 +7891,7 @@ function renderDietRecordRow(r, st) {
     flavors.forEach(f => extras.push(f));
     if (r.teaBase) extras.push(r.teaBase);
     if (r.milkBase) extras.push(r.milkBase);
-    info = `<span><b>奶茶记录:</b> ${r.note || '&nbsp;'}</span>${extras.length ? `<span class="lr-config-note"><b>配置:</b> ${extras.join(' / ')}</span>` : ''}`;
+    info = `<span><b>奶茶记录:</b> ${r.note || '&nbsp;'}</span>${extras.length ? `<span class="lr-size-note"><b>配置:</b> ${extras.join(' / ')}</span>` : ''}`;
   } else {
     info = `<span><b>餐食记录:</b> ${r.note || '&nbsp;'}</span>`;
   }
@@ -8180,7 +8187,7 @@ function renderDietRecordRows(recs, st) {
       milkteaFlavorsList(r.flavors).forEach(f => notes.push(f));
       if (r.teaBase) notes.push(r.teaBase);
       if (r.milkBase) notes.push(r.milkBase);
-      const noteHtml = notes.length ? `<span class="lr-config-note">（${notes.map(x => esc(x)).join(' / ')}）</span>` : '';
+      const noteHtml = notes.length ? `<span class="lr-size-note">（${notes.map(x => esc(x)).join(' / ')}）</span>` : '';
       lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">奶茶记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${noteHtml}</span></div>`;
     } else {
       lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">${st.key === 'midnight' ? '享用时间' : '吃饭时间'}:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">餐食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}</span></div>`;

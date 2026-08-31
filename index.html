@@ -2317,9 +2317,7 @@ ul,li{list-style:none}
 .lr-info-full .lr-info-val{white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word;font-size:13px}
 .lr-record-ops{display:flex;gap:1px;flex-shrink:0;align-items:center}
 .lr-record-ops .btn{padding:2px 7px;font-size:12px;line-height:1.2;border-radius:var(--radius-sm)}
-.lr-size-note{font-size:11px;color:var(--c-text-light);white-space:nowrap}
-/* v645：奶茶配置文本允许换行，不再被 nowrap 截断 */
-.lr-config-note{font-size:11px;color:var(--c-text-light);white-space:normal;word-break:break-word;overflow-wrap:anywhere}
+.lr-size-note{font-size:11px;color:var(--c-text-light);white-space:normal;word-break:break-word;overflow-wrap:anywhere}
 .lr-info-val .lr-size-note{font-weight:500}
 
 /* Inline form tweaks */
@@ -2399,7 +2397,7 @@ ul,li{list-style:none}
 @media (max-width:640px){
   .life-goal-grid{grid-template-columns:1fr}
   .life-year-grid{grid-template-columns:1fr}
-  .cd-rec-list{grid-template-columns:1fr}
+  .cd-rec-list{column-count:1}
   .life-goal-card{padding:12px}
   .lgc-body{flex-wrap:nowrap;align-items:center}
   .lgc-heatmap{width:74px;flex-shrink:0}
@@ -2493,11 +2491,11 @@ ul,li{list-style:none}
 .cd-month-label{font-size:15px;font-weight:700;color:var(--c-text);min-width:96px;text-align:center}
 .cal-month-count{display:inline-block;margin-left:5px;vertical-align:middle;white-space:nowrap;font-size:12px;font-weight:750;color:#fff;background:var(--c-primary);padding:2px 8px;border-radius:12px;cursor:default}.cal-month-count .n{display:inline-block;margin-left:1px}
 .cd-month-summary{font-size:12px;color:var(--c-text-muted);text-align:center;margin-bottom:10px}
-/* 接稿条列表（v642：电脑端改为行优先网格：第一排123、第二排456；移动端单列） */
-.cd-rec-list{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-flow:row;gap:10px;align-items:start}
-.cd-rec-card{border:1px solid var(--c-border-light);border-radius:12px;background:#fff;overflow:hidden}
+/* 接稿条列表（v646：电脑端恢复瀑布流；移动端单列） */
+.cd-rec-list{column-count:3;column-gap:10px}
+.cd-rec-card{border:1px solid var(--c-border-light);border-radius:12px;background:#fff;overflow:hidden;break-inside:avoid;margin-bottom:10px}
 @media (max-width:640px){
-  .cd-rec-list{grid-template-columns:1fr}
+  .cd-rec-list{column-count:1}
 }
 .cd-rec-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
 .cd-rec-head:hover{background:var(--c-primary-bg)}
@@ -2744,7 +2742,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=645"></script>
+  <script src="app.js?v=646"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
