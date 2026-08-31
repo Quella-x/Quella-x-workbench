@@ -2285,11 +2285,8 @@ ul,li{list-style:none}
 .lts-val{font-size:26px;font-weight:700;color:var(--c-text);line-height:1.2;letter-spacing:0px}
 .lts-val .dur-unit{font-size:18px}
 .lts-val .lts-unit{font-size:28px;font-weight:600}
-/* v647：每日记录顶部卡片左侧「暂无睡眠记录」占位态（保持与有记录时同布局） */
+/* v648：每日记录顶部卡片左侧无睡眠记录时，四项指标以「—」占位 */
 .lts-val-empty{color:var(--c-text-light);font-weight:600}
-.sleep-ring-bg-empty{stroke:#cdd9e5;stroke-dasharray:6 6}
-.sleep-ring-text-empty{color:var(--c-text-light);font-size:20px}
-.sleep-ring-status-empty{color:var(--c-text-muted)}
 .lr-diet-btns{min-width:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px;align-content:center;justify-content:center;padding:16px 16px 16px 28px;width:100%;box-sizing:border-box;height:100%}
 .lr-diet-qbtn{box-sizing:border-box;width:100%;border:1px solid #d6e6fb;border-radius:var(--radius-sm);background:#eef7ff;color:var(--c-text);font-size:22px;font-weight:700;padding:20px 8px;cursor:pointer;transition:.15s}
 .lr-diet-qbtn:hover{background:#e0f2ff;border-color:var(--c-primary-light);color:var(--c-text)}
@@ -2768,7 +2765,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=647"></script>
+  <script src="app.js?v=648"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

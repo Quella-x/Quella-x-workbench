@@ -447,7 +447,11 @@ function commissionRecordSort(a, b) {
   if (sa !== sb) return sa.localeCompare(sb);
   const da = a.deadline || '';
   const db = b.deadline || '';
-  return da.localeCompare(db);
+  if (da !== db) return da.localeCompare(db);
+  // v648：所有日期字段都相同时，最终按 id 数字升序兜底，确保电脑端瀑布流横向 1,2,3 / 4,5,6 顺序
+  const na = Number(a.id), nb = Number(b.id);
+  if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+  return String(a.id).localeCompare(String(b.id));
 }
 // v645：clientInfo 归一化（去空格/忽略大小写/全角→半角），避免「客户A」vs「客户 A」「客戶a」等格式差异导致约稿单关联不上父接稿
 function normCi(s) {
@@ -2338,6 +2342,27 @@ MODULES['oc-commission'] = {
   chart: (records) => renderAnnualChart(records, 'commissionTime', { title: '约稿花费', valueField: 'fee', color: '#f6ad5c', year: getChartYear('oc-commission') }, 'oc-commission'),
   statsYearField: 'commissionTime',
   personFilterField: 'oc',
+};
+
+// v648：每日记录模块加入设置·版块设置（仅暴露自定义选项管理，字段标签写死在 LIFE_RECORD_SUBTYPES）
+MODULES['life-record'] = {
+  store: 'lifeRecords',
+  fields: [
+    { key: 'snack_unit', label: '零食·数量单位', type: 'combobox',
+      options: LIFE_RECORD_SUBTYPES.diet.snack.unitOptions.slice() },
+    { key: 'milktea_size', label: '奶茶·杯型', type: 'combobox',
+      options: LIFE_RECORD_SUBTYPES.diet.milktea.sizeOptions.slice() },
+    { key: 'milktea_sugar', label: '奶茶·糖分', type: 'combobox',
+      options: LIFE_RECORD_SUBTYPES.diet.milktea.sugarOptions.slice() },
+    { key: 'milktea_temperature', label: '奶茶·温度', type: 'combobox',
+      options: LIFE_RECORD_SUBTYPES.diet.milktea.temperatureOptions.slice() },
+    { key: 'milktea_flavors', label: '奶茶·小料', type: 'combobox',
+      options: LIFE_RECORD_SUBTYPES.diet.milktea.flavorOptions.slice() },
+    { key: 'milktea_teaBase', label: '奶茶·茶底', type: 'combobox',
+      options: LIFE_RECORD_SUBTYPES.diet.milktea.teaBaseOptions.slice() },
+    { key: 'milktea_milkBase', label: '奶茶·奶底', type: 'combobox',
+      options: LIFE_RECORD_SUBTYPES.diet.milktea.milkBaseOptions.slice() },
+  ],
 };
 
 /* ===== State ===== */
@@ -6460,6 +6485,14 @@ function renderFieldSettings(html) {
             html += renderOptionBlockHTML('inspCategory', f.label, ['封面', '明信片', '其他', '镭射票', '壁纸', '海报'], inspCustom);
             return;
           }
+          // v648：每日记录的自定义选项存在 DB.customOpts_lifeRecord_${key}，把硬编码默认项与用户自定义合并展示，保存时再剔除默认项
+          if (_settingsModule === 'life-record') {
+            const dbKey = 'customOpts_lifeRecord_' + f.key;
+            const lrCustom = DB.get(dbKey, []) || [];
+            const defaultOpts = f.options || [];
+            html += renderOptionBlockHTML(f.key, f.label, [], defaultOpts.concat(lrCustom));
+            return;
+          }
           const key = _settingsModule + '.' + f.key;
           const customOpts = (s.fieldOptions && s.fieldOptions[key]) || [];
           const defaultOpts = (f.options || []).map(o => typeof o === 'string' ? o : o.value);
@@ -6747,6 +6780,17 @@ function saveSettingsAction() {
       const inspItems = [];
       $$('#opts_inspCategory input').forEach(input => { const v = input.value.trim(); if (v) inspItems.push(v); });
       DB.set('customCategories', inspItems.filter(v => !['封面', '明信片', '其他', '镭射票', '壁纸', '海报'].includes(v)));
+    }
+    // v648：每日记录的自定义选项按字段拆存到 DB.customOpts_lifeRecord_${key}（剔除硬编码默认项）
+    if (_settingsModule === 'life-record') {
+      mod.fields.forEach(f => {
+        if ((f.type === 'combobox' || f.type === 'multiselect') && !f.noOptionManage) {
+          const items = [];
+          $$(`#opts_${f.key} input`).forEach(input => { const v = input.value.trim(); if (v) items.push(v); });
+          const defaultOpts = f.options || [];
+          DB.set('customOpts_lifeRecord_' + f.key, items.filter(v => !defaultOpts.includes(v)));
+        }
+      });
     }
   }
   // Cloud sync config (数据管理页)
@@ -7966,17 +8010,6 @@ function renderSleepRing(totalHours) {
     <div class="sleep-ring-status">${statusText}</div>
   </div>`;
 }
-function renderSleepRingEmpty() {
-  return `<div class="sleep-ring-col">
-    <div class="sleep-ring-wrap">
-      <svg class="sleep-ring" viewBox="0 0 90 90">
-        <circle class="sleep-ring-bg sleep-ring-bg-empty" cx="45" cy="45" r="38"/>
-      </svg>
-      <div class="sleep-ring-text sleep-ring-text-empty">暂无</div>
-    </div>
-    <div class="sleep-ring-status sleep-ring-status-empty">暂无睡眠记录</div>
-  </div>`;
-}
 function renderLifeRecordTopCard(all, date) {
   const sleepRecs = all.filter(r => r.type === 'sleep' && r.date === date);
   const night = sleepRecs.find(r => r.subtype === 'night');
@@ -7998,7 +8031,7 @@ function renderLifeRecordTopCard(all, date) {
       </div>
     ` : `
       <div class="lr-ring-col">
-        ${renderSleepRingEmpty()}
+        ${renderSleepRing(0)}
       </div>
       <div class="lr-top-stats">
         <div class="lr-top-stat"><span class="lts-label">入睡时间</span><span class="lts-val lts-val-empty">—</span></div>
@@ -9422,7 +9455,7 @@ function buildCdExtraProductsHTML(pageKey, items, parentData) {
     html += cdExtraProductRowHTML(idx, it || {}, isFq, list);
   });
   html += `</div>`;
-  html += `<button type="button" class="btn btn-primary" onclick="addCdExtraProduct()" style="margin-top:2px;width:100%;font-size:13px;padding:8px 12px">+ 新增制品</button>`;
+  html += `<button type="button" class="btn btn-primary" onclick="addCdExtraProduct()" style="margin-top:12px;width:100%;font-size:13px;padding:8px 12px">+ 新增制品</button>`;
   return html;
 }
 // 是否同模下拉：否（独立新柄）/ 初始制品 0 / 其他独立新柄的追加制品（排除自身及非独立新柄的追加制品）
