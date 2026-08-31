@@ -2579,9 +2579,14 @@ ul,li{list-style:none}
 .cd-link-box{margin:12px 0 0}
 .cd-link-box textarea.form-input{font-size:12px;min-height:40px;height:auto;padding:11px 10px;line-height:1.4;white-space:pre-wrap;word-break:break-all;overflow-wrap:anywhere;resize:none;overflow:hidden;field-sizing:content}
 /* 追加制品编辑器（新增/编辑弹窗内）：与第一条制品样式统一，无蓝底、无边框 */
-.cd-extra-products{display:flex;flex-direction:column;gap:6px;margin-top:2px}
-.cd-extra-product-row{border:none;border-radius:0;padding:0;background:none;margin-top:-14px}
-.cd-ep-head{display:flex;align-items:center;justify-content:space-between;margin:14px 0}.cd-ep-head .btn{transform:translateY(1px)}
+/* v657：三个距离统一 14px（以初始制品备注→追加制品标题为准）：
+   ① 备注→+新增制品（无追加时） = form-row mb 14
+   ② 备注→追加制品标题 = form-row mb 14（容器/row/head 都 0 margin-top）
+   ③ 「是否同模」→+新增制品 = .cd-ep-full margin-bottom 14 + 按钮 mt 0
+   距离 1（有追加时）= 14 + H + 14 自然增加，按钮随追加内容下移，视觉节奏正确 */
+.cd-extra-products{display:flex;flex-direction:column;gap:6px;margin-top:0}
+.cd-extra-product-row{border:none;border-radius:0;padding:0;background:none;margin-top:0}
+.cd-ep-head{display:flex;align-items:center;justify-content:space-between;margin:0}.cd-ep-head .btn{transform:translateY(1px)}
 .cd-ep-title{font-size:13px;font-weight:700;color:var(--c-text);margin:0}
 .cd-extra-product-row .style-color-row{margin-bottom:0}
 .cd-extra-product-row .form-row{margin-bottom:0}
@@ -2589,7 +2594,7 @@ ul,li{list-style:none}
 .cd-ep-field{display:flex;flex-direction:column;gap:8px}
 .cd-ep-field .form-label{font-size:13px;color:var(--c-text);font-weight:500}
 .cd-ep-field.cd-ep-wide{grid-column:1 / -1}
-.cd-ep-full{display:flex;flex-direction:column;gap:14px}
+.cd-ep-full{display:flex;flex-direction:column;gap:14px;margin-bottom:14px}
 .cd-ep-full.hidden{display:none}
 /* 追加制品内 风格/颜色 并排 */
 .cd-ep-inline{display:flex;gap:12px;align-items:flex-start}
@@ -2764,7 +2769,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=656"></script>
+  <script src="app.js?v=657"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
