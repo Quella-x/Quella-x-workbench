@@ -462,30 +462,22 @@ function normCi(s) {
     .toLowerCase();
 }
 function commissionDetailSort(a, b) {
-  // v652：宽匹配——严格 === 没匹配到时，用「去掉所有空格后相等」/「子串包含」再匹配一次
-  // 解决约稿单 clientInfo 与接稿排期 clientInfo 因空格/emoji/特殊字符差异导致无法归入 group 2（已交付置尾）
-  function looseMatch(c, key, keyLoose) {
-    const ci = normCi(c.clientInfo || c.platformNick || '');
-    if (ci === key) return true;
-    const ciLoose = ci.replace(/\s+/g, '');
-    if (keyLoose && ciLoose === keyLoose) return true;
-    if (key && ci && (ci.includes(key) || key.includes(ci))) return true;
-    return false;
-  }
+  // v653：严格相等 clientInfo 匹配拿真实 progress；不再用宽松匹配（v652 的子串包含会让「看」匹配上「看看看」，groupOf 误判为已接稿而不是已交付）
+  // 用户明确：「不用管单主姓名，稿件进度显示已交付这个模块就放最后」——只看 progress
   const keyA = normCi(a.clientInfo || a.platformNick || '');
   const keyB = normCi(b.clientInfo || b.platformNick || '');
-  const keyALoose = keyA.replace(/\s+/g, '');
-  const keyBLoose = keyB.replace(/\s+/g, '');
   const allComm = DB.list('commissions');
-  const linkedA = allComm.filter(c => looseMatch(c, keyA, keyALoose));
-  const linkedB = allComm.filter(c => looseMatch(c, keyB, keyBLoose));
+  function findLinked(key) {
+    return allComm.find(c => normCi(c.clientInfo || c.platformNick || '') === key) || null;
+  }
+  const linkedA = findLinked(keyA);
+  const linkedB = findLinked(keyB);
   const ra = linkedA[0] || a, rb = linkedB[0] || b;
   // v647：分组权重——正常(关联且未交付) → 未关联(默认置尾) → 已交付(最末)
   // 约稿单自身无 progress 字段，已交付状态取自关联接稿的 progress
   function groupOf(linked) {
-    if (!linked.length) return 1;
-    // v651：同一 clientInfo 可能关联多条接稿，任一 progress 严格 === '已交付' 即归 group 2 置尾
-    if (linked.some(c => valIncludes(c.progress || '', '已交付'))) return 2;
+    if (!linked) return 1;
+    if (valIncludes(linked.progress || '', '已交付')) return 2;
     return 0;
   }
   const ga = groupOf(linkedA), gb = groupOf(linkedB);
