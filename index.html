@@ -409,14 +409,14 @@ ul,li{list-style:none}
 .home-deep-tags .cal-day-tag-dot{width:4px;height:4px;min-width:4px;min-height:4px;box-sizing:border-box;border-radius:50%}
 .home-comm-tags .cal-day-tag-text,
 .home-deep-tags .cal-day-tag-text{font-size:9px;font-weight:600}
-/* v635：电脑端两个日历（首页+接稿排期）圆点+文字适当放大（仅桌面，移动保持小尺寸） */
+/* v636：电脑端两个日历圆点+文字改为 10px（仅桌面，移动保持小尺寸） */
 @media (min-width:641px){
   .cal-day-tag-dot{width:6px;height:6px;min-width:6px;min-height:6px}
-  .cal-day-tag-text{font-size:12px}
+  .cal-day-tag-text{font-size:10px}
   .home-comm-tags .cal-day-tag-dot,
   .home-deep-tags .cal-day-tag-dot{width:6px;height:6px;min-width:6px;min-height:6px}
   .home-comm-tags .cal-day-tag-text,
-  .home-deep-tags .cal-day-tag-text{font-size:12px}
+  .home-deep-tags .cal-day-tag-text{font-size:10px}
   .cal-day .cal-dot{width:6px;height:6px;min-width:6px;min-height:6px}
 }
 /* Calendar period bar (开稿~截稿时间段连续显示) */
@@ -1776,20 +1776,23 @@ ul,li{list-style:none}
 /* ===== v15/v32: Timeline (时间轨迹) ===== */
 /* AH轮修正：时间线选中胶囊加高(垂直padding)、外框内边距取消；全局toolbar间距回16px */
 .timeline-filter-bar{
-  display:flex;flex-wrap:nowrap;gap:0;align-items:center;justify-content:center;
-  width:auto;min-width:340px;max-width:100%;background:#fff;border:1px solid var(--c-border);border-radius:999px;
+  display:inline-flex;flex-wrap:nowrap;gap:0;align-items:center;justify-content:center;
+  width:auto;min-width:auto;max-width:100%;background:#fff;border:1px solid var(--c-border);border-radius:999px;
   padding:0;margin:8px auto 16px;overflow:hidden;box-sizing:border-box;
 }
 @media (max-width:768px){
-  .timeline-filter-bar{width:100%}
+  .timeline-filter-bar{display:flex;width:100%}
 }
 /* 时间线页面toolbar与重要性按钮间距回退8px（与toolbar内部按钮gap一致） */
 .toolbar:has(+ .timeline-filter-bar){margin-bottom:8px}
 .timeline-color-filter{
-  flex:1 1 0;display:inline-flex;align-items:center;justify-content:center;gap:4px;
-  padding:6px 0;font-size:13px;font-weight:600;white-space:nowrap;
+  flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:4px;
+  padding:6px 16px;font-size:13px;font-weight:600;white-space:nowrap;
   cursor:pointer;border:none;transition:all .2s;background:transparent;color:var(--c-text);
   box-sizing:border-box;min-width:0;overflow:hidden;
+}
+@media (max-width:768px){
+  .timeline-color-filter{flex:1 1 0;padding:6px 0}
 }
 /* 未选中时首尾保持容器半圆；选中时外层不变，内部 label 显示彩色胶囊 */
 .timeline-color-filter:first-child{border-radius:999px 0 0 999px}
@@ -1945,7 +1948,8 @@ ul,li{list-style:none}
 .lgc-stats{display:flex;gap:8px;flex:1;min-width:0;align-items:center;margin:0}
 .lgc-stats.lgc-stats-4{gap:6px}
 .lgc-stat{flex:1 1 0;background:var(--c-primary-bg);border-radius:var(--radius-sm);padding:8px 4px;text-align:center;min-width:0}
-.lgc-stats-4 .lgc-stat{padding:8px 2px}
+.lgc-stats-4 .lgc-stat{padding:8px 2px;min-height:54px;display:flex;flex-direction:column;justify-content:center;align-items:center}
+.lgc-stats-4 .lgc-num{min-height:1em}
 .lgc-rate-stat{cursor:pointer;transition:all .15s}
 .lgc-rate-stat:hover{background:var(--c-primary-light)}
 .lgc-rate-stat.rated .lgc-num{color:var(--c-orange)}
@@ -2441,7 +2445,7 @@ ul,li{list-style:none}
 .cal-month-count{display:inline-block;margin-left:5px;vertical-align:middle;white-space:nowrap;font-size:12px;font-weight:750;color:#fff;background:var(--c-primary);padding:2px 8px;border-radius:12px;cursor:default}.cal-month-count .n{display:inline-block;margin-left:1px}
 .cd-month-summary{font-size:12px;color:var(--c-text-muted);text-align:center;margin-bottom:10px}
 /* 接稿条列表 */
-.cd-rec-list{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cd-rec-list{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:start}
 .cd-rec-card{border:1px solid var(--c-border-light);border-radius:12px;background:#fff;overflow:hidden}
 .cd-rec-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
 .cd-rec-head:hover{background:var(--c-primary-bg)}
@@ -2688,7 +2692,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=635"></script>
+  <script src="app.js?v=636"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

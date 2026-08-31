@@ -3715,7 +3715,7 @@ function renderHomeRecordCard(r) {
     html += `<span class="field"><span class="field-label">平台</span><span class="field-value"><span class="tag" style="background:${pColor}20;color:${pColor}">${esc(p)}</span></span></span>`;
   });
   const ct = arrVal(r.contentType);
-  html += `<span class="field"><span class="field-label">内容类型</span><span class="field-value">${esc(ct.join('、') || '-')}</span></span>`;
+  html += `<span class="field"><span class="field-label">内容类型</span><span class="field-value">${esc(ct.join('、') || '')}</span></span>`;
   html += `<span class="field"><span class="field-label">发布时间</span><span class="field-value">${fmtDate(r.publishTime)}</span></span>`;
   html += '</div></div>';
   return html;
