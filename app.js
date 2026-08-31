@@ -449,9 +449,17 @@ function commissionRecordSort(a, b) {
   const db = b.deadline || '';
   return da.localeCompare(db);
 }
+// v645：clientInfo 归一化（去空格/忽略大小写/全角→半角），避免「客户A」vs「客户 A」「客戶a」等格式差异导致约稿单关联不上父接稿
+function normCi(s) {
+  return (s == null ? '' : String(s))
+    .trim()
+    .replace(/[０-９Ａ-Ｚａ-ｚ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/　/g, ' ')
+    .toLowerCase();
+}
 function commissionDetailSort(a, b) {
-  const linkedA = DB.list('commissions').filter(c => (c.clientInfo || '') === (a.clientInfo || ''));
-  const linkedB = DB.list('commissions').filter(c => (c.clientInfo || '') === (b.clientInfo || ''));
+  const linkedA = DB.list('commissions').filter(c => normCi(c.clientInfo) === normCi(a.clientInfo));
+  const linkedB = DB.list('commissions').filter(c => normCi(c.clientInfo) === normCi(b.clientInfo));
   const ra = linkedA[0] || a, rb = linkedB[0] || b;
   // v643：约稿单跟随接稿排期全局手动顺序(xiao_comm_order)，与手机端/接稿排期展示模块一致；
   // 同一接稿排期下的多条约稿单保持各自创建顺序（tie-break 走 commissionRecordSort 返回 0，稳定排序保留原序）
@@ -4686,13 +4694,15 @@ function drawMindMap(chars, relations) {
     const box = bx + nx * off, boy = by + ny * off;
     const opacity = 0.65;
     inner += `<line x1="${aox}" y1="${aoy}" x2="${box}" y2="${boy}" stroke="${color}" stroke-width="2" opacity="${opacity}"/>`;
-    // v644：所有连线在端点 b(人物2)绘制箭头，表示方向 人物1→人物2；箭尖落在节点圆边缘、箭身推到圆外，避免被节点盖住看不见
-    const ang = Math.atan2(by - ay, bx - ax);
-    const aLen = 10, aW = 5;
-    const tipX = box, tipY = boy;
-    const bcx = box - aLen * Math.cos(ang), bcy = boy - aLen * Math.sin(ang);
-    const px = -Math.sin(ang) * aW, py = Math.cos(ang) * aW;
-    inner += `<polygon points="${tipX},${tipY} ${bcx + px},${bcy + py} ${bcx - px},${bcy - py}" fill="${color}" opacity="${opacity + 0.2}"/>`;
+    // v645：仅当关系状态为「单向」才在端点 b(人物2)绘制箭头，表示方向 人物1→人物2；双向/未选单向的关系不画箭头
+    if (conn.status && conn.status.includes('单向')) {
+      const ang = Math.atan2(by - ay, bx - ax);
+      const aLen = 10, aW = 5;
+      const tipX = box, tipY = boy;
+      const bcx = box - aLen * Math.cos(ang), bcy = boy - aLen * Math.sin(ang);
+      const px = -Math.sin(ang) * aW, py = Math.cos(ang) * aW;
+      inner += `<polygon points="${tipX},${tipY} ${bcx + px},${bcy + py} ${bcx - px},${bcy - py}" fill="${color}" opacity="${opacity + 0.2}"/>`;
+    }
     // Label 沿连线错开；v641：靠左的连线和文字放线左侧、靠右的放线右侧、单条放外侧，文字不压线
     const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.20;
     const lx = aox + t * (box - aox);
@@ -7874,7 +7884,7 @@ function renderDietRecordRow(r, st) {
     flavors.forEach(f => extras.push(f));
     if (r.teaBase) extras.push(r.teaBase);
     if (r.milkBase) extras.push(r.milkBase);
-    info = `<span><b>奶茶记录:</b> ${r.note || '&nbsp;'}</span>${extras.length ? `<span><b>配置:</b> ${extras.join(' / ')}</span>` : ''}`;
+    info = `<span><b>奶茶记录:</b> ${r.note || '&nbsp;'}</span>${extras.length ? `<span class="lr-config-note"><b>配置:</b> ${extras.join(' / ')}</span>` : ''}`;
   } else {
     info = `<span><b>餐食记录:</b> ${r.note || '&nbsp;'}</span>`;
   }
@@ -8170,7 +8180,7 @@ function renderDietRecordRows(recs, st) {
       milkteaFlavorsList(r.flavors).forEach(f => notes.push(f));
       if (r.teaBase) notes.push(r.teaBase);
       if (r.milkBase) notes.push(r.milkBase);
-      const noteHtml = notes.length ? `<span class="lr-size-note">（${notes.map(x => esc(x)).join(' / ')}）</span>` : '';
+      const noteHtml = notes.length ? `<span class="lr-config-note">（${notes.map(x => esc(x)).join(' / ')}）</span>` : '';
       lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">奶茶记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${noteHtml}</span></div>`;
     } else {
       lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">${st.key === 'midnight' ? '享用时间' : '吃饭时间'}:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">餐食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}</span></div>`;
