@@ -2095,7 +2095,7 @@ MODULES['oc-relations'] = {
     { key: 'charB', label: '人物2', type: 'combobox', options: [], placeholder: '请选择或输入oc姓名', noOptionManage: true },
     { key: 'relationType', label: '关系类型', type: 'multiselect', allowCustom: true, options: [{ value: '表亲', label: '表亲' }, { value: '道侣', label: '道侣' }, { value: '敌对', label: '敌对' }, { value: '父女', label: '父女' }, { value: '父子', label: '父子' }, { value: '好友', label: '好友' }, { value: '姐弟', label: '姐弟' }, { value: '交好', label: '交好' }, { value: '姐妹', label: '姐妹' }, { value: '母女', label: '母女' }, { value: '母子', label: '母子' }, { value: '师徒', label: '师徒' }, { value: '上下级', label: '上下级' }, { value: '同门', label: '同门' }, { value: '堂亲', label: '堂亲' }, { value: '兄弟', label: '兄弟' }, { value: '兄妹', label: '兄妹' }] },
     { key: 'relationDetail', label: '关系细节', type: 'textarea' },
-    { key: 'relationStatus', label: '关系状态', type: 'multiselect', single: true, default: '稳定', options: [{ value: '稳定', label: '稳定' }, { value: '变化中', label: '变化中' }] },
+    { key: 'relationStatus', label: '关系状态', type: 'multiselect', single: true, default: '稳定', options: [{ value: '稳定', label: '稳定' }, { value: '变化', label: '变化' }, { value: '单向', label: '单向' }] },
   ],
   listFields: [
     { label: '类型', key: 'relationType', tag: true },
@@ -2389,7 +2389,9 @@ function renderListPage(pageKey, mod) {
 
   // Commission calendar view rendered before records (日历在上，列表在下)
   if (commissionAllRecords) {
-    html += '<div class="calendar" style="margin-bottom:16px">';
+    html += '<div class="comm-cal-two-col">';
+    html += '<div class="comm-cal-col">';
+    html += '<div class="calendar" style="margin-bottom:0">';
     html += '<div class="calendar-header">';
     const calMonthKey = `${ps.calYear}-${String(ps.calMonth + 1).padStart(2, '0')}`;
     const calMonthCount = commissionAllRecords.filter(r => (r.startTime || r.acceptTime || '').startsWith(calMonthKey)).length;
@@ -2403,7 +2405,9 @@ function renderListPage(pageKey, mod) {
     if (ps.dateFilter) {
       html += `<div style="text-align:center;margin-top:8px"><span class="tag tag-info" style="cursor:pointer" onclick="commissionClearDate()">清除日期筛选: ${ps.dateFilter} ✕</span></div>`;
     }
-    html += '</div>';
+    html += '</div>'; // close .calendar
+    html += '</div>'; // close .comm-cal-col left
+    html += '<div class="comm-cal-col">'; // right column for record list
   }
 
   // 双栏：工具栏/日历之上独占一行，记录与详情预览并列（左右等宽卡片一一对应）
@@ -2478,7 +2482,7 @@ function renderListPage(pageKey, mod) {
           const tags = v.map(val => {
             let tc = 'tag-info';
             if (['进行中', '全款', '长期合作', '合格', '稳定', '已完结', '尾款', '已接稿', '已交付', '交好', '非常满意', '满意'].includes(val)) tc = 'tag-success';
-            if (['筹备中', '未付', '临时合作', '连载中', '定金', '待接稿', '中等', '变化中', '一般', '制作中'].includes(val)) tc = 'tag-warning';
+            if (['筹备中', '未付', '临时合作', '连载中', '定金', '待接稿', '中等', '变化', '一般', '制作中'].includes(val)) tc = 'tag-warning';
             if (['已截团', '暂停合作', '已取消', '流团'].includes(val)) tc = 'tag-gray';
             if (['不合格', '不满意'].includes(val)) tc = 'tag-danger';
             if (['买断', '敌对', '已结算'].includes(val)) tc = 'tag-purple';
@@ -2498,7 +2502,7 @@ function renderListPage(pageKey, mod) {
           } else {
             let tc = 'tag-info';
             if (['进行中', '全款', '长期合作', '合格', '稳定', '已完结', '尾款', '已接稿', '已交付', '交好', '非常满意', '满意'].includes(v)) tc = 'tag-success';
-            if (['筹备中', '未付', '临时合作', '连载中', '定金', '待接稿', '中等', '变化中', '一般'].includes(v)) tc = 'tag-warning';
+            if (['筹备中', '未付', '临时合作', '连载中', '定金', '待接稿', '中等', '变化', '一般'].includes(v)) tc = 'tag-warning';
             if (['已截团', '暂停合作', '已取消', '流团'].includes(v)) tc = 'tag-gray';
             if (['不合格', '不满意'].includes(v)) tc = 'tag-danger';
             if (['买断', '敌对', '已结算'].includes(v)) tc = 'tag-purple';
@@ -2538,6 +2542,12 @@ function renderListPage(pageKey, mod) {
       html += `<button class="page-link" ${pageNo >= totalPages ? 'disabled' : ''} onclick="goPage('${pageKey}',${pageNo + 1})">下一页 ›</button>`;
       html += '</div>';
     }
+  }
+
+  // v641：关闭接稿排期日历视图双列容器（桌面双列 / 移动端单列）
+  if (commissionAllRecords) {
+    html += '</div>'; // close .comm-cal-col right
+    html += '</div>'; // close .comm-cal-two-col
   }
 
   // 双栏：关闭 .comm-dual 容器
@@ -2871,33 +2881,11 @@ function calDateModalItemsHTML() {
     else if (isEnd) { tagText = '截稿'; tagColor = CAL_END_COLOR; }
     else { tagText = '开稿'; tagColor = CAL_START_COLOR; }
     const qty = calcProductQty(r);
-    h += '<div class="cal-date-item" draggable="true" data-id="' + id + '" ondragstart="calDragStart(event,' + id + ')" ondragover="calDragOver(event)" ondrop="calDrop(event,' + id + ')"><span class="drag-handle">☰</span><span class="ci-name">' + esc(r.clientInfo || '未命名') + '</span><span class="ci-qty">' + qty + '件</span><span class="ci-tag" style="background:' + tagColor + '">' + tagText + '</span><button type="button" class="ci-move" draggable="false" onclick="calMoveUp(' + id + ')">↑</button><button type="button" class="ci-move" draggable="false" onclick="calMoveDown(' + id + ')">↓</button></div>';
+    h += '<div class="cal-date-item" data-id="' + id + '"><span class="ci-name">' + esc(r.clientInfo || '未命名') + '</span><span class="ci-qty">' + qty + '件</span><span class="ci-tag" style="background:' + tagColor + '">' + tagText + '</span><button type="button" class="ci-move" onclick="calMoveUp(' + id + ')">↑</button><button type="button" class="ci-move" onclick="calMoveDown(' + id + ')">↓</button></div>';
   });
   return h;
 }
-function calDragStart(e, id) {
-  calDragId = id;
-  e.dataTransfer.effectAllowed = 'move';
-  try { e.dataTransfer.setData('text/plain', id); } catch (_) {}
-}
-function calDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
-function calDrop(e, id) {
-  e.preventDefault();
-  if (!calDragId || calDragId === id) return;
-  const fromIdx = calModalOrder.indexOf(calDragId);
-  const toIdx = calModalOrder.indexOf(id);
-  if (fromIdx < 0 || toIdx < 0) return;
-  calModalOrder.splice(fromIdx, 1);
-  calModalOrder.splice(toIdx, 0, calDragId);
-  try { localStorage.setItem('xiao_cal_sort_' + calModalDate, JSON.stringify(calModalOrder)); } catch (_) {}
-  // v599：同步到全局排期顺序 —— 日历格与底部展示模块一起跟随弹窗的手动排序
-  try { syncCommOrder(calModalOrder.slice(), DB.list('commissions').map(r => r.id)); } catch (_) {}
-  calDragId = null;
-  const list = document.getElementById('calDateList');
-  if (list) list.innerHTML = calDateModalItemsHTML();
-  try { renderListPage('design-commission', MODULES['design-commission']); } catch (_) {}
-}
-// v640：弹窗记录行 上移/下移（保证桌面端也能排序，不依赖拖拽）
+// v641：弹窗记录行 上移/下移（桌面端也能排序，已移除拖拽手柄，避免与 ↑/↓ 重复）
 function calMoveUp(id) { calReorder(id, -1); }
 function calMoveDown(id) { calReorder(id, 1); }
 function calReorder(id, dir) {
@@ -4210,15 +4198,10 @@ function deriveSocialFieldsFromRelations(charName) {
 function syncOcRelationSocialFields(charName) {
   const c = DB.list('ocCharacters').find(x => x.name === charName);
   if (!c) return;
+  // v641：删除关系后必须用「重新推导」的值覆盖，不能和旧的 c[f] 取并集，
+  // 否则被删关系的名字会残留，导致思维导图自动同步仍画出该连线（删除后导图不变）。
   const derived = deriveSocialFieldsFromRelations(charName);
-  const merged = {};
-  ['parents', 'siblings', 'master', 'companion', 'friends', 'fellow'].forEach(f => {
-    const set = new Set();
-    splitOcNames(c[f]).forEach(s => set.add(s));
-    splitOcNames(derived[f]).forEach(s => set.add(s));
-    merged[f] = [...set].join('、');
-  });
-  DB.update('ocCharacters', c.id, merged);
+  DB.update('ocCharacters', c.id, derived);
 }
 // v614：一次性迁移，用已有关系回填所有人物档案的社会关系字段
 function normalizeOcRelationSocial() {
@@ -4636,7 +4619,8 @@ function drawMindMap(chars, relations) {
   relations.forEach(r => {
     const types = arrVal(r.relationType);
     const type = types[0] || '关系';
-    allConnections.push({ a: pureOcName(r.charA), b: pureOcName(r.charB), type, auto: false });
+    const status = arrVal(r.relationStatus);
+    allConnections.push({ a: pureOcName(r.charA), b: pureOcName(r.charB), type, auto: false, status });
   });
   // Auto-sync from profile social fields
   const socialFields = [
@@ -4686,15 +4670,24 @@ function drawMindMap(chars, relations) {
     const box = bx + nx * off, boy = by + ny * off;
     const opacity = 0.65;
     inner += `<line x1="${aox}" y1="${aoy}" x2="${box}" y2="${boy}" stroke="${color}" stroke-width="2" opacity="${opacity}"/>`;
-    // Label 沿连线大幅错开；v624 调转方向放线条底下，并按角度动态调整法线偏移：越水平偏移越小，越竖直偏移越大
+    // v641：关系状态含「单向」时，在 人物2(端点 b) 处画出箭头，表示 人物1→人物2 单向
+    if (conn.status && conn.status.includes('单向')) {
+      const ang = Math.atan2(by - ay, bx - ax);
+      const aLen = 9, aW = 4.5;
+      const tx = box - aLen * Math.cos(ang), ty = boy - aLen * Math.sin(ang);
+      const px = -Math.sin(ang) * aW, py = Math.cos(ang) * aW;
+      inner += `<polygon points="${box},${boy} ${tx + px},${ty + py} ${tx - px},${ty - py}" fill="${color}" opacity="${opacity + 0.2}"/>`;
+    }
+    // Label 沿连线错开；v641：靠左的连线和文字放线左侧、靠右的放线右侧、单条放外侧，文字不压线
     const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.20;
     const lx = aox + t * (box - aox);
     const ly = aoy + t * (boy - aoy);
-    const sign = (conn._pi % 2 === 0 ? 1 : -1);
     const angle = Math.atan2(Math.abs(dy), Math.abs(dx)); // 0=水平，PI/2=垂直
-    const labOff = Math.round(10 + Math.sin(angle) * 12) * sign;
-    const labX = lx + nx * labOff;
-    const labY = ly + ny * labOff;
+    let labSign, labMag;
+    if (conn._pc === 1) { labSign = 1; labMag = 18; }       // 单条连线：文字放外侧
+    else { labSign = (off === 0 ? 1 : Math.sign(off)); labMag = 10 + Math.sin(angle) * 12; } // 多条：线在哪侧标签放哪侧
+    const labX = lx + nx * labMag * labSign;
+    const labY = ly + ny * labMag * labSign;
     inner += `<text x="${labX}" y="${labY}" text-anchor="middle" dominant-baseline="middle" font-size="10" fill="${color}" style="paint-order:stroke;stroke:#fff;stroke-width:3" font-weight="600">${esc(conn.type)}</text>`;
   });
   inner += '</svg>';
@@ -6709,7 +6702,7 @@ function migrateData() {
   migrateStringToArray('inspirations', ['tags']);
   migrateStringToArray('authorizations', ['authType']);
   migrateStringToArray('ocCharacters', ['gender']);
-  migrateStringToArray('ocRelations', ['relationType', 'relationStatus'], { '亲友': '好友', '恋人': '道侣', '已结束': '变化中' });
+  migrateStringToArray('ocRelations', ['relationType', 'relationStatus'], { '亲友': '好友', '恋人': '道侣', '已结束': '变化' });
   migrateStringToArray('ocStories', ['tags', 'isComplete']);
   migrateStringToArray('ocCommissions', ['commissionType', 'platform', 'status']);
 
@@ -6959,10 +6952,12 @@ const LIFE_RECORD_SUBTYPES = {
     snack: { key: 'snack', label: '零食', icon: '🍟', multi: true,
       unitOptions: ['包','个','颗','根','袋','盒','瓶','片','粒','份','条','罐','把'] },
     milktea: { key: 'milktea', label: '奶茶', icon: '🧋', multi: true,
-      sizeOptions: ['mini杯','小杯','中杯','标准杯','大杯','超大杯'],
-      sugarOptions: ['不另外加糖','三分糖','五分糖','七分糖','微糖','半糖','标准糖','全糖'],
-      temperatureOptions: ['热','常温','标准冰','少冰','去冰','多冰'],
-      toppingOptions: ['珍珠','椰果','布丁','红豆','芋圆','燕麦','奶盖','芝士','仙草','寒天'] }
+      sizeOptions: ['mini杯','小杯','中杯','标准杯','大杯','胖胖杯','双拼杯','超大杯','超长杯','吨吨杯','奶茶桶'],
+      sugarOptions: ['不额外加糖','一分糖','二分糖','三分糖','微糖','半糖','五分糖','七分糖','少糖','标准糖','全糖'],
+      temperatureOptions: ['热','温','常温','冰','标准冰','多冰','少冰','微冰','去冰'],
+      flavorOptions: ['珍珠','波霸','西米','寒天','脆啵啵','爆爆蛋','红豆','蜜豆','燕麦','芋圆','血糯米','青稞','芋泥','布丁','椰果','仙草','奶冻','茶冻','麻薯','芝士','芒果粒','西柚粒','花生碎','椰子碎','奥利奥碎','芝士奶盖','咸奶盖','黄油奶盖'],
+      teaBaseOptions: ['绿茶','红茶','乌龙','四季春','茉莉绿茶','大红袍','铁观音','鸭屎香'],
+      milkBaseOptions: ['植脂末','鲜奶','厚乳','燕麦奶','椰乳','杏仁奶','脱脂奶','轻乳'] }
   }
 };
 function getLifeRecordSubtype(typeKey, subtypeKey) {
@@ -6985,8 +6980,8 @@ const LIFE_RECORD_DEFS = {
     { key: 'qty', label: '数量', type: 'number', subtype: 'snack' },
     { key: 'unit', label: '单位', type: 'combobox', subtype: 'snack',
       options: LIFE_RECORD_SUBTYPES.diet.snack.unitOptions },
-    { key: 'flavors', label: '添加小料', type: 'tag-multi', subtype: 'milktea',
-      options: LIFE_RECORD_SUBTYPES.diet.milktea.toppingOptions },
+    { key: 'flavors', label: '小料', type: 'tag-multi', subtype: 'milktea',
+      options: LIFE_RECORD_SUBTYPES.diet.milktea.flavorOptions },
   ]}
 };
 function parseDateStr(s) { const p = s.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
@@ -7862,8 +7857,10 @@ function renderDietRecordRow(r, st) {
     if (r.size) extras.push(r.size);
     if (r.sugar) extras.push(r.sugar);
     if (r.temperature) extras.push(r.temperature);
-    const flavors = Array.isArray(r.flavors) ? r.flavors : (r.flavors ? [r.flavors] : []);
-    if (flavors.length) extras.push(flavors.join('、'));
+    const flavors = milkteaFlavorsList(r.flavors);
+    flavors.forEach(f => extras.push(f));
+    if (r.teaBase) extras.push(r.teaBase);
+    if (r.milkBase) extras.push(r.milkBase);
     info = `<span><b>奶茶记录:</b> ${r.note || '&nbsp;'}</span>${extras.length ? `<span><b>配置:</b> ${extras.join(' / ')}</span>` : ''}`;
   } else {
     info = `<span><b>餐食记录:</b> ${r.note || '&nbsp;'}</span>`;
@@ -7895,21 +7892,60 @@ function renderUnitSingleSelect(selected) {
   return html;
 }
 function renderFlavorMultiselect(selected) {
-  const opts = LIFE_RECORD_SUBTYPES.diet.milktea.toppingOptions;
+  const opts = LIFE_RECORD_SUBTYPES.diet.milktea.flavorOptions;
   const customOpts = DB.get('customOpts_lifeRecord_milktea_flavors', []);
   const allOpts = opts.concat(customOpts.filter(c => !opts.includes(c)));
-  const selArr = Array.isArray(selected) ? selected : (selected ? [selected] : []);
+  // selected 兼容旧数据（字符串数组）与新数据（{name,qty} 数组）
+  const selMap = {};
+  (Array.isArray(selected) ? selected : (selected ? [selected] : [])).forEach(f => {
+    if (typeof f === 'string') selMap[f] = 1;
+    else if (f && f.name) selMap[f.name] = (f.qty && Number(f.qty) > 0) ? Number(f.qty) : 1;
+  });
   const groupId = 'lrf-flavors-group';
-  let html = `<div class="form-row"><label class="form-label">添加小料</label>`;
+  let html = `<div class="form-row"><label class="form-label">小料</label>`;
   html += `<div class="checkbox-group tag-group" id="${groupId}" data-key="flavors">`;
   allOpts.forEach(o => {
-    const checked = selArr.includes(o) ? 'checked' : '';
-    html += `<label class="checkbox-item ${checked ? 'selected' : ''}"><input type="checkbox" value="${esc(o)}" ${checked} onclick="toggleCheckboxItem(this)"> ${esc(o)}</label>`;
+    const checked = selMap[o] != null ? 'checked' : '';
+    const qty = selMap[o] != null ? selMap[o] : 1;
+    html += `<label class="checkbox-item flavor-item ${checked ? 'selected' : ''}" data-name="${esc(o)}" data-qty="${qty}">` +
+      `<input type="checkbox" value="${esc(o)}" ${checked} onclick="toggleFlavorItem(this)"> <span class="flavor-name">${esc(o)}</span>` +
+      `<span class="flavor-qty" style="${checked ? '' : 'display:none'}"><button type="button" class="fq-btn" onclick="flavorQtyStep(this,-1)">−</button><span class="fq-val">${qty}</span><button type="button" class="fq-btn" onclick="flavorQtyStep(this,1)">＋</button></span>` +
+      `</label>`;
   });
   html += `</div>`;
   html += `<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="form-input" id="lrf-flavors-custom" placeholder="输入自定义小料后按添加" style="flex:1;font-size:13px"><button type="button" class="btn btn-outline btn-sm" onclick="addLifeRecordFlavor(this)">添加</button><button type="button" class="btn btn-danger btn-sm" onclick="removeCheckedLifeRecordFlavors('${groupId}')">删除</button></div>`;
   html += `</div>`;
   return html;
+}
+// v641：小料勾选切换时显示/隐藏份数步进器
+function toggleFlavorItem(cb) {
+  const label = cb.closest('.flavor-item');
+  if (!label) return;
+  const on = cb.checked;
+  label.classList.toggle('selected', on);
+  const qty = label.querySelector('.flavor-qty');
+  if (qty) qty.style.display = on ? '' : 'none';
+  if (on && !label.dataset.qty) label.dataset.qty = '1';
+}
+// v641：调整小料份数（最小 1）
+function flavorQtyStep(btn, delta) {
+  const label = btn.closest('.flavor-item');
+  if (!label) return;
+  let q = parseInt(label.dataset.qty || '1', 10) + delta;
+  if (q < 1) q = 1;
+  label.dataset.qty = String(q);
+  const val = label.querySelector('.fq-val');
+  if (val) val.textContent = q;
+}
+// v641：小料展示文本（name*qty；qty 默认 1 也展示，匹配「珍珠*1」示例）
+function milkteaFlavorDisplay(f) {
+  if (typeof f === 'string') return f;
+  if (f && f.name) return f.name + '*' + (f.qty ? Number(f.qty) : 1);
+  return '';
+}
+function milkteaFlavorsList(arr) {
+  const fs = Array.isArray(arr) ? arr : (arr ? [arr] : []);
+  return fs.map(milkteaFlavorDisplay).filter(Boolean);
 }
 function renderComboboxHTML(id, value, options) {
   const selected = options.find(o => o.value === value) || options[0];
@@ -7979,6 +8015,40 @@ function renderTemperatureSingleSelect(selected) {
   html += `</div>`;
   return html;
 }
+function renderTeaBaseSingleSelect(selected) {
+  const opts = LIFE_RECORD_SUBTYPES.diet.milktea.teaBaseOptions;
+  const customOpts = DB.get('customOpts_lifeRecord_milktea_teaBase', []);
+  const allOpts = opts.concat(customOpts.filter(c => !opts.includes(c)));
+  const sel = selected || '';
+  const groupId = 'lrf-teabase-group';
+  let html = `<div class="form-row"><label class="form-label">茶底</label>`;
+  html += `<div class="checkbox-group pill-group single-pill" id="${groupId}" data-key="teaBase" data-single="true">`;
+  allOpts.forEach(o => {
+    const checked = sel === o ? 'checked' : '';
+    html += `<label class="checkbox-item ${checked ? 'selected' : ''}"><input type="checkbox" value="${esc(o)}" ${checked} onclick="limitSingleCheckbox(this)"> ${esc(o)}</label>`;
+  });
+  html += `</div>`;
+  html += `<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="form-input" id="lrf-teabase-custom" placeholder="输入自定义茶底后按添加" style="flex:1;font-size:13px"><button type="button" class="btn btn-outline btn-sm" onclick="addLifeRecordTeaBase(this)">添加</button><button type="button" class="btn btn-danger btn-sm" onclick="removeCheckedLifeRecordTeaBase('${groupId}')">删除</button></div>`;
+  html += `</div>`;
+  return html;
+}
+function renderMilkBaseSingleSelect(selected) {
+  const opts = LIFE_RECORD_SUBTYPES.diet.milktea.milkBaseOptions;
+  const customOpts = DB.get('customOpts_lifeRecord_milktea_milkBase', []);
+  const allOpts = opts.concat(customOpts.filter(c => !opts.includes(c)));
+  const sel = selected || '';
+  const groupId = 'lrf-milkbase-group';
+  let html = `<div class="form-row"><label class="form-label">奶底</label>`;
+  html += `<div class="checkbox-group pill-group single-pill" id="${groupId}" data-key="milkBase" data-single="true">`;
+  allOpts.forEach(o => {
+    const checked = sel === o ? 'checked' : '';
+    html += `<label class="checkbox-item ${checked ? 'selected' : ''}"><input type="checkbox" value="${esc(o)}" ${checked} onclick="limitSingleCheckbox(this)"> ${esc(o)}</label>`;
+  });
+  html += `</div>`;
+  html += `<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="form-input" id="lrf-milkbase-custom" placeholder="输入自定义奶底后按添加" style="flex:1;font-size:13px"><button type="button" class="btn btn-outline btn-sm" onclick="addLifeRecordMilkBase(this)">添加</button><button type="button" class="btn btn-danger btn-sm" onclick="removeCheckedLifeRecordMilkBase('${groupId}')">删除</button></div>`;
+  html += `</div>`;
+  return html;
+}
 function renderLifeRecordModalBody(typeKey, subtypeKey, values) {
   let html = `<div class="life-rec-form" id="lifeRecForm"><input type="hidden" id="lrf-type" value="${typeKey}">`;
   html += `<div class="form-row"><label class="form-label">记录项</label>${renderLifeRecordSubtypeSelect(typeKey, subtypeKey)}</div>`;
@@ -8002,6 +8072,8 @@ function renderLifeRecordModalBody(typeKey, subtypeKey, values) {
     html += renderSugarSingleSelect(values.sugar);
     html += renderTemperatureSingleSelect(values.temperature);
     html += renderFlavorMultiselect(values.flavors || []);
+    html += renderTeaBaseSingleSelect(values.teaBase);
+    html += renderMilkBaseSingleSelect(values.milkBase);
     html += `</div>`;
   }
   html += `</div>`;
@@ -8038,9 +8110,12 @@ function openLifeRecordModal(typeKey, subtypeKey, editId) {
   let values = rec ? { ...rec } : {};
   if (typeKey === 'diet' && subtypeKey === 'milktea' && Array.isArray(values.flavors)) {
     const defs = LIFE_RECORD_SUBTYPES.diet.milktea;
-    if (!values.size) { const v = values.flavors.find(f => defs.sizeOptions.includes(f)); if (v) { values.size = v; values.flavors = values.flavors.filter(f => f !== v); } }
-    if (!values.sugar) { const v = values.flavors.find(f => defs.sugarOptions.includes(f)); if (v) { values.sugar = v; values.flavors = values.flavors.filter(f => f !== v); } }
-    if (!values.temperature) { const v = values.flavors.find(f => defs.temperatureOptions.includes(f)); if (v) { values.temperature = v; values.flavors = values.flavors.filter(f => f !== v); } }
+    // 仅对旧数据（字符串数组）做规格/糖分/温度提取；新数据（{name,qty}）直接跳过
+    if (typeof values.flavors[0] === 'string') {
+      if (!values.size) { const v = values.flavors.find(f => defs.sizeOptions.includes(f)); if (v) { values.size = v; values.flavors = values.flavors.filter(f => f !== v); } }
+      if (!values.sugar) { const v = values.flavors.find(f => defs.sugarOptions.includes(f)); if (v) { values.sugar = v; values.flavors = values.flavors.filter(f => f !== v); } }
+      if (!values.temperature) { const v = values.flavors.find(f => defs.temperatureOptions.includes(f)); if (v) { values.temperature = v; values.flavors = values.flavors.filter(f => f !== v); } }
+    }
   }
   const st = getLifeRecordSubtype(typeKey, subtypeKey);
   const title = (rec ? '编辑' : '新增') + (st ? st.label : '') + (typeKey === 'sleep' ? '睡眠' : '') + '记录';
@@ -8079,8 +8154,9 @@ function renderDietRecordRows(recs, st) {
       if (r.size) notes.push(r.size);
       if (r.sugar) notes.push(r.sugar);
       if (r.temperature) notes.push(r.temperature);
-      const flavors = Array.isArray(r.flavors) ? r.flavors : (r.flavors ? [r.flavors] : []);
-      flavors.forEach(f => notes.push('+' + f));
+      milkteaFlavorsList(r.flavors).forEach(f => notes.push(f));
+      if (r.teaBase) notes.push(r.teaBase);
+      if (r.milkBase) notes.push(r.milkBase);
       const noteHtml = notes.length ? `<span class="lr-size-note">（${notes.map(x => esc(x)).join(' / ')}）</span>` : '';
       lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">奶茶记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${noteHtml}</span></div>`;
     } else {
@@ -8492,8 +8568,17 @@ function lifeRecSave(typeKey) {
       values.sugar = sugarGroup ? (sugarGroup.querySelector('input[type="checkbox"]:checked') || {}).value || null : null;
       const tempGroup = document.getElementById('lrf-temperature-group');
       values.temperature = tempGroup ? (tempGroup.querySelector('input[type="checkbox"]:checked') || {}).value || null : null;
+      const teaBaseGroup = document.getElementById('lrf-teabase-group');
+      values.teaBase = teaBaseGroup ? (teaBaseGroup.querySelector('input[type="checkbox"]:checked') || {}).value || null : null;
+      const milkBaseGroup = document.getElementById('lrf-milkbase-group');
+      values.milkBase = milkBaseGroup ? (milkBaseGroup.querySelector('input[type="checkbox"]:checked') || {}).value || null : null;
+      // v641：小料支持份数，存为 {name, qty}
       const flavorGroup = document.getElementById('lrf-flavors-group');
-      values.flavors = flavorGroup ? Array.from(flavorGroup.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value) : [];
+      values.flavors = flavorGroup ? Array.from(flavorGroup.querySelectorAll('input[type="checkbox"]:checked')).map(cb => {
+        const label = cb.closest('.flavor-item');
+        const qty = label ? (parseInt(label.dataset.qty || '1', 10) || 1) : 1;
+        return { name: cb.value, qty };
+      }) : [];
     }
   }
   const saveDate = ps.historyAddDate || ps.date;
@@ -8678,8 +8763,68 @@ function removeCheckedLifeRecordTemperatures(groupId) {
   });
   Toast.success('已删除 ' + checked.length + ' 项');
 }
-
-/* ===== 接稿详情页面（信息录入按钮 + 品类切换 + 接稿条按月分页） ===== */
+function addLifeRecordTeaBase(btn) {
+  const input = document.getElementById('lrf-teabase-custom');
+  const val = (input.value || '').trim();
+  if (!val) return;
+  const dbKey = 'customOpts_lifeRecord_milktea_teaBase';
+  const customOpts = DB.get(dbKey, []);
+  if (!customOpts.includes(val)) { customOpts.push(val); DB.set(dbKey, customOpts); }
+  const group = document.getElementById('lrf-teabase-group');
+  if (group && !group.querySelector(`input[value="${esc(val)}"]`)) {
+    const label = document.createElement('label');
+    label.className = 'checkbox-item';
+    label.innerHTML = `<input type="checkbox" value="${esc(val)}" onclick="limitSingleCheckbox(this)"> ${esc(val)}`;
+    group.appendChild(label);
+  }
+  input.value = '';
+}
+function removeCheckedLifeRecordTeaBase(groupId) {
+  const group = document.getElementById(groupId);
+  if (!group) return;
+  const checked = Array.from(group.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+  if (!checked.length) { Toast.warning('请勾选要删除的茶底'); return; }
+  const dbKey = 'customOpts_lifeRecord_milktea_teaBase';
+  let customOpts = DB.get(dbKey, []);
+  customOpts = customOpts.filter(v => !checked.includes(v));
+  DB.set(dbKey, customOpts);
+  group.querySelectorAll('.checkbox-item').forEach(item => {
+    const cb = item.querySelector('input[type="checkbox"]');
+    if (cb && checked.includes(cb.value)) item.remove();
+  });
+  Toast.success('已删除 ' + checked.length + ' 项');
+}
+function addLifeRecordMilkBase(btn) {
+  const input = document.getElementById('lrf-milkbase-custom');
+  const val = (input.value || '').trim();
+  if (!val) return;
+  const dbKey = 'customOpts_lifeRecord_milktea_milkBase';
+  const customOpts = DB.get(dbKey, []);
+  if (!customOpts.includes(val)) { customOpts.push(val); DB.set(dbKey, customOpts); }
+  const group = document.getElementById('lrf-milkbase-group');
+  if (group && !group.querySelector(`input[value="${esc(val)}"]`)) {
+    const label = document.createElement('label');
+    label.className = 'checkbox-item';
+    label.innerHTML = `<input type="checkbox" value="${esc(val)}" onclick="limitSingleCheckbox(this)"> ${esc(val)}`;
+    group.appendChild(label);
+  }
+  input.value = '';
+}
+function removeCheckedLifeRecordMilkBase(groupId) {
+  const group = document.getElementById(groupId);
+  if (!group) return;
+  const checked = Array.from(group.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+  if (!checked.length) { Toast.warning('请勾选要删除的奶底'); return; }
+  const dbKey = 'customOpts_lifeRecord_milktea_milkBase';
+  let customOpts = DB.get(dbKey, []);
+  customOpts = customOpts.filter(v => !checked.includes(v));
+  DB.set(dbKey, customOpts);
+  group.querySelectorAll('.checkbox-item').forEach(item => {
+    const cb = item.querySelector('input[type="checkbox"]');
+    if (cb && checked.includes(cb.value)) item.remove();
+  });
+  Toast.success('已删除 ' + checked.length + ' 项');
+}
 function cdRecMonth(r) {
   // 关联接稿排期时，按排期日期（截稿优先，其次开稿/接稿）归月，使约稿条归入对应月份
   if (r.clientInfo) {
