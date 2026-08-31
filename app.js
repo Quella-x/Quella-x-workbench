@@ -2345,23 +2345,24 @@ MODULES['oc-commission'] = {
 };
 
 // v648：每日记录模块加入设置·版块设置（仅暴露自定义选项管理，字段标签写死在 LIFE_RECORD_SUBTYPES）
+// 注意：此处不能引用 LIFE_RECORD_SUBTYPES（在本声明之后才初始化，会触发 TDZ ReferenceError 导致整个 app.js 崩），所以默认项直接硬编码
 MODULES['life-record'] = {
   store: 'lifeRecords',
   fields: [
     { key: 'snack_unit', label: '零食·数量单位', type: 'combobox',
-      options: LIFE_RECORD_SUBTYPES.diet.snack.unitOptions.slice() },
+      options: ['包','个','颗','根','袋','盒','瓶','片','粒','份','条','罐','把'] },
     { key: 'milktea_size', label: '奶茶·杯型', type: 'combobox',
-      options: LIFE_RECORD_SUBTYPES.diet.milktea.sizeOptions.slice() },
+      options: ['mini杯','小杯','中杯','标准杯','大杯','胖胖杯','双拼杯','超大杯','超长杯','吨吨杯','奶茶桶'] },
     { key: 'milktea_sugar', label: '奶茶·糖分', type: 'combobox',
-      options: LIFE_RECORD_SUBTYPES.diet.milktea.sugarOptions.slice() },
+      options: ['不额外加糖','一分糖','二分糖','三分糖','微糖','半糖','五分糖','七分糖','少糖','标准糖','全糖'] },
     { key: 'milktea_temperature', label: '奶茶·温度', type: 'combobox',
-      options: LIFE_RECORD_SUBTYPES.diet.milktea.temperatureOptions.slice() },
+      options: ['热','温','常温','冰','标准冰','多冰','少冰','微冰','去冰'] },
     { key: 'milktea_flavors', label: '奶茶·小料', type: 'combobox',
-      options: LIFE_RECORD_SUBTYPES.diet.milktea.flavorOptions.slice() },
+      options: ['珍珠','波霸','西米','寒天','脆啵啵','爆爆蛋','红豆','蜜豆','燕麦','芋圆','血糯米','青稞','芋泥','布丁','椰果','仙草','奶冻','茶冻','麻薯','芝士','芒果粒','西柚粒','花生碎','椰子碎','奥利奥碎','芝士奶盖','咸奶盖','黄油奶盖'] },
     { key: 'milktea_teaBase', label: '奶茶·茶底', type: 'combobox',
-      options: LIFE_RECORD_SUBTYPES.diet.milktea.teaBaseOptions.slice() },
+      options: ['绿茶','红茶','乌龙','四季春','茉莉绿茶','大红袍','铁观音','鸭屎香'] },
     { key: 'milktea_milkBase', label: '奶茶·奶底', type: 'combobox',
-      options: LIFE_RECORD_SUBTYPES.diet.milktea.milkBaseOptions.slice() },
+      options: ['植脂末','鲜奶','厚乳','燕麦奶','椰乳','杏仁奶','脱脂奶','轻乳'] },
   ],
 };
 
