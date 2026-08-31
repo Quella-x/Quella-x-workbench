@@ -472,7 +472,8 @@ function commissionDetailSort(a, b) {
   // 约稿单自身无 progress 字段，已交付状态取自关联接稿的 progress
   function groupOf(linked) {
     if (!linked.length) return 1;
-    if (valIncludes(linked[0].progress || '', '已交付')) return 2;
+    // v651：同一 clientInfo 可能关联多条接稿，任一 progress 严格 === '已交付' 即归 group 2 置尾
+    if (linked.some(c => valIncludes(c.progress || '', '已交付'))) return 2;
     return 0;
   }
   const ga = groupOf(linkedA), gb = groupOf(linkedB);
@@ -8034,10 +8035,10 @@ function renderLifeRecordTopCard(all, date) {
         ${renderSleepRing(0)}
       </div>
       <div class="lr-top-stats">
-        <div class="lr-top-stat"><span class="lts-label">入睡时间</span><span class="lts-val"></span></div>
-        <div class="lr-top-stat"><span class="lts-label">清醒时间</span><span class="lts-val"></span></div>
-        <div class="lr-top-stat"><span class="lts-label">清醒次数</span><span class="lts-val"></span></div>
-        <div class="lr-top-stat"><span class="lts-label">午休时长</span><span class="lts-val"></span></div>
+        <div class="lr-top-stat"><span class="lts-label">入睡时间</span><span class="lts-val">&nbsp;</span></div>
+        <div class="lr-top-stat"><span class="lts-label">清醒时间</span><span class="lts-val">&nbsp;</span></div>
+        <div class="lr-top-stat"><span class="lts-label">清醒次数</span><span class="lts-val">&nbsp;</span></div>
+        <div class="lr-top-stat"><span class="lts-label">午休时长</span><span class="lts-val">&nbsp;</span></div>
       </div>
     `;
   return `<div class="lr-top-card">
