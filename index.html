@@ -545,8 +545,8 @@ ul,li{list-style:none}
 .cal-date-item .ci-qty{color:var(--c-text-muted);font-size:12px;flex-shrink:0}
 .cal-date-item .ci-tag{font-size:11px;padding:2px 8px;border-radius:20px;color:#fff;flex-shrink:0}
 /* v640：弹窗记录行 上移/下移 按钮（保证桌面/移动端都能排序） */
-.cal-date-item .ci-move{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;flex-shrink:0;border:1px solid var(--c-border);background:var(--c-card);border-radius:6px;cursor:pointer;color:var(--c-text-light);font-size:13px;line-height:1;padding:0}
-.cal-date-item .ci-move:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.cal-date-item .ci-move{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;flex-shrink:0;border:none;background:transparent;box-shadow:none;border-radius:0;cursor:pointer;color:var(--c-text-light);font-size:13px;line-height:1;padding:0}
+.cal-date-item .ci-move:hover{background:var(--c-primary-bg);color:var(--c-primary)}
 .cal-date-item .ci-move:active{background:var(--c-primary-bg)}
 .form-input,.form-select,.form-textarea{
   width:100%;padding:8px 12px;border:1px solid var(--c-border);
@@ -1441,6 +1441,8 @@ ul,li{list-style:none}
 .pagination .page-link{background:transparent;border:none;color:var(--c-text-light);font-size:13px;padding:4px 8px;cursor:pointer;transition:all .2s}
 .pagination .page-link:hover{color:var(--c-primary)}
 .pagination .page-link:disabled{color:var(--c-text-muted);opacity:.5;cursor:not-allowed}
+/* v643：接稿排期列表视图翻页在双栏网格(.comm-dual)内被挤进左列，改为跨整行居中 */
+.comm-dual .pagination{grid-column:1 / -1}
 
 /* ===== Custom Combobox Dropdown ===== */
 .combobox-wrapper{position:relative;display:inline-block;width:100%}
@@ -2326,11 +2328,11 @@ ul,li{list-style:none}
 /* v641：小料份数步进器 */
 .life-rec-form .tag-group .flavor-item{position:relative}
 .life-rec-form .flavor-qty{display:inline-flex;align-items:center;gap:3px;margin-left:5px}
-.life-rec-form .fq-btn{width:18px;height:18px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border);border-radius:4px;background:#fff;color:var(--c-text);font-size:13px;cursor:pointer;padding:0}
+.life-rec-form .fq-btn{width:18px;height:18px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border);border-radius:4px;background:#fff;color:var(--c-text);font-size:13px;line-height:1;cursor:pointer;padding:0}
 .life-rec-form .fq-btn:hover{border-color:var(--c-primary)}
 .life-rec-form .fq-val{min-width:14px;text-align:center;font-size:12px}
 /* v642：口味名过长截断省略，不自动换行 */
-.life-rec-form .flavor-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;min-width:0}
+.life-rec-form .flavor-name{white-space:normal;word-break:break-word;overflow:visible;min-width:0;flex:1}
 
 /* History view */
 .lr-history-stat-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:10px;margin-bottom:8px;box-shadow:var(--shadow-sm)}
@@ -2738,7 +2740,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=642"></script>
+  <script src="app.js?v=643"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

@@ -453,6 +453,13 @@ function commissionDetailSort(a, b) {
   const linkedA = DB.list('commissions').filter(c => (c.clientInfo || '') === (a.clientInfo || ''));
   const linkedB = DB.list('commissions').filter(c => (c.clientInfo || '') === (b.clientInfo || ''));
   const ra = linkedA[0] || a, rb = linkedB[0] || b;
+  // v643：约稿单跟随接稿排期全局手动顺序(xiao_comm_order)，与手机端/接稿排期展示模块一致；
+  // 同一接稿排期下的多条约稿单保持各自创建顺序（tie-break 走 commissionRecordSort 返回 0，稳定排序保留原序）
+  const ord = loadCommOrder();
+  const ia = ord.indexOf(ra.id), ib = ord.indexOf(rb.id);
+  const BIG = 1e9;
+  const ja = ia < 0 ? BIG : ia, jb = ib < 0 ? BIG : ib;
+  if (ja !== jb) return ja - jb;
   return commissionRecordSort(ra, rb);
 }
 function applyTheme(theme) {
@@ -3300,10 +3307,14 @@ function openEditForm(pageKey, id) {
   if (!record) return Toast.error('记录不存在');
   let fields = prepareFields(pageKey, mod.fields);
   const bodyHTML = buildForm(fields, record, pageKey);
-  openModal('编辑记录', pageKey.indexOf('design-commission-detail') === 0 ? cdFormShell(bodyHTML) : bodyHTML, [
+  const editButtons = [
     { label: '取消', class: 'btn-ghost', action: closeModal },
     { label: '保存', class: 'btn-primary', action: () => saveForm(pageKey, mod, id) },
-  ]);
+  ];
+  if (pageKey === 'design-pricelist') {
+    editButtons.splice(1, 0, { label: '删除', class: 'btn-danger', action: async () => { await onDelete('design-pricelist', id); closeModal(); } });
+  }
+  openModal('编辑记录', pageKey.indexOf('design-commission-detail') === 0 ? cdFormShell(bodyHTML) : bodyHTML, editButtons);
   setTimeout(() => {
     setupFormInteractions(pageKey);
     refreshCommissionBindOptions();
@@ -3565,8 +3576,9 @@ async function onDelete(pageKey, id) {
   if (!r) return;
   const name = r.title || r.name || r.theme || r.artworkName || r.clientInfo || '此记录';
   if (await confirmDialog(`确定要删除「${name}」吗？此操作不可撤销。`)) {
+    DB.remove(mod.store, id);
     if (pageKey === 'oc-relations') removeOcRelationRefs(r);
-    DB.remove(mod.store, id); Toast.success('已删除'); navigate(pageKey);
+    Toast.success('已删除'); navigate(pageKey);
   }
 }
 
@@ -4327,7 +4339,7 @@ async function onDeleteOcRelationGroup(id) {
   if (!group || !group.length) return;
   const a = pureOcName(group[0].charA), b = pureOcName(group[0].charB);
   if (await confirmDialog(`确定要删除「${a} ↔ ${b}」的 ${group.length} 条关系吗？此操作不可撤销。`)) {
-    group.forEach(r => { removeOcRelationRefs(r); DB.remove('ocRelations', r.id); });
+    group.forEach(r => { DB.remove('ocRelations', r.id); removeOcRelationRefs(r); });
     Toast.success('已删除');
     navigate('oc-relations');
   }
@@ -4695,7 +4707,7 @@ function drawMindMap(chars, relations) {
   // Nodes (circular, text only — no images)
   chars.forEach(c => {
     const pos = positions[c.name];
-    const nodeHTML = `<div class="mindmap-node circular" style="left:${pos.x - 25}px;top:${pos.y - 25}px" onclick="navigate('oc-profiles')" title="${esc(c.name)}">` +
+    const nodeHTML = `<div class="mindmap-node circular" style="left:${pos.x - 30}px;top:${pos.y - 30}px" onclick="navigate('oc-profiles')" title="${esc(c.name)}">` +
       `<div style="width:44px;height:44px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:${(c.name||'?').length>3?'8px':(c.name||'?').length>2?'10px':'12px'};font-weight:700;color:var(--c-primary-dark);text-align:center;word-break:break-all;overflow:hidden;padding:2px">${esc(c.name || '?')}</div>` +
       '</div>';
     inner += nodeHTML;
@@ -5942,7 +5954,7 @@ function renderPriceList() {
   html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onSearch('design-pricelist', this.value)"><span class="search-icon">🔍</span></div>`;
   html += '<div class="spacer"></div>';
   html += '<button class="btn btn-outline toolbar-eq" onclick="togglePriceListNotes()">📝 其他说明</button>';
-  html += '<button class="btn btn-outline toolbar-eq" onclick="openPriceListSort()">调整排序</button>';
+  html += '<button class="btn btn-outline toolbar-eq" onclick="openPriceListSort()">↕️ 调整排序</button>';
   html += '<button class="btn btn-primary" onclick="openAddForm(\'design-pricelist\')">+ 新增价目</button>';
   html += '</div>';
 
@@ -5983,7 +5995,6 @@ function renderPriceList() {
         const unitSuffix = priceUnit === '元' ? '' : priceUnit.replace('元', '');
         const priceText = `¥${esc(r.price || 0)}${esc(unitSuffix)}`;
         html += `<span class="menu-price">${priceText}</span>`;
-        html += `<span class="btn-icon danger" style="font-size:13px;margin-left:8px;flex-shrink:0" onclick="event.stopPropagation();onDelete('design-pricelist','${r.id}')">🗑️</span>`;
         html += '</div>';
       });
       if (desc) {
