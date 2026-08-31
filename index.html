@@ -2585,7 +2585,7 @@ ul,li{list-style:none}
    ③ 「是否同模」→+新增制品 = .cd-ep-full margin-bottom 14 + 按钮 mt 0
    距离 1（有追加时）= 14 + H + 14 自然增加，按钮随追加内容下移，视觉节奏正确 */
 /* v658：用 :has 选择器让有追加时容器底部 14px 给按钮；.cd-ep-grid padding-top 14 恢复 head→第一字段间距 */
-.cd-extra-products{display:flex;flex-direction:column;gap:6px;margin-top:0}
+.cd-extra-products{display:flex;flex-direction:column;gap:14px;margin-top:0}
 .cd-extra-products:has(.cd-extra-product-row){margin-bottom:14px}
 .cd-extra-product-row{border:none;border-radius:0;padding:0;background:none;margin-top:0}
 .cd-ep-head{display:flex;align-items:center;justify-content:space-between;margin:0}.cd-ep-head .btn{transform:translateY(1px)}
@@ -2771,7 +2771,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=658"></script>
+  <script src="app.js?v=659"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
