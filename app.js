@@ -464,7 +464,16 @@ function commissionDetailSort(a, b) {
   const linkedA = DB.list('commissions').filter(c => normCi(c.clientInfo || c.platformNick || '') === keyA);
   const linkedB = DB.list('commissions').filter(c => normCi(c.clientInfo || c.platformNick || '') === keyB);
   const ra = linkedA[0] || a, rb = linkedB[0] || b;
-  // v643/v646：约稿单跟随接稿排期全局手动顺序(xiao_comm_order)，与手机端/接稿排期展示模块一致；
+  // v647：分组权重——正常(关联且未交付) → 未关联(默认置尾) → 已交付(最末)
+  // 约稿单自身无 progress 字段，已交付状态取自关联接稿的 progress
+  function groupOf(linked) {
+    if (!linked.length) return 1;
+    if (valIncludes(linked[0].progress || '', '已交付')) return 2;
+    return 0;
+  }
+  const ga = groupOf(linkedA), gb = groupOf(linkedB);
+  if (ga !== gb) return ga - gb;
+  // 组内：跟随接稿排期全局手动顺序(xiao_comm_order)，与手机端/接稿排期展示模块一致；
   // id 统一转字符串比较，避免数字 id 与字符串 id 对不上
   const ord = loadCommOrder().map(String);
   const idA = String(ra.id), idB = String(rb.id);
@@ -785,6 +794,115 @@ function closeCustomDatePicker(silent) {
   if (el) el.remove();
   if (!silent && currentDateBtn) currentDateBtn.classList.remove('active');
   if (!silent) { currentDateInput = null; currentDateBtn = null; }
+}
+// v647：时间字段点 🕐 打开自定义居中模态时间选择器（与日期选择器同模式；输入保持 type=text 可自由手输）；选完归一化为 HH:MM
+let currentTimeInput = null;
+let currentTimeBtn = null;
+let customTimePickerState = { hh: 0, mm: 0 };
+
+function openTimePicker(btn) {
+  let inp = btn.previousElementSibling;
+  if (!inp || !inp.matches('input')) {
+    const wrap = btn.closest('.time-field-wrap');
+    if (wrap) inp = wrap.querySelector('input');
+  }
+  if (!inp) return;
+  currentTimeInput = inp;
+  currentTimeBtn = btn;
+  btn.classList.add('active');
+  let h = 0, m = 0;
+  const v = (inp.value || '').trim();
+  const mt = v.match(/^(\d{1,2}):(\d{2})$/);
+  if (mt) { h = Math.min(23, parseInt(mt[1], 10)); m = Math.min(59, parseInt(mt[2], 10)); }
+  customTimePickerState.hh = h;
+  customTimePickerState.mm = m;
+  renderCustomTimePicker();
+}
+
+function renderCustomTimePicker() {
+  closeCustomTimePicker(true);
+  const { hh, mm } = customTimePickerState;
+  let hoursHTML = '';
+  for (let i = 0; i < 24; i++) {
+    const s = String(i).padStart(2, '0');
+    hoursHTML += `<div class="time-picker-cell${i === hh ? ' selected' : ''}" data-h="${i}">${s}</div>`;
+  }
+  let minsHTML = '';
+  for (let i = 0; i < 60; i += 5) {
+    const s = String(i).padStart(2, '0');
+    minsHTML += `<div class="time-picker-cell${i === mm ? ' selected' : ''}" data-m="${i}">${s}</div>`;
+  }
+  const preview = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+  const modal = document.createElement('div');
+  modal.id = 'customTimePicker';
+  modal.className = 'time-picker-modal';
+  modal.innerHTML = `
+    <div class="time-picker-backdrop" onclick="closeCustomTimePicker()"></div>
+    <div class="time-picker-popup" role="dialog" aria-modal="true">
+      <div class="time-picker-header">
+        <button type="button" onclick="closeCustomTimePicker()" title="关闭">×</button>
+        <span class="tp-preview" id="timePickerPreview">${preview}</span>
+        <span style="width:28px"></span>
+      </div>
+      <div class="time-picker-cols">
+        <div>
+          <div class="time-picker-col-title">时</div>
+          <div class="time-picker-col" id="tpHours">${hoursHTML}</div>
+        </div>
+        <div>
+          <div class="time-picker-col-title">分</div>
+          <div class="time-picker-col" id="tpMins">${minsHTML}</div>
+        </div>
+      </div>
+      <div class="time-picker-footer">
+        <button type="button" onclick="clearCustomTimePicker()">清除</button>
+        <button type="button" onclick="confirmCustomTimePicker()">确定</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('#tpHours').addEventListener('click', e => {
+    const cell = e.target.closest('.time-picker-cell');
+    if (!cell) return;
+    customTimePickerState.hh = parseInt(cell.dataset.h, 10);
+    modal.querySelectorAll('#tpHours .time-picker-cell').forEach(c => c.classList.toggle('selected', c === cell));
+    syncTimePreview();
+  });
+  modal.querySelector('#tpMins').addEventListener('click', e => {
+    const cell = e.target.closest('.time-picker-cell');
+    if (!cell) return;
+    customTimePickerState.mm = parseInt(cell.dataset.m, 10);
+    modal.querySelectorAll('#tpMins .time-picker-cell').forEach(c => c.classList.toggle('selected', c === cell));
+    syncTimePreview();
+  });
+  modal.querySelector('.time-picker-popup').addEventListener('click', e => e.stopPropagation());
+}
+
+function syncTimePreview() {
+  const el = document.getElementById('timePickerPreview');
+  if (el) el.textContent = `${String(customTimePickerState.hh).padStart(2, '0')}:${String(customTimePickerState.mm).padStart(2, '0')}`;
+}
+
+function confirmCustomTimePicker() {
+  if (!currentTimeInput) return;
+  currentTimeInput.value = `${String(customTimePickerState.hh).padStart(2, '0')}:${String(customTimePickerState.mm).padStart(2, '0')}`;
+  currentTimeInput.dispatchEvent(new Event('input', { bubbles: true }));
+  currentTimeInput.dispatchEvent(new Event('change', { bubbles: true }));
+  closeCustomTimePicker();
+}
+
+function clearCustomTimePicker() {
+  if (!currentTimeInput) return;
+  currentTimeInput.value = '';
+  currentTimeInput.dispatchEvent(new Event('input', { bubbles: true }));
+  currentTimeInput.dispatchEvent(new Event('change', { bubbles: true }));
+  closeCustomTimePicker();
+}
+
+function closeCustomTimePicker(silent) {
+  const el = document.getElementById('customTimePicker');
+  if (el) el.remove();
+  if (!silent && currentTimeBtn) currentTimeBtn.classList.remove('active');
+  if (!silent) { currentTimeInput = null; currentTimeBtn = null; }
 }
 // 将任意可解析日期归一化为 YYYY-MM-DD（已是规范格式则不动）
 function normalizeDateValue(inp) {
@@ -7848,6 +7966,17 @@ function renderSleepRing(totalHours) {
     <div class="sleep-ring-status">${statusText}</div>
   </div>`;
 }
+function renderSleepRingEmpty() {
+  return `<div class="sleep-ring-col">
+    <div class="sleep-ring-wrap">
+      <svg class="sleep-ring" viewBox="0 0 90 90">
+        <circle class="sleep-ring-bg sleep-ring-bg-empty" cx="45" cy="45" r="38"/>
+      </svg>
+      <div class="sleep-ring-text sleep-ring-text-empty">暂无</div>
+    </div>
+    <div class="sleep-ring-status sleep-ring-status-empty">暂无睡眠记录</div>
+  </div>`;
+}
 function renderLifeRecordTopCard(all, date) {
   const sleepRecs = all.filter(r => r.type === 'sleep' && r.date === date);
   const night = sleepRecs.find(r => r.subtype === 'night');
@@ -7867,7 +7996,17 @@ function renderLifeRecordTopCard(all, date) {
         <div class="lr-top-stat"><span class="lts-label">清醒次数</span><span class="lts-val">${night && night.wakeCount != null ? night.wakeCount + '<span class="lts-unit">次</span>' : '&nbsp;'}</span></div>
         <div class="lr-top-stat"><span class="lts-label">午休时长</span><span class="lts-val">${noonDur > 0 ? formatSleepDurationHTML(noonDur) : '&nbsp;'}</span></div>
       </div>
-    ` : '';
+    ` : `
+      <div class="lr-ring-col">
+        ${renderSleepRingEmpty()}
+      </div>
+      <div class="lr-top-stats">
+        <div class="lr-top-stat"><span class="lts-label">入睡时间</span><span class="lts-val lts-val-empty">—</span></div>
+        <div class="lr-top-stat"><span class="lts-label">清醒时间</span><span class="lts-val lts-val-empty">—</span></div>
+        <div class="lr-top-stat"><span class="lts-label">清醒次数</span><span class="lts-val lts-val-empty">—</span></div>
+        <div class="lr-top-stat"><span class="lts-label">午休时长</span><span class="lts-val lts-val-empty">—</span></div>
+      </div>
+    `;
   return `<div class="lr-top-card">
     <div class="lr-top-left${hasSleep ? '' : ' empty'}">${leftContent}</div>
     <div class="lr-diet-btns">
@@ -8083,13 +8222,13 @@ function renderLifeRecordModalBody(typeKey, subtypeKey, values) {
   let html = `<div class="life-rec-form" id="lifeRecForm"><input type="hidden" id="lrf-type" value="${typeKey}">`;
   html += `<div class="form-row"><label class="form-label">记录项</label>${renderLifeRecordSubtypeSelect(typeKey, subtypeKey)}</div>`;
   if (typeKey === 'sleep') {
-    html += `<div class="form-row"><label class="form-label">入睡时间</label><input type="text" class="form-input" id="lrf-sleepTime" value="${esc(values.sleepTime || '')}" placeholder="HH:MM" oninput="lifeRecordModalCalcDuration()"></div>`;
-    html += `<div class="form-row"><label class="form-label">清醒时间</label><input type="text" class="form-input" id="lrf-wakeTime" value="${esc(values.wakeTime || '')}" placeholder="HH:MM" oninput="lifeRecordModalCalcDuration()"></div>`;
+    html += `<div class="form-row"><label class="form-label">入睡时间</label><div class="time-field-wrap"><input type="text" class="form-input" id="lrf-sleepTime" value="${esc(values.sleepTime || '')}" placeholder="HH:MM" oninput="lifeRecordModalCalcDuration()"><button type="button" class="time-pick-btn" onclick="openTimePicker(this)" title="选择时间" aria-label="选择时间"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button></div></div>`;
+    html += `<div class="form-row"><label class="form-label">清醒时间</label><div class="time-field-wrap"><input type="text" class="form-input" id="lrf-wakeTime" value="${esc(values.wakeTime || '')}" placeholder="HH:MM" oninput="lifeRecordModalCalcDuration()"><button type="button" class="time-pick-btn" onclick="openTimePicker(this)" title="选择时间" aria-label="选择时间"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button></div></div>`;
     html += `<div class="form-row"><label class="form-label">睡眠时长（自动）</label><input type="text" class="form-input" id="lrf-duration" value="${values.duration != null ? formatSleepDuration(Number(values.duration)) : ''}" readonly style="background:var(--c-primary-bg);cursor:default"></div>`;
     html += `<div class="form-row"><label class="form-label">清醒次数</label><input type="number" class="form-input" id="lrf-wakeCount" value="${esc(values.wakeCount != null ? values.wakeCount : '')}"></div>`;
   } else {
     const isEnjoyTime = ['midnight','snack','milktea'].includes(subtypeKey);
-    html += `<div class="form-row"><label class="form-label" id="lrf-time-label">${isEnjoyTime ? '享用时间' : '吃饭时间'}</label><input type="text" class="form-input" id="lrf-time" value="${esc(values.time || '')}" placeholder="HH:MM"></div>`;
+    html += `<div class="form-row"><label class="form-label" id="lrf-time-label">${isEnjoyTime ? '享用时间' : '吃饭时间'}</label><div class="time-field-wrap"><input type="text" class="form-input" id="lrf-time" value="${esc(values.time || '')}" placeholder="HH:MM"><button type="button" class="time-pick-btn" onclick="openTimePicker(this)" title="选择时间" aria-label="选择时间"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button></div></div>`;
     const noteLabel = subtypeKey === 'snack' ? '零食记录' : subtypeKey === 'milktea' ? '奶茶记录' : '餐食记录';
     const placeholder = subtypeKey === 'snack' ? '吃了什么零食' : subtypeKey === 'milktea' ? '奶茶名称/店铺' : '吃了什么';
     html += `<div class="form-row"><label class="form-label" id="lrf-note-label">${noteLabel}</label><input type="text" class="form-input" id="lrf-note" value="${esc(values.note || '')}" placeholder="${placeholder}"></div>`;

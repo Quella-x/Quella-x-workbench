@@ -527,6 +527,27 @@ ul,li{list-style:none}
 .date-picker-footer{display:flex;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--c-border)}
 .date-picker-footer button{background:none;border:none;color:var(--c-primary);font-size:14px;cursor:pointer;padding:4px 8px;border-radius:var(--radius-sm)}
 .date-picker-footer button:hover{background:var(--c-primary-bg)}
+/* v647：时间字段——type=text 自由手输 + 🕐 按钮打开自定义居中模态时间选择器（与日期选择器同模式） */
+.time-field-wrap{position:relative;display:flex;align-items:center;gap:8px}
+.time-field-wrap .form-input{flex:1;min-width:0;background:#fff;text-align:left}
+.time-field-wrap .time-pick-btn{flex:0 0 auto;width:38px;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border)!important;background:var(--c-primary-bg)!important;border-radius:var(--radius-sm);cursor:pointer;color:var(--c-primary)!important;padding:0;line-height:1;-webkit-tap-highlight-color:rgba(0,0,0,0)!important;touch-action:manipulation;-webkit-touch-callout:none}
+.time-field-wrap .time-pick-btn:hover,.time-field-wrap .time-pick-btn:active,.time-field-wrap .time-pick-btn.active,.time-field-wrap .time-pick-btn:focus{background:var(--c-primary)!important;color:#fff!important;border-color:var(--c-primary)!important;outline:none!important;box-shadow:none!important}
+.time-picker-modal{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center}
+.time-picker-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+.time-picker-popup{position:relative;background:#fff;border-radius:12px;padding:16px;width:300px;max-width:92vw;box-shadow:0 12px 48px rgba(0,0,0,.22);font-size:14px}
+.time-picker-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:16px;font-weight:600;color:var(--c-text)}
+.time-picker-header .tp-preview{color:var(--c-primary);font-weight:700;font-variant-numeric:tabular-nums;font-size:18px}
+.time-picker-header button{background:none;border:none;color:var(--c-primary);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:var(--radius-sm);line-height:1}
+.time-picker-header button:hover{background:var(--c-primary-bg)}
+.time-picker-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.time-picker-col-title{text-align:center;font-size:12px;color:var(--c-text-light);margin-bottom:6px}
+.time-picker-col{max-height:220px;overflow-y:auto;border:1px solid var(--c-border-light);border-radius:var(--radius-sm);padding:4px}
+.time-picker-cell{text-align:center;padding:8px 0;border-radius:var(--radius-sm);cursor:pointer;font-size:15px;font-variant-numeric:tabular-nums;color:var(--c-text)}
+.time-picker-cell:hover{background:var(--c-primary-bg)}
+.time-picker-cell.selected{background:var(--c-primary);color:#fff}
+.time-picker-footer{display:flex;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--c-border)}
+.time-picker-footer button{background:none;border:none;color:var(--c-primary);font-size:14px;cursor:pointer;padding:4px 8px;border-radius:var(--radius-sm)}
+.time-picker-footer button:hover{background:var(--c-primary-bg)}
 /* v593：接稿日历日期格弹窗（统计 + 拖拽排序）；v595 统计卡去掉蓝底；v611 统计卡加蓝色边框保留按钮样式 */
 .cal-date-popup{position:relative;background:var(--c-card);border-radius:12px;padding:16px;width:340px;max-width:92vw;box-shadow:0 12px 48px rgba(0,0,0,.22);font-size:14px;max-height:80vh;display:flex;flex-direction:column}
 .cal-date-stats{display:flex;gap:12px;margin:12px 0}
@@ -2264,6 +2285,11 @@ ul,li{list-style:none}
 .lts-val{font-size:26px;font-weight:700;color:var(--c-text);line-height:1.2;letter-spacing:0px}
 .lts-val .dur-unit{font-size:18px}
 .lts-val .lts-unit{font-size:28px;font-weight:600}
+/* v647：每日记录顶部卡片左侧「暂无睡眠记录」占位态（保持与有记录时同布局） */
+.lts-val-empty{color:var(--c-text-light);font-weight:600}
+.sleep-ring-bg-empty{stroke:#cdd9e5;stroke-dasharray:6 6}
+.sleep-ring-text-empty{color:var(--c-text-light);font-size:20px}
+.sleep-ring-status-empty{color:var(--c-text-muted)}
 .lr-diet-btns{min-width:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px;align-content:center;justify-content:center;padding:16px 16px 16px 28px;width:100%;box-sizing:border-box;height:100%}
 .lr-diet-qbtn{box-sizing:border-box;width:100%;border:1px solid #d6e6fb;border-radius:var(--radius-sm);background:#eef7ff;color:var(--c-text);font-size:22px;font-weight:700;padding:20px 8px;cursor:pointer;transition:.15s}
 .lr-diet-qbtn:hover{background:#e0f2ff;border-color:var(--c-primary-light);color:var(--c-text)}
@@ -2742,7 +2768,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=646"></script>
+  <script src="app.js?v=647"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
