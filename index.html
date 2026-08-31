@@ -418,6 +418,9 @@ ul,li{list-style:none}
   .home-comm-tags .cal-day-tag-text,
   .home-deep-tags .cal-day-tag-text{font-size:10px}
   .cal-day .cal-dot{width:5px;height:5px;min-width:5px;min-height:5px}
+  /* v638：接稿排期日历圆点显式 5×5px（与首页一致） */
+  .commission-cal-grid .cal-day-tag-dot{width:5px;height:5px;min-width:5px;min-height:5px}
+  .commission-cal-grid .cal-day-tag-text{font-size:10px}
 }
 /* Calendar period bar (开稿~截稿时间段连续显示) */
 .cal-period-bar{
@@ -2438,12 +2441,13 @@ ul,li{list-style:none}
 .cd-cat-btn.active .cd-cat-count{color:#fff}
 /* 月导航（像每日打卡日期按钮：无边框、透明底、浅色字、hover 变主色） */
 .cd-month-nav{display:flex;align-items:center;justify-content:center;gap:12px;margin:4px 0 6px;position:relative;padding:0 70px}
-.cd-unlinked-btn{position:absolute;right:0;top:50%;transform:translateY(-50%);border:1px solid var(--c-border);background:#fff;border-radius:var(--radius);padding:4px 10px;font-size:13px;color:var(--c-text);cursor:pointer;transition:all .15s}
-.cd-unlinked-btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
+/* v638：未关联按钮样式参考每日打卡周/月/年按钮(.lbt-btn)，宽度自适配 */
+.cd-unlinked-btn{position:absolute;right:0;top:50%;transform:translateY(-50%);border:1px solid var(--c-border);background:var(--c-card);color:var(--c-text-light);font-size:12px;font-weight:600;padding:5px 12px;border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;white-space:nowrap}
+.cd-unlinked-btn:hover{border-color:var(--c-primary)}
 .cd-unlinked-btn.active{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
 @media (max-width:640px){
-  .cd-month-nav{padding:0}
-  .cd-unlinked-btn{display:none}
+  .cd-month-nav{padding:0;flex-wrap:wrap;justify-content:center}
+  .cd-unlinked-btn{position:static;transform:none;margin:8px auto 0}
 }
 .cd-month-btn{border:none;background:transparent;color:var(--c-text-light);font-size:14px;padding:4px 10px;box-shadow:none;cursor:pointer}
 .cd-month-btn:hover{color:var(--c-primary);background:transparent}
@@ -2454,7 +2458,7 @@ ul,li{list-style:none}
 /* 接稿条列表 */
 .cd-rec-list{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:start}
 @media (max-width:640px){
-  .cd-rec-list{align-items:stretch}
+  .cd-rec-list{grid-template-columns:1fr;align-items:stretch}
 }
 .cd-rec-card{border:1px solid var(--c-border-light);border-radius:12px;background:#fff;overflow:hidden}
 .cd-rec-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
@@ -2702,7 +2706,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=637"></script>
+  <script src="app.js?v=638"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
