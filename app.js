@@ -2849,7 +2849,7 @@ function openCommissionDateModal(dateStr) {
   const closeCount = recs.filter(isEnd).length;
   let html = '<div class="date-picker-modal" id="calDateModal"><div class="date-picker-backdrop" onclick="closeCalDateModal()"></div><div class="cal-date-popup">';
   html += '<div class="date-picker-header"><span>' + dateStr + '</span><button onclick="closeCalDateModal()">×</button></div>';
-  html += '<div class="cal-date-stats"><div class="cal-date-stat"><div class="num" style="color:' + CAL_START_COLOR + '">' + openCount + '</div><div class="lbl">今日开稿</div></div><div class="cal-date-stat"><div class="num" style="color:' + CAL_END_COLOR + '">' + closeCount + '</div><div class="lbl">今日截稿</div></div></div>';
+  html += '<div class="cal-date-stats"><div class="cal-date-stat start"><div class="num" style="color:' + CAL_START_COLOR + '">' + openCount + '</div><div class="lbl">今日开稿</div></div><div class="cal-date-stat end"><div class="num" style="color:' + CAL_END_COLOR + '">' + closeCount + '</div><div class="lbl">今日截稿</div></div></div>';
   html += '<div class="cal-date-list" id="calDateList">' + calDateModalItemsHTML() + '</div>';
   html += '<div class="date-picker-footer"><button onclick="commissionFilterDate()">按此日筛选</button><button onclick="closeCalDateModal()">关闭</button></div>';
   html += '</div></div>';
@@ -2871,7 +2871,7 @@ function calDateModalItemsHTML() {
     else if (isEnd) { tagText = '截稿'; tagColor = CAL_END_COLOR; }
     else { tagText = '开稿'; tagColor = CAL_START_COLOR; }
     const qty = calcProductQty(r);
-    h += '<div class="cal-date-item" draggable="true" data-id="' + id + '" ondragstart="calDragStart(event,' + id + ')" ondragover="calDragOver(event)" ondrop="calDrop(event,' + id + ')"><span class="drag-handle">☰</span><span class="ci-name">' + esc(r.clientInfo || '未命名') + '</span><span class="ci-qty">' + qty + '件</span><span class="ci-tag" style="background:' + tagColor + '">' + tagText + '</span></div>';
+    h += '<div class="cal-date-item" draggable="true" data-id="' + id + '" ondragstart="calDragStart(event,' + id + ')" ondragover="calDragOver(event)" ondrop="calDrop(event,' + id + ')"><span class="drag-handle">☰</span><span class="ci-name">' + esc(r.clientInfo || '未命名') + '</span><span class="ci-qty">' + qty + '件</span><span class="ci-tag" style="background:' + tagColor + '">' + tagText + '</span><button type="button" class="ci-move" draggable="false" onclick="calMoveUp(' + id + ')">↑</button><button type="button" class="ci-move" draggable="false" onclick="calMoveDown(' + id + ')">↓</button></div>';
   });
   return h;
 }
@@ -2893,6 +2893,21 @@ function calDrop(e, id) {
   // v599：同步到全局排期顺序 —— 日历格与底部展示模块一起跟随弹窗的手动排序
   try { syncCommOrder(calModalOrder.slice(), DB.list('commissions').map(r => r.id)); } catch (_) {}
   calDragId = null;
+  const list = document.getElementById('calDateList');
+  if (list) list.innerHTML = calDateModalItemsHTML();
+  try { renderListPage('design-commission', MODULES['design-commission']); } catch (_) {}
+}
+// v640：弹窗记录行 上移/下移（保证桌面端也能排序，不依赖拖拽）
+function calMoveUp(id) { calReorder(id, -1); }
+function calMoveDown(id) { calReorder(id, 1); }
+function calReorder(id, dir) {
+  if (!calModalOrder) return;
+  const i = calModalOrder.indexOf(id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= calModalOrder.length) return;
+  const t = calModalOrder[i]; calModalOrder[i] = calModalOrder[j]; calModalOrder[j] = t;
+  try { localStorage.setItem('xiao_cal_sort_' + calModalDate, JSON.stringify(calModalOrder)); } catch (_) {}
+  try { syncCommOrder(calModalOrder.slice(), DB.list('commissions').map(r => r.id)); } catch (_) {}
   const list = document.getElementById('calDateList');
   if (list) list.innerHTML = calDateModalItemsHTML();
   try { renderListPage('design-commission', MODULES['design-commission']); } catch (_) {}
@@ -3599,6 +3614,7 @@ function renderHome() {
 
   if (ps.view === 'main') {
     // Main view: 日历（v221：全局待发布按钮不再出现在日历视图，改到各平台模块内）
+    html += '<div class="home-cal-insp">';
     html += '<div class="calendar" style="margin-top:4px">';
     html += '<div class="calendar-header">';
     html += `<span class="cal-title">${ps.calYear}年${ps.calMonth + 1}月</span>`;
@@ -3620,6 +3636,7 @@ function renderHome() {
     html += '</div>';
     html += '<textarea class="form-input home-insp-textarea" id="hInspThoughts" placeholder="文字思路"></textarea>';
     html += '<div class="home-insp-actions"><button class="btn btn-primary" onclick="homeAddInspiration()">保存灵感</button></div>';
+    html += '</div>';
     html += '</div>';
   } else if (ps.view === 'platform') {
     // Platform view: 当前平台记录 + 状态筛选 + 分页列表 + 图表统计

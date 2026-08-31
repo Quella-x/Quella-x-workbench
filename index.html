@@ -422,6 +422,14 @@ ul,li{list-style:none}
   .commission-cal-grid .cal-day-tag{font-size:12px;gap:2px}
   .commission-cal-grid .cal-day-tag-dot{width:5px;height:5px;min-width:5px;min-height:5px;box-sizing:border-box;border-radius:50%}
   .commission-cal-grid .cal-day-tag-text{font-size:10px}
+  /* v640：电脑端首页日历 + 灵感速记双列（移动端保持单列） */
+  .home-cal-insp{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;align-items:start}
+}
+/* v640：手机端接稿排期日历标签完全镜像首页（圆点 4px 正圆，与首页一致） */
+@media (max-width:640px){
+  .commission-cal-grid .cal-day-tag{gap:2px}
+  .commission-cal-grid .cal-day-tag-dot{width:4px;height:4px;min-width:4px;min-height:4px;box-sizing:border-box;border-radius:50%;flex-shrink:0}
+  .commission-cal-grid .cal-day-tag-text{font-size:9px}
 }
 /* Calendar period bar (开稿~截稿时间段连续显示) */
 .cal-period-bar{
@@ -517,6 +525,9 @@ ul,li{list-style:none}
 .cal-date-stat{flex:1;border-radius:10px;padding:10px 12px;text-align:center;border:2px solid var(--c-primary);background:transparent}
 .cal-date-stat .num{font-size:22px;font-weight:700;line-height:1.1}
 .cal-date-stat .lbl{font-size:12px;color:var(--c-text-muted);margin-top:2px}
+/* v640：接稿排期弹窗 今日开稿/今日截稿 统计卡框线配色 */
+.cal-date-stat.start{border-color:#f6ad5c}
+.cal-date-stat.end{border-color:#FFDE75}
 .cal-date-list{overflow-y:auto;flex:1;margin:0;padding:0;list-style:none}
 .cal-date-item{display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:8px;border:1px solid var(--c-border);margin-bottom:8px;cursor:grab;background:var(--c-card)}
 .cal-date-item:active{cursor:grabbing}
@@ -525,6 +536,10 @@ ul,li{list-style:none}
 .cal-date-item .ci-name{flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cal-date-item .ci-qty{color:var(--c-text-muted);font-size:12px;flex-shrink:0}
 .cal-date-item .ci-tag{font-size:11px;padding:2px 8px;border-radius:20px;color:#fff;flex-shrink:0}
+/* v640：弹窗记录行 上移/下移 按钮（保证桌面/移动端都能排序） */
+.cal-date-item .ci-move{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;flex-shrink:0;border:1px solid var(--c-border);background:var(--c-card);border-radius:6px;cursor:pointer;color:var(--c-text-light);font-size:13px;line-height:1;padding:0}
+.cal-date-item .ci-move:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.cal-date-item .ci-move:active{background:var(--c-primary-bg)}
 .form-input,.form-select,.form-textarea{
   width:100%;padding:8px 12px;border:1px solid var(--c-border);
   border-radius:var(--radius-sm);font-size:13px;background:#fff;
@@ -2448,7 +2463,7 @@ ul,li{list-style:none}
 .cd-unlinked-btn.active{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
 @media (max-width:640px){
   .cd-month-nav{padding:0;flex-wrap:wrap;justify-content:center}
-  .cd-unlinked-btn{position:static;transform:none;margin:8px 0 0;margin-right:auto}
+  .cd-unlinked-btn{position:static;transform:none;margin:8px 0 0;margin-left:auto}
 }
 .cd-month-btn{border:none;background:transparent;color:var(--c-text-light);font-size:14px;padding:4px 10px;box-shadow:none;cursor:pointer}
 .cd-month-btn:hover{color:var(--c-primary);background:transparent}
@@ -2707,7 +2722,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=639"></script>
+  <script src="app.js?v=640"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
