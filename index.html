@@ -418,8 +418,9 @@ ul,li{list-style:none}
   .home-comm-tags .cal-day-tag-text,
   .home-deep-tags .cal-day-tag-text{font-size:10px}
   .cal-day .cal-dot{width:5px;height:5px;min-width:5px;min-height:5px}
-  /* v638：接稿排期日历圆点显式 5×5px（与首页一致） */
-  .commission-cal-grid .cal-day-tag-dot{width:5px;height:5px;min-width:5px;min-height:5px}
+  /* v639：接稿排期日历标签完全镜像首页（font-size/gap/box-sizing/border-radius），消除圆点相对比例与间距差异 */
+  .commission-cal-grid .cal-day-tag{font-size:12px;gap:2px}
+  .commission-cal-grid .cal-day-tag-dot{width:5px;height:5px;min-width:5px;min-height:5px;box-sizing:border-box;border-radius:50%}
   .commission-cal-grid .cal-day-tag-text{font-size:10px}
 }
 /* Calendar period bar (开稿~截稿时间段连续显示) */
@@ -2447,7 +2448,7 @@ ul,li{list-style:none}
 .cd-unlinked-btn.active{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
 @media (max-width:640px){
   .cd-month-nav{padding:0;flex-wrap:wrap;justify-content:center}
-  .cd-unlinked-btn{position:static;transform:none;margin:8px auto 0}
+  .cd-unlinked-btn{position:static;transform:none;margin:8px 0 0;margin-right:auto}
 }
 .cd-month-btn{border:none;background:transparent;color:var(--c-text-light);font-size:14px;padding:4px 10px;box-shadow:none;cursor:pointer}
 .cd-month-btn:hover{color:var(--c-primary);background:transparent}
@@ -2706,7 +2707,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=638"></script>
+  <script src="app.js?v=639"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
