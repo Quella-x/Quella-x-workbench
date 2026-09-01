@@ -436,8 +436,8 @@ ul,li{list-style:none}
   .chart-stats-2col .cs-col + .cs-col{margin-top:16px}
   .chart-stats-2col .cs-col-chart .annual-chart{margin-bottom:0;width:100%}
   .chart-stats-2col .cs-col-stats .stats-section{margin-top:0;width:100%}
-  /* v666：电脑端开团记录两列（左列表、右图+统计，右栏 sticky 固定仅左滚） */
-  .gb-records-2col{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+  /* v666/v667：电脑端开团记录两列（左列表、右图+统计，右栏 sticky 固定仅左滚） */
+  .gb-records-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
   .gb-records-2col .gb-left{min-width:0}
   .gb-records-2col .gb-right{position:sticky;top:12px;align-self:start}
   .gb-records-2col .stats-divider{display:none}
@@ -2793,7 +2793,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=666"></script>
+  <script src="app.js?v=667"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
