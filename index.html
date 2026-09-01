@@ -429,7 +429,8 @@ ul,li{list-style:none}
   /* v641：电脑端接稿排期日历视图双列（日历左、列表右，移动端单列） */
   .comm-cal-two-col{display:grid;grid-template-columns:1fr 1fr;column-gap:16px;row-gap:0;align-items:start;grid-template-areas:"cal list" "chart list"}
   .comm-cal-col-cal{grid-area:cal}
-  .comm-cal-col-list{grid-area:list}
+  /* v679：右列列表 height:0 使其只向下溢出、不参与 grid 行高计算，避免记录过多时撑大左侧日历↔图表间距；整页全局滚动（去掉 v678 内部滚动） */
+  .comm-cal-col-list{grid-area:list;align-self:start;height:0;min-height:0}
   .comm-cal-chartstats{grid-area:chart}
   /* v660：电脑端列表/首页平台图表+统计双列；厂家记录仅统计也双列（右列留空） */
   /* v663：保留 flex:1 高度一致；撤销 v662 整行铺满，恢复厂家两列（右列留空）；统计内置按钮随模块增高 */
@@ -454,8 +455,6 @@ ul,li{list-style:none}
   .comm-cal-chartstats .stats-divider{margin:16px 0}
   .comm-cal-chartstats .annual-chart{padding-top:16px}
   .comm-cal-chartstats .annual-chart-title{margin-bottom:8px}
-  /* v678：电脑端接稿排期列表过长时不撑大左侧日历↔图表间距（限制右列高度、内部滚动） */
-  .comm-cal-col-list{max-height:calc(100vh - 180px);overflow-y:auto}
 }
 @media (max-width:640px){
   .comm-cal-two-col{display:block}
@@ -2810,7 +2809,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=678"></script>
+  <script src="app.js?v=679"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
