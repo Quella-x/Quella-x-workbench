@@ -454,6 +454,8 @@ ul,li{list-style:none}
   .comm-cal-chartstats .stats-divider{margin:16px 0}
   .comm-cal-chartstats .annual-chart{padding-top:16px}
   .comm-cal-chartstats .annual-chart-title{margin-bottom:8px}
+  /* v678：电脑端接稿排期列表过长时不撑大左侧日历↔图表间距（限制右列高度、内部滚动） */
+  .comm-cal-col-list{max-height:calc(100vh - 180px);overflow-y:auto}
 }
 @media (max-width:640px){
   .comm-cal-two-col{display:block}
@@ -2808,7 +2810,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=677"></script>
+  <script src="app.js?v=678"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
