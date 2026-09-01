@@ -108,7 +108,10 @@ ul,li{list-style:none}
   border-bottom:1px solid rgba(255,255,255,.1);flex-shrink:0;
 }
 .sidebar-logo{display:flex;align-items:center;gap:8px;color:#fff;white-space:nowrap;overflow:hidden;height:100%}
-.sidebar-logo .logo-icon{font-size:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+/* v686：Logo 改为固定尺寸图片模块，支持点击上传自定义图片 */
+.sidebar-logo .logo-icon{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:8px;overflow:hidden;cursor:pointer;background:rgba(255,255,255,.18);font-size:20px}
+.sidebar-logo .logo-icon img{width:100%;height:100%;object-fit:cover;display:block}
+.sidebar-logo .logo-icon:hover{background:rgba(255,255,255,.3)}
 .sidebar-logo .logo-text{font-size:16px;font-weight:600;opacity:1;transition:opacity .2s;display:flex;align-items:center}
 .sidebar.collapsed .sidebar-logo .logo-text{opacity:0;width:0}
 .toggle-btn{
@@ -1537,6 +1540,16 @@ ul,li{list-style:none}
 .dc-extra-row .combobox-dropdown,.dc-product-row .combobox-dropdown,.dc-mod-row .combobox-dropdown{white-space:nowrap;left:0;right:auto;min-width:100%;width:max-content;max-width:90vw}
 .combobox-option.selected{background:var(--c-primary-bg);color:var(--c-primary);font-weight:600}
 
+/* ===== Lucide 图标统一规范（v686） =====
+   尺寸由 lucide(name,size) 参数控制；此处只统一显示方式与基线对齐。
+   颜色统一继承 currentColor（随父级文字色变化），线宽统一 2（见图标表）。 */
+.lucide-icon{display:inline-block;vertical-align:-0.125em;flex-shrink:0}
+.icon-preview .lucide-icon{width:18px;height:18px;vertical-align:middle}
+.empty-icon .lucide-icon{width:32px;height:32px;vertical-align:middle;opacity:.55}
+.search-icon .lucide-icon{width:16px;height:16px;vertical-align:middle}
+.btn-icon .lucide-icon{width:16px;height:16px;vertical-align:middle}
+.lucide-icon.is-danger{stroke:var(--c-danger,#e74c3c)}
+
 /* ===== Responsive additions ===== */
 @media(max-width:920px){
   .platform-buttons{flex-wrap:wrap}
@@ -2773,7 +2786,7 @@ ul,li{list-style:none}
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-logo">
-        <span class="logo-icon">🐬</span>
+        <span class="logo-icon" id="appLogo" onclick="pickAppLogo()" oncontextmenu="event.preventDefault();resetAppLogo()" title="点击上传 Logo 图片（右键恢复默认）"></span>
         <span class="logo-text">小筱工作台</span>
       </div>
       <button class="toggle-btn" id="toggleSidebar" title="折叠/展开">☰</button>
@@ -2816,7 +2829,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=685"></script>
+  <script src="app.js?v=686"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

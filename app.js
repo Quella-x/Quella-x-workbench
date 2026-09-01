@@ -73,10 +73,10 @@ const Sync = {
     const el = document.getElementById('syncBadge');
     if (!el) return;
     let icon, text, cls;
-    if (!this.enabled()) { icon = '☁️'; text = '未同步'; cls = 'off'; }
-    else if (this.status === 'syncing') { icon = '🔄'; text = '同步中'; cls = 'syncing'; }
-    else if (this.status === 'connected') { icon = '🟢'; text = '已连接' + (this.lastSync ? ' · ' + this.fmtAgo(this.lastSync) : ''); cls = 'connected'; }
-    else { icon = '🔴'; text = '未连接'; cls = 'disconnected'; }
+    if (!this.enabled()) { icon = lucide('cloud-off',16); text = '未同步'; cls = 'off'; }
+    else if (this.status === 'syncing') { icon = lucide('refresh-cw',16); text = '同步中'; cls = 'syncing'; }
+    else if (this.status === 'connected') { icon = lucide('circle-check',16); text = '已连接' + (this.lastSync ? ' · ' + this.fmtAgo(this.lastSync) : ''); cls = 'connected'; }
+    else { icon = lucide('circle-x',16); text = '未连接'; cls = 'disconnected'; }
     el.className = 'sync-badge ' + cls;
     el.innerHTML = '<span class="sync-dot"></span><span class="sync-ico">' + icon + '</span><span class="sync-txt"> ' + text + '</span>';
   },
@@ -327,13 +327,151 @@ function makeImageUploadHTML() {
   return `<div class="img-upload-container" id="imgUpload"><div class="img-upload-area"><span style="font-size:24px;display:block;margin-bottom:4px">📷</span><span style="font-size:12px;color:var(--c-text-muted)">点击上传图片（单张不超过3MB）</span></div><input type="file" class="img-upload-input" accept="image/*" multiple style="display:none"><div class="img-preview-grid"></div></div>`;
 }
 
+/* ===== App Logo（v686：固定尺寸图片模块，用户可自行上传） =====
+   存储：appSettings.logoImage（dataURL）。上传时统一压缩到 128×128，
+   避免原图 dataURL 过大撑爆 IndexedDB 与云端同步。 */
+function renderAppLogo() {
+  const el = $('#appLogo'); if (!el) return;
+  const s = getSettings();
+  const src = s && s.logoImage;
+  el.innerHTML = src
+    ? '<img src="' + String(src).replace(/"/g, '&quot;') + '" alt="Logo">'
+    : lucide('image-plus', 18);
+}
+function pickAppLogo() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = function () {
+    const f = input.files && input.files[0]; if (!f) return;
+    if (f.size > 3 * 1024 * 1024) { Toast.warning('Logo 图片超过 3MB，请压缩后再试'); return; }
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const raw = e.target.result;
+      const img = new Image();
+      img.onload = function () {
+        let out = raw;
+        try {
+          const N = 128, c = document.createElement('canvas');
+          c.width = N; c.height = N;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, N, N);
+          out = c.toDataURL('image/png');
+        } catch (err) { /* 压缩失败则退回原图 */ }
+        const s = getSettings(); s.logoImage = out; saveSettings(s);
+        renderAppLogo(); Toast.success('Logo 已更新');
+      };
+      img.onerror = function () {
+        const s = getSettings(); s.logoImage = raw; saveSettings(s);
+        renderAppLogo(); Toast.success('Logo 已更新');
+      };
+      img.src = raw;
+    };
+    reader.readAsDataURL(f);
+  };
+  input.click();
+}
+function resetAppLogo() {
+  const s = getSettings();
+  delete s.logoImage; saveSettings(s); renderAppLogo();
+  Toast.success('已恢复默认 Logo');
+}
+
+/* ===== Lucide Icon Library (inlined at build time — offline safe, ISC license) ===== */
+/* 统一规范：viewBox 0 0 24 24 / stroke=currentColor / stroke-width 2 / 尺寸由参数控制 */
+const LUCIDE_SVG = {
+  "pin": '<path d="M12 17v5" /> <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />',
+  "house": '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /> <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />',
+  "package": '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" /> <path d="M12 22V12" /> <polyline points="3.29 7 12 12 20.71 7" /> <path d="m7.5 4.27 9 5.15" />',
+  "clipboard-list": '<rect width="8" height="4" x="8" y="2" rx="1" ry="1" /> <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /> <path d="M12 11h4" /> <path d="M12 16h4" /> <path d="M8 11h.01" /> <path d="M8 16h.01" />',
+  "factory": '<path d="M12 16h.01" /> <path d="M16 16h.01" /> <path d="M3 19a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5a.5.5 0 0 0-.769-.422l-4.462 2.844A.5.5 0 0 1 15 10.5v-2a.5.5 0 0 0-.769-.422L9.77 10.922A.5.5 0 0 1 9 10.5V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z" /> <path d="M8 16h.01" />',
+  "microscope": '<path d="M6 18h8" /> <path d="M3 22h18" /> <path d="M14 22a7 7 0 1 0 0-14h-1" /> <path d="M9 14h2" /> <path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z" /> <path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3" />',
+  "calculator": '<rect width="16" height="20" x="4" y="2" rx="2" /> <line x1="8" x2="16" y1="6" y2="6" /> <line x1="16" x2="16" y1="14" y2="18" /> <path d="M16 10h.01" /> <path d="M12 10h.01" /> <path d="M8 10h.01" /> <path d="M12 14h.01" /> <path d="M8 14h.01" /> <path d="M12 18h.01" /> <path d="M8 18h.01" />',
+  "palette": '<path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z" /> <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" /> <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" /> <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" /> <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />',
+  "lightbulb": '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" /> <path d="M9 18h6" /> <path d="M10 22h4" />',
+  "calendar-days": '<path d="M8 2v3" /> <path d="M16 2v3" /> <rect x="3" y="3" width="18" height="18" rx="2" /> <path d="M3 9h18" /> <path d="M8 13h.01" /> <path d="M12 13h.01" /> <path d="M16 13h.01" /> <path d="M8 17h.01" /> <path d="M12 17h.01" /> <path d="M16 17h.01" />',
+  "file-text": '<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /> <path d="M14 2v5a1 1 0 0 0 1 1h5" /> <path d="M10 9H8" /> <path d="M16 13H8" /> <path d="M16 17H8" />',
+  "scroll-text": '<path d="M15 12h-5" /> <path d="M15 8h-5" /> <path d="M19 17V5a2 2 0 0 0-2-2H4" /> <path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3" />',
+  "wallet": '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" /> <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />',
+  "user": '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" />',
+  "drama": '<path d="M10 11h.01" /> <path d="M14 6h.01" /> <path d="M18 6h.01" /> <path d="M6.5 13.1h.01" /> <path d="M22 5c0 9-4 12-6 12s-6-3-6-12c0-2 2-3 6-3s6 1 6 3" /> <path d="M17.4 9.9c-.8.8-2 .8-2.8 0" /> <path d="M10.1 7.1C9 7.2 7.7 7.7 6 8.6c-3.5 2-4.7 3.9-3.7 5.6 4.5 7.8 9.5 8.4 11.2 7.4.9-.5 1.9-2.1 1.9-4.7" /> <path d="M9.1 16.5c.3-1.1 1.4-1.7 2.4-1.4" />',
+  "link": '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /> <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />',
+  "book-open": '<path d="M12 5v16" /> <path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" />',
+  "clock": '<circle cx="12" cy="12" r="10" /> <path d="M12 6v6l4 2" />',
+  "paintbrush": '<path d="m14.622 17.897-10.68-2.913" /> <path d="M18.376 2.622a1 1 0 1 1 3.002 3.002L17.36 9.643a.5.5 0 0 0 0 .707l.944.944a2.41 2.41 0 0 1 0 3.408l-.944.944a.5.5 0 0 1-.707 0L8.354 7.348a.5.5 0 0 1 0-.707l.944-.944a2.41 2.41 0 0 1 3.408 0l.944.944a.5.5 0 0 0 .707 0z" /> <path d="M9 8c-1.804 2.71-3.97 3.46-6.583 3.948a.507.507 0 0 0-.302.819l7.32 8.883a1 1 0 0 0 1.185.204C12.735 20.405 16 16.792 16 15" />',
+  "check-check": '<path d="M18 6 7 17l-5-5" /> <path d="m22 10-7.5 7.5L13 16" />',
+  "notebook-pen": '<path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4" /> <path d="M2 6h4" /> <path d="M2 10h4" /> <path d="M2 14h4" /> <path d="M2 18h4" /> <path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />',
+  "trash-2": '<path d="M10 11v6" /> <path d="M14 11v6" /> <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /> <path d="M3 6h18" /> <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />',
+  "pencil": '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" /> <path d="m15 5 4 4" />',
+  "x": '<path d="M18 6 6 18" /> <path d="m6 6 12 12" />',
+  "search": '<path d="m21 21-4.34-4.34" /> <circle cx="11" cy="11" r="8" />',
+  "save": '<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /> <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" /> <path d="M7 3v4a1 1 0 0 0 1 1h7" />',
+  "download": '<path d="M12 15V3" /> <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /> <path d="m7 10 5 5 5-5" />',
+  "image-plus": '<path d="M16 5h6" /> <path d="M19 2v6" /> <path d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5" /> <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /> <circle cx="9" cy="9" r="2" />',
+  "camera": '<path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z" /> <circle cx="12" cy="13" r="3" />',
+  "arrow-up-down": '<path d="m21 16-4 4-4-4" /> <path d="M17 20V4" /> <path d="m3 8 4-4 4 4" /> <path d="M7 4v16" />',
+  "tag": '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" /> <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />',
+  "plug": '<path d="M12 22v-5" /> <path d="M15 8V2" /> <path d="M17 8a1 1 0 0 1 1 1v4a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z" /> <path d="M9 8V2" />',
+  "folder-open": '<path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" />',
+  "rotate-ccw": '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /> <path d="M3 3v5h5" />',
+  "refresh-cw": '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /> <path d="M21 3v5h-5" /> <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /> <path d="M8 16H3v5" />',
+  "message-circle": '<path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" />',
+  "send": '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" /> <path d="m21.854 2.147-10.94 10.939" />',
+  "menu": '<path d="M4 5h16" /> <path d="M4 12h16" /> <path d="M4 19h16" />',
+  "settings": '<path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" /> <circle cx="12" cy="12" r="3" />',
+  "wrench": '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z" />',
+  "inbox": '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /> <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />',
+  "bar-chart-3": '<path d="M3 3v16a2 2 0 0 0 2 2h16" /> <path d="M18 17V9" /> <path d="M13 17V5" /> <path d="M8 17v-3" />',
+  "cloud-off": '<path d="M10.94 5.274A7 7 0 0 1 15.71 10h1.79a4.5 4.5 0 0 1 4.222 6.057" /> <path d="M18.796 18.81A4.5 4.5 0 0 1 17.5 19H9A7 7 0 0 1 5.79 5.78" /> <path d="m2 2 20 20" />',
+  "circle-check": '<circle cx="12" cy="12" r="10" /> <path d="m16 9-5.5 5.5L8 12" />',
+  "circle-x": '<circle cx="12" cy="12" r="10" /> <path d="m15 9-6 6" /> <path d="m9 9 6 6" />',
+  "circle-check-big": '<path d="M21.801 10A10 10 0 1 1 17 3.335" /> <path d="m9 11 3 3L22 4" />',
+  "alert-triangle": '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /> <path d="M12 9v4" /> <path d="M12 17h.01" />',
+  "check": '<path d="M20 6 9 17l-5-5" />',
+  "users": '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /> <path d="M16 3.128a4 4 0 0 1 0 7.744" /> <path d="M22 21v-2a4 4 0 0 0-3-3.87" /> <circle cx="9" cy="7" r="4" />',
+  "globe": '<circle cx="12" cy="12" r="10" /> <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /> <path d="M2 12h20" />',
+  "music": '<path d="M9 18V5l12-2v13" /> <circle cx="6" cy="18" r="3" /> <circle cx="18" cy="16" r="3" />',
+  "video": '<path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5" /> <rect x="2" y="6" width="14" height="12" rx="2" />',
+  "newspaper": '<path d="M15 18h-5" /> <path d="M18 14h-8" /> <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2" /> <rect width="8" height="4" x="10" y="6" rx="1" />',
+  "moon": '<path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" />',
+  "moon-star": '<path d="M18 5h4" /> <path d="M20 3v4" /> <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" />',
+  "sun": '<circle cx="12" cy="12" r="4" /> <path d="M12 2v2" /> <path d="M12 20v2" /> <path d="m4.93 4.93 1.41 1.41" /> <path d="m17.66 17.66 1.41 1.41" /> <path d="M2 12h2" /> <path d="M20 12h2" /> <path d="m6.34 17.66-1.41 1.41" /> <path d="m19.07 4.93-1.41 1.41" />',
+  "sunrise": '<path d="M12 2v8" /> <path d="m4.93 10.93 1.41 1.41" /> <path d="M2 18h2" /> <path d="M20 18h2" /> <path d="m19.07 10.93-1.41 1.41" /> <path d="M22 22H2" /> <path d="m8 6 4-4 4 4" /> <path d="M16 18a4 4 0 0 0-8 0" />',
+  "utensils": '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" /> <path d="M7 2v20" /> <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />',
+  "cookie": '<path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5" /> <path d="M8.5 8.5v.01" /> <path d="M16 15.5v.01" /> <path d="M12 12v.01" /> <path d="M11 17v.01" /> <path d="M7 14v.01" />',
+  "cup-soda": '<path d="m6 8 1.75 12.28a2 2 0 0 0 2 1.72h4.54a2 2 0 0 0 2-1.72L18 8" /> <path d="M5 8h14" /> <path d="M7 15a6.47 6.47 0 0 1 5 0 6.47 6.47 0 0 0 5 0" /> <path d="m12 8 1-6h2" />',
+  "sparkles": '<path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" /> <path d="M20 2v4" /> <path d="M22 4h-4" /> <circle cx="4" cy="20" r="2" />',
+  "dumbbell": '<path d="M17.596 12.768a2 2 0 1 0 2.829-2.829l-1.768-1.767a2 2 0 0 0 2.828-2.829l-2.828-2.828a2 2 0 0 0-2.829 2.828l-1.767-1.768a2 2 0 1 0-2.829 2.829z" /> <path d="m2.5 21.5 1.4-1.4" /> <path d="m20.1 3.9 1.4-1.4" /> <path d="M5.343 21.485a2 2 0 1 0 2.829-2.828l1.767 1.768a2 2 0 1 0 2.829-2.829l-6.364-6.364a2 2 0 1 0-2.829 2.829l1.768 1.767a2 2 0 0 0-2.828 2.829z" /> <path d="m9.6 14.4 4.8-4.8" />',
+  "bed-double": '<path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8" /> <path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4" /> <path d="M12 4v6" /> <path d="M2 18h20" />',
+};
+
+/**
+ * 渲染 Lucide 图标。统一尺寸/线宽/颜色（颜色继承 CSS currentColor）。
+ * @param {string} name  图标名
+ * @param {number} size  像素尺寸，默认 18
+ * @param {string} cls   附加 class
+ */
+function lucide(name, size, cls) {
+  const b = LUCIDE_SVG[name];
+  if (!b) return '';
+  const s = size || 18;
+  return '<svg class="lucide-icon' + (cls ? ' ' + cls : '') + '" xmlns="http://www.w3.org/2000/svg" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + b + '</svg>';
+}
+
 /* ===== Settings System ===== */
+/* v686：导航图标改用 Lucide 图标名（原为 emoji），取值即 LUCIDE_SVG 的键名 */
 const DEFAULT_NAV_ICONS = {
-  'home': '🏠', 'groupbuy': '📦', 'groupbuy-records': '📋', 'groupbuy-factories': '🏭',
-  'groupbuy-samples': '🔬', 'groupbuy-calc': '🧮', 'design': '🎨', 'design-inspiration': '💡',
-  'design-commission': '📅', 'design-commission-detail': '📝', 'design-calc': '🧮', 'design-auth': '📜', 'design-pricelist': '💰',
-  'oc': '👤', 'oc-profiles': '🎭', 'oc-relations': '🔗', 'oc-stories': '📖', 'oc-timeline': '🕐',   'oc-commission': '🖌️',
-  'life-checkin': '✅', 'life-record': '📝'
+  'home': 'house', 'groupbuy': 'package', 'groupbuy-records': 'clipboard-list', 'groupbuy-factories': 'factory',
+  'groupbuy-samples': 'microscope', 'groupbuy-calc': 'calculator', 'design': 'palette', 'design-inspiration': 'lightbulb',
+  'design-commission': 'calendar-days', 'design-commission-detail': 'file-text', 'design-calc': 'calculator', 'design-auth': 'scroll-text', 'design-pricelist': 'wallet',
+  'oc': 'user', 'oc-profiles': 'drama', 'oc-relations': 'link', 'oc-stories': 'book-open', 'oc-timeline': 'clock', 'oc-commission': 'paintbrush',
+  'life-checkin': 'check-check', 'life-record': 'notebook-pen'
+};
+/* 旧版本存的是 emoji，迁移为图标名；已是图标名的原样保留 */
+const NAV_ICON_LEGACY_MAP = {
+  '🏠': 'house', '📦': 'package', '📋': 'clipboard-list', '🏭': 'factory', '🔬': 'microscope',
+  '🧮': 'calculator', '🎨': 'palette', '💡': 'lightbulb', '📅': 'calendar-days', '📝': 'file-text',
+  '📜': 'scroll-text', '💰': 'wallet', '👤': 'user', '🎭': 'drama', '🔗': 'link', '📖': 'book-open',
+  '🕐': 'clock', '🖌️': 'paintbrush', '✅': 'check-check', '📌': 'pin'
 };
 const DEFAULT_SETTINGS = {
   theme: { primary: '#9DC8FF', primaryLight: '#BDE7FF', primaryDark: '#7AB5F5', primaryBg: '#E0F2FF', sidebarStart: '#7AB5F5', sidebarEnd: '#5BA3F0' },
@@ -509,7 +647,12 @@ function applyTheme(theme) {
   root.style.setProperty('--c-sidebar-end', theme.sidebarEnd);
   root.style.setProperty('--c-info', theme.primary);
 }
-function getNavIcon(key) { const s = getSettings(); return (s.navIcons && s.navIcons[key]) || DEFAULT_NAV_ICONS[key] || '📌'; }
+/* v686：返回 Lucide 图标名（旧版 emoji 经 NAV_ICON_LEGACY_MAP 迁移） */
+function getNavIcon(key) {
+  const s = getSettings();
+  const v = (s.navIcons && s.navIcons[key]) || DEFAULT_NAV_ICONS[key] || 'pin';
+  return NAV_ICON_LEGACY_MAP[v] || v;
+}
 function getNavLabel(key, defaultLabel) { const s = getSettings(); return (s.navLabels && s.navLabels[key]) || defaultLabel; }
 function getFieldLabel(moduleKey, fieldKey, defaultLabel) {
   const s = getSettings();
@@ -2421,17 +2564,17 @@ function navigate(page) {
   if (page === 'design-commission-detail') return renderCommissionDetailPage();
   const mod = MODULES[page];
   if (mod) return renderListPage(page, mod);
-  body.innerHTML = '<div class="empty-state"><div class="empty-icon">🔧</div><div class="empty-text">页面开发中...</div></div>';
+  body.innerHTML = `<div class="empty-state"><div class="empty-icon">${lucide('wrench',32)}</div><div class="empty-text">页面开发中...</div></div>`;
 }
 
 /* ===== Sidebar Rendering ===== */
 function renderSidebar() {
   const nav = $('#sidebarNav');
-  let html = `<div class="nav-item ${currentPage === 'home' ? 'active' : ''}" onclick="navigate('home')"><span class="nav-icon">${getNavIcon('home')}</span><span class="nav-label">${esc(getNavLabel('home', '首页'))}</span></div>`;
+  let html = `<div class="nav-item ${currentPage === 'home' ? 'active' : ''}" onclick="navigate('home')"><span class="nav-icon">${lucide(getNavIcon('home'), 18)}</span><span class="nav-label">${esc(getNavLabel('home', '首页'))}</span></div>`;
   NAV.slice(1).forEach(group => {
     html += `<div class="nav-group"><div class="nav-group-title">${esc(group.label)}</div>`;
     group.children.forEach(child => {
-      html += `<div class="nav-item ${currentPage === child.key ? 'active' : ''}" onclick="navigate('${child.key}')"><span class="nav-icon">${getNavIcon(child.key)}</span><span class="nav-label">${esc(getNavLabel(child.key, child.label))}</span></div>`;
+      html += `<div class="nav-item ${currentPage === child.key ? 'active' : ''}" onclick="navigate('${child.key}')"><span class="nav-icon">${lucide(getNavIcon(child.key), 18)}</span><span class="nav-label">${esc(getNavLabel(child.key, child.label))}</span></div>`;
     });
     html += '</div>';
   });
@@ -2550,7 +2693,7 @@ function renderListPage(pageKey, mod) {
 
   // Toolbar (新增置顶)：始终占满顶部，不参与双栏
   html += '<div class="toolbar">';
-  html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onSearch('${pageKey}', this.value)"><span class="search-icon">🔍</span></div>`;
+  html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onSearch('${pageKey}', this.value)"><span class="search-icon">${lucide('search',16)}</span></div>`;
   if (mod.filters) {
     let modFilters = mod.filters;
     if (pageKey === 'design-inspiration') {
@@ -2640,7 +2783,7 @@ function renderListPage(pageKey, mod) {
   if (!records.length) {
     const emptyCls = isCommDual ? ' class="empty-state" style="grid-column:1/-1"' : ' class="empty-state"';
     if (gbWrapped) { html += '<div class="gb-records-2col"><div class="gb-left">'; }
-    html += `<div${emptyCls}><div class="empty-icon">📋</div><div class="empty-text">暂无记录，点击新增开始添加</div></div>`;
+    html += `<div${emptyCls}><div class="empty-icon">${lucide('inbox',32)}</div><div class="empty-text">暂无记录，点击新增开始添加</div></div>`;
   } else {
     const twoCol = TWO_COL_MODULES.includes(pageKey) ? ' two-col' : '';
     if (gbWrapped) { html += '<div class="gb-records-2col"><div class="gb-left">'; }
@@ -2657,8 +2800,8 @@ function renderListPage(pageKey, mod) {
       if (isOverdue) titleText = '⚠️ ' + titleText;
       html += `<div class="record-card-title">${esc(titleText)}</div>`;
       html += '<div class="record-card-actions">';
-      html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('${pageKey}','${r.id}')">✏️</span>`;
-      html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('${pageKey}','${r.id}')">🗑️</span>`;
+      html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('${pageKey}','${r.id}')">${lucide('pencil',16)}</span>`;
+      html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('${pageKey}','${r.id}')">${lucide('trash-2',16)}</span>`;
       html += '</div>';
       html += '</div>';
       html += '<div class="record-card-body' + (COMM_LIST_STYLE_MODULES.includes(pageKey) ? ' comm-list-style' : '') + '">';
@@ -3847,7 +3990,7 @@ function renderHome() {
 
     // Toolbar
     html += '<div class="toolbar home-toolbar" style="margin-top:4px">';
-    html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="homeSearch(this.value)"><span class="search-icon">🔍</span></div>`;
+    html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="homeSearch(this.value)"><span class="search-icon">${lucide('search',16)}</span></div>`;
     html += `<div class="date-field-wrap home-date-wrap"><input type="text" class="filter-select" value="${ps.dateFilter}" placeholder="请选择或输入日期" title="请选择或输入日期" onchange="homeDateFilter(this.value)"></div>`;
     html += `<button type="button" class="date-pick-btn home-date-pick" onclick="openDatePicker(this)" title="选择日期" aria-label="选择日期"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></button>`;
     html += '<button class="btn btn-primary" onclick="openAddForm(\'home\')">+ 新增记录</button>';
@@ -3874,7 +4017,7 @@ function renderHome() {
     if (homeTwoCol) { html += '<div class="gb-records-2col"><div class="gb-left">'; }
 
     if (!filteredRecords.length) {
-      html += '<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-text">暂无发布记录</div></div>';
+      html += `<div class="empty-state"><div class="empty-icon">${lucide('file-text',32)}</div><div class="empty-text">暂无发布记录</div></div>`;
     } else {
       html += '<div class="record-list cal-view">';
       homePaged.forEach(r => { html += renderHomeRecordCard(r); });
@@ -3935,8 +4078,8 @@ function renderHomeRecordCard(r) {
   html += '<div class="record-card-header">';
   html += '<div class="record-card-title">' + esc(r.title || '未命名') + '</div>';
   html += '<div class="record-card-actions">';
-  html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('home','${r.id}')">✏️</span>`;
-  html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('home','${r.id}')">🗑️</span>`;
+  html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('home','${r.id}')">${lucide('pencil',16)}</span>`;
+  html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('home','${r.id}')">${lucide('trash-2',16)}</span>`;
   html += '</div></div>';
   html += '<div class="record-card-body comm-list-style">';
   const platforms = arrVal(r.platform);
@@ -4059,7 +4202,7 @@ function renderPriceCalc() {
   if (templates.length) {
     html += '<div class="template-list">';
     templates.forEach((t, i) => {
-      html += `<div class="template-item" onclick="loadCalcTemplate('${t.id}')"><span class="template-name">${esc(t.name || '模板' + (i + 1))}</span><div class="template-actions"><button class="btn-icon danger" onclick="event.stopPropagation();deleteCalcTemplate('${t.id}')">🗑️</button></div></div>`;
+      html += `<div class="template-item" onclick="loadCalcTemplate('${t.id}')"><span class="template-name">${esc(t.name || '模板' + (i + 1))}</span><div class="template-actions"><button class="btn-icon danger" onclick="event.stopPropagation();deleteCalcTemplate('${t.id}')">${lucide('trash-2',16)}</button></div></div>`;
     });
     html += '</div>';
   } else { html += '<div style="font-size:12px;color:var(--c-text-muted);padding:8px">暂无模板</div>'; }
@@ -4174,7 +4317,7 @@ function renderTimeline() {
   html += '</div>';
   // Toolbar
   html += '<div class="toolbar">';
-  html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onSearch('oc-timeline', this.value)"><span class="search-icon">🔍</span></div>`;
+  html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onSearch('oc-timeline', this.value)"><span class="search-icon">${lucide('search',16)}</span></div>`;
   html += '<div class="spacer"></div>';
   html += '<button class="btn btn-outline toolbar-eq" onclick="importStoriesToTimeline()">📥 导入故事小记</button>';
   html += '<button class="btn btn-primary" onclick="openAddForm(\'oc-timeline\')">+ 新增事件</button>';
@@ -4192,7 +4335,7 @@ function renderTimeline() {
 
   // Timeline
   if (!records.length) {
-    html += '<div class="empty-state"><div class="empty-icon">🕐</div><div class="empty-text">暂无时间线记录</div></div>';
+    html += `<div class="empty-state"><div class="empty-icon">${lucide('clock',32)}</div><div class="empty-text">暂无时间线记录</div></div>`;
   } else {
     html += '<div class="timeline-container">';
     records.forEach(r => {
@@ -4213,8 +4356,8 @@ function renderTimeline() {
       }
       html += '</div>';
       html += '<div style="margin-top:6px;display:flex;gap:4px">';
-      html += `<span class="btn-icon" style="font-size:12px;width:24px;height:24px" onclick="event.stopPropagation();openEditForm('oc-timeline','${r.id}')">✏️</span>`;
-      html += `<span class="btn-icon danger" style="font-size:12px;width:24px;height:24px" onclick="event.stopPropagation();onDelete('oc-timeline','${r.id}')">🗑️</span>`;
+      html += `<span class="btn-icon" style="font-size:12px;width:24px;height:24px" onclick="event.stopPropagation();openEditForm('oc-timeline','${r.id}')">${lucide('pencil',16)}</span>`;
+      html += `<span class="btn-icon danger" style="font-size:12px;width:24px;height:24px" onclick="event.stopPropagation();onDelete('oc-timeline','${r.id}')">${lucide('trash-2',16)}</span>`;
       html += '</div>';
       html += '</div></div>';
     });
@@ -4580,7 +4723,7 @@ function renderRelations() {
   html += '<button class="btn btn-primary" onclick="openAddForm(\'oc-relations\')">+ 新增关系</button></div>';
   // v30-fix: 自定义关系类型管理放回「关系类型」字段内，不再外置独立卡片
   if (chars.length === 0) {
-    html += '<div class="empty-state"><div class="empty-icon">🔗</div><div class="empty-text">请先在「人物档案」中添加OC人物</div></div>';
+    html += `<div class="empty-state"><div class="empty-icon">${lucide('link',32)}</div><div class="empty-text">请先在「人物档案」中添加OC人物</div></div>`;
   } else {
     // Mind map (with zoom controls)
     html += '<div class="mindmap-container" id="mindmapContainer">';
@@ -4632,8 +4775,8 @@ function renderRelations() {
         html += '<div class="record-card-header"><div class="record-card-title">';
         html += `${esc(a)} <span style="color:var(--c-text-muted)">↔</span> ${esc(b)}`;
         html += '</div><div class="record-card-actions">';
-        html += `<span class="btn-icon" onclick="event.stopPropagation();openOcRelationGroupEdit('${first.id}')">✏️</span>`;
-        html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDeleteOcRelationGroup('${first.id}')">🗑️</span>`;
+        html += `<span class="btn-icon" onclick="event.stopPropagation();openOcRelationGroupEdit('${first.id}')">${lucide('pencil',16)}</span>`;
+        html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDeleteOcRelationGroup('${first.id}')">${lucide('trash-2',16)}</span>`;
         html += '</div></div>';
         html += '<div class="record-card-body detail-relations" style="margin:0">';
         group.forEach(r => {
@@ -5254,7 +5397,7 @@ function dcRenderProducts() {
     if (p.sameModel) {
       html += `<div class="combobox-wrapper dc-prod-model-type-wrapper"><input type="text" class="form-input combobox-input dc-prod-model-type" value="${esc(modelTypeLabel)}" placeholder="请选择同模类型" readonly onfocus="showComboboxDropdown('${modelCbId}')" onclick="showComboboxDropdown('${modelCbId}')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${modelCbId}')">▼</button><div class="combobox-dropdown" id="${modelCbId}">${modelOptsHTML}</div></div>`;
     }
-    html += `<button type="button" class="btn btn-ghost btn-sm dc-prod-del" onclick="dcRemoveProduct(${i})">✕</button>`;
+    html += `<button type="button" class="btn btn-ghost btn-sm dc-prod-del" onclick="dcRemoveProduct(${i})">${lucide('x',16)}</button>`;
     html += `</div>`;
     html += '</div>';
   });
@@ -5406,7 +5549,7 @@ function dcRenderExtras() {
     html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-extra-name" value="${esc(e.name)}" placeholder="名称" onfocus="showComboboxDropdown('${nameCbId}')" onclick="showComboboxDropdown('${nameCbId}')" oninput="dcUpdateExtra(${i},'name',this.value);dcFillPrice(this,'extra',${i});filterComboboxDropdown('${nameCbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${nameCbId}')">▼</button><div class="combobox-dropdown" id="${nameCbId}">${optHTML}</div></div>`;
     html += `<input type="number" class="form-input dc-extra-qty" value="${e.quantity}" placeholder="数量" min="1" oninput="dcUpdateExtra(${i},'quantity',this.value)">`;
     html += `<input type="number" class="form-input dc-extra-price" value="${e.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateExtra(${i},'price',this.value)">`;
-    html += `<button type="button" class="btn btn-ghost btn-sm dc-extra-del" onclick="dcRemoveExtra(${i})">✕</button>`;
+    html += `<button type="button" class="btn btn-ghost btn-sm dc-extra-del" onclick="dcRemoveExtra(${i})">${lucide('x',16)}</button>`;
     html += '</div>';
   });
   c.innerHTML = html;
@@ -5469,7 +5612,7 @@ function dcRenderModifications() {
     html += `<input type="number" class="form-input dc-mod-count" value="${m.modifyCount}" placeholder="次数" min="1" oninput="dcUpdateModification(${i},'modifyCount',this.value)">`;
     html += `<input type="number" class="form-input dc-mod-price" value="${m.modifyPrice}" placeholder="价格" min="0" step="0.01" oninput="dcUpdateModification(${i},'modifyPrice',this.value)">`;
     html += `<input type="text" class="form-input dc-mod-note" value="${esc(m.note||'')}" placeholder="备注" oninput="dcUpdateModification(${i},'note',this.value)">`;
-    html += `<button type="button" class="btn btn-ghost btn-sm dc-mod-del" onclick="dcRemoveModification(${i})">✕</button>`;
+    html += `<button type="button" class="btn btn-ghost btn-sm dc-mod-del" onclick="dcRemoveModification(${i})">${lucide('x',16)}</button>`;
     html += '</div>';
   });
   c.innerHTML = html;
@@ -6168,7 +6311,7 @@ function renderPriceList() {
   let html = '<div class="fade-in">';
   // v27: toolbar→其他说明 8px（用 inline mb 覆盖 .toolbar 默认 mb:16，避免塌陷）
   html += '<div class="toolbar" style="margin-bottom:8px">';
-  html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onSearch('design-pricelist', this.value)"><span class="search-icon">🔍</span></div>`;
+  html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onSearch('design-pricelist', this.value)"><span class="search-icon">${lucide('search',16)}</span></div>`;
   html += '<div class="spacer"></div>';
   html += '<button class="btn btn-outline toolbar-eq" onclick="togglePriceListNotes()">📝 其他说明</button>';
   html += '<button class="btn btn-outline toolbar-eq" onclick="openPriceListSort()">↕️ 调整排序</button>';
@@ -6195,7 +6338,7 @@ function renderPriceList() {
   }
 
   if (!records.length) {
-    html += '<div class="empty-state"><div class="empty-icon">💰</div><div class="empty-text">暂无价目，点击「新增价目」开始添加</div></div>';
+    html += `<div class="empty-state"><div class="empty-icon">${lucide('wallet',32)}</div><div class="empty-text">暂无价目，点击「新增价目」开始添加</div></div>`;
   } else {
     // Menu/receipt style layout
     html += '<div class="pricelist-menu">';
@@ -6401,7 +6544,7 @@ function renderThemeSettings(html) {
     html += '<h4 style="font-size:14px;margin:20px 0 12px;color:var(--c-primary)">已保存方案</h4>';
     html += '<div class="preset-themes">';
     customThemes.forEach((ct, i) => {
-      html += `<div class="preset-theme custom-theme-chip" style="background:${ct.primary}" onclick="applyCustomTheme(${i})" title="应用「${ct.name}」">${ct.name}<span class="ct-del" onclick="event.stopPropagation();deleteCustomTheme(${i})" title="删除">✕</span></div>`;
+      html += `<div class="preset-theme custom-theme-chip" style="background:${ct.primary}" onclick="applyCustomTheme(${i})" title="应用「${ct.name}」">${ct.name}<span class="ct-del" onclick="event.stopPropagation();deleteCustomTheme(${i})" title="删除">${lucide('x',16)}</span></div>`;
     });
     html += '</div>';
   }
@@ -6531,7 +6674,7 @@ function renderFieldSettings(html) {
       const allOpts = customOpts.length ? customOpts : defaultOpts;
       let block = `<div style="margin-bottom:12px"><div class="option-field-block"><div class="option-field-title">${esc(label)}</div><div class="option-field-inputs" id="opts_${fieldKey}">`;
       allOpts.forEach((opt, i) => {
-        block += `<div class="option-edit-item"><input type="text" value="${esc(opt)}" data-opt-key="${fieldKey}" data-idx="${i}"><button class="btn-icon danger" onclick="this.parentElement.remove()">🗑️</button></div>`;
+        block += `<div class="option-edit-item"><input type="text" value="${esc(opt)}" data-opt-key="${fieldKey}" data-idx="${i}"><button class="btn-icon danger" onclick="this.parentElement.remove()">${lucide('trash-2',16)}</button></div>`;
       });
       block += `<div class="option-edit-item" style="margin-bottom:0"><button class="btn btn-primary add-opt-btn" onclick="addOptionItem('${fieldKey}')">+ 添加选项</button><span class="option-delete-placeholder"></span></div>`;
       block += `</div></div></div>`;
@@ -6597,7 +6740,7 @@ function addOptionItem(fieldKey) {
   if (!container) return;
   const item = document.createElement('div');
   item.className = 'option-edit-item';
-  item.innerHTML = `<input type="text" value="" data-opt-key="${fieldKey}" data-idx="-1"><button class="btn-icon danger" onclick="this.parentElement.remove()">🗑️</button>`;
+  item.innerHTML = `<input type="text" value="" data-opt-key="${fieldKey}" data-idx="-1"><button class="btn-icon danger" onclick="this.parentElement.remove()">${lucide('trash-2',16)}</button>`;
   const addBtn = container.querySelector('.add-opt-btn');
   if (addBtn) container.insertBefore(item, addBtn);
   else container.appendChild(item);
@@ -8466,7 +8609,7 @@ function renderSleepRecordCard(date) {
   const all = DB.list('lifeRecords');
   const sleepSubs = lifeRecordSubtypes('sleep');
   let html = `<div class="lr-card">
-    <div class="lr-card-head"><span class="lr-card-title">😴 睡眠记录</span><button class="lr-head-add" onclick="lifeRecOpenForm('sleep','night')" title="新增睡眠记录">新增记录</button></div>
+    <div class="lr-card-head"><span class="lr-card-title">${lucide('bed-double',18)} 睡眠记录</span><button class="lr-head-add" onclick="lifeRecOpenForm('sleep','night')" title="新增睡眠记录">新增记录</button></div>
     <div class="lr-card-body">`;
   sleepSubs.forEach(st => {
     const recs = all.filter(r => r.type === 'sleep' && r.subtype === st.key && r.date === date).sort((a, b) => (a._ct || 0) - (b._ct || 0));
@@ -8484,7 +8627,7 @@ function renderDietRecordCard(date) {
   const all = DB.list('lifeRecords');
   const dietSubs = lifeRecordSubtypes('diet');
   let html = `<div class="lr-card">
-    <div class="lr-card-head"><span class="lr-card-title">🍚 饮食记录</span><button class="lr-head-add" onclick="lifeRecOpenForm('diet','breakfast')" title="新增饮食记录">新增记录</button></div>
+    <div class="lr-card-head"><span class="lr-card-title">${lucide('utensils',18)} 饮食记录</span><button class="lr-head-add" onclick="lifeRecOpenForm('diet','breakfast')" title="新增饮食记录">新增记录</button></div>
     <div class="lr-card-body">`;
   dietSubs.forEach(st => {
     const recs = all.filter(r => r.type === 'diet' && r.subtype === st.key && r.date === date).sort((a, b) => (a._ct || 0) - (b._ct || 0));
@@ -9187,7 +9330,7 @@ function renderCommissionDetailPage() {
 
   // 3) 搜索条（无新增按钮）
   html += '<div class="toolbar cd-toolbar">';
-  html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onCdSearch(this.value)"><span class="search-icon">🔍</span></div>`;
+  html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onCdSearch(this.value)"><span class="search-icon">${lucide('search',16)}</span></div>`;
   html += '</div>';
 
   // 4) 接稿条模块：按月分页，一页最多 10 条，开稿日期最近在最上
@@ -9246,7 +9389,7 @@ function renderCommissionDetailPage() {
   const pageRecs = monthRecs.slice((ps.cdPage - 1) * PER_PAGE, ps.cdPage * PER_PAGE);
 
   if (!pageRecs.length) {
-    html += '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">本月暂无约稿条，使用上方导入渠道添加</div></div>';
+    html += `<div class="empty-state"><div class="empty-icon">${lucide('inbox',32)}</div><div class="empty-text">本月暂无约稿条，使用上方导入渠道添加</div></div>`;
   } else {
     html += '<div class="cd-rec-list">';
     pageRecs.forEach(r => {
@@ -9263,8 +9406,8 @@ function renderCommissionDetailPage() {
           <span class="cd-rec-cat">${esc(r.category || '')}</span>
           ${prog ? `<span class="cd-rec-pill" data-progress="${esc(prog)}">${esc(prog)}</span>` : ''}
           <span class="cd-rec-actions">
-            <span class="btn-icon" onclick="event.stopPropagation();openCdEditForm('${r.id}')">✏️</span>
-            <span class="btn-icon danger" onclick="event.stopPropagation();onCdDelete('${r.id}')">🗑️</span>
+            <span class="btn-icon" onclick="event.stopPropagation();openCdEditForm('${r.id}')">${lucide('pencil',16)}</span>
+            <span class="btn-icon danger" onclick="event.stopPropagation();onCdDelete('${r.id}')">${lucide('trash-2',16)}</span>
           </span>
         </div>`;
       if (!collapsed) html += `<div class="cd-rec-body">${renderCdFullRecord(r)}</div>`;
@@ -10176,7 +10319,7 @@ function saveCdClientForm(pageKey, standalone) {
   DB.add('commissionDetails', data);
   if (standalone) {
     const body = $('#mainBody');
-    body.innerHTML = '<div class="cd-client-done"><div class="cd-client-done-icon">✅</div><div class="cd-client-done-title">提交成功，感谢填写！</div><div class="cd-client-done-sub">您可关闭本页面，画手将收到您的信息。</div></div>';
+    body.innerHTML = `<div class="cd-client-done"><div class="cd-client-done-icon">${lucide('circle-check-big',32)}</div><div class="cd-client-done-title">提交成功，感谢填写！</div><div class="cd-client-done-sub">您可关闭本页面，画手将收到您的信息。</div></div>`;
     return;
   }
   Toast.success('单主填写内容已保存到本地，请编辑补填「单主」等内部信息');
@@ -10197,6 +10340,7 @@ function init() {
   normalizeOcProfileSocial();
   Sync.load();
   initEvents();
+  renderAppLogo();
   // 单主填写链接优先接管：在渲染首页之前检测，避免先闪出工作台
   const _cdParams = new URLSearchParams(window.location.search);
   if (_cdParams.get('cd_client') === '1') {
