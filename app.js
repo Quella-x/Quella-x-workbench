@@ -2616,11 +2616,14 @@ function renderListPage(pageKey, mod) {
     return ff ? { key: ff.key, label: ff.label } : null;
   }).filter(Boolean).sort((a, b) => _orderedKeys.indexOf(a.key) - _orderedKeys.indexOf(b.key));
 
+  const isGbTwoCol = pageKey === 'groupbuy-records';
+  const gbWrapped = isGbTwoCol && records.length > 0;
   if (!records.length) {
     const emptyCls = isCommDual ? ' class="empty-state" style="grid-column:1/-1"' : ' class="empty-state"';
     html += `<div${emptyCls}><div class="empty-icon">📋</div><div class="empty-text">暂无记录，点击新增开始添加</div></div>`;
   } else {
     const twoCol = TWO_COL_MODULES.includes(pageKey) ? ' two-col' : '';
+    if (gbWrapped) { html += '<div class="gb-records-2col"><div class="gb-left">'; }
     if (!isCommDual) { const _calViewCls = ((pageKey === 'design-commission' && ps.viewMode === 'calendar') || CAL_VIEW_STYLE_MODULES.includes(pageKey)) ? ' cal-view' : ''; html += `<div class="record-list${twoCol}${_calViewCls}">`; }
     pagedRecords.forEach(r => {
       const isOverdue = mod.isOverdue && mod.isOverdue(r);
@@ -2725,6 +2728,7 @@ function renderListPage(pageKey, mod) {
       html += '</div>';
     }
   }
+  if (gbWrapped) { html += '</div>'; } // close .gb-left
 
   // v641：关闭接稿排期日历视图双列容器（桌面双列 / 移动端单列）
   if (commissionAllRecords) {
@@ -2737,6 +2741,7 @@ function renderListPage(pageKey, mod) {
 
   // Chart + Stats (总结部分与记录隔开, 两列布局, 实色分割线)
   if (mod.chart || mod.stats) {
+    if (gbWrapped) { html += '<div class="gb-right">'; }
     html += '<div class="stats-divider"></div>';
     html += '<div class="chart-stats-2col">';
     if (mod.chart) html += '<div class="cs-col cs-col-chart">' + mod.chart(DB.list(store)) + '</div>';
@@ -2753,7 +2758,9 @@ function renderListPage(pageKey, mod) {
     }
     html += '</div>';
     html += '</div>';
+    if (gbWrapped) { html += '</div>'; } // close .gb-right
   }
+  if (gbWrapped) { html += '</div>'; } // close .gb-records-2col
   html += '</div>';
   body.innerHTML = html;
 }

@@ -436,12 +436,20 @@ ul,li{list-style:none}
   .chart-stats-2col .cs-col + .cs-col{margin-top:16px}
   .chart-stats-2col .cs-col-chart .annual-chart{margin-bottom:0;width:100%}
   .chart-stats-2col .cs-col-stats .stats-section{margin-top:0;width:100%}
+  /* v666：电脑端开团记录两列（左列表、右图+统计，右栏 sticky 固定仅左滚） */
+  .gb-records-2col{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+  .gb-records-2col .gb-left{min-width:0}
+  .gb-records-2col .gb-right{position:sticky;top:12px;align-self:start}
+  .gb-records-2col .stats-divider{display:none}
+  .gb-records-2col .chart-stats-2col{margin-top:0}
 }
 @media (max-width:640px){
   .comm-cal-two-col{display:block}
   .comm-cal-two-col .comm-cal-col + .comm-cal-col{margin-top:16px}
   /* v660：手机端图表统计保持单列（顺序同原版） */
   .chart-stats-2col{display:block}
+  /* v666：开团记录两列仅电脑端，手机端单列堆叠 */
+  .gb-records-2col{display:block}
 }
 /* v640：手机端接稿排期日历标签完全镜像首页（圆点 4px 正圆，与首页一致） */
 @media (max-width:640px){
@@ -2785,7 +2793,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=665"></script>
+  <script src="app.js?v=666"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
