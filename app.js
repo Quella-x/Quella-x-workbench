@@ -8576,36 +8576,8 @@ function renderLifeRecordHistoryDayCard(typeKey, dateStr, wdLabel) {
     <div class="lr-history-day-body">${body}</div>
   </div>`;
 }
-function renderLifeRecordHistoryWeekNav(typeKey) {
-  const ps = pageState['life-record'];
-  const today = todayStr();
-  const base = weekMondayOf(parseDateStr(today));
-  base.setDate(base.getDate() + (ps.weekOffset || 0) * 7);
-  const days = [];
-  for (let j = 0; j < 7; j++) { const d = new Date(base); d.setDate(base.getDate() + j); days.push(fmtDate(d)); }
-  // 历史视图周导航：样式与每日打卡周视图日期条一致（居中、主色数字范围）
-  const rangeTxt = `${Number(days[0].slice(5, 7))}/${Number(days[0].slice(8, 10))} - ${Number(days[6].slice(5, 7))}/${Number(days[6].slice(8, 10))}`;
-  return `<div class="lr-week-nav">
-    <button class="btn btn-ghost btn-sm" onclick="lifeRecordHistoryPrevWeek()">‹ 上一周</button>
-    <span class="life-monthbar-txt" onclick="lifeRecordHistoryToggleWeekPicker()" style="cursor:pointer">${rangeTxt} ▾</span>
-    <button class="btn btn-ghost btn-sm" onclick="lifeRecordHistoryNextWeek()" ${ps.weekOffset >= 0 ? 'disabled' : ''}>下一周 ›</button>
-    <div class="life-month-picker ${lifeRecordHistoryWeekPickerOpen ? 'show' : ''}" id="lrHistoryWeekPicker">${lifeRecordHistoryWeekPickerInner()}</div>
-    <div class="life-picker-backdrop" id="lrHistoryWeekBackdrop" onclick="lifeRecordHistoryToggleWeekPicker()" style="display:${lifeRecordHistoryWeekPickerOpen ? 'block' : 'none'}"></div>
-  </div>`;
-}
-function renderLifeRecordHistoryChart(typeKey) {
-  const ps = pageState['life-record'];
-  const today = todayStr();
-  const base = weekMondayOf(parseDateStr(today));
-  base.setDate(base.getDate() + (ps.weekOffset || 0) * 7);
-  const days = [];
-  for (let j = 0; j < 7; j++) { const d = new Date(base); d.setDate(base.getDate() + j); days.push(fmtDate(d)); }
-  // v353：历史页周图表倒序（周日→周一），与日卡片对齐
-  const daysRev = days.slice().reverse();
-  if (typeKey === 'sleep') return renderSleepWeekLineChart(daysRev);
-  return renderDietWeekStats(daysRev);
-}
-function renderLifeRecordHistoryDays(typeKey) {
+
+function renderLifeRecordHistory(typeKey) {
   const ps = pageState['life-record'];
   const today = todayStr();
   const base = weekMondayOf(parseDateStr(today));
@@ -8616,7 +8588,18 @@ function renderLifeRecordHistoryDays(typeKey) {
   // v353: 历史页日卡片整体倒序（周日→周一），与「最新在前」习惯一致；周图表同步倒序以保持对齐
   const daysRev = days.slice().reverse();
   const wdRev = wd.slice().reverse();
-  let html = '';
+  const def = LIFE_RECORD_DEFS[typeKey];
+  // 历史视图周导航：样式与每日打卡周视图日期条一致（居中、主色数字范围）
+  const rangeTxt = `${Number(days[0].slice(5, 7))}/${Number(days[0].slice(8, 10))} - ${Number(days[6].slice(5, 7))}/${Number(days[6].slice(8, 10))}`;
+  let html = `<div class="lr-week-nav">
+    <button class="btn btn-ghost btn-sm" onclick="lifeRecordHistoryPrevWeek()">‹ 上一周</button>
+    <span class="life-monthbar-txt" onclick="lifeRecordHistoryToggleWeekPicker()" style="cursor:pointer">${rangeTxt} ▾</span>
+    <button class="btn btn-ghost btn-sm" onclick="lifeRecordHistoryNextWeek()" ${ps.weekOffset >= 0 ? 'disabled' : ''}>下一周 ›</button>
+    <div class="life-month-picker ${lifeRecordHistoryWeekPickerOpen ? 'show' : ''}" id="lrHistoryWeekPicker">${lifeRecordHistoryWeekPickerInner()}</div>
+    <div class="life-picker-backdrop" id="lrHistoryWeekBackdrop" onclick="lifeRecordHistoryToggleWeekPicker()" style="display:${lifeRecordHistoryWeekPickerOpen ? 'block' : 'none'}"></div>
+  </div>`;
+  if (typeKey === 'sleep') html += renderSleepWeekLineChart(daysRev);
+  else html += renderDietWeekStats(daysRev);
   daysRev.forEach((d, i) => { html += renderLifeRecordHistoryDayCard(typeKey, d, wdRev[i]); });
   return html;
 }
@@ -8708,28 +8691,19 @@ function renderLifeRecord() {
   if (lifeRecordDatePickerM == null) lifeRecordDatePickerM = Number(date.slice(5, 7));
   if (!lifeRecordDatePickerStep) lifeRecordDatePickerStep = 'month';
   const all = DB.list('lifeRecords');
-  const toggleRow = `<div class="lr-toggle-row">
+  let html = '<div class="fade-in life-record-page">';
+  html += renderLifeRecordTopCard(all, date);
+  html += `<div class="lr-toggle-row">
     <button class="lr-toggle-btn ${ps.view === 'sleep-history' ? 'active' : ''}" onclick="lifeRecordToggleView('sleep-history')">睡眠记录</button>
     <button class="lr-toggle-btn ${ps.view === 'diet-history' ? 'active' : ''}" onclick="lifeRecordToggleView('diet-history')">饮食记录</button>
   </div>`;
-  const lrViewCls = (ps.view === 'sleep-history' || ps.view === 'diet-history') ? 'history-view' : 'home-view';
-  let html = '<div class="fade-in life-record-page">';
-  html += '<div class="lr-2col ' + lrViewCls + '">';
+  // 日期切换条只在首页展示；历史视图顶部由 renderLifeRecordHistory 自带周导航
   if (ps.view === 'sleep-history' || ps.view === 'diet-history') {
-    // 历史视图（电脑端双列）：左=按钮+折线图+一周汇总；右=顶部卡片+记录模块
-    const tk = ps.view === 'sleep-history' ? 'sleep' : 'diet';
-    html += '<div class="lr-block lr-b-topcard">' + renderLifeRecordTopCard(all, date) + '</div>';
-    html += '<div class="lr-block lr-b-toggle">' + toggleRow + '</div>';
-    html += '<div class="lr-block lr-b-weeknav">' + renderLifeRecordHistoryWeekNav(tk) + '</div>';
-    html += '<div class="lr-block lr-b-chart">' + renderLifeRecordHistoryChart(tk) + '</div>';
-    html += '<div class="lr-block lr-b-days">' + renderLifeRecordHistoryDays(tk) + '</div>';
+    html += renderLifeRecordHistory(ps.view === 'sleep-history' ? 'sleep' : 'diet');
   } else {
-    // 首页（电脑端双列）：左=日期条+记录块；右=顶部卡片+按钮
-    html += '<div class="lr-block lr-b-topcard">' + renderLifeRecordTopCard(all, date) + '</div>';
-    html += '<div class="lr-block lr-b-toggle">' + toggleRow + '</div>';
-    html += '<div class="lr-block lr-b-datenav">' + lifeRecordDateNavHtml() + '</div>';
-    html += '<div class="lr-block lr-b-sleep">' + renderSleepRecordCard(date) + '</div>';
-    html += '<div class="lr-block lr-b-diet">' + renderDietRecordCard(date) + '</div>';
+    html += lifeRecordDateNavHtml();
+    html += renderSleepRecordCard(date);
+    html += renderDietRecordCard(date);
   }
   html += '</div>';
   body.innerHTML = html;

@@ -428,28 +428,16 @@ ul,li{list-style:none}
   .home-cal-insp .home-insp{margin-top:0;padding-top:12px}
   /* v641：电脑端接稿排期日历视图双列（日历左、列表右，移动端单列） */
   .comm-cal-two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
-  /* v660：电脑端每日记录双列（首页：左记录块/右卡片+按钮；历史：左按钮+图/汇总、右记录模块） */
-  .lr-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
-  .lr-2col .lr-block{min-width:0}
-  .lr-2col.home-view .lr-b-topcard{grid-column:2;grid-row:1}
-  .lr-2col.home-view .lr-b-toggle{grid-column:2;grid-row:2}
-  .lr-2col.home-view .lr-b-datenav{grid-column:1;grid-row:1}
-  .lr-2col.home-view .lr-b-sleep{grid-column:1;grid-row:2}
-  .lr-2col.home-view .lr-b-diet{grid-column:1;grid-row:3}
-  .lr-2col.history-view .lr-b-topcard{grid-column:2;grid-row:1}
-  .lr-2col.history-view .lr-b-toggle{grid-column:1;grid-row:1}
-  .lr-2col.history-view .lr-b-weeknav{grid-column:1;grid-row:2}
-  .lr-2col.history-view .lr-b-chart{grid-column:1;grid-row:3}
-  .lr-2col.history-view .lr-b-days{grid-column:2;grid-row:2}
   /* v660：电脑端列表/首页平台图表+统计双列；厂家记录仅统计也双列（右列留空） */
-  .chart-stats-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  .chart-stats-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch}
   .chart-stats-2col .cs-col{min-width:0}
+  .chart-stats-2col .cs-col-chart .annual-chart{margin-bottom:0}
+  .chart-stats-2col .cs-col-stats .stats-section{margin-top:0}
 }
 @media (max-width:640px){
   .comm-cal-two-col{display:block}
   .comm-cal-two-col .comm-cal-col + .comm-cal-col{margin-top:16px}
-  /* v660：手机端每日记录/图表统计保持单列（顺序同原版） */
-  .lr-2col{display:flex;flex-direction:column}
+  /* v660：手机端图表统计保持单列（顺序同原版） */
   .chart-stats-2col{display:block}
 }
 /* v640：手机端接稿排期日历标签完全镜像首页（圆点 4px 正圆，与首页一致） */
@@ -2790,7 +2778,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=660"></script>
+  <script src="app.js?v=661"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
