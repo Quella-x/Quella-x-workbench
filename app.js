@@ -2338,7 +2338,7 @@ MODULES['oc-commission'] = {
     const done = records.filter(r => valIncludes(r.status, '已完成')).length;
     const scoreMap = { '非常满意': 100, '满意': 80, '一般': 60, '不满意': 40 };
     const scored = records.map(r => scoreMap[(r.evaluation || '').trim()] || null).filter(v => v != null);
-    const satisfaction = scored.length ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length) + '%' : '';
+    const satisfaction = scored.length ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length) + '%' : '0%';
     return [
       { label: '本月约稿数', value: monthCount, unit: '单' },
       { label: '本月花费', value: '¥' + monthFee.toLocaleString() },
