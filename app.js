@@ -1611,7 +1611,7 @@ function renderAnnualChart(records, dateField, opts = {}, pageKey) {
     let labels = ''; for (let i = 0; i < 12; i++) labels += `<span>${i + 1}月</span>`;
     let legend = '';
     series.forEach(s => { legend += `<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:${s.color}"></span>${esc(s.name)}</span>`; });
-    return `<div class="annual-chart"><div class="annual-chart-title">${lucide('bar-chart-3',16)}${esc(title)} · ${yr}年${yearNav}</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div><div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--c-text-light)">${legend}</div></div>`;
+    return `<div class="annual-chart"><div class="annual-chart-title"><span class="annual-chart-title-main">${lucide('bar-chart-3',16)} ${esc(title)} · ${yr}年</span>${yearNav}</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div><div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--c-text-light)">${legend}</div></div>`;
   }
   const months = Array(12).fill(0);
   records.forEach(r => {
@@ -1631,7 +1631,7 @@ function renderAnnualChart(records, dateField, opts = {}, pageKey) {
     bars += '</div>';
   });
   let labels = ''; for (let i = 0; i < 12; i++) labels += `<span>${i + 1}月</span>`;
-  return `<div class="annual-chart"><div class="annual-chart-title">${lucide('bar-chart-3',16)}${esc(title)} · ${yr}年${yearNav}</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div></div>`;
+  return `<div class="annual-chart"><div class="annual-chart-title"><span class="annual-chart-title-main">${lucide('bar-chart-3',16)} ${esc(title)} · ${yr}年</span>${yearNav}</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div></div>`;
 }
 
 /* ===== Navigation Config ===== */
@@ -1976,9 +1976,9 @@ MODULES['design-commission'] = {
     const totalRev = records.filter(isPaid).reduce((s, r) => s + (parseNum(r.quoteAmount) || parseNum(r.amount) || 0), 0);
     const monthRev = records.filter(r => (r.acceptTime || '').startsWith(thisMonthStr()) && isPaid(r)).reduce((s, r) => s + (parseNum(r.quoteAmount) || parseNum(r.amount) || 0), 0);
     return [
-      { label: '本月收入', value: '¥' + monthRev.toLocaleString(), sub: '已收款' },
+      { label: '本月收入', value: '¥' + monthRev.toLocaleString() },
       { label: '总接稿', value: records.length, unit: '单' },
-      { label: '总收入', value: '¥' + totalRev.toLocaleString(), sub: '累计' },
+      { label: '总收入', value: '¥' + totalRev.toLocaleString() },
     ];
   },
   statsTitle: '接稿统计',
@@ -2581,7 +2581,7 @@ function renderSidebar() {
 function renderStatsSection(stats, title, scope, pageKey) {
   scope = scope || 'all';
   let html = `<div class="stats-section">`;
-  html += `<div class="stats-section-title">${lucide('bar-chart-3',14)} ${esc(title || '总结')}`;
+  html += `<div class="stats-section-title"><span class="stats-section-title-main">${lucide('bar-chart-3',14)} ${esc(title || '总结')}</span>`;
   if (pageKey) {
     html += `<div class="stats-scope-toggle">`;
     html += `<button class="btn btn-xs ${scope === 'all' ? 'btn-primary' : 'btn-outline'}" onclick="setStatsScope('${pageKey}','all')">全部</button>`;
@@ -2664,7 +2664,7 @@ function renderListPage(pageKey, mod) {
     const chars = DB.list('ocCharacters');
     if (!ps.personFilter) ps.personFilter = null;
     html += '<div class="relation-person-row">';
-    html += `<div class="relation-person-btn ${!ps.personFilter ? 'active' : ''}" onclick="setPersonFilter('${pageKey}','')"><span>${lucide('list',14)} 全部</span></div>`;
+    html += `<div class="relation-person-btn ${!ps.personFilter ? 'active' : ''}" onclick="setPersonFilter('${pageKey}','')"><span>${lucide('menu',14)} 全部</span></div>`;
     html += '<div class="relation-person-grid collapsed distribute">';
     chars.forEach(c => {
       const active = ps.personFilter === c.name ? 'active' : '';
@@ -2689,10 +2689,6 @@ function renderListPage(pageKey, mod) {
 
   // Toolbar (新增置顶)：始终占满顶部，不参与双栏
   html += '<div class="toolbar">';
-  /* v689：四个页面顶部加 ☰ 折叠按钮（手机端收缩导航风格，折叠顶部 view-toggle / 人物筛选条） */
-  if (['design-commission','oc-relations','oc-stories','oc-timeline'].includes(pageKey)) {
-    html += `<button class="btn btn-outline toolbar-eq toolbar-toggle-btn" onclick="togglePageTopBar('${pageKey}')" title="折叠/展开顶部">${lucide('menu',16)}</button>`;
-  }
   html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onSearch('${pageKey}', this.value)"><span class="search-icon">${lucide('search',16)}</span></div>`;
   if (mod.filters) {
     let modFilters = mod.filters;
@@ -2716,18 +2712,6 @@ function renderListPage(pageKey, mod) {
   }
   html += `<button class="btn btn-primary" onclick="openAddForm('${pageKey}')">+ 新增记录</button>`;
   html += '</div>';
-
-  /* v689：四个页面 ☰ 折叠按钮的回调。design-commission 折叠 view-toggle-top（日历/列表）；
-     人物关系/故事小记/时间线 折叠 relation-person-row（人物筛选条）。 */
-function togglePageTopBar(pageKey) {
-  const main = $('#mainBody');
-  if (!main) return;
-  if (pageKey === 'design-commission') {
-    main.classList.toggle('hide-topbar');
-  } else if (['oc-relations','oc-stories','oc-timeline'].includes(pageKey)) {
-    main.classList.toggle('hide-topbar');
-  }
-}
 
   // Commission calendar view: 默认日历视图；日历在上，列表在下
   let commissionAllRecords = null;
@@ -4320,7 +4304,7 @@ function renderTimeline() {
   // Person name buttons (text only) — at very top (like stories page)
   // v16: 全部按钮常驻，即使没有人物档案也显示
   html += '<div class="relation-person-row">';
-  html += `<div class="relation-person-btn ${!ps.personFilter ? 'active' : ''}" onclick="timelinePersonFilter('')"><span>${lucide('list',14)} 全部</span></div>`;
+  html += `<div class="relation-person-btn ${!ps.personFilter ? 'active' : ''}" onclick="timelinePersonFilter('')"><span>${lucide('menu',14)} 全部</span></div>`;
   html += '<div class="relation-person-grid collapsed distribute">';
   chars.forEach(c => {
     const active = ps.personFilter === c.name ? 'active' : '';
@@ -4712,7 +4696,7 @@ async function onDeleteOcRelationGroup(id) {
   const group = getOcRelationGroup(id);
   if (!group || !group.length) return;
   const a = pureOcName(group[0].charA), b = pureOcName(group[0].charB);
-  if (await confirmDialog(`确定要删除「${a} 与 ${b}」的 ${group.length} 条关系吗？此操作不可撤销。`)) {
+  if (await confirmDialog(`确定要删除「${a} ↔ ${b}」的 ${group.length} 条关系吗？此操作不可撤销。`)) {
     group.forEach(r => { DB.remove('ocRelations', r.id); removeOcRelationRefs(r); });
     Toast.success('已删除');
     navigate('oc-relations');
@@ -4753,7 +4737,7 @@ function renderRelations() {
     if (chars.length) {
       html += `<div style="margin-top:16px"><div style="font-size:13px;font-weight:600;color:var(--c-primary-dark);margin-bottom:8px">${lucide('users',16)} 人物关系快捷查看</div>`;
       html += '<div class="relation-person-row">';
-      html += `<div class="relation-person-btn active" onclick="showAllPersonRelations(this)"><span>${lucide('list',14)} 全部</span></div>`;
+      html += `<div class="relation-person-btn active" onclick="showAllPersonRelations(this)"><span>${lucide('menu',14)} 全部</span></div>`;
       html += '<div class="relation-person-grid collapsed distribute">';
       chars.forEach(c => {
         html += `<div class="relation-person-btn" onclick="togglePersonRelations('${esc(c.name)}', this)"><span>${esc(c.name)}</span></div>`;
@@ -4787,7 +4771,7 @@ function renderRelations() {
         const a = pureOcName(first.charA), b = pureOcName(first.charB);
         html += `<div class="record-card" onclick="openDetail('oc-relations','${first.id}')">`;
         html += '<div class="record-card-header"><div class="record-card-title">';
-        html += `${esc(a)} <span style="color:var(--c-text-muted)">与</span> ${esc(b)}`;
+        html += `${esc(a)} <span style="color:var(--c-text-muted)">↔</span> ${esc(b)}`;
         html += '</div><div class="record-card-actions">';
         html += `<span class="btn-icon" onclick="event.stopPropagation();openOcRelationGroupEdit('${first.id}')">${lucide('pencil',16)}</span>`;
         html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDeleteOcRelationGroup('${first.id}')">${lucide('trash-2',16)}</span>`;
@@ -4858,7 +4842,7 @@ function showAllPersonRelations(btn) {
         const color = RELATION_COLORS[rt] || '#b0b8c0';
         html += `<span class="tag" style="background:${color}20;color:${color}">${esc(rt)}</span>`;
       });
-      html += `<span style="color:var(--c-text-muted)"><b>${esc(a)}</b> 与 <b>${esc(b)}</b></span></div>`;
+      html += `<span style="color:var(--c-text-muted)"><b>${esc(a)}</b> ↔ <b>${esc(b)}</b></span></div>`;
     });
   }
   expand.innerHTML = html;
