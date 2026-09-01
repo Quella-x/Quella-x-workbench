@@ -110,7 +110,9 @@ ul,li{list-style:none}
 .sidebar-logo{display:flex;align-items:center;gap:8px;color:#fff;white-space:nowrap;overflow:hidden;height:100%}
 /* v686：Logo 改为固定尺寸图片模块，支持点击上传自定义图片 */
 /* v687：去掉色块胶囊，让图片与文字直接 flex 居中一条直线 */
-.sidebar-logo .logo-icon{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;line-height:1}
+.sidebar-logo{align-items:baseline}
+.sidebar-logo .logo-icon{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:8px;overflow:hidden;cursor:pointer;background:rgba(255,255,255,.18);font-size:20px;align-self:center}
+.sidebar-logo .logo-icon:hover{background:rgba(255,255,255,.3)}
 .sidebar-logo .logo-icon img{width:28px;height:28px;object-fit:cover;display:block}
 .sidebar-logo .logo-text{font-size:16px;font-weight:600;opacity:1;transition:opacity .2s;display:flex;align-items:center}
 .sidebar.collapsed .sidebar-logo .logo-text{opacity:0;width:0}
@@ -1543,7 +1545,8 @@ ul,li{list-style:none}
 /* ===== Lucide 图标统一规范（v686） =====
    尺寸由 lucide(name,size) 参数控制；此处只统一显示方式与基线对齐。
    颜色统一继承 currentColor（随父级文字色变化），线宽统一 2（见图标表）。 */
-.lucide-icon{display:inline-block;vertical-align:-0.125em;flex-shrink:0}
+/* v688：vertical-align:middle 把图标中心对齐到文字 x-height 中心，消除全局偏上 */
+.lucide-icon{display:inline-block;vertical-align:middle;flex-shrink:0}
 .icon-preview .lucide-icon{width:18px;height:18px;vertical-align:middle}
 .empty-icon .lucide-icon{width:32px;height:32px;vertical-align:middle;opacity:.55}
 .search-icon .lucide-icon{width:16px;height:16px;vertical-align:middle}
@@ -2367,7 +2370,8 @@ ul,li{list-style:none}
 .lr-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-bottom:12px;overflow:hidden}
 .lr-card-head{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--c-primary-bg);border-bottom:1px solid var(--c-border-light)}
 /* v687：标题改为 flex 容器，让图标与文字视觉中心对齐（消除 lucide-icon 基线偏上） */
-.lr-card-title{font-weight:700;font-size:16px;color:var(--c-text);flex:1;display:flex;align-items:center;gap:6px}
+/* v688：撤销 v687 的 flex（vertical-align:middle 已全局生效，不再需要 flex 居中） */
+.lr-card-title{font-weight:700;font-size:16px;color:var(--c-text);flex:1}
 .lr-card-body{padding:10px 12px}
 .lr-subtype-box{display:flex;align-items:center;gap:10px;border:1px solid var(--c-border-light);border-radius:var(--radius-sm);background:#eef7ff;margin-bottom:10px;padding:10px 12px;position:relative}
 .lr-subtype-box:last-child{margin-bottom:0}
@@ -2830,7 +2834,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=687"></script>
+  <script src="app.js?v=688"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

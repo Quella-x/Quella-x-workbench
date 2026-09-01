@@ -1618,7 +1618,7 @@ function renderAnnualChart(records, dateField, opts = {}, pageKey) {
     let labels = ''; for (let i = 0; i < 12; i++) labels += `<span>${i + 1}月</span>`;
     let legend = '';
     series.forEach(s => { legend += `<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:${s.color}"></span>${esc(s.name)}</span>`; });
-    return `<div class="annual-chart"><div class="annual-chart-title">${lucide('bar-chart-3',16)} ${esc(title)} · ${yr}年${yearNav}</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div><div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--c-text-light)">${legend}</div></div>`;
+    return `<div class="annual-chart"><div class="annual-chart-title">${lucide('bar-chart-3',16)}${esc(title)} · ${yr}年${yearNav}</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div><div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--c-text-light)">${legend}</div></div>`;
   }
   const months = Array(12).fill(0);
   records.forEach(r => {
@@ -1638,7 +1638,7 @@ function renderAnnualChart(records, dateField, opts = {}, pageKey) {
     bars += '</div>';
   });
   let labels = ''; for (let i = 0; i < 12; i++) labels += `<span>${i + 1}月</span>`;
-  return `<div class="annual-chart"><div class="annual-chart-title">${lucide('bar-chart-3',16)} ${esc(title)} · ${yr}年${yearNav}</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div></div>`;
+  return `<div class="annual-chart"><div class="annual-chart-title">${lucide('bar-chart-3',16)}${esc(title)} · ${yr}年${yearNav}</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div></div>`;
 }
 
 /* ===== Navigation Config ===== */
@@ -2799,9 +2799,10 @@ function renderListPage(pageKey, mod) {
       html += '<div class="record-card-header">';
       const cardImg = mod.cardImage ? mod.cardImage(r) : null;
       if (cardImg) html += `<img src="${cardImg}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0">`;
-      let titleText = r.title || r.name || r.theme || r.sampleName || r.artworkName || r.clientInfo || '未命名记录';
-      if (isOverdue) titleText = lucide('alert-triangle',14) + ' ' + titleText;
-      html += `<div class="record-card-title">${esc(titleText)}</div>`;
+      const titleText = r.title || r.name || r.theme || r.sampleName || r.artworkName || r.clientInfo || '未命名记录';
+      /* v688 修复：逾期图标（lucide 输出的 SVG 字符串）单独拼接，不走 esc()——之前 esc() 会把 SVG 标签转义成实体显示成文字 */
+      const overdueIcon = isOverdue ? lucide('alert-triangle',14) + ' ' : '';
+      html += `<div class="record-card-title">${overdueIcon}${esc(titleText)}</div>`;
       html += '<div class="record-card-actions">';
       html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('${pageKey}','${r.id}')">${lucide('pencil',16)}</span>`;
       html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('${pageKey}','${r.id}')">${lucide('trash-2',16)}</span>`;
@@ -3953,7 +3954,8 @@ function renderHome() {
     const activeStyle = (ps.view === 'platform' && ps.tab === t.value) ? 'box-shadow:0 0 0 3px rgba(255,255,255,.6);transform:translateY(-2px)' : '';
     html += `<button class="platform-btn" style="background:${t.color};${activeStyle}">`;
     html += `<span class="platform-main" onclick="enterPlatformView('${t.value}')">`;
-    html += `<span class="platform-icon">${lucide(platformIcons[t.value] || 'newspaper', 16)}</span>`;
+    /* v688：首页顶部平台按钮图标加大（用户要求单独大一点） */
+    html += `<span class="platform-icon">${lucide(platformIcons[t.value] || 'newspaper', 22)}</span>`;
     html += `<span class="platform-name">${esc(t.label)}</span>`;
     html += '</span>';
     html += `<span class="platform-status-row"><span class="platform-pending">待发布 ${pendingForT}</span><span class="platform-sep">·</span><span class="platform-published">已发布 ${publishedForT}</span></span>`;
@@ -6625,9 +6627,9 @@ function renderNavIconSettings(html) {
 function renderNavIconEditItem(key, label, currentIcon) {
   const currentLabel = getNavLabel(key, label);
   return `<div class="nav-icon-edit-item">
-    <span class="icon-preview" id="navicon_preview_${key}">${esc(currentIcon || DEFAULT_NAV_ICONS[key] || '📌')}</span>
+    <span class="icon-preview" id="navicon_preview_${key}">${lucide(NAV_ICON_LEGACY_MAP[currentIcon] || currentIcon || DEFAULT_NAV_ICONS[key] || 'pin', 18)}</span>
     <label class="nav-icon-edit-name">${esc(label)}</label>
-    <input type="text" class="nav-icon-input" id="navicon_${key}" value="${esc(currentIcon || '')}" placeholder="${esc(DEFAULT_NAV_ICONS[key] || '📌')}" oninput="document.getElementById('navicon_preview_${key}').textContent=this.value||'${esc(DEFAULT_NAV_ICONS[key] || '📌')}'" title="图标">
+    <input type="text" class="nav-icon-input" id="navicon_${key}" value="${esc(currentIcon || '')}" placeholder="pin" oninput="document.getElementById('navicon_preview_${key}').innerHTML = lucide(this.value, 18) || this.value || lucide(DEFAULT_NAV_ICONS['${key}'] || 'pin', 18)" title="图标">
     <input type="text" class="nav-label-input" id="navlabel_${key}" value="${esc(currentLabel !== label ? currentLabel : '')}" placeholder="${esc(label)}" title="名称">
   </div>`;
 }
