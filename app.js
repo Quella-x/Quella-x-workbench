@@ -8621,17 +8621,19 @@ function renderLifeRecordHistory(typeKey) {
   const def = LIFE_RECORD_DEFS[typeKey];
   // 历史视图周导航：样式与每日打卡周视图日期条一致（居中、主色数字范围）
   const rangeTxt = `${Number(days[0].slice(5, 7))}/${Number(days[0].slice(8, 10))} - ${Number(days[6].slice(5, 7))}/${Number(days[6].slice(8, 10))}`;
-  let html = `<div class="lr-week-nav">
+  let navChart = `<div class="lr-week-nav">
     <button class="btn btn-ghost btn-sm" onclick="lifeRecordHistoryPrevWeek()">‹ 上一周</button>
     <span class="life-monthbar-txt" onclick="lifeRecordHistoryToggleWeekPicker()" style="cursor:pointer">${rangeTxt} ▾</span>
     <button class="btn btn-ghost btn-sm" onclick="lifeRecordHistoryNextWeek()" ${ps.weekOffset >= 0 ? 'disabled' : ''}>下一周 ›</button>
     <div class="life-month-picker ${lifeRecordHistoryWeekPickerOpen ? 'show' : ''}" id="lrHistoryWeekPicker">${lifeRecordHistoryWeekPickerInner()}</div>
     <div class="life-picker-backdrop" id="lrHistoryWeekBackdrop" onclick="lifeRecordHistoryToggleWeekPicker()" style="display:${lifeRecordHistoryWeekPickerOpen ? 'block' : 'none'}"></div>
   </div>`;
-  if (typeKey === 'sleep') html += renderSleepWeekLineChart(daysRev);
-  else html += renderDietWeekStats(daysRev);
-  daysRev.forEach((d, i) => { html += renderLifeRecordHistoryDayCard(typeKey, d, wdRev[i]); });
-  return html;
+  if (typeKey === 'sleep') navChart += renderSleepWeekLineChart(daysRev);
+  else navChart += renderDietWeekStats(daysRev);
+  let dayCards = '';
+  daysRev.forEach((d, i) => { dayCards += renderLifeRecordHistoryDayCard(typeKey, d, wdRev[i]); });
+  // v683：返回 {navChart, dayCards} 两段，供 renderLifeRecord 双列布局（左=周导航+图表，右=7天日卡）
+  return { navChart, dayCards };
 }
 let lifeRecordDatePickerOpen = false;
 let lifeRecordDatePickerStep = 'month'; // 'month' | 'day'
@@ -8721,21 +8723,27 @@ function renderLifeRecord() {
   if (lifeRecordDatePickerM == null) lifeRecordDatePickerM = Number(date.slice(5, 7));
   if (!lifeRecordDatePickerStep) lifeRecordDatePickerStep = 'month';
   const all = DB.list('lifeRecords');
-  let html = '<div class="fade-in life-record-page">';
-  html += renderLifeRecordTopCard(all, date);
-  html += `<div class="lr-toggle-row">
+  // v683：左列 = 顶部卡片 + 睡眠/饮食切换按钮 + (日期条 | 周导航+图表)；右列 = 记录块（今日卡 | 7天日卡）
+  let left = renderLifeRecordTopCard(all, date);
+  left += `<div class="lr-toggle-row">
     <button class="lr-toggle-btn ${ps.view === 'sleep-history' ? 'active' : ''}" onclick="lifeRecordToggleView('sleep-history')">睡眠记录</button>
     <button class="lr-toggle-btn ${ps.view === 'diet-history' ? 'active' : ''}" onclick="lifeRecordToggleView('diet-history')">饮食记录</button>
   </div>`;
-  // 日期切换条只在首页展示；历史视图顶部由 renderLifeRecordHistory 自带周导航
+  let right = '';
   if (ps.view === 'sleep-history' || ps.view === 'diet-history') {
-    html += renderLifeRecordHistory(ps.view === 'sleep-history' ? 'sleep' : 'diet');
+    const hist = renderLifeRecordHistory(ps.view === 'sleep-history' ? 'sleep' : 'diet');
+    left += hist.navChart;
+    right = hist.dayCards;
   } else {
-    html += lifeRecordDateNavHtml();
-    html += renderSleepRecordCard(date);
-    html += renderDietRecordCard(date);
+    left += lifeRecordDateNavHtml();
+    right = renderSleepRecordCard(date) + renderDietRecordCard(date);
   }
-  html += '</div>';
+  const html = `<div class="fade-in life-record-page">
+    <div class="lr-2col">
+      <div class="lr-left">${left}</div>
+      <div class="lr-right">${right}</div>
+    </div>
+  </div>`;
   body.innerHTML = html;
 }
 function lifeRecordSetDate(v) { const ps = pageState['life-record']; ps.date = v; ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; ps.historyAddDate = null; renderLifeRecord(); }
