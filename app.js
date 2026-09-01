@@ -2639,6 +2639,7 @@ function renderListPage(pageKey, mod) {
   const gbWrapped = isGbTwoCol && (records.length > 0 || window.innerWidth >= 641);
   if (!records.length) {
     const emptyCls = isCommDual ? ' class="empty-state" style="grid-column:1/-1"' : ' class="empty-state"';
+    if (gbWrapped) { html += '<div class="gb-records-2col"><div class="gb-left">'; }
     html += `<div${emptyCls}><div class="empty-icon">📋</div><div class="empty-text">暂无记录，点击新增开始添加</div></div>`;
   } else {
     const twoCol = TWO_COL_MODULES.includes(pageKey) ? ' two-col' : '';
