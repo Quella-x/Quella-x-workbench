@@ -427,7 +427,7 @@ ul,li{list-style:none}
   .home-cal-insp .calendar{margin-top:0 !important}
   .home-cal-insp .home-insp{margin-top:0;padding-top:12px}
   /* v641：电脑端接稿排期日历视图双列（日历左、列表右，移动端单列） */
-  .comm-cal-two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;grid-template-areas:"cal list" "chart list"}
+  .comm-cal-two-col{display:grid;grid-template-columns:1fr 1fr;column-gap:16px;row-gap:8px;align-items:start;grid-template-areas:"cal list" "chart list"}
   .comm-cal-col-cal{grid-area:cal}
   .comm-cal-col-list{grid-area:list}
   .comm-cal-chartstats{grid-area:chart}
@@ -449,8 +449,8 @@ ul,li{list-style:none}
   .comm-list-nostats{display:none}
   /* v668：人物关系模块底部卡片电脑端两列（一行两个），手机端单列 */
   .oc-rel-list-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  /* v669：接稿排期日历视图 日历↔柱状图 间距由~58px收紧至~34px（分隔线 24/16→8/10），分隔线保留 */
-  .comm-cal-chartstats .stats-divider{margin:8px 0}
+  /* v672：接稿排期日历视图 日历↔柱状图 间距收紧（grid 行距16→8，列距保持16px不动；分隔线上margin归0、下margin保持16px恢复柱状图呼吸感），仅动日历底→分隔线 */
+  .comm-cal-chartstats .stats-divider{margin:0 0 16px}
 }
 @media (max-width:640px){
   .comm-cal-two-col{display:block}
@@ -2805,7 +2805,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=671"></script>
+  <script src="app.js?v=672"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
