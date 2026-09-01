@@ -1681,7 +1681,7 @@ MODULES['groupbuy-factories'] = {
     const totalCoop = records.reduce((s, r) => s + (r.cooperationRecords || []).length, 0);
     const scoreMap = { '非常满意': 100, '满意': 80, '一般': 60, '不满意': 40 };
     const scored = records.map(r => { const ev = Array.isArray(r.factoryEvaluation) ? r.factoryEvaluation[0] : (r.factoryEvaluation || ''); return scoreMap[(ev || '').trim()] || null; }).filter(v => v != null);
-    const satisfaction = scored.length ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length) + '%' : '-';
+    const satisfaction = scored.length ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length) + '%' : '0%';
     return [
       { label: '厂家总数', value: records.length, unit: '家' },
       { label: '总合作次数', value: totalCoop, unit: '次' },
@@ -2338,7 +2338,7 @@ MODULES['oc-commission'] = {
     const done = records.filter(r => valIncludes(r.status, '已完成')).length;
     const scoreMap = { '非常满意': 100, '满意': 80, '一般': 60, '不满意': 40 };
     const scored = records.map(r => scoreMap[(r.evaluation || '').trim()] || null).filter(v => v != null);
-    const satisfaction = scored.length ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length) + '%' : '-';
+    const satisfaction = scored.length ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length) + '%' : '';
     return [
       { label: '本月约稿数', value: monthCount, unit: '单' },
       { label: '本月花费', value: '¥' + monthFee.toLocaleString() },
@@ -4606,18 +4606,17 @@ function renderRelations() {
         html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDeleteOcRelationGroup('${first.id}')">🗑️</span>`;
         html += '</div></div>';
         html += '<div class="record-card-body detail-relations" style="margin:0">';
-        html += '<div class="detail-rel-row detail-rel-head-row"><span class="detail-rel-th">关系类型</span><span class="detail-rel-th">关系状态</span></div>';
         group.forEach(r => {
           const rtArr = arrVal(r.relationType);
           const rs = arrVal(r.relationStatus).join('、');
-          html += '<div class="detail-rel-row">';
-          html += '<div class="detail-rel-type">';
+          html += '<div class="detail-rel-sub">';
+          html += '<div class="detail-rel-head">';
           rtArr.forEach(rt => {
             const color = RELATION_COLORS[rt] || '#b0b8c0';
             html += '<span class="tag" style="background:' + color + '20;color:' + color + '">' + esc(rt) + '</span>';
           });
+          html += (rs ? '<span class="detail-rel-status">' + esc(rs) + '</span>' : '');
           html += '</div>';
-          html += '<div class="detail-rel-status">' + (rs ? esc(rs) : '–') + '</div>';
           html += '</div>';
         });
         html += '</div></div>';

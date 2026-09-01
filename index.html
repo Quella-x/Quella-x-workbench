@@ -840,21 +840,13 @@ ul,li{list-style:none}
 .cd-rec-body .form-section-title.cd-extra-subtitle{padding-left:11px}
 .detail-images{display:flex;flex-wrap:wrap;gap:8px;margin-top:0}
 /* v611：人物档案详情「人物关系」区块（与人物关系模块双向绑定） */
-/* v663：电脑端人物关系底部展示模块改为两列（关系类型 | 关系状态，像图表+统计模块那样并排）；手机端保持单排横向滚动 */
-.detail-relations{margin:4px 0 2px;display:flex !important;flex-flow:row nowrap !important;align-items:stretch !important;overflow-x:auto !important;gap:0}
-.detail-rel-row{flex:1 0 0 !important;min-width:80px !important;padding:4px 8px;display:flex !important;flex-direction:row !important;align-items:center !important;justify-content:center !important;gap:6px !important;white-space:nowrap !important;border-right:1px solid var(--c-border) !important}
-.detail-rel-row:last-child{border-right:none !important}
-.detail-rel-head-row{display:none !important}
-.detail-rel-type{display:flex !important;flex-direction:row !important;flex-wrap:wrap !important;gap:6px !important;align-items:center !important;justify-content:center !important}
+/* v611/v624：人物关系底部展示——单排等宽列横向滚动（电脑端/手机端一致，不拆分两列） */
+.detail-relations{margin:4px 0 2px;display:flex !important;flex-flow:row nowrap !important;align-items:stretch !important;overflow-x:auto !important}
+.detail-rel-item,.detail-rel-sub{flex:1 0 0 !important;min-width:80px !important;padding:4px 8px;display:flex !important;flex-direction:row !important;align-items:center !important;justify-content:center !important;gap:6px !important;white-space:nowrap !important;border-right:1px solid var(--c-border) !important}
+.detail-rel-item:last-child,.detail-rel-sub:last-child{border-right:none !important}
+.detail-rel-divider{display:none}
+.detail-rel-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .detail-rel-status{color:var(--c-text-muted);font-size:12px}
-@media (min-width:641px){
-  .detail-relations{display:grid !important;grid-template-columns:1fr 1fr;gap:0 12px;overflow:visible !important;border-top:1px solid var(--c-border)}
-  .detail-rel-row{display:contents !important;border-right:none !important;padding:0 !important}
-  .detail-rel-head-row{display:contents !important}
-  .detail-rel-th{font-weight:600;color:var(--c-primary-dark);font-size:12px;padding:4px 8px;border-bottom:2px solid var(--c-border)}
-  .detail-rel-type{display:flex !important;flex-wrap:wrap !important;gap:6px !important;align-items:center !important;justify-content:flex-start !important;padding:6px 8px;border-right:1px solid var(--c-border);border-bottom:1px solid var(--c-border);white-space:normal !important}
-  .detail-rel-status{display:flex !important;align-items:center !important;justify-content:flex-start !important;padding:6px 8px;border-bottom:1px solid var(--c-border);color:var(--c-text-muted);font-size:13px;white-space:normal !important}
-}
 .detail-rel-other{font-size:13px;line-height:1.5}
 .detail-images img{width:100px;height:100px;object-fit:cover;border-radius:6px;border:1px solid var(--c-border);cursor:pointer}
 .detail-table{width:100%;border-collapse:collapse;font-size:12px;margin:0;table-layout:fixed}
@@ -1300,20 +1292,24 @@ ul,li{list-style:none}
   background:linear-gradient(135deg,var(--c-primary-bg),var(--c-bg));
   border-radius:var(--radius);padding:16px;margin-top:20px;
   border:1px solid var(--c-primary-light);
+  display:flex;flex-direction:column;
 }
 .stats-section .stats-section-title{
   font-size:13px;font-weight:600;color:var(--c-primary-dark);
   margin-bottom:12px;display:flex;align-items:center;gap:6px;justify-content:space-between;
+  flex-shrink:0;
 }
 .stats-scope-toggle{display:flex;gap:4px;flex-shrink:0;align-items:stretch}
 .stats-scope-toggle .btn-xs{padding:5px 14px;font-size:12px;min-height:30px;display:inline-flex;align-items:center}
 .stats-section .stats-grid{
   grid-template-columns:repeat(3,1fr);margin:0;gap:10px;
+  flex:1;align-items:stretch;
 }
 .stats-section .stat-card{
   background:rgba(255,255,255,.85);
   border:1px solid var(--c-primary-light);
   padding:12px 14px;
+  display:flex;flex-direction:column;justify-content:center;
 }
 .stats-section .stat-card .stat-value{font-size:20px}
 
@@ -2787,7 +2783,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=663"></script>
+  <script src="app.js?v=664"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
