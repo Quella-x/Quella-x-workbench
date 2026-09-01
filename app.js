@@ -417,6 +417,9 @@ const LUCIDE_SVG = {
   "message-circle": '<path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" />',
   "send": '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" /> <path d="m21.854 2.147-10.94 10.939" />',
   "menu": '<path d="M4 5h16" /> <path d="M4 12h16" /> <path d="M4 19h16" />',
+  "receipt": '<path d="M12 17V7" /> <path d="M16 8h-6a2 2 0 0 0 0 4h4a2 2 0 0 1 0 4H8" /> <path d="M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z" />',
+  "list": '<path d="M3 5h.01" /> <path d="M3 12h.01" /> <path d="M3 19h.01" /> <path d="M8 5h13" /> <path d="M8 12h13" /> <path d="M8 19h13" />',
+
   "settings": '<path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" /> <circle cx="12" cy="12" r="3" />',
   "wrench": '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z" />',
   "inbox": '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /> <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />',
@@ -462,7 +465,7 @@ function lucide(name, size, cls) {
 const DEFAULT_NAV_ICONS = {
   'home': 'house', 'groupbuy': 'package', 'groupbuy-records': 'clipboard-list', 'groupbuy-factories': 'factory',
   'groupbuy-samples': 'microscope', 'groupbuy-calc': 'calculator', 'design': 'palette', 'design-inspiration': 'lightbulb',
-  'design-commission': 'calendar-days', 'design-commission-detail': 'file-text', 'design-calc': 'calculator', 'design-auth': 'scroll-text', 'design-pricelist': 'wallet',
+  'design-commission': 'calendar-days', 'design-commission-detail': 'file-text', 'design-calc': 'receipt', 'design-auth': 'scroll-text', 'design-pricelist': 'wallet',
   'oc': 'user', 'oc-profiles': 'drama', 'oc-relations': 'link', 'oc-stories': 'book-open', 'oc-timeline': 'clock', 'oc-commission': 'paintbrush',
   'life-checkin': 'check-check', 'life-record': 'notebook-pen'
 };
@@ -1615,7 +1618,7 @@ function renderAnnualChart(records, dateField, opts = {}, pageKey) {
     let labels = ''; for (let i = 0; i < 12; i++) labels += `<span>${i + 1}月</span>`;
     let legend = '';
     series.forEach(s => { legend += `<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:${s.color}"></span>${esc(s.name)}</span>`; });
-    return `<div class="annual-chart"><div class="annual-chart-title">📊 ${esc(title)} · ${yr}年${yearNav}</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div><div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--c-text-light)">${legend}</div></div>`;
+    return `<div class="annual-chart"><div class="annual-chart-title">${lucide('bar-chart-3',16)} ${esc(title)} · ${yr}年${yearNav}</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div><div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--c-text-light)">${legend}</div></div>`;
   }
   const months = Array(12).fill(0);
   records.forEach(r => {
@@ -1635,7 +1638,7 @@ function renderAnnualChart(records, dateField, opts = {}, pageKey) {
     bars += '</div>';
   });
   let labels = ''; for (let i = 0; i < 12; i++) labels += `<span>${i + 1}月</span>`;
-  return `<div class="annual-chart"><div class="annual-chart-title">📊 ${esc(title)} · ${yr}年${yearNav}</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div></div>`;
+  return `<div class="annual-chart"><div class="annual-chart-title">${lucide('bar-chart-3',16)} ${esc(title)} · ${yr}年${yearNav}</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div></div>`;
 }
 
 /* ===== Navigation Config ===== */
@@ -2053,7 +2056,7 @@ function cdFormShell(html) {
   return `<div class="cd-form">`
     + `<div class="cd-form-top"><div class="cd-form-topline">请仔细填写</div><div class="cd-form-topline cd-form-tip">帮助我更好了解您的需求</div></div>`
     + html
-    + `<div class="cd-form-bottom"><div class="cd-form-botline">人物、参考图、色卡、模板等图片文件可直发/网盘/邮箱</div><div class="cd-form-botline cd-form-warn">请确认信息无误后再提交 尤其注意尺寸&颜色格式⚠️</div></div>`
+    + `<div class="cd-form-bottom"><div class="cd-form-botline">人物、参考图、色卡、模板等图片文件可直发/网盘/邮箱</div><div class="cd-form-botline cd-form-warn">请确认信息无误后再提交 尤其注意尺寸&颜色格式${lucide('alert-triangle',14)}</div></div>`
     + `</div>`;
 }
 // 饭圈/二次：制品下拉框 HTML（从价目表读取制品列表，支持选择后自动回填默认尺寸/出血）
@@ -2668,7 +2671,7 @@ function renderListPage(pageKey, mod) {
     const chars = DB.list('ocCharacters');
     if (!ps.personFilter) ps.personFilter = null;
     html += '<div class="relation-person-row">';
-    html += `<div class="relation-person-btn ${!ps.personFilter ? 'active' : ''}" onclick="setPersonFilter('${pageKey}','')"><span>📋 全部</span></div>`;
+    html += `<div class="relation-person-btn ${!ps.personFilter ? 'active' : ''}" onclick="setPersonFilter('${pageKey}','')"><span>${lucide('list',14)} 全部</span></div>`;
     html += '<div class="relation-person-grid collapsed distribute">';
     chars.forEach(c => {
       const active = ps.personFilter === c.name ? 'active' : '';
@@ -2712,7 +2715,7 @@ function renderListPage(pageKey, mod) {
   }
   html += '<div class="spacer"></div>';
   if (pageKey === 'oc-profiles') {
-    html += `<button class="btn btn-outline toolbar-eq" onclick="openProfileSortModal()">↕️ 调整排序</button>`;
+    html += `<button class="btn btn-outline toolbar-eq" onclick="openProfileSortModal()">${lucide('arrow-up-down',16)} 调整排序</button>`;
   }
   html += `<button class="btn btn-primary" onclick="openAddForm('${pageKey}')">+ 新增记录</button>`;
   html += '</div>';
@@ -2797,7 +2800,7 @@ function renderListPage(pageKey, mod) {
       const cardImg = mod.cardImage ? mod.cardImage(r) : null;
       if (cardImg) html += `<img src="${cardImg}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0">`;
       let titleText = r.title || r.name || r.theme || r.sampleName || r.artworkName || r.clientInfo || '未命名记录';
-      if (isOverdue) titleText = '⚠️ ' + titleText;
+      if (isOverdue) titleText = lucide('alert-triangle',14) + ' ' + titleText;
       html += `<div class="record-card-title">${esc(titleText)}</div>`;
       html += '<div class="record-card-actions">';
       html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('${pageKey}','${r.id}')">${lucide('pencil',16)}</span>`;
@@ -3942,7 +3945,7 @@ function renderHome() {
   // Platform buttons (always visible, 4 in a row, for switching)
   // 每个平台按钮底部直接显示该平台「待发布 / 已发布」数量（待发布左、已发布右）
   html += '<div class="platform-buttons">';
-  const platformIcons = { '小红书': '📕', '抖音': '🎵', '视频号': '📹', '公众号': '📝' };
+  const platformIcons = { '小红书': 'book-open', '抖音': 'music', '视频号': 'video', '公众号': 'newspaper' };
   MODULES.home.tabs.forEach(t => {
     const tRecords = allRecords.filter(r => valIncludes(r.platform, t.value));
     const pendingForT = tRecords.filter(r => statusOf(r) === '待发布').length;
@@ -3950,7 +3953,7 @@ function renderHome() {
     const activeStyle = (ps.view === 'platform' && ps.tab === t.value) ? 'box-shadow:0 0 0 3px rgba(255,255,255,.6);transform:translateY(-2px)' : '';
     html += `<button class="platform-btn" style="background:${t.color};${activeStyle}">`;
     html += `<span class="platform-main" onclick="enterPlatformView('${t.value}')">`;
-    html += `<span class="platform-icon">${platformIcons[t.value] || '📝'}</span>`;
+    html += `<span class="platform-icon">${lucide(platformIcons[t.value] || 'newspaper', 16)}</span>`;
     html += `<span class="platform-name">${esc(t.label)}</span>`;
     html += '</span>';
     html += `<span class="platform-status-row"><span class="platform-pending">待发布 ${pendingForT}</span><span class="platform-sep">·</span><span class="platform-published">已发布 ${publishedForT}</span></span>`;
@@ -3975,7 +3978,7 @@ function renderHome() {
     const inspCats = getInspirationCategories();
     const hCatOpts = inspCats.map(c => `<div class="combobox-option" onclick="selectComboboxOption('hInspCatList',this)" data-value="${esc(c)}">${esc(c)}</div>`).join('');
     html += '<div class="home-insp">';
-    html += '<div class="home-insp-title">💡 灵感速记 <span class="hint">（随手记，保存后收入「灵感记录」）</span></div>';
+    html += `<div class="home-insp-title">${lucide('lightbulb',16)} 灵感速记 <span class="hint">（随手记，保存后收入「灵感记录」）</span></div>`;
     html += '<div class="home-insp-row">';
     html += '<input type="text" class="form-input" id="hInspTheme" placeholder="灵感主题">';
     html += '<div class="combobox-wrapper home-insp-combo"><input type="text" class="form-input combobox-input" id="hInspCat" placeholder="请选择或输入制品" onfocus="showComboboxDropdown(\'hInspCatList\')" onclick="showComboboxDropdown(\'hInspCatList\')" oninput="filterComboboxDropdown(\'hInspCatList\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'hInspCatList\')">▼</button><div class="combobox-dropdown" id="hInspCatList">' + hCatOpts + '</div></div>';
@@ -4191,14 +4194,14 @@ function renderPriceCalc() {
   html += '<div class="form-row"><label class="form-label">开团数量</label><input type="number" class="form-input" id="calc_quantity" value="100" oninput="calcPrice()"></div>';
   html += '<div class="form-row"><label class="form-label">模板名称</label><input type="text" class="form-input" id="calc_templateName" placeholder="保存为模板便于复用"></div>';
   html += '<div style="display:flex;gap:8px;margin-top:12px">';
-  html += '<button class="btn btn-primary" onclick="saveCalcTemplate()">💾 保存模板</button>';
-  html += '<button class="btn btn-outline" onclick="saveCalcHistory()">📋 保存记录</button>';
+  html += `<button class="btn btn-primary" onclick="saveCalcTemplate()">${lucide('save',16)} 保存模板</button>`;
+  html += `<button class="btn btn-outline" onclick="saveCalcHistory()">${lucide('save',16)} 保存记录</button>`;
   html += '</div></div>';
   html += '</div>';
   // Right: Receipt column
   html += '<div class="calc-receipt-col">';
   html += '<div class="calc-receipt" id="calcResult"></div>';
-  html += '<div class="calc-card"><div class="calc-card-title">📋 常用模板</div>';
+  html += `<div class="calc-card"><div class="calc-card-title">${lucide('clipboard-list',16)} 常用模板</div>`;
   if (templates.length) {
     html += '<div class="template-list">';
     templates.forEach((t, i) => {
@@ -4319,7 +4322,7 @@ function renderTimeline() {
   html += '<div class="toolbar">';
   html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onSearch('oc-timeline', this.value)"><span class="search-icon">${lucide('search',16)}</span></div>`;
   html += '<div class="spacer"></div>';
-  html += '<button class="btn btn-outline toolbar-eq" onclick="importStoriesToTimeline()">📥 导入故事小记</button>';
+  html += `<button class="btn btn-outline toolbar-eq" onclick="importStoriesToTimeline()">${lucide('download',16)} 导入故事小记</button>`;
   html += '<button class="btn btn-primary" onclick="openAddForm(\'oc-timeline\')">+ 新增事件</button>';
   html += '</div>';
 
@@ -4737,7 +4740,7 @@ function renderRelations() {
     html += '</div>';
     // Person buttons (缩略为姓名按钮可展开)
     if (chars.length) {
-      html += '<div style="margin-top:16px"><div style="font-size:13px;font-weight:600;color:var(--c-primary-dark);margin-bottom:8px">👥 人物关系快捷查看</div>';
+      html += `<div style="margin-top:16px"><div style="font-size:13px;font-weight:600;color:var(--c-primary-dark);margin-bottom:8px">${lucide('users',16)} 人物关系快捷查看</div>`;
       html += '<div class="relation-person-row">';
       html += '<div class="relation-person-btn active" onclick="showAllPersonRelations(this)"><span>📋 全部</span></div>';
       html += '<div class="relation-person-grid collapsed distribute">';
@@ -5145,7 +5148,7 @@ function renderDesignCalc() {
   html += '<div class="calc-card-title">录入模式</div>';
   html += '<div class="calc-mode-tabs">';
   html += `<button class="calc-mode-tab${_dcMode === 'custom' ? ' active' : ''}" onclick="dcSetMode('custom')">✏️ 自定义录入</button>`;
-  html += `<button class="calc-mode-tab${_dcMode === 'import' ? ' active' : ''}" onclick="dcSetMode('import')">📥 导入接稿</button>`;
+  html += `<button class="calc-mode-tab${_dcMode === 'import' ? ' active' : ''}" onclick="dcSetMode('import')">${lucide('download',16)} 导入接稿</button>`;
   html += '</div>';
   if (_dcMode === 'import') {
     // DU轮：已交付且交付日期距今超过7天的订单不显示在导入选项中
@@ -5180,7 +5183,7 @@ function renderDesignCalc() {
   html += '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">';
   html += '<button type="button" class="btn btn-outline btn-sm" onclick="dcAddProduct()">+ 添加制品</button>';
   html += '<button type="button" class="btn btn-danger btn-sm" onclick="dcClearProducts()">🗑️ 一键清除</button>';
-  html += '<button type="button" class="btn btn-primary btn-sm" onclick="dcMakeSet()">🏷️ 归为SET</button>';
+  html += `<button type="button" class="btn btn-primary btn-sm" onclick="dcMakeSet()">${lucide('tag',16)} 归为SET</button>`;
   html += '<span id="dc-sel-hint" style="font-size:12px;color:var(--c-text-muted)"></span>';
   html += '</div>';
   html += '</div>';
@@ -5252,7 +5255,7 @@ function renderDesignCalc() {
   html += '<button type="button" class="btn btn-outline btn-sm" onclick="dcShowAddCustomDisc()" style="width:100%">+ 添加优惠方案</button>';
   html += '<div style="display:flex;gap:6px;margin-top:4px">';
   html += '<button type="button" class="btn btn-danger btn-sm" onclick="dcDeleteCheckedCustomDisc()" style="flex:1">🗑️ 删除方案</button>';
-  html += '<button type="button" class="btn btn-primary btn-sm" onclick="dcSaveCustomDiscsFeedback()" style="flex:1">💾 保存方案</button>';
+  html += `<button type="button" class="btn btn-primary btn-sm" onclick="dcSaveCustomDiscsFeedback()" style="flex:1">${lucide('save',16)} 保存方案</button>`;
   html += '</div>';
   html += '</div>';
   html += '</div>';
@@ -5295,7 +5298,7 @@ function renderDesignCalc() {
   html += '<div class="calc-receipt-col">';
   html += '<div class="calc-receipt" id="dc-receipt"></div>';
   html += '<div class="calc-actions">';
-  html += '<button class="dc-export-btn" style="flex:1" onclick="dcExportReceipt()">📷 导出报价图</button>';
+  html += `<button class="dc-export-btn" style="flex:1" onclick="dcExportReceipt()">${lucide('camera',16)} 导出报价图</button>`;
   if (_dcMode === 'import') {
     html += '<button class="btn btn-primary" style="flex:1" onclick="dcUpdateQuote()">更新报价至接稿</button>';
   } else {
@@ -6314,7 +6317,7 @@ function renderPriceList() {
   html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onSearch('design-pricelist', this.value)"><span class="search-icon">${lucide('search',16)}</span></div>`;
   html += '<div class="spacer"></div>';
   html += '<button class="btn btn-outline toolbar-eq" onclick="togglePriceListNotes()">📝 其他说明</button>';
-  html += '<button class="btn btn-outline toolbar-eq" onclick="openPriceListSort()">↕️ 调整排序</button>';
+  html += `<button class="btn btn-outline toolbar-eq" onclick="openPriceListSort()">${lucide('arrow-up-down',16)} 调整排序</button>`;
   html += '<button class="btn btn-primary" onclick="openAddForm(\'design-pricelist\')">+ 新增价目</button>';
   html += '</div>';
 
@@ -6749,7 +6752,7 @@ function addOptionItem(fieldKey) {
 function renderDataSettings(html) {
   html += '<div class="settings-section active">';
   // ---- 云端同步 ----
-  html += '<h4 style="font-size:14px;margin:4px 0 8px;color:var(--c-primary)">🌐 云端同步（Supabase）</h4>';
+  html += `<h4 style="font-size:14px;margin:4px 0 8px;color:var(--c-primary)">${lucide('globe',16)} 云端同步（Supabase）</h4>`;
   html += '<p style="font-size:13px;color:var(--c-text-light);margin-bottom:12px">配置后数据自动同步到云端，手机与电脑实时互通。两端请填写<strong>相同的同步码</strong>。未配置时 App 完全按本地模式运行。</p>';
   const sc = DB.get('syncCfg', {}) || {};
   html += '<div style="display:flex;flex-direction:column;gap:10px;max-width:440px">';
@@ -6758,10 +6761,10 @@ function renderDataSettings(html) {
   html += '<label class="sync-label">同步码（两端一致）<input type="password" class="sync-field" id="sync_code" value="' + esc(sc.syncCode || '') + '" placeholder="自定义，例如 xiaoxiao2026"></label>';
   html += '</div>';
   html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">';
-  html += '<button class="btn btn-outline" onclick="syncTest()">🔌 连接测试</button>';
-  html += '<button class="btn btn-primary" onclick="syncNow()">🔄 立即同步</button>';
+  html += `<button class="btn btn-outline" onclick="syncTest()">${lucide('plug',16)} 连接测试</button>`;
+  html += `<button class="btn btn-primary" onclick="syncNow()">${lucide('refresh-cw',16)} 立即同步</button>`;
   html += '</div>';
-  const st = Sync.enabled() ? ('当前状态：' + (Sync.status === 'connected' ? '🟢 已连接' : Sync.status === 'syncing' ? '🔄 同步中' : '🔴 未连接')) : '当前：未配置';
+  const st = Sync.enabled() ? ('当前状态：' + (Sync.status === 'connected' ? '🟢 已连接' : Sync.status === 'syncing' ? lucide('refresh-cw',16) : '🔴 未连接')) : '当前：未配置';
   html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:10px">' + st + '</p>';
   html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:6px;line-height:1.6">需在 Supabase 新建表 <code>sync_store</code>（字段：group_key text、store text、data jsonb、updated_at timestamptz，主键 group_key+store），并开启 anon 访问策略（见同步说明）。</p>';
   // ---- 数据备份与导入 ----
@@ -6860,7 +6863,7 @@ function renderDisplayFieldsSettings(html) {
     });
     html += '</div>';
   }
-  html += '<div style="margin-top:16px"><button class="btn btn-outline" onclick="resetDisplayFields()">↺ 恢复默认展示</button></div>';
+  html += `<div style="margin-top:16px"><button class="btn btn-outline" onclick="resetDisplayFields()">${lucide('rotate-ccw',16)} 恢复默认展示</button></div>`;
   html += '</div>';
   return html;
 }
@@ -9303,7 +9306,7 @@ function renderCommissionDetailPage() {
   // 1) 信息录入：三个按钮并列（不折叠）
   html += `<div class="cd-import-row">
     <div class="cd-import-btn" onclick="openCdImportChat()">
-      <div class="cd-import-btn-icon">💬</div>
+      <div class="cd-import-btn-icon">${lucide('message-circle',22)}</div>
       <div class="cd-import-btn-name">聊天记录导入</div>
     </div>
     <div class="cd-import-btn" onclick="openCdImportJson()">
@@ -9311,7 +9314,7 @@ function renderCommissionDetailPage() {
       <div class="cd-import-btn-name">JSON 导入</div>
     </div>
     <div class="cd-import-btn" onclick="openCdClientForm()">
-      <div class="cd-import-btn-icon">📨</div>
+      <div class="cd-import-btn-icon">${lucide('send',22)}</div>
       <div class="cd-import-btn-name">生成约稿单导入</div>
     </div>
   </div>`;
