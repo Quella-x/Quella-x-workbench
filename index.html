@@ -429,12 +429,11 @@ ul,li{list-style:none}
   /* v641：电脑端接稿排期日历视图双列（日历左、列表右，移动端单列） */
   .comm-cal-two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
   /* v660：电脑端列表/首页平台图表+统计双列；厂家记录仅统计也双列（右列留空） */
-  /* v662：左右两卡片 flex:1 填满整列 → 图表与统计模块高度一致；厂家仅 stats 时整行铺满 */
+  /* v663：保留 flex:1 高度一致；撤销 v662 整行铺满，恢复厂家两列（右列留空）；统计内置按钮随模块增高 */
   .chart-stats-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch}
   .chart-stats-2col .cs-col{display:flex;flex-direction:column;min-width:0}
   .chart-stats-2col .cs-col-chart .annual-chart{margin-bottom:0;flex:1;width:100%}
   .chart-stats-2col .cs-col-stats .stats-section{margin-top:0;flex:1;width:100%}
-  .chart-stats-2col > .cs-col-stats:only-child{grid-column:1 / -1}
 }
 @media (max-width:640px){
   .comm-cal-two-col{display:block}
@@ -841,19 +840,21 @@ ul,li{list-style:none}
 .cd-rec-body .form-section-title.cd-extra-subtitle{padding-left:11px}
 .detail-images{display:flex;flex-wrap:wrap;gap:8px;margin-top:0}
 /* v611：人物档案详情「人物关系」区块（与人物关系模块双向绑定） */
-/* v624: 人物关系卡片内关系强制一排等宽列，内容居中，用右边框作竖分割线 */
-.detail-relations{margin:4px 0 2px;display:flex !important;flex-flow:row nowrap !important;align-items:stretch !important;overflow-x:auto !important}
-.detail-rel-item,.detail-rel-sub{flex:1 0 0 !important;min-width:80px !important;padding:4px 8px;display:flex !important;flex-direction:row !important;align-items:center !important;justify-content:center !important;gap:6px !important;white-space:nowrap !important;border-right:1px solid var(--c-border) !important}
-.detail-rel-item:last-child,.detail-rel-sub:last-child{border-right:none !important}
-.detail-rel-divider{display:none}
-/* v662：电脑端人物关系底部展示模块改为两列（手机端保持单排横向滚动） */
-@media (min-width:641px){
-  .detail-relations{display:grid !important;grid-template-columns:repeat(2,1fr);gap:8px;overflow:visible !important}
-  .detail-rel-item,.detail-rel-sub{flex:initial !important;min-width:0 !important;width:100% !important;border-right:none !important;justify-content:flex-start !important;white-space:normal !important}
-  .detail-rel-item:last-child,.detail-rel-sub:last-child{border-right:none !important}
-}
-.detail-rel-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* v663：电脑端人物关系底部展示模块改为两列（关系类型 | 关系状态，像图表+统计模块那样并排）；手机端保持单排横向滚动 */
+.detail-relations{margin:4px 0 2px;display:flex !important;flex-flow:row nowrap !important;align-items:stretch !important;overflow-x:auto !important;gap:0}
+.detail-rel-row{flex:1 0 0 !important;min-width:80px !important;padding:4px 8px;display:flex !important;flex-direction:row !important;align-items:center !important;justify-content:center !important;gap:6px !important;white-space:nowrap !important;border-right:1px solid var(--c-border) !important}
+.detail-rel-row:last-child{border-right:none !important}
+.detail-rel-head-row{display:none !important}
+.detail-rel-type{display:flex !important;flex-direction:row !important;flex-wrap:wrap !important;gap:6px !important;align-items:center !important;justify-content:center !important}
 .detail-rel-status{color:var(--c-text-muted);font-size:12px}
+@media (min-width:641px){
+  .detail-relations{display:grid !important;grid-template-columns:1fr 1fr;gap:0 12px;overflow:visible !important;border-top:1px solid var(--c-border)}
+  .detail-rel-row{display:contents !important;border-right:none !important;padding:0 !important}
+  .detail-rel-head-row{display:contents !important}
+  .detail-rel-th{font-weight:600;color:var(--c-primary-dark);font-size:12px;padding:4px 8px;border-bottom:2px solid var(--c-border)}
+  .detail-rel-type{display:flex !important;flex-wrap:wrap !important;gap:6px !important;align-items:center !important;justify-content:flex-start !important;padding:6px 8px;border-right:1px solid var(--c-border);border-bottom:1px solid var(--c-border);white-space:normal !important}
+  .detail-rel-status{display:flex !important;align-items:center !important;justify-content:flex-start !important;padding:6px 8px;border-bottom:1px solid var(--c-border);color:var(--c-text-muted);font-size:13px;white-space:normal !important}
+}
 .detail-rel-other{font-size:13px;line-height:1.5}
 .detail-images img{width:100px;height:100px;object-fit:cover;border-radius:6px;border:1px solid var(--c-border);cursor:pointer}
 .detail-table{width:100%;border-collapse:collapse;font-size:12px;margin:0;table-layout:fixed}
@@ -1304,8 +1305,8 @@ ul,li{list-style:none}
   font-size:13px;font-weight:600;color:var(--c-primary-dark);
   margin-bottom:12px;display:flex;align-items:center;gap:6px;justify-content:space-between;
 }
-.stats-scope-toggle{display:flex;gap:4px;flex-shrink:0}
-.stats-scope-toggle .btn-xs{padding:1px 8px;font-size:11px}
+.stats-scope-toggle{display:flex;gap:4px;flex-shrink:0;align-items:stretch}
+.stats-scope-toggle .btn-xs{padding:5px 14px;font-size:12px;min-height:30px;display:inline-flex;align-items:center}
 .stats-section .stats-grid{
   grid-template-columns:repeat(3,1fr);margin:0;gap:10px;
 }
@@ -2786,7 +2787,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=662"></script>
+  <script src="app.js?v=663"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
