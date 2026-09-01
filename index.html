@@ -110,8 +110,8 @@ ul,li{list-style:none}
 .sidebar-logo{display:flex;align-items:center;gap:8px;color:#fff;white-space:nowrap;overflow:hidden;height:100%}
 /* v686：Logo 改为固定尺寸图片模块，支持点击上传自定义图片 */
 /* v687：去掉色块胶囊，让图片与文字直接 flex 居中一条直线 */
-.sidebar-logo{align-items:baseline}
-.sidebar-logo .logo-icon{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:8px;overflow:hidden;cursor:pointer;background:rgba(255,255,255,.18);font-size:20px;align-self:center}
+.sidebar-logo{align-items:center}
+.sidebar-logo .logo-icon{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:8px;overflow:hidden;cursor:pointer;background:rgba(255,255,255,.18);font-size:20px;transform:translateY(-3px)}
 .sidebar-logo .logo-icon:hover{background:rgba(255,255,255,.3)}
 .sidebar-logo .logo-icon img{width:28px;height:28px;object-fit:cover;display:block}
 .sidebar-logo .logo-text{font-size:16px;font-weight:600;opacity:1;transition:opacity .2s;display:flex;align-items:center}
@@ -1217,7 +1217,7 @@ ul,li{list-style:none}
 }
 .annual-chart-title{
   font-size:14px;font-weight:600;color:var(--c-text);
-  margin-bottom:12px;display:flex;align-items:center;gap:6px;justify-content:space-between;
+  margin-bottom:12px;display:flex;align-items:center;gap:2px;justify-content:flex-start;
 }
 .annual-chart-yearnav{display:flex;gap:4px;flex-shrink:0}
 .annual-chart-yearnav .btn-xs{padding:2px 8px;font-size:11px}
@@ -1545,13 +1545,19 @@ ul,li{list-style:none}
 /* ===== Lucide 图标统一规范（v686） =====
    尺寸由 lucide(name,size) 参数控制；此处只统一显示方式与基线对齐。
    颜色统一继承 currentColor（随父级文字色变化），线宽统一 2（见图标表）。 */
-/* v688：vertical-align:middle 把图标中心对齐到文字 x-height 中心，消除全局偏上 */
-.lucide-icon{display:inline-block;vertical-align:middle;flex-shrink:0}
+/* v689：图标尺寸改为 1em（跟随所在文字字号），配合 vertical-align:middle 完美居中。
+   此前 18px 图标配 14-16px 文字导致图标顶/底远超文字，垂直居中后仍偏上/偏下。
+   1em 让图标 = 文字字号，再加 middle 与文字 x-height 中心对齐，彻底消除偏位。 */
+.lucide-icon{display:inline-block;vertical-align:middle;flex-shrink:0;width:1em;height:1em}
 .icon-preview .lucide-icon{width:18px;height:18px;vertical-align:middle}
 .empty-icon .lucide-icon{width:32px;height:32px;vertical-align:middle;opacity:.55}
 .search-icon .lucide-icon{width:16px;height:16px;vertical-align:middle}
 .btn-icon .lucide-icon{width:16px;height:16px;vertical-align:middle}
 .lucide-icon.is-danger{stroke:var(--c-danger,#e74c3c)}
+
+/* v689：四个页面 ☰ 按钮折叠顶部那一排（view-toggle-top / 人物筛选条） */
+.hide-topbar .view-toggle-top,
+.hide-topbar .relation-person-row{display:none}
 
 /* ===== Responsive additions ===== */
 @media(max-width:920px){
@@ -2834,7 +2840,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=688"></script>
+  <script src="app.js?v=689"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

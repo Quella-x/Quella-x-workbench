@@ -2696,6 +2696,10 @@ function renderListPage(pageKey, mod) {
 
   // Toolbar (新增置顶)：始终占满顶部，不参与双栏
   html += '<div class="toolbar">';
+  /* v689：四个页面顶部加 ☰ 折叠按钮（手机端收缩导航风格，折叠顶部 view-toggle / 人物筛选条） */
+  if (['design-commission','oc-relations','oc-stories','oc-timeline'].includes(pageKey)) {
+    html += `<button class="btn btn-outline toolbar-eq toolbar-toggle-btn" onclick="togglePageTopBar('${pageKey}')" title="折叠/展开顶部">${lucide('menu',16)}</button>`;
+  }
   html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onSearch('${pageKey}', this.value)"><span class="search-icon">${lucide('search',16)}</span></div>`;
   if (mod.filters) {
     let modFilters = mod.filters;
@@ -2719,6 +2723,18 @@ function renderListPage(pageKey, mod) {
   }
   html += `<button class="btn btn-primary" onclick="openAddForm('${pageKey}')">+ 新增记录</button>`;
   html += '</div>';
+
+  /* v689：四个页面 ☰ 折叠按钮的回调。design-commission 折叠 view-toggle-top（日历/列表）；
+     人物关系/故事小记/时间线 折叠 relation-person-row（人物筛选条）。 */
+function togglePageTopBar(pageKey) {
+  const main = $('#mainBody');
+  if (!main) return;
+  if (pageKey === 'design-commission') {
+    main.classList.toggle('hide-topbar');
+  } else if (['oc-relations','oc-stories','oc-timeline'].includes(pageKey)) {
+    main.classList.toggle('hide-topbar');
+  }
+}
 
   // Commission calendar view: 默认日历视图；日历在上，列表在下
   let commissionAllRecords = null;
@@ -7307,14 +7323,14 @@ function migrateData() {
    生活模块 · 每日打卡 / 每日记录 (v193)
    ============================================================ */
 const LIFE_CHECKIN_DEFS = {
-  deepspace: { key: 'deepspace', label: '深空打卡', icon: '🌌', period: 'day', calendar: true },
-  sport: { key: 'sport', label: '运动打卡', icon: '🏃', period: 'day' },
-  earlysleep: { key: 'earlysleep', label: '早睡打卡', icon: '🌙', period: 'day' },
-  snackcheck: { key: 'snackcheck', label: '零食打卡', icon: '🍟', period: 'day' },
-  poop: { key: 'poop', label: '拉屎打卡', icon: '🚽', period: 'day' },
-  massage: { key: 'massage', label: '按摩打卡', icon: '💆', period: 'week' },
-  vacuum: { key: 'vacuum', label: '吸尘打卡', icon: '🧹', period: 'week' },
-  mask: { key: 'mask', label: '面膜打卡', icon: '🧖', period: 'week' },
+  deepspace: { key: 'deepspace', label: '深空打卡', period: 'day', calendar: true },
+  sport: { key: 'sport', label: '运动打卡', period: 'day' },
+  earlysleep: { key: 'earlysleep', label: '早睡打卡', period: 'day' },
+  snackcheck: { key: 'snackcheck', label: '零食打卡', period: 'day' },
+  poop: { key: 'poop', label: '拉屎打卡', period: 'day' },
+  massage: { key: 'massage', label: '按摩打卡', period: 'week' },
+  vacuum: { key: 'vacuum', label: '吸尘打卡', period: 'week' },
+  mask: { key: 'mask', label: '面膜打卡', period: 'week' },
 };
 // v652：每日打卡模块 label 支持用户自定义（设置·版块设置里改）；优先用 settings.fieldLabels['life-checkin.'+key]，fallback 到 LIFE_CHECKIN_DEFS[key].label / DB.custom def
 function getLifeCheckinLabel(key) {
@@ -7381,10 +7397,10 @@ const LIFE_RECORD_SUBTYPES = {
     breakfast: { key: 'breakfast', label: '早餐', icon: '🌅' },
     lunch: { key: 'lunch', label: '午餐', icon: '☀️' },
     dinner: { key: 'dinner', label: '晚餐', icon: '🌙' },
-    midnight: { key: 'midnight', label: '宵夜', icon: '🌃', multi: true },
-    snack: { key: 'snack', label: '零食', icon: '🍟', multi: true,
+    midnight: { key: 'midnight', label: '宵夜', multi: true },
+    snack: { key: 'snack', label: '零食', multi: true,
       unitOptions: ['包','个','颗','根','袋','盒','瓶','片','粒','份','条','罐','把'] },
-    milktea: { key: 'milktea', label: '奶茶', icon: '🧋', multi: true,
+    milktea: { key: 'milktea', label: '奶茶', multi: true,
       sizeOptions: ['mini杯','小杯','中杯','标准杯','大杯','胖胖杯','双拼杯','超大杯','超长杯','吨吨杯','奶茶桶'],
       sugarOptions: ['不额外加糖','一分糖','二分糖','三分糖','微糖','半糖','五分糖','七分糖','少糖','标准糖','全糖'],
       temperatureOptions: ['热','温','常温','冰','标准冰','多冰','少冰','微冰','去冰'],
@@ -7401,13 +7417,13 @@ function lifeRecordSubtypes(typeKey) {
   return Object.values(LIFE_RECORD_SUBTYPES[typeKey] || {});
 }
 const LIFE_RECORD_DEFS = {
-  sleep: { key: 'sleep', label: '睡眠记录', icon: '😴', fields: [
+  sleep: { key: 'sleep', label: '睡眠记录', fields: [
     { key: 'sleepTime', label: '入睡时间', type: 'time' },
     { key: 'wakeTime', label: '清醒时间', type: 'time' },
     { key: 'wakeCount', label: '清醒次数', type: 'number' },
     { key: 'duration', label: '睡眠时长(小时)', type: 'number', auto: true },
   ]},
-  diet: { key: 'diet', label: '饮食记录', icon: '🍚', fields: [
+  diet: { key: 'diet', label: '饮食记录', fields: [
     { key: 'note', label: '内容', type: 'text' },
     { key: 'time', label: '时间', type: 'time' },
     { key: 'qty', label: '数量', type: 'number', subtype: 'snack' },
