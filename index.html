@@ -70,7 +70,7 @@ html{background:#FFFFFF}
 /* v1.1.4: 顶部让出 80dp 白带
    - 让 #app padding-top:80px，使 sidebar / main-wrap 都从 80dp 下沿开始绘制
    - 之前 v1.1.3 只 body padding-top:56px，导致 sidebar 从 (0,0) 开始染色，
-     浅蓝渐变覆盖了刚让出的白带 → 整个侧栏从顶到底都是浅蓝
+     浅蓝渐变覆盖了刚让出的白带 -> 整个侧栏从顶到底都是浅蓝
    - 现在改用 #app 加 padding-top 让 sidebar 整体下移，浅蓝只覆盖 #app 内容区
    - box-sizing:border-box 让 #app 内容高度自适应（sidebar 仍可铺满） */
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;background:#FFFFFF;color:var(--c-text);overflow:hidden;-webkit-font-smoothing:antialiased}
@@ -109,9 +109,9 @@ ul,li{list-style:none}
 }
 .sidebar-logo{display:flex;align-items:center;gap:8px;color:#fff;white-space:nowrap;overflow:hidden;height:100%}
 /* v686：Logo 改为固定尺寸图片模块，支持点击上传自定义图片 */
-/* v687：去掉色块胶囊，让图片与文字直接 flex 居中一条直线 */
+/* v690：去掉 v689 的 transform:translateY(-3px)（v689 把色块往上推导致偏上），让 flex center 自然对齐 */
 .sidebar-logo{align-items:center}
-.sidebar-logo .logo-icon{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:8px;overflow:hidden;cursor:pointer;background:rgba(255,255,255,.18);font-size:20px;transform:translateY(-3px)}
+.sidebar-logo .logo-icon{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:8px;overflow:hidden;cursor:pointer;background:rgba(255,255,255,.18);font-size:20px}
 .sidebar-logo .logo-icon:hover{background:rgba(255,255,255,.3)}
 .sidebar-logo .logo-icon img{width:28px;height:28px;object-fit:cover;display:block}
 .sidebar-logo .logo-text{font-size:16px;font-weight:600;opacity:1;transition:opacity .2s;display:flex;align-items:center}
@@ -141,7 +141,8 @@ ul,li{list-style:none}
 .nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
 .nav-item.active{background:rgba(255,255,255,.15);color:#fff}
 .nav-item.active::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#7eb8e8;border-radius:0 2px 2px 0}
-.nav-item .nav-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+/* v690：nav-icon 改为 1em 继承父级字号，让图标盒子 = 文字盒子，flex align-items:center 完美对齐（之前 font-size:16px/width:20px 让盒子大于文字 13px，居中后图标偏下） */
+.nav-item .nav-icon{font-size:inherit;width:1em;height:1em;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 .nav-item .nav-label{transition:opacity .2s}
 .sidebar.collapsed .nav-item{justify-content:center;padding:10px 0}
 .sidebar.collapsed .nav-item .nav-label{opacity:0;width:0;overflow:hidden}
@@ -285,7 +286,7 @@ ul,li{list-style:none}
 .record-list .record-card-header{border-bottom:1px solid var(--c-border-light);padding-bottom:8px}
 /* v535：接稿排期日历视图卡片标题/编辑/删除/分割线整体下移 1px（累计 -3px） */
 .record-list.cal-view .record-card-header{margin-top:-3px}
-/* v534：接稿排期日历视图展示模块盒子 padding-top 再减 2px（13→11）*/
+/* v534：接稿排期日历视图展示模块盒子 padding-top 再减 2px（13->11）*/
 .record-list.cal-view .record-card{padding-top:11px}
 .record-card-body{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--c-text-light)}
 .record-card-body .field{display:flex;gap:4px}
@@ -460,8 +461,8 @@ ul,li{list-style:none}
   .comm-list-nostats{display:none}
   /* v668：人物关系模块底部卡片电脑端两列（一行两个），手机端单列 */
   .oc-rel-list-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  /* v672：接稿排期日历视图 日历↔柱状图 间距收紧（grid 行距16→8，列距保持16px不动；分隔线上margin归0、下margin保持16px恢复柱状图呼吸感），仅动日历底→分隔线 */
-  /* v677：接稿排期日历视图 divider/标题间距回归初始(全局16px)——分割线上下统一16px；标题到上边框 8→16px 对齐开团记录 */
+  /* v672：接稿排期日历视图 日历↔柱状图 间距收紧（grid 行距16->8，列距保持16px不动；分隔线上margin归0、下margin保持16px恢复柱状图呼吸感），仅动日历底->分隔线 */
+  /* v677：接稿排期日历视图 divider/标题间距回归初始(全局16px)——分割线上下统一16px；标题到上边框 8->16px 对齐开团记录 */
   .comm-cal-chartstats .stats-divider{margin:16px 0}
   .comm-cal-chartstats .annual-chart{padding-top:16px}
   .comm-cal-chartstats .annual-chart-title{margin-bottom:8px}
@@ -473,9 +474,9 @@ ul,li{list-style:none}
   .chart-stats-2col{display:block}
   /* v666：开团记录两列仅电脑端，手机端单列堆叠 */
   .gb-records-2col{display:block}
-  /* v683：每日记录两列仅电脑端，手机端单列堆叠（左列→右列自然上下） */
+  /* v683：每日记录两列仅电脑端，手机端单列堆叠（左列->右列自然上下） */
   .lr-2col{display:block}
-  /* v668：接稿排期列表视图「图+统计」手机端保留显示（原顺序 日历→列表→图→统计） */
+  /* v668：接稿排期列表视图「图+统计」手机端保留显示（原顺序 日历->列表->图->统计） */
   .comm-list-nostats{display:block}
   /* v668：人物关系底部卡片手机端保持原样单列（默认 .record-list 垂直堆叠） */
 }
@@ -546,7 +547,7 @@ ul,li{list-style:none}
 /* ===== Forms ===== */
 .form-row{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
 .form-row.inline{flex-direction:row;gap:12px}
-/* v26: 动态列表容器所在的 form-row — 标签到容器的间距与普通 form-row label→input 一致 (8px) */
+/* v26: 动态列表容器所在的 form-row — 标签到容器的间距与普通 form-row label->input 一致 (8px) */
 .form-row:has(> .dynamic-list-container){gap:8px}
 .form-row.inline{flex-direction:row;gap:12px}
 .form-row.inline>*{flex:1}
@@ -799,7 +800,7 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyPrice"]{flex:0 0 100px;padding-left:8px;margin-left:0}
 .dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="note"]{flex:1 1 0;min-width:80px;padding-left:8px;margin-left:0}
 /* P轮修正：开团记录制品列表「单价/对应厂家」标题 padding-left 30px；
-   「售卖数量/是否流团」标题在目前 8px 基础上减 2 → 6px；
+   「售卖数量/是否流团」标题在目前 8px 基础上减 2 -> 6px；
    接稿排期制品列表「价格」标题保持默认 8px（按 data-module 区分，避免互相影响） */
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="price"]{padding-left:30px}
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="factory"]{padding-left:30px}
@@ -1217,7 +1218,7 @@ ul,li{list-style:none}
 }
 .annual-chart-title{
   font-size:14px;font-weight:600;color:var(--c-text);
-  margin-bottom:12px;display:flex;align-items:center;gap:2px;justify-content:flex-start;
+  margin-bottom:12px;display:flex;align-items:center;gap:6px;justify-content:flex-start;
 }
 .annual-chart-yearnav{display:flex;gap:4px;flex-shrink:0}
 .annual-chart-yearnav .btn-xs{padding:2px 8px;font-size:11px}
@@ -2623,7 +2624,7 @@ ul,li{list-style:none}
 .cd-page-btn:hover:not(:disabled){border-color:var(--c-primary);color:var(--c-primary)}
 .cd-page-btn.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary)}
 .cd-page-btn:disabled{opacity:.4;cursor:not-allowed}
-/* v451：蓝块下边距 12→8px，与下方「选择分类」div 的下边距统一，使下拉框上下留白对称 */
+/* v451：蓝块下边距 12->8px，与下方「选择分类」div 的下边距统一，使下拉框上下留白对称 */
 .cd-import-modal .cd-import-tip{font-size:12px;color:var(--c-text-muted);line-height:1.6;background:var(--c-primary-bg);padding:10px 12px;border-radius:8px;margin-bottom:8px}
 .cd-chat-input{min-height:160px}
 .cd-import-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
@@ -2648,12 +2649,12 @@ ul,li{list-style:none}
 .cd-link-box{margin:12px 0 0}
 .cd-link-box textarea.form-input{font-size:12px;min-height:40px;height:auto;padding:11px 10px;line-height:1.4;white-space:pre-wrap;word-break:break-all;overflow-wrap:anywhere;resize:none;overflow:hidden;field-sizing:content}
 /* 追加制品编辑器（新增/编辑弹窗内）：与第一条制品样式统一，无蓝底、无边框 */
-/* v657：三个距离统一 14px（以初始制品备注→追加制品标题为准）：
-   ① 备注→+新增制品（无追加时） = form-row mb 14
-   ② 备注→追加制品标题 = form-row mb 14（容器/row/head 都 0 margin-top）
-   ③ 「是否同模」→+新增制品 = .cd-ep-full margin-bottom 14 + 按钮 mt 0
+/* v657：三个距离统一 14px（以初始制品备注->追加制品标题为准）：
+   ① 备注->+新增制品（无追加时） = form-row mb 14
+   ② 备注->追加制品标题 = form-row mb 14（容器/row/head 都 0 margin-top）
+   ③ 「是否同模」->+新增制品 = .cd-ep-full margin-bottom 14 + 按钮 mt 0
    距离 1（有追加时）= 14 + H + 14 自然增加，按钮随追加内容下移，视觉节奏正确 */
-/* v658：用 :has 选择器让有追加时容器底部 14px 给按钮；.cd-ep-grid padding-top 14 恢复 head→第一字段间距 */
+/* v658：用 :has 选择器让有追加时容器底部 14px 给按钮；.cd-ep-grid padding-top 14 恢复 head->第一字段间距 */
 .cd-extra-products{display:flex;flex-direction:column;gap:14px;margin-top:0}
 .cd-extra-products:has(.cd-extra-product-row){margin-bottom:14px}
 .cd-extra-product-row{border:none;border-radius:0;padding:0;background:none;margin-top:0}
@@ -2840,7 +2841,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=689"></script>
+  <script src="app.js?v=690"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

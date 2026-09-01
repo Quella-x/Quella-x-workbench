@@ -244,7 +244,7 @@ function closeModal() {
   $('#modalOverlay').classList.remove('show'); $('#modalBody').innerHTML = ''; $('#modalFooter').innerHTML = '';
   if (_modalHistoryPushed) { _modalHistoryPushed = false; try { history.back(); } catch (e) {} }
 }
-// 系统返回手势（Android 侧滑返回 / 浏览器后退）触发 popstate → 关闭当前模态并回到上一级
+// 系统返回手势（Android 侧滑返回 / 浏览器后退）触发 popstate -> 关闭当前模态并回到上一级
 window.addEventListener('popstate', function () {
   if (_modalHistoryPushed) {
     _modalHistoryPushed = false;
@@ -261,7 +261,7 @@ function navBack() {
     if (ps.home.statusFilter) { ps.home.statusFilter = ''; ps.home.homePageNo = 1; renderHome(); return true; }
     homeBackToMain(); return true;
   }
-  // 每日记录历史视图（睡眠/饮食）→ 返回首页视图
+  // 每日记录历史视图（睡眠/饮食）-> 返回首页视图
   if (ps['life-record'] && (ps['life-record'].view === 'sleep-history' || ps['life-record'].view === 'diet-history')) {
     ps['life-record'].view = 'home'; renderLifeRecord(); return true;
   }
@@ -324,7 +324,7 @@ function initImageUpload(containerSelector) {
   input.onchange = () => { Array.from(input.files).forEach(file => { if (file.size > 3 * 1024 * 1024) { Toast.warning(`图片 ${file.name} 超过3MB，已跳过`); return; } const reader = new FileReader(); reader.onload = (e) => { images.push(e.target.result); renderPreview(); }; reader.readAsDataURL(file); }); input.value = ''; };
 }
 function makeImageUploadHTML() {
-  return `<div class="img-upload-container" id="imgUpload"><div class="img-upload-area"><span style="font-size:24px;display:block;margin-bottom:4px">📷</span><span style="font-size:12px;color:var(--c-text-muted)">点击上传图片（单张不超过3MB）</span></div><input type="file" class="img-upload-input" accept="image/*" multiple style="display:none"><div class="img-preview-grid"></div></div>`;
+  return `<div class="img-upload-container" id="imgUpload"><div class="img-upload-area"><span style="font-size:24px;display:block;margin-bottom:4px">${lucide('camera',24)}</span><span style="font-size:12px;color:var(--c-text-muted)">点击上传图片（单张不超过3MB）</span></div><input type="file" class="img-upload-input" accept="image/*" multiple style="display:none"><div class="img-preview-grid"></div></div>`;
 }
 
 /* ===== App Logo（v686：固定尺寸图片模块，用户可自行上传） =====
@@ -470,12 +470,6 @@ const DEFAULT_NAV_ICONS = {
   'life-checkin': 'check-check', 'life-record': 'notebook-pen'
 };
 /* 旧版本存的是 emoji，迁移为图标名；已是图标名的原样保留 */
-const NAV_ICON_LEGACY_MAP = {
-  '🏠': 'house', '📦': 'package', '📋': 'clipboard-list', '🏭': 'factory', '🔬': 'microscope',
-  '🧮': 'calculator', '🎨': 'palette', '💡': 'lightbulb', '📅': 'calendar-days', '📝': 'file-text',
-  '📜': 'scroll-text', '💰': 'wallet', '👤': 'user', '🎭': 'drama', '🔗': 'link', '📖': 'book-open',
-  '🕐': 'clock', '🖌️': 'paintbrush', '✅': 'check-check', '📌': 'pin'
-};
 const DEFAULT_SETTINGS = {
   theme: { primary: '#9DC8FF', primaryLight: '#BDE7FF', primaryDark: '#7AB5F5', primaryBg: '#E0F2FF', sidebarStart: '#7AB5F5', sidebarEnd: '#5BA3F0' },
   customThemes: [],
@@ -594,7 +588,7 @@ function commissionRecordSort(a, b) {
   if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
   return String(a.id).localeCompare(String(b.id));
 }
-// v645：clientInfo 归一化（去空格/忽略大小写/全角→半角），避免「客户A」vs「客户 A」「客戶a」等格式差异导致约稿单关联不上父接稿
+// v645：clientInfo 归一化（去空格/忽略大小写/全角->半角），避免「客户A」vs「客户 A」「客戶a」等格式差异导致约稿单关联不上父接稿
 function normCi(s) {
   return (s == null ? '' : String(s))
     .trim()
@@ -604,9 +598,9 @@ function normCi(s) {
 }
 function commissionDetailSort(a, b) {
   // v655：3 组细分
-  // group 0 = linked 接稿 + 未交付 → 完全跟随接稿排期 sort（commissionRecordSort + xiao_comm_order）
-  // group 1 = 未关联（clientInfo 没匹配上任何接稿）→ 按 约稿单 id
-  // group 2 = 已交付（任何，含 linked 或未关联）→ 最后，按 约稿单 id
+  // group 0 = linked 接稿 + 未交付 -> 完全跟随接稿排期 sort（commissionRecordSort + xiao_comm_order）
+  // group 1 = 未关联（clientInfo 没匹配上任何接稿）-> 按 约稿单 id
+  // group 2 = 已交付（任何，含 linked 或未关联）-> 最后，按 约稿单 id
   function getLinked(r) {
     return DB.list('commissions').find(c => (c.clientInfo || '') === (r.clientInfo || ''));
   }
@@ -1336,7 +1330,7 @@ function readForm(container) {
       const items = [];
       $$('.dynamic-list-row', el).forEach(row => {
         const item = {};
-        // v17: multiselect checkbox → 数组
+        // v17: multiselect checkbox -> 数组
         $$('.dynamic-multi-sel', row).forEach(ms => {
           const sk = ms.dataset.subkey;
           const checked = $$('input[type="checkbox"]:checked', ms).map(c => c.value);
@@ -1794,7 +1788,7 @@ MODULES['groupbuy-records'] = {
   },
 };
 
-// --- Factories (需求5: 去品类提示词, 默认临时合作, 优劣备注→备注) ---
+// --- Factories (需求5: 去品类提示词, 默认临时合作, 优劣备注->备注) ---
 MODULES['groupbuy-factories'] = {
   store: 'factories',
   fields: [
@@ -1838,7 +1832,7 @@ MODULES['groupbuy-factories'] = {
   detailExtra: (r) => '',
 };
 
-// --- Samples (需求6: 年度柱状图, 厂家可选, 复盘备注→备注) ---
+// --- Samples (需求6: 年度柱状图, 厂家可选, 复盘备注->备注) ---
 MODULES['groupbuy-samples'] = {
   store: 'samples',
   fields: [
@@ -2317,7 +2311,7 @@ MODULES['design-auth'] = {
   statsYearField: 'authDate',
 };
 
-// --- Price List (需求9: 去提示词, 删单位, 分类说明→备注, 菜单风格, 其他说明可折叠) ---
+// --- Price List (需求9: 去提示词, 删单位, 分类说明->备注, 菜单风格, 其他说明可折叠) ---
 MODULES['design-pricelist'] = {
   store: 'priceList',
   fields: [
@@ -2588,7 +2582,7 @@ function renderSidebar() {
 function renderStatsSection(stats, title, scope, pageKey) {
   scope = scope || 'all';
   let html = `<div class="stats-section">`;
-  html += `<div class="stats-section-title">📊 ${esc(title || '总结')}`;
+  html += `<div class="stats-section-title">${lucide('bar-chart-3',14)} ${esc(title || '总结')}`;
   if (pageKey) {
     html += `<div class="stats-scope-toggle">`;
     html += `<button class="btn btn-xs ${scope === 'all' ? 'btn-primary' : 'btn-outline'}" onclick="setStatsScope('${pageKey}','all')">全部</button>`;
@@ -2766,7 +2760,7 @@ function togglePageTopBar(pageKey) {
     html += '</div></div>';
     html += renderCommissionCalendar(ps.calYear, ps.calMonth, commissionAllRecords);
     if (ps.dateFilter) {
-      html += `<div style="text-align:center;margin-top:8px"><span class="tag tag-info" style="cursor:pointer" onclick="commissionClearDate()">清除日期筛选: ${ps.dateFilter} ✕</span></div>`;
+      html += `<div style="text-align:center;margin-top:8px"><span class="tag tag-info" style="cursor:pointer" onclick="commissionClearDate()">清除日期筛选: ${ps.dateFilter} ${lucide('x',12)}</span></div>`;
     }
     html += '</div>'; // close .calendar
     html += '</div>'; // close .comm-cal-col left
@@ -2897,7 +2891,7 @@ function togglePageTopBar(pageKey) {
         html += `<span class="field"><span class="field-label">完成进度</span><span class="field-value" style="color:${doneCount === r.products.length ? 'var(--c-green)' : 'var(--c-text)'}">${doneCount}/${r.products.length}</span></span>`;
       }
       html += '</div>';
-      if (isOverdue) html += `<div style="margin-top:6px;padding:4px 8px;background:#fff1f0;border-radius:4px;font-size:11px;color:var(--c-red)">⚠️ 已过截止日期</div>`;
+      if (isOverdue) html += `<div style="margin-top:6px;padding:4px 8px;background:#fff1f0;border-radius:4px;font-size:11px;color:var(--c-red);display:flex;align-items:center;gap:4px">${lucide('alert-triangle',11)} 已过截止日期</div>`;
       html += '</div>';
       if (isCommDual) html += renderCommDetailCard(r, ps.selectedCommissionId === r.id);
     });
@@ -2913,7 +2907,7 @@ function togglePageTopBar(pageKey) {
   }
   if (gbWrapped) { html += '</div>'; } // close .gb-left
 
-  // 接稿排期日历视图：图表+统计移入左栏日历正下方（grid-area:chart；移动端随 .comm-cal-two-col 块级堆叠保持 日历→列表→图→统计）
+  // 接稿排期日历视图：图表+统计移入左栏日历正下方（grid-area:chart；移动端随 .comm-cal-two-col 块级堆叠保持 日历->列表->图->统计）
   if (commissionAllRecords) {
     html += '</div>'; // close .comm-cal-col-list (right column)
     if (mod.chart || mod.stats) {
@@ -3723,7 +3717,7 @@ function setupFormInteractions(pageKey) {
         if (!ci.value.trim()) ci.value = pn.value;
       });
     }
-    // 条件字段联动（交付方式=指定邮箱 → 收件邮箱；展示权限=解封日期后可以展示 → 解封日期）
+    // 条件字段联动（交付方式=指定邮箱 -> 收件邮箱；展示权限=解封日期后可以展示 -> 解封日期）
     const applyCond = () => {
       if (!container) return;
       container.querySelectorAll('.cond-field').forEach(w => {
@@ -3808,7 +3802,7 @@ function calcCommissionPrice(data) {
   if (!parseFloat(data.amount)) data.amount = quoteAmount;
 }
 
-/* ===== 开团制品 → 厂家合作记录 回填（#6） ===== */
+/* ===== 开团制品 -> 厂家合作记录 回填（#6） ===== */
 function syncGroupbuyToFactories(gb) {
   const products = gb.products || [];
   if (!products.length) return;
@@ -3891,7 +3885,7 @@ function openDetail(pageKey, id) {
         html += `<tr class="${item.done ? 'prod-done' : ''}">`;
         cols.forEach(c => {
           if (c.type === 'seq') html += `<td style="text-align:center;font-weight:700;color:var(--c-text-light)">${String(idx + 1).padStart(2, '0')}</td>`;
-          else if (c.type === 'checkbox') html += `<td style="text-align:center">${item[c.subkey] ? '✓' : ''}</td>`;
+          else if (c.type === 'checkbox') html += `<td style="text-align:center">${item[c.subkey] ? lucide('check',12) : ''}</td>`;
           else html += `<td>${esc(item[c.subkey] || '')}</td>`;
         });
         html += extraCell ? extraCell(item, idx) : '';
@@ -4170,7 +4164,7 @@ function renderHomeStatusFilterBar() {
   return h;
 }
 
-// v29: 首页灵感速记 → 写入 inspirations（首页不展示，进入「美工·灵感记录」）
+// v29: 首页灵感速记 -> 写入 inspirations（首页不展示，进入「美工·灵感记录」）
 function homeAddInspiration() {
   const theme = (document.getElementById('hInspTheme') || {}).value || '';
   const category = (document.getElementById('hInspCat') || {}).value || '';
@@ -4228,7 +4222,7 @@ function renderPriceCalc() {
     html += '</div>';
   } else { html += '<div style="font-size:12px;color:var(--c-text-muted);padding:8px">暂无模板</div>'; }
   html += '</div>';
-  html += '<div class="calc-card"><div class="calc-card-title">🕐 历史计算</div>';
+  html += `<div class="calc-card"><div class="calc-card-title">${lucide('clock',14)} 历史计算</div>`;
   if (history.length) {
     html += '<div class="template-list">';
     history.forEach(h => {
@@ -4254,7 +4248,7 @@ function calcPrice() {
   const unitProfit = salePrice - unitCost - commission;
   const r = $('#calcResult'); if (!r) return;
   r.innerHTML = `
-    <div class="dc-r-title">📊 成本计算</div>
+    <div class="dc-r-title">${lucide('bar-chart-3',16)} 成本计算</div>
     <div class="dc-r-section">
       <div class="dc-r-sub">成本明细（每件）</div>
       <div class="dc-rr"><span>单品成本</span><span>¥${itemCost.toFixed(2)}</span></div>
@@ -4327,7 +4321,7 @@ function renderTimeline() {
   // Person name buttons (text only) — at very top (like stories page)
   // v16: 全部按钮常驻，即使没有人物档案也显示
   html += '<div class="relation-person-row">';
-  html += `<div class="relation-person-btn ${!ps.personFilter ? 'active' : ''}" onclick="timelinePersonFilter('')"><span>📋 全部</span></div>`;
+  html += `<div class="relation-person-btn ${!ps.personFilter ? 'active' : ''}" onclick="timelinePersonFilter('')"><span>${lucide('list',14)} 全部</span></div>`;
   html += '<div class="relation-person-grid collapsed distribute">';
   chars.forEach(c => {
     const active = ps.personFilter === c.name ? 'active' : '';
@@ -4528,7 +4522,7 @@ function normalizeOcRelationsAlias() {
   DB.set('oc_rels_normalized_v612', true);
 }
 
-// v614：关系类型 → 人物档案社会关系字段 映射（双向绑定：关系录入后自动回填档案社会关系）
+// v614：关系类型 -> 人物档案社会关系字段 映射（双向绑定：关系录入后自动回填档案社会关系）
 const RELATION_TYPE_SOCIAL_MAP = {
   '道侣': { field: 'companion', dir: 'both' },
   '师徒': { field: 'master', dir: 'junior' },
@@ -4547,7 +4541,7 @@ const RELATION_TYPE_SOCIAL_MAP = {
   '表亲': { field: 'siblings', dir: 'both' },
   '堂亲': { field: 'siblings', dir: 'both' }
 };
-// v615：人物档案社会关系字段 → 关系类型（双向绑定：档案 → 关系，反向回填）
+// v615：人物档案社会关系字段 -> 关系类型（双向绑定：档案 -> 关系，反向回填）
 const SOCIAL_FIELD_RELATION_TYPE = {
   parents: '父母', siblings: '兄弟姐妹', master: '师徒', companion: '道侣', friends: '好友', fellow: '同门'
 };
@@ -4557,7 +4551,7 @@ const RELATION_TYPE_SOCIAL_FIELD = {
 function splitOcNames(v) {
   return (v || '').split(/[、,，]/).map(s => pureOcName(s.trim())).filter(Boolean);
 }
-// 从 ocRelations 推导某人物档案的六类社会关系字段（双向绑定：关系 → 档案）
+// 从 ocRelations 推导某人物档案的六类社会关系字段（双向绑定：关系 -> 档案）
 function deriveSocialFieldsFromRelations(charName) {
   const result = { parents: '', siblings: '', master: '', companion: '', friends: '', fellow: '' };
   const addUnique = (field, name) => {
@@ -4600,13 +4594,13 @@ function normalizeOcRelationSocial() {
   });
   DB.set('oc_rels_social_v614', true);
 }
-// v615：人物档案社会关系字段 → 人物关系记录（双向绑定：档案 → 关系）
+// v615：人物档案社会关系字段 -> 人物关系记录（双向绑定：档案 -> 关系）
 // 在档案保存时调用：为档案社会关系里填写的每个人自动建立/清理对应的人物关系记录
 function syncProfileSocialToRelations(charName, socialData) {
   if (!charName) return;
   const name = pureOcName(charName);
   let relations = DB.list('ocRelations');
-  // 1) 新增：档案社会关系里存在、但 ocRelations 中尚无对应记录的人 → 建立关系
+  // 1) 新增：档案社会关系里存在、但 ocRelations 中尚无对应记录的人 -> 建立关系
   ['parents', 'siblings', 'master', 'companion', 'friends', 'fellow'].forEach(field => {
     const type = SOCIAL_FIELD_RELATION_TYPE[field];
     splitOcNames(socialData && socialData[field]).forEach(other => {
@@ -4719,7 +4713,7 @@ async function onDeleteOcRelationGroup(id) {
   const group = getOcRelationGroup(id);
   if (!group || !group.length) return;
   const a = pureOcName(group[0].charA), b = pureOcName(group[0].charB);
-  if (await confirmDialog(`确定要删除「${a} ↔ ${b}」的 ${group.length} 条关系吗？此操作不可撤销。`)) {
+  if (await confirmDialog(`确定要删除「${a} 与 ${b}」的 ${group.length} 条关系吗？此操作不可撤销。`)) {
     group.forEach(r => { DB.remove('ocRelations', r.id); removeOcRelationRefs(r); });
     Toast.success('已删除');
     navigate('oc-relations');
@@ -4760,7 +4754,7 @@ function renderRelations() {
     if (chars.length) {
       html += `<div style="margin-top:16px"><div style="font-size:13px;font-weight:600;color:var(--c-primary-dark);margin-bottom:8px">${lucide('users',16)} 人物关系快捷查看</div>`;
       html += '<div class="relation-person-row">';
-      html += '<div class="relation-person-btn active" onclick="showAllPersonRelations(this)"><span>📋 全部</span></div>';
+      html += `<div class="relation-person-btn active" onclick="showAllPersonRelations(this)"><span>${lucide('list',14)} 全部</span></div>`;
       html += '<div class="relation-person-grid collapsed distribute">';
       chars.forEach(c => {
         html += `<div class="relation-person-btn" onclick="togglePersonRelations('${esc(c.name)}', this)"><span>${esc(c.name)}</span></div>`;
@@ -4794,7 +4788,7 @@ function renderRelations() {
         const a = pureOcName(first.charA), b = pureOcName(first.charB);
         html += `<div class="record-card" onclick="openDetail('oc-relations','${first.id}')">`;
         html += '<div class="record-card-header"><div class="record-card-title">';
-        html += `${esc(a)} <span style="color:var(--c-text-muted)">↔</span> ${esc(b)}`;
+        html += `${esc(a)} <span style="color:var(--c-text-muted)">与</span> ${esc(b)}`;
         html += '</div><div class="record-card-actions">';
         html += `<span class="btn-icon" onclick="event.stopPropagation();openOcRelationGroupEdit('${first.id}')">${lucide('pencil',16)}</span>`;
         html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDeleteOcRelationGroup('${first.id}')">${lucide('trash-2',16)}</span>`;
@@ -4865,7 +4859,7 @@ function showAllPersonRelations(btn) {
         const color = RELATION_COLORS[rt] || '#b0b8c0';
         html += `<span class="tag" style="background:${color}20;color:${color}">${esc(rt)}</span>`;
       });
-      html += `<span style="color:var(--c-text-muted)"><b>${esc(a)}</b> ↔ <b>${esc(b)}</b></span></div>`;
+      html += `<span style="color:var(--c-text-muted)"><b>${esc(a)}</b> 与 <b>${esc(b)}</b></span></div>`;
     });
   }
   expand.innerHTML = html;
@@ -4897,7 +4891,7 @@ function togglePersonRelations(name, btn) {
       const rsArr = arrVal(r.relationStatus);
       rtArr.forEach(rt => {
         const color = RELATION_COLORS[rt] || '#b0b8c0';
-        html += `<div style="padding:4px 0"><span class="tag" style="background:${color}20;color:${color}">${esc(rt)}</span> → <b>${esc(other)}</b> (${esc(rsArr.join('、'))})</div>`;
+        html += `<div style="padding:4px 0"><span class="tag" style="background:${color}20;color:${color}">${esc(rt)}</span> 至 <b>${esc(other)}</b> (${esc(rsArr.join('、'))})</div>`;
       });
     });
   }
@@ -5063,7 +5057,7 @@ function drawMindMap(chars, relations) {
     const box = bx + nx * off, boy = by + ny * off;
     const opacity = 0.65;
     inner += `<line x1="${aox}" y1="${aoy}" x2="${box}" y2="${boy}" stroke="${color}" stroke-width="2" opacity="${opacity}"/>`;
-    // v645：仅当关系状态为「单向」才在端点 b(人物2)绘制箭头，表示方向 人物1→人物2；双向/未选单向的关系不画箭头
+    // v645：仅当关系状态为「单向」才在端点 b(人物2)绘制箭头，表示方向 人物1->人物2；双向/未选单向的关系不画箭头
     if (conn.status && conn.status.includes('单向')) {
       const ang = Math.atan2(by - ay, bx - ax);
       const aLen = 10, aW = 5;
@@ -5165,7 +5159,7 @@ function renderDesignCalc() {
   html += '<div class="calc-card">';
   html += '<div class="calc-card-title">录入模式</div>';
   html += '<div class="calc-mode-tabs">';
-  html += `<button class="calc-mode-tab${_dcMode === 'custom' ? ' active' : ''}" onclick="dcSetMode('custom')">✏️ 自定义录入</button>`;
+  html += `<button class="calc-mode-tab${_dcMode === 'custom' ? ' active' : ''}" onclick="dcSetMode('custom')">${lucide('pencil',14)} 自定义录入</button>`;
   html += `<button class="calc-mode-tab${_dcMode === 'import' ? ' active' : ''}" onclick="dcSetMode('import')">${lucide('download',16)} 导入接稿</button>`;
   html += '</div>';
   if (_dcMode === 'import') {
@@ -5200,7 +5194,7 @@ function renderDesignCalc() {
   html += '<div id="dc-products"></div>';
   html += '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">';
   html += '<button type="button" class="btn btn-outline btn-sm" onclick="dcAddProduct()">+ 添加制品</button>';
-  html += '<button type="button" class="btn btn-danger btn-sm" onclick="dcClearProducts()">🗑️ 一键清除</button>';
+  html += `<button type="button" class="btn btn-danger btn-sm" onclick="dcClearProducts()">${lucide('trash-2',14)} 一键清除</button>`;
   html += `<button type="button" class="btn btn-primary btn-sm" onclick="dcMakeSet()">${lucide('tag',16)} 归为SET</button>`;
   html += '<span id="dc-sel-hint" style="font-size:12px;color:var(--c-text-muted)"></span>';
   html += '</div>';
@@ -5272,7 +5266,7 @@ function renderDesignCalc() {
   html += '<div style="margin-top:4px">';
   html += '<button type="button" class="btn btn-outline btn-sm" onclick="dcShowAddCustomDisc()" style="width:100%">+ 添加优惠方案</button>';
   html += '<div style="display:flex;gap:6px;margin-top:4px">';
-  html += '<button type="button" class="btn btn-danger btn-sm" onclick="dcDeleteCheckedCustomDisc()" style="flex:1">🗑️ 删除方案</button>';
+  html += `<button type="button" class="btn btn-danger btn-sm" onclick="dcDeleteCheckedCustomDisc()" style="flex:1">${lucide('trash-2',14)} 删除方案</button>`;
   html += `<button type="button" class="btn btn-primary btn-sm" onclick="dcSaveCustomDiscsFeedback()" style="flex:1">${lucide('save',16)} 保存方案</button>`;
   html += '</div>';
   html += '</div>';
@@ -5439,7 +5433,7 @@ function dcSelectProduct(idx, el, cbId) {
 
 // CX轮（简化）：将当前全部制品归为同一个SET组；再次点击取消；自动确保SET优惠模式开启
 function dcMakeSet() {
-  // 已全归为同一组 → 取消分组；否则全部归为同一组
+  // 已全归为同一组 -> 取消分组；否则全部归为同一组
   const allSame = _dcProducts.length > 0 && _dcProducts.every(p => p.setGroup && p.setGroup === _dcProducts[0].setGroup);
   if (allSame) {
     _dcProducts.forEach(p => p.setGroup = '');
@@ -5472,7 +5466,7 @@ function dcSelectGlobalModel(val, checked) {
   if (checked) {
     _dcGlobalModelType = val; // 选中即设为当前项
   } else {
-    _dcGlobalModelType = '';  // 再次点击已选项 → 取消选择
+    _dcGlobalModelType = '';  // 再次点击已选项 -> 取消选择
   }
   // 单选约束：只保留与当前值一致的复选框为选中态
   document.querySelectorAll('input[name="dc_model_rule"]').forEach(r => { r.checked = (r.value === _dcGlobalModelType); });
@@ -5761,7 +5755,7 @@ function dcSaveCustomDiscsFeedback() {
   dcSaveCustomDiscs();
   const btn = event.target;
   const orig = btn.textContent;
-  btn.textContent = '✓ 已保存';
+  btn.textContent = '已保存';
   btn.style.background = 'var(--c-green)';
   setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 1500);
 }
@@ -5909,7 +5903,7 @@ function dcRecalc() {
   });
 
   // Step 4: 拆分 制品(原价) 与 加价项目(原价) 的 加急/非加急 基数
-  // 计算顺序：制品→同模→SET/折扣→加价项目→加急→用途；加价项目不纳入SET/折扣
+  // 计算顺序：制品->同模->SET/折扣->加价项目->加急->用途；加价项目不纳入SET/折扣
   // 单制品/部分加急时，加急溢价基于原价（不受SET/折扣影响），故这里按原价拆分
   let prodUrgentBase = 0, prodNonUrgentBase = 0;     // 制品 原价 基数（用于加急溢价）
   let extraUrgentBase = 0, extraNonUrgentBase = 0;   // 加价项目 原价 基数
@@ -5927,7 +5921,7 @@ function dcRecalc() {
   // Step 5: 折扣（作用于（制品+加价），在加急之前）——符合 原价-同模-加价-折扣-加急-用途
   let discHTML = '';
   let fanHTML = '';     // DL轮：同担/同推优惠独立列出（最终抵扣，从 finalPrice 扣除）
-  let discFirst = true; // 折扣HTML内首行加 promo-first，让制品→首条优惠间距加大
+  let discFirst = true; // 折扣HTML内首行加 promo-first，让制品->首条优惠间距加大
   const discCls = () => {
     const cls = 'dc-rr disc' + (discFirst ? ' promo-first' : '');
     discFirst = false;
@@ -5987,7 +5981,7 @@ function dcRecalc() {
   }
 
   // Step 7: 加急
-  // 顺序：制品→同模→SET/折扣→加价项目→加急→用途
+  // 顺序：制品->同模->SET/折扣->加价项目->加急->用途
   // CT轮：afterDiscount 已含加价折扣后金额；加价项目不乘加急倍率，加急溢价仅基于制品原价 prodUrgentBase
   // 单制品/部分加急：加急溢价 = prodUrgentBase * (urgentRate-1)
   // 整单加急：grandTotal = afterDiscount * urgentRate（折扣后整体含加价乘倍率）
@@ -6047,7 +6041,7 @@ function dcRecalc() {
   };
 
   const whole = !!_dcWholeOrderUrgent;
-  const showInlineUrgent = urgentEnabled && !whole;   // 单行/部分制品加急→分组内内联；整单→底部独立块
+  const showInlineUrgent = urgentEnabled && !whole;   // 单行/部分制品加急->分组内内联；整单->底部独立块
   const pad2 = n => String(n).padStart(2, '0');
 
   if (dMode === 'set' && groupDetails.length) {
@@ -6082,7 +6076,7 @@ function dcRecalc() {
       if (g.setRate < 1.0) {
         r += `<div class="dc-rr promo promo-first"><span>SET优惠：${esc(g.setLabel)}</span><span>×${g.setRate}</span></div>`;
       }
-      // 单行/部分制品加急→置于SET优惠行下方，样式与SET优惠统一（整单加急不在组内输出）
+      // 单行/部分制品加急->置于SET优惠行下方，样式与SET优惠统一（整单加急不在组内输出）
       if (showInlineUrgent && urgentSeqs.length) {
         const allUrgent = urgentSeqs.length === g.items.length;
         const label = allUrgent ? 'SET加急' : `加急：${urgentSeqs.map(pad2).join('、')}`;
@@ -6330,16 +6324,16 @@ function renderPriceList() {
   });
 
   let html = '<div class="fade-in">';
-  // v27: toolbar→其他说明 8px（用 inline mb 覆盖 .toolbar 默认 mb:16，避免塌陷）
+  // v27: toolbar->其他说明 8px（用 inline mb 覆盖 .toolbar 默认 mb:16，避免塌陷）
   html += '<div class="toolbar" style="margin-bottom:8px">';
   html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onSearch('design-pricelist', this.value)"><span class="search-icon">${lucide('search',16)}</span></div>`;
   html += '<div class="spacer"></div>';
-  html += '<button class="btn btn-outline toolbar-eq" onclick="togglePriceListNotes()">📝 其他说明</button>';
+  html += `<button class="btn btn-outline toolbar-eq" onclick="togglePriceListNotes()">${lucide('file-text',14)} 其他说明</button>`;
   html += `<button class="btn btn-outline toolbar-eq" onclick="openPriceListSort()">${lucide('arrow-up-down',16)} 调整排序</button>`;
   html += '<button class="btn btn-primary" onclick="openAddForm(\'design-pricelist\')">+ 新增价目</button>';
   html += '</div>';
 
-  // Collapsible 其他说明（v26: toolbar→其他说明 12px）
+  // Collapsible 其他说明（v26: toolbar->其他说明 12px）
   if (notes.length) {
     html += '<div style="margin-bottom:10px">';
     html += '<div class="collapsible-toggle" onclick="this.classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">';
@@ -6782,15 +6776,15 @@ function renderDataSettings(html) {
   html += `<button class="btn btn-outline" onclick="syncTest()">${lucide('plug',16)} 连接测试</button>`;
   html += `<button class="btn btn-primary" onclick="syncNow()">${lucide('refresh-cw',16)} 立即同步</button>`;
   html += '</div>';
-  const st = Sync.enabled() ? ('当前状态：' + (Sync.status === 'connected' ? '🟢 已连接' : Sync.status === 'syncing' ? lucide('refresh-cw',16) : '🔴 未连接')) : '当前：未配置';
+  const st = Sync.enabled() ? ('当前状态：' + (Sync.status === 'connected' ? lucide('circle-check',14) + ' 已连接' : Sync.status === 'syncing' ? lucide('refresh-cw',14) + ' 同步中' : lucide('circle-x',14) + ' 未连接')) : '当前：未配置';
   html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:10px">' + st + '</p>';
   html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:6px;line-height:1.6">需在 Supabase 新建表 <code>sync_store</code>（字段：group_key text、store text、data jsonb、updated_at timestamptz，主键 group_key+store），并开启 anon 访问策略（见同步说明）。</p>';
   // ---- 数据备份与导入 ----
   html += '<h4 style="font-size:14px;margin:24px 0 16px;color:var(--c-primary)">数据备份与导入</h4>';
   html += '<p style="font-size:13px;color:var(--c-text-light);margin-bottom:16px">导出所有数据为JSON文件，或从备份文件恢复数据。</p>';
   html += '<div style="display:flex;gap:12px;flex-wrap:wrap">';
-  html += '<button class="btn btn-primary" onclick="exportData()">💾 导出数据</button>';
-  html += '<button class="btn btn-outline" onclick="document.getElementById(\'importFile\').click()">📂 导入数据</button>';
+  html += `<button class="btn btn-primary" onclick="exportData()">${lucide('save',14)} 导出数据</button>`;
+  html += `<button class="btn btn-outline" onclick="document.getElementById(\'importFile\').click()">${lucide('folder-open',14)} 导入数据</button>`;
   html += '</div>';
   html += '</div>';
   return html;
@@ -6848,7 +6842,7 @@ function renderDisplayFieldsSettings(html) {
   (mod.listFields || []).forEach(f => { if (f.key) labelMap[f.key] = f.label || f.key; });
   (mod.fields || []).forEach(f => { if (f.key && !labelMap[f.key]) labelMap[f.key] = f.label || f.key; });
   const orderedVisible = st.order.filter(k => st.visibleKeys.includes(k)).concat(st.visibleKeys.filter(k => !st.order.includes(k)));
-  html += '<h4 style="font-size:13px;margin:16px 0 8px;color:var(--c-primary)">已展示字段（↑/↓ 调整顺序）</h4>';
+  html += '<h4 style="font-size:13px;margin:16px 0 8px;color:var(--c-primary)">已展示字段（上下按钮调整顺序）</h4>';
   if (!orderedVisible.length) {
     html += '<div class="empty-state" style="padding:16px"><div class="empty-text">当前未展示任何字段</div></div>';
   } else {
@@ -6859,8 +6853,8 @@ function renderDisplayFieldsSettings(html) {
       html += `<div class="df-row">
         <span class="df-label">${esc(labelMap[k] || k)}</span>
         <span class="df-actions">
-          <button type="button" class="df-btn" ${canUp} onclick="moveDisplayField('${k}','up')">↑</button>
-          <button type="button" class="df-btn" ${canDown} onclick="moveDisplayField('${k}','down')">↓</button>
+          <button type="button" class="df-btn" ${canUp} onclick="moveDisplayField('${k}','up')">${lucide('chevron-up',12)}</button>
+          <button type="button" class="df-btn" ${canDown} onclick="moveDisplayField('${k}','down')">${lucide('chevron-down',12)}</button>
           <button type="button" class="df-btn danger" onclick="toggleDisplayField('${k}')">隐藏</button>
         </span>
       </div>`;
@@ -7133,7 +7127,7 @@ function migrateData() {
   });
   if (changed) DB.set('groupbuys', groupbuys);
 
-  // Migrate combobox→multiselect string fields to arrays
+  // Migrate combobox->multiselect string fields to arrays
   migrateStringToArray('publishRecords', ['platform', 'contentType']);
   migrateStringToArray('groupbuys', ['status'], { '已结束': '已截团' });
   migrateStringToArray('factories', ['cooperationStatus']);
@@ -7390,13 +7384,13 @@ function lifeQuickCheckin(typeKey, e) {
 }
 const LIFE_RECORD_SUBTYPES = {
   sleep: {
-    night: { key: 'night', label: '夜晚', icon: '🌙' },
-    noon: { key: 'noon', label: '午间', icon: '☀️' }
+    night: { key: 'night', label: '夜晚' },
+    noon: { key: 'noon', label: '午间' }
   },
   diet: {
-    breakfast: { key: 'breakfast', label: '早餐', icon: '🌅' },
-    lunch: { key: 'lunch', label: '午餐', icon: '☀️' },
-    dinner: { key: 'dinner', label: '晚餐', icon: '🌙' },
+    breakfast: { key: 'breakfast', label: '早餐' },
+    lunch: { key: 'lunch', label: '午餐' },
+    dinner: { key: 'dinner', label: '晚餐' },
     midnight: { key: 'midnight', label: '宵夜', multi: true },
     snack: { key: 'snack', label: '零食', multi: true,
       unitOptions: ['包','个','颗','根','袋','盒','瓶','片','粒','份','条','罐','把'] },
@@ -8195,7 +8189,7 @@ function renderLifeSingleWeek(label, days, today, withSummary) {
       const done = checkins.some(r => r.type === t.key && r.date === ds);
       const isToday = ds === today;
       const cls = 'lwm-cell' + (done ? ' done' : '') + (isToday ? ' today' : '') + (t.period === 'week' ? ' week' : '');
-      html += '<div class="' + cls + '" title="' + ds + '" onclick="lifeWeekCellClick(\'' + t.key + '\',\'' + ds + '\')">' + (done ? '✔' : '') + '</div>';
+      html += '<div class="' + cls + '" title="' + ds + '" onclick="lifeWeekCellClick(\'' + t.key + '\',\'' + ds + '\')">' + (done ? lucide('check',12) : '') + '</div>';
     }
     html += '</div>';
   });
@@ -8664,7 +8658,7 @@ function renderDietRecordCard(date) {
 }
 function renderSleepWeekLineChart(days) {
   const all = DB.list('lifeRecords');
-  const wdLabels = ['周日','周六','周五','周四','周三','周二','周一']; // days已倒序（周日→周一），与下方日卡片对齐
+  const wdLabels = ['周日','周六','周五','周四','周三','周二','周一']; // days已倒序（周日->周一），与下方日卡片对齐
   // v373：夜晚时长(橙) / 午睡时长(黄) 分两条折线；清醒次数按夜晚记录统计
   // v548：duration缺失时从sleepTime/wakeTime自动计算，避免旧记录显示0m
   const nightVals = days.map(d => all.filter(r => r.type === 'sleep' && r.date === d && r.subtype === 'night').reduce((s, r) => s + getSleepDuration(r), 0));
@@ -8779,7 +8773,7 @@ function renderLifeRecordHistory(typeKey) {
   const days = [];
   for (let j = 0; j < 7; j++) { const d = new Date(base); d.setDate(base.getDate() + j); days.push(fmtDate(d)); }
   const wd = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-  // v353: 历史页日卡片整体倒序（周日→周一），与「最新在前」习惯一致；周图表同步倒序以保持对齐
+  // v353: 历史页日卡片整体倒序（周日->周一），与「最新在前」习惯一致；周图表同步倒序以保持对齐
   const daysRev = days.slice().reverse();
   const wdRev = wd.slice().reverse();
   const def = LIFE_RECORD_DEFS[typeKey];
@@ -9328,7 +9322,7 @@ function renderCommissionDetailPage() {
       <div class="cd-import-btn-name">聊天记录导入</div>
     </div>
     <div class="cd-import-btn" onclick="openCdImportJson()">
-      <div class="cd-import-btn-icon">📋</div>
+      <div class="cd-import-btn-icon">${lucide('clipboard-list',22)}</div>
       <div class="cd-import-btn-name">JSON 导入</div>
     </div>
     <div class="cd-import-btn" onclick="openCdClientForm()">
@@ -9956,7 +9950,7 @@ function openCdDetail(id) {
   });
   // 联动块：关联的接稿排期订单
   const linked = DB.list('commissions').filter(c => (c.clientInfo || '') === (r.clientInfo || ''));
-  html += '<div class="form-section-title">🔗 关联接稿排期</div>';
+  html += `<div class="form-section-title">${lucide('link',14)} 关联接稿排期</div>`;
   if (r.clientInfo && linked.length) {
     html += '<div class="cd-link-list">';
     linked.forEach(c => {
@@ -10043,7 +10037,7 @@ function cdCatComboboxHTML(hiddenId, selectedKey, onchange) {
     `<input type="hidden" class="combobox-value" id="${hiddenId}" value="${esc(sel.key)}">` +
     `</div>`;
 }
-// 1. 聊天记录解析导入：粘贴文字 → 正则模板提取 → 自动回填表单
+// 1. 聊天记录解析导入：粘贴文字 -> 正则模板提取 -> 自动回填表单
 function openCdImportChat() {
   let html = '<div class="cd-import-modal">';
   html += '<div class="cd-import-tip">粘贴与单主的聊天记录，系统会智能识别字段并自动回填（字段名不要求完全一致，识别有误可手动修改）</div>';
