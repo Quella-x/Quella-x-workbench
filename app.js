@@ -1364,7 +1364,7 @@ function renderCalendar(year, month, records, commissionRecords = []) {
   const prevMonthDays = new Date(year, month, 0).getDate();
   const today = new Date();
   const todayKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
-  const START_COLOR = '#f6ad5c', END_COLOR = '#FFDE75', BOTH_COLOR = '#712258'; // v625 开稿橙与工期条橙一致
+  const START_COLOR = '#f6ad5c', END_COLOR = '#FFDE75', BOTH_COLOR = '#9A91F2'; // v625 开稿橙与工期条橙一致；v677 开+截紫改 #9A91F2
   // v193: 深空打卡日期集合（固定位置在开稿/接稿/同天下方）
   const lifeDeepspaceDates = new Set(DB.list('lifeCheckins').filter(r => r.type === 'deepspace').map(r => r.date));
   let html = '<div class="cal-grid">';
@@ -2821,7 +2821,7 @@ const CAL_BAR_HEIGHT = 11;
 const CAL_BAR_GAP = 2;
 const CAL_START_COLOR = '#f6ad5c';    // 开稿节点（v625 与工期条橙色一致）
 const CAL_END_COLOR = '#FFDE75';      // 截稿节点
-const CAL_BOTH_COLOR = '#712258';     // 开+截同天
+const CAL_BOTH_COLOR = '#9A91F2';     // 开+截同天；v677 改 #9A91F2
 const CAL_DELIVERED_COLOR = '#7ec678';
 // Sum product quantities (e.g. 吧唧×4 + 明信片×2 = 6件)
 function calcProductQty(r) {
