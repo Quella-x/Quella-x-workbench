@@ -427,7 +427,10 @@ ul,li{list-style:none}
   .home-cal-insp .calendar{margin-top:0 !important}
   .home-cal-insp .home-insp{margin-top:0;padding-top:12px}
   /* v641：电脑端接稿排期日历视图双列（日历左、列表右，移动端单列） */
-  .comm-cal-two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  .comm-cal-two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;grid-template-areas:"cal list" "chart list"}
+  .comm-cal-col-cal{grid-area:cal}
+  .comm-cal-col-list{grid-area:list}
+  .comm-cal-chartstats{grid-area:chart}
   /* v660：电脑端列表/首页平台图表+统计双列；厂家记录仅统计也双列（右列留空） */
   /* v663：保留 flex:1 高度一致；撤销 v662 整行铺满，恢复厂家两列（右列留空）；统计内置按钮随模块增高 */
   /* v665：取消双列，恢复上下单列堆叠（图表在上、统计在下，整行宽） */
@@ -442,6 +445,10 @@ ul,li{list-style:none}
   .gb-records-2col .gb-right{position:sticky;top:12px;align-self:start}
   .gb-records-2col .stats-divider{display:none}
   .gb-records-2col .chart-stats-2col{margin-top:0}
+  /* v668：接稿排期列表视图「图+统计」仅电脑端隐藏（手机端保留原顺序） */
+  .comm-list-nostats{display:none}
+  /* v668：人物关系模块底部卡片电脑端两列（一行两个），手机端单列 */
+  .oc-rel-list-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 }
 @media (max-width:640px){
   .comm-cal-two-col{display:block}
@@ -450,6 +457,9 @@ ul,li{list-style:none}
   .chart-stats-2col{display:block}
   /* v666：开团记录两列仅电脑端，手机端单列堆叠 */
   .gb-records-2col{display:block}
+  /* v668：接稿排期列表视图「图+统计」手机端保留显示（原顺序 日历→列表→图→统计） */
+  .comm-list-nostats{display:block}
+  /* v668：人物关系底部卡片手机端保持原样单列（默认 .record-list 垂直堆叠） */
 }
 /* v640：手机端接稿排期日历标签完全镜像首页（圆点 4px 正圆，与首页一致） */
 @media (max-width:640px){
@@ -2793,7 +2803,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=667"></script>
+  <script src="app.js?v=668"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

@@ -2465,6 +2465,25 @@ function setStatsScope(pageKey, scope) {
 }
 
 /* ===== Generic List Page ===== */
+function renderChartStatsInner(mod, pageKey, store) {
+  let html = '<div class="chart-stats-2col">';
+  if (mod.chart) html += '<div class="cs-col cs-col-chart">' + mod.chart(DB.list(store)) + '</div>';
+  html += '<div class="cs-col cs-col-stats">';
+  if (mod.stats) {
+    const scope = (pageState[pageKey] && pageState[pageKey].statsScope) || 'all';
+    let statRecs = DB.list(store);
+    const yrField = mod.statsYearField;
+    if (scope === 'year' && yrField) {
+      const y = new Date().getFullYear();
+      statRecs = statRecs.filter(r => String(r[yrField] || '').startsWith(String(y)));
+    }
+    html += renderStatsSection(mod.stats(statRecs), mod.statsTitle, scope, pageKey);
+  }
+  html += '</div>';
+  html += '</div>';
+  return html;
+}
+
 function renderListPage(pageKey, mod) {
   const body = $('#mainBody');
   const store = mod.store;
@@ -2572,7 +2591,7 @@ function renderListPage(pageKey, mod) {
   // Commission calendar view rendered before records (日历在上，列表在下)
   if (commissionAllRecords) {
     html += '<div class="comm-cal-two-col">';
-    html += '<div class="comm-cal-col">';
+    html += '<div class="comm-cal-col comm-cal-col-cal">';
     html += '<div class="calendar" style="margin-bottom:0">';
     html += '<div class="calendar-header">';
     const calMonthKey = `${ps.calYear}-${String(ps.calMonth + 1).padStart(2, '0')}`;
@@ -2589,7 +2608,7 @@ function renderListPage(pageKey, mod) {
     }
     html += '</div>'; // close .calendar
     html += '</div>'; // close .comm-cal-col left
-    html += '<div class="comm-cal-col">'; // right column for record list
+    html += '<div class="comm-cal-col comm-cal-col-list">'; // right column for record list
   }
 
   // 双栏：工具栏/日历之上独占一行，记录与详情预览并列（左右等宽卡片一一对应）
@@ -2616,7 +2635,7 @@ function renderListPage(pageKey, mod) {
     return ff ? { key: ff.key, label: ff.label } : null;
   }).filter(Boolean).sort((a, b) => _orderedKeys.indexOf(a.key) - _orderedKeys.indexOf(b.key));
 
-  const isGbTwoCol = pageKey === 'groupbuy-records';
+  const isGbTwoCol = ['groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'design-auth', 'oc-commission'].includes(pageKey);
   const gbWrapped = isGbTwoCol && records.length > 0;
   if (!records.length) {
     const emptyCls = isCommDual ? ' class="empty-state" style="grid-column:1/-1"' : ' class="empty-state"';
@@ -2730,35 +2749,30 @@ function renderListPage(pageKey, mod) {
   }
   if (gbWrapped) { html += '</div>'; } // close .gb-left
 
-  // v641：关闭接稿排期日历视图双列容器（桌面双列 / 移动端单列）
+  // 接稿排期日历视图：图表+统计移入左栏日历正下方（grid-area:chart；移动端随 .comm-cal-two-col 块级堆叠保持 日历→列表→图→统计）
   if (commissionAllRecords) {
-    html += '</div>'; // close .comm-cal-col right
+    html += '</div>'; // close .comm-cal-col-list (right column)
+    if (mod.chart || mod.stats) {
+      html += '<div class="comm-cal-chartstats">';
+      html += '<div class="stats-divider"></div>';
+      html += renderChartStatsInner(mod, pageKey, store);
+      html += '</div>'; // close .comm-cal-chartstats
+    }
     html += '</div>'; // close .comm-cal-two-col
   }
 
-  // 双栏：关闭 .comm-dual 容器
+  // 双栏：关闭 .comm-dual 容器（接稿排期列表视图）
   if (isCommDual) html += '</div>';
 
-  // Chart + Stats (总结部分与记录隔开, 两列布局, 实色分割线)
-  if (mod.chart || mod.stats) {
+  // Chart + Stats（非接稿排期日历视图时渲染；接稿排期列表视图仅电脑端隐藏，手机端保留原顺序）
+  const _isCommListNoStats = (pageKey === 'design-commission' && !commissionAllRecords);
+  if ((mod.chart || mod.stats) && !commissionAllRecords) {
     if (gbWrapped) { html += '<div class="gb-right">'; }
+    else if (_isCommListNoStats) { html += '<div class="comm-list-nostats">'; }
     html += '<div class="stats-divider"></div>';
-    html += '<div class="chart-stats-2col">';
-    if (mod.chart) html += '<div class="cs-col cs-col-chart">' + mod.chart(DB.list(store)) + '</div>';
-    html += '<div class="cs-col cs-col-stats">';
-    if (mod.stats) {
-      const scope = (pageState[pageKey] && pageState[pageKey].statsScope) || 'all';
-      let statRecs = DB.list(store);
-      const yrField = mod.statsYearField;
-      if (scope === 'year' && yrField) {
-        const y = new Date().getFullYear();
-        statRecs = statRecs.filter(r => String(r[yrField] || '').startsWith(String(y)));
-      }
-      html += renderStatsSection(mod.stats(statRecs), mod.statsTitle, scope, pageKey);
-    }
-    html += '</div>';
-    html += '</div>';
+    html += renderChartStatsInner(mod, pageKey, store);
     if (gbWrapped) { html += '</div>'; } // close .gb-right
+    else if (_isCommListNoStats) { html += '</div>'; } // close .comm-list-nostats
   }
   if (gbWrapped) { html += '</div>'; } // close .gb-records-2col
   html += '</div>';
@@ -3854,9 +3868,11 @@ function renderHome() {
     if (ps.homePageNo > homeTotalPages) ps.homePageNo = 1;
     const homePaged = filteredRecords.slice((ps.homePageNo - 1) * homePageSize, ps.homePageNo * homePageSize);
 
-    if (!filteredRecords.length) {
+    const homeTwoCol = filteredRecords.length > 0;
+    if (!homeTwoCol) {
       html += '<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-text">暂无发布记录</div></div>';
     } else {
+      html += '<div class="gb-records-2col"><div class="gb-left">';
       html += '<div class="record-list cal-view">';
       homePaged.forEach(r => { html += renderHomeRecordCard(r); });
       html += '</div>';
@@ -3867,6 +3883,8 @@ function renderHome() {
         html += `<button class="page-link" ${ps.homePageNo >= homeTotalPages ? 'disabled' : ''} onclick="homeGoPage(${ps.homePageNo + 1})">下一页 ›</button>`;
         html += '</div>';
       }
+      html += '</div>'; // close .gb-left
+      html += '<div class="gb-right">';
     }
 
     // Chart (above stats at bottom)
@@ -3900,7 +3918,9 @@ function renderHome() {
       { label: '总平均更新', value: (published.length / activeMonths).toFixed(1), unit: '篇/月' },
       { label: '总最高浏览', value: totalMaxViews, unit: '次' },
     ], ps.tab + '统计') + '</div>';
-    html += '</div>';
+    html += '</div>'; // close .chart-stats-2col
+    if (homeTwoCol) { html += '</div>'; } // close .gb-right
+    if (homeTwoCol) { html += '</div>'; } // close .gb-records-2col
   }
 
   html += '</div>';
@@ -4601,7 +4621,7 @@ function renderRelations() {
       if (ps.pageNo > totalPairPages) ps.pageNo = 1;
       const pageNo = ps.pageNo || 1;
       const pagedPairs = pairList.slice((pageNo - 1) * pageSize, pageNo * pageSize);
-      html += '<div class="record-list" style="margin-top:16px">';
+      html += '<div class="record-list oc-rel-list-2col" style="margin-top:16px">';
       pagedPairs.forEach(group => {
         const first = group[0];
         const a = pureOcName(first.charA), b = pureOcName(first.charB);
