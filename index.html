@@ -451,6 +451,9 @@ ul,li{list-style:none}
   .oc-rel-list-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   /* v672：接稿排期日历视图 日历↔柱状图 间距收紧（grid 行距16→8，列距保持16px不动；分隔线上margin归0、下margin保持16px恢复柱状图呼吸感），仅动日历底→分隔线 */
   .comm-cal-chartstats .stats-divider{margin:0 0 16px}
+  /* v673：仅接稿排期日历视图 收紧卡片内部空白（图例→柱状图总距约54px→约36px）；分隔线到柱状图16px不变、不影响其他模块柱状图 */
+  .comm-cal-chartstats .annual-chart{padding-top:8px}
+  .comm-cal-chartstats .annual-chart-title{margin-bottom:6px}
 }
 @media (max-width:640px){
   .comm-cal-two-col{display:block}
@@ -2805,7 +2808,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=672"></script>
+  <script src="app.js?v=673"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
