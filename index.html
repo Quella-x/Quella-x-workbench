@@ -449,7 +449,7 @@ ul,li{list-style:none}
   .gb-records-2col .chart-stats-2col{margin-top:0}
   /* v683：电脑端「每日记录」首页/历史页 两列 1:1 均分（左=顶部卡片+切换+日期条/周导航+图表，右=记录块）；左列 sticky 固定仅右列滚动 */
   .lr-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
-  .lr-2col>.lr-left{min-width:0;position:sticky;top:12px;align-self:start}
+  .lr-2col>.lr-left{min-width:0;position:sticky;top:0;align-self:start;will-change:transform}
   .lr-2col>.lr-right{min-width:0}
   /* v668：接稿排期列表视图「图+统计」仅电脑端隐藏（手机端保留原顺序） */
   .comm-list-nostats{display:none}
@@ -2816,7 +2816,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=683"></script>
+  <script src="app.js?v=684"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

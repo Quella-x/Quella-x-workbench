@@ -8534,7 +8534,7 @@ function renderSleepWeekLineChart(days) {
   }).join('');
   const dayLabels = nightVals.map((v, i) => {
     const y = yOf(i);
-    return `<text x="${LM - 14}" y="${(y + 9).toFixed(1)}" text-anchor="end" font-size="24" font-weight="600" fill="var(--c-text)">${wdLabels[i]}</text>`;
+    return `<text x="${LM - 14}" y="${(y + 9).toFixed(1)}" text-anchor="end" font-size="18" font-weight="600" fill="var(--c-text)">${wdLabels[i]}</text>`;
   }).join('');
   const seriesPoints = (vals, color) => vals.map((v, i) => {
     const x = xOf(v), y = yOf(i);
