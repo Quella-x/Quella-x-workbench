@@ -644,11 +644,10 @@ function applyTheme(theme) {
   root.style.setProperty('--c-sidebar-end', theme.sidebarEnd);
   root.style.setProperty('--c-info', theme.primary);
 }
-/* v686：返回 Lucide 图标名（旧版 emoji 经 NAV_ICON_LEGACY_MAP 迁移） */
+/* v691：v690 删了 NAV_ICON_LEGACY_MAP，getNavIcon 不能再引用——直接返回 v（v690 后 navIcons 存储值就是图标名；旧 emoji 数据会落空需用户重选） */
 function getNavIcon(key) {
   const s = getSettings();
-  const v = (s.navIcons && s.navIcons[key]) || DEFAULT_NAV_ICONS[key] || 'pin';
-  return NAV_ICON_LEGACY_MAP[v] || v;
+  return (s.navIcons && s.navIcons[key]) || DEFAULT_NAV_ICONS[key] || 'pin';
 }
 function getNavLabel(key, defaultLabel) { const s = getSettings(); return (s.navLabels && s.navLabels[key]) || defaultLabel; }
 function getFieldLabel(moduleKey, fieldKey, defaultLabel) {
@@ -6637,7 +6636,7 @@ function renderNavIconSettings(html) {
 function renderNavIconEditItem(key, label, currentIcon) {
   const currentLabel = getNavLabel(key, label);
   return `<div class="nav-icon-edit-item">
-    <span class="icon-preview" id="navicon_preview_${key}">${lucide(NAV_ICON_LEGACY_MAP[currentIcon] || currentIcon || DEFAULT_NAV_ICONS[key] || 'pin', 18)}</span>
+    <span class="icon-preview" id="navicon_preview_${key}">${lucide(currentIcon || DEFAULT_NAV_ICONS[key] || 'pin', 18)}</span>
     <label class="nav-icon-edit-name">${esc(label)}</label>
     <input type="text" class="nav-icon-input" id="navicon_${key}" value="${esc(currentIcon || '')}" placeholder="pin" oninput="document.getElementById('navicon_preview_${key}').innerHTML = lucide(this.value, 18) || this.value || lucide(DEFAULT_NAV_ICONS['${key}'] || 'pin', 18)" title="图标">
     <input type="text" class="nav-label-input" id="navlabel_${key}" value="${esc(currentLabel !== label ? currentLabel : '')}" placeholder="${esc(label)}" title="名称">
