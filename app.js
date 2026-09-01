@@ -3869,11 +3869,13 @@ function renderHome() {
     if (ps.homePageNo > homeTotalPages) ps.homePageNo = 1;
     const homePaged = filteredRecords.slice((ps.homePageNo - 1) * homePageSize, ps.homePageNo * homePageSize);
 
-    const homeTwoCol = filteredRecords.length > 0;
-    if (!homeTwoCol) {
+    // v682：桌面端平台视图始终双列（含空态），左侧展示列表/空态，右侧固定图表+统计，对齐开团记录
+    const homeTwoCol = window.innerWidth >= 641;
+    if (homeTwoCol) { html += '<div class="gb-records-2col"><div class="gb-left">'; }
+
+    if (!filteredRecords.length) {
       html += '<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-text">暂无发布记录</div></div>';
     } else {
-      html += '<div class="gb-records-2col"><div class="gb-left">';
       html += '<div class="record-list cal-view">';
       homePaged.forEach(r => { html += renderHomeRecordCard(r); });
       html += '</div>';
@@ -3884,11 +3886,11 @@ function renderHome() {
         html += `<button class="page-link" ${ps.homePageNo >= homeTotalPages ? 'disabled' : ''} onclick="homeGoPage(${ps.homePageNo + 1})">下一页 ›</button>`;
         html += '</div>';
       }
-      html += '</div>'; // close .gb-left
-      html += '<div class="gb-right">';
     }
+    if (homeTwoCol) { html += '</div>'; } // close .gb-left
 
-    // Chart (above stats at bottom)
+    // Chart + Stats（右侧）
+    if (homeTwoCol) { html += '<div class="gb-right">'; }
     html += '<div class="stats-divider"></div>';
     html += '<div class="chart-stats-2col">';
     html += '<div class="cs-col cs-col-chart">' + renderAnnualChart(records, 'publishTime', { title: ps.tab + '年度发布', isCount: true, color: PLATFORM_COLORS[ps.tab] || '#9DC8FF' }) + '</div>';
