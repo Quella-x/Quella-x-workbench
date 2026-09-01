@@ -114,8 +114,8 @@ ul,li{list-style:none}
 .sidebar-logo .logo-icon{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:8px;overflow:hidden;cursor:pointer;background:rgba(255,255,255,.18);font-size:20px}
 .sidebar-logo .logo-icon:hover{background:rgba(255,255,255,.3)}
 .sidebar-logo .logo-icon img{width:28px;height:28px;object-fit:cover;display:block}
-/* v692：用户要求"小筱工作台标题往上移1px" */
-.sidebar-logo .logo-text{font-size:16px;font-weight:600;opacity:1;transition:opacity .2s;display:flex;align-items:center;transform:translateY(-1px)}
+/* v693：在 v692(-1px) 基础上再上移 1px → 共 -2px */
+.sidebar-logo .logo-text{font-size:16px;font-weight:600;opacity:1;transition:opacity .2s;display:flex;align-items:center;transform:translateY(-2px)}
 .sidebar.collapsed .sidebar-logo .logo-text{opacity:0;width:0}
 .toggle-btn{
   width:28px;height:28px;border-radius:6px;
@@ -143,7 +143,7 @@ ul,li{list-style:none}
 .nav-item.active{background:rgba(255,255,255,.15);color:#fff}
 .nav-item.active::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#7eb8e8;border-radius:0 2px 2px 0}
 /* v690：nav-icon 改为 1em 继承父级字号，让图标盒子 = 文字盒子，flex align-items:center 完美对齐（之前 font-size:16px/width:20px 让盒子大于文字 13px，居中后图标偏下） */
-.nav-item .nav-icon{font-size:inherit;width:1em;height:1em;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.nav-item .nav-icon{font-size:inherit;width:1em;height:1em;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transform:translateY(1px)}
 .nav-item .nav-label{transition:opacity .2s}
 .sidebar.collapsed .nav-item{justify-content:center;padding:10px 0}
 .sidebar.collapsed .nav-item .nav-label{opacity:0;width:0;overflow:hidden}
@@ -176,8 +176,8 @@ ul,li{list-style:none}
 .sync-badge .sync-dot{width:6px;height:6px;border-radius:50%;background:var(--c-text-muted);flex-shrink:0}
 .sync-badge.off{color:var(--c-text-muted)}
 .sync-badge.off .sync-dot{background:#b0b8c0}
-/* v692：用户要求"设置左边的链接按钮，那个云符号往上挪1px" */
-.sync-badge .sync-ico{display:inline-flex;align-items:center;transform:translateY(-1px)}
+/* v693：用户要求"改回去" → 撤销 v692 的 -1px，恢复 v691 位置 */
+.sync-badge .sync-ico{display:inline-flex;align-items:center}
 .sync-badge.connected{color:#2e9e57;border-color:#bfe3c6;background:#f0faf2}
 .sync-badge.connected .sync-dot{background:#2e9e57}
 .sync-badge.disconnected{color:#e8857e;border-color:#f3c9c5;background:#fdf2f1}
@@ -1225,7 +1225,7 @@ ul,li{list-style:none}
   margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;
 }
 .annual-chart-title-main{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
-.annual-chart-title-main .lucide-icon{vertical-align:-2px}
+.annual-chart-title-main .lucide-icon{vertical-align:-2px;transform:translateY(2px)}
 .annual-chart-yearnav{display:flex;gap:4px;flex-shrink:0}
 .annual-chart-yearnav .btn-xs{padding:2px 8px;font-size:11px}
 .annual-chart-bars{
@@ -1346,7 +1346,7 @@ ul,li{list-style:none}
   flex-shrink:0;
 }
 .stats-section-title-main{display:flex;align-items:center;gap:4px;min-width:0;flex:1}
-.stats-section-title-main .lucide-icon{vertical-align:-1px}
+.stats-section-title-main .lucide-icon{vertical-align:-1px;transform:translateY(2px)}
 .stats-scope-toggle{display:flex;gap:4px;flex-shrink:0;align-items:stretch}
 .stats-scope-toggle .btn-xs{padding:5px 14px;font-size:12px;min-height:30px;display:inline-flex;align-items:center}
 .stats-section .stats-grid{
@@ -1464,6 +1464,8 @@ ul,li{list-style:none}
 /* 中间角色按钮在剩余空间内均匀分布，全部(头) 与 展开(尾) 固定 */
 .relation-person-grid.distribute{justify-content:space-evenly}
 .relation-person-row>.relation-person-btn,.relation-person-row>.relation-toggle-btn{flex:0 0 auto}
+/* v693：OC 模块「全部」按钮前的菜单图标上移 2px（覆盖 oc-commission/oc-stories/oc-timeline/oc-relations） */
+.relation-person-btn .lucide-icon{transform:translateY(-2px)}
 .relation-person-btn{
   padding:8px 16px;border-radius:20px;
   background:var(--c-primary-bg);color:var(--c-primary-dark);
@@ -2849,7 +2851,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=692"></script>
+  <script src="app.js?v=693"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

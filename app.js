@@ -1577,7 +1577,7 @@ function renderCalendar(year, month, records, commissionRecords = []) {
 
 /* ===== Annual Bar Chart ===== */
 function getChartYear(pageKey) { const ps = pageState[pageKey]; return (ps && ps.chartYear) || new Date().getFullYear(); }
-function setChartYear(pageKey, y) { if (!pageState[pageKey]) pageState[pageKey] = {}; pageState[pageKey].chartYear = y; renderListPage(pageKey, MODULES[pageKey]); }
+function setChartYear(pageKey, y) { if (pageKey === 'home') { if (!pageState.home) pageState.home = {}; pageState.home.chartYear = y; renderHome(); return; } if (!pageState[pageKey]) pageState[pageKey] = {}; pageState[pageKey].chartYear = y; renderListPage(pageKey, MODULES[pageKey]); }
 function renderAnnualChart(records, dateField, opts = {}, pageKey) {
   const { title = '', color = '#9DC8FF', valueField = null, isCount = false, series = null, year = null } = opts;
   const yr = year || new Date().getFullYear();
@@ -2598,6 +2598,7 @@ function renderStatsSection(stats, title, scope, pageKey) {
   return html;
 }
 function setStatsScope(pageKey, scope) {
+  if (pageKey === 'home') { if (!pageState.home) pageState.home = {}; pageState.home.statsScope = scope; renderHome(); return; }
   if (!pageState[pageKey]) pageState[pageKey] = { search: '', filters: {} };
   pageState[pageKey].statsScope = scope;
   renderListPage(pageKey, MODULES[pageKey]);
@@ -3928,7 +3929,7 @@ async function onDelete(pageKey, id) {
 /* ===== Home Page (v5: 平台按钮一排4个, 进平台隐藏日历, 图表在统计上) ===== */
 function renderHome() {
   const body = $('#mainBody');
-  if (!pageState.home) pageState.home = { tab: null, calYear: new Date().getFullYear(), calMonth: new Date().getMonth(), view: 'main', search: '', dateFilter: '' };
+  if (!pageState.home) pageState.home = { tab: null, calYear: new Date().getFullYear(), calMonth: new Date().getMonth(), view: 'main', search: '', dateFilter: '', chartYear: new Date().getFullYear(), statsScope: 'all' };
   const ps = pageState.home;
   const allRecords = DB.list('publishRecords');
 
@@ -4034,11 +4035,15 @@ function renderHome() {
     if (homeTwoCol) { html += '<div class="gb-right">'; }
     html += '<div class="stats-divider"></div>';
     html += '<div class="chart-stats-2col">';
-    html += '<div class="cs-col cs-col-chart">' + renderAnnualChart(records, 'publishTime', { title: ps.tab + '年度发布', isCount: true, color: PLATFORM_COLORS[ps.tab] || '#9DC8FF' }) + '</div>';
+    html += '<div class="cs-col cs-col-chart">' + renderAnnualChart(records, 'publishTime', { title: ps.tab + '年度发布', isCount: true, color: PLATFORM_COLORS[ps.tab] || '#9DC8FF', year: getChartYear('home') }, 'home') + '</div>';
 
     // Stats: only current platform（6 项：本月/总计 的发布数、平均更新、最高浏览）
+    const scope = ps.statsScope || 'all';
+    const statYear = new Date().getFullYear();
+    // 年度 scope：统计范围限定到当前年（与接稿排期等模块一致，不联动柱状图年份切换）
+    const scopeRecords = scope === 'year' ? records.filter(r => (r.publishTime || '').startsWith(String(statYear))) : records;
     const thisMonth = todayStr().slice(0, 7);
-    const published = records.filter(r => statusOf(r) === '已发布');
+    const published = scopeRecords.filter(r => statusOf(r) === '已发布');
     const monthPublished = published.filter(r => (r.publishTime || '').startsWith(thisMonth));
     // 最高浏览取 7 天数据
     const recViews = (r) => Number(r.data7d_reads || 0);
@@ -4061,7 +4066,7 @@ function renderHome() {
       { label: '总发布数', value: published.length, unit: '篇' },
       { label: '总平均更新', value: (published.length / activeMonths).toFixed(1), unit: '篇/月' },
       { label: '总最高浏览', value: totalMaxViews, unit: '次' },
-    ], ps.tab + '统计') + '</div>';
+    ], ps.tab + '统计', scope, 'home') + '</div>';
     html += '</div>'; // close .chart-stats-2col
     if (homeTwoCol) { html += '</div>'; } // close .gb-right
     if (homeTwoCol) { html += '</div>'; } // close .gb-records-2col
@@ -4769,9 +4774,12 @@ function renderRelations() {
       pagedPairs.forEach(group => {
         const first = group[0];
         const a = pureOcName(first.charA), b = pureOcName(first.charB);
+        // v693：关系状态含「单向」时用单箭头 →，否则双箭头 ↔
+        const isOneWay = group.some(r => arrVal(r.relationStatus).some(s => valIncludes(s, '单向')));
+        const relConnector = isOneWay ? '→' : '↔';
         html += `<div class="record-card" onclick="openDetail('oc-relations','${first.id}')">`;
         html += '<div class="record-card-header"><div class="record-card-title">';
-        html += `${esc(a)} <span style="color:var(--c-text-muted)">↔</span> ${esc(b)}`;
+        html += `${esc(a)} <span style="color:var(--c-text-muted)">${relConnector}</span> ${esc(b)}`;
         html += '</div><div class="record-card-actions">';
         html += `<span class="btn-icon" onclick="event.stopPropagation();openOcRelationGroupEdit('${first.id}')">${lucide('pencil',16)}</span>`;
         html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDeleteOcRelationGroup('${first.id}')">${lucide('trash-2',16)}</span>`;
