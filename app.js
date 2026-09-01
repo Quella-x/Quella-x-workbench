@@ -3890,7 +3890,7 @@ function renderHome() {
 
     // Chart (above stats at bottom)
     html += '<div class="stats-divider"></div>';
-    html += '<div class="chart-stats-2col">';
+    html += '<div class="chart-stats-2col home-platform-chart-stats">';
     html += '<div class="cs-col cs-col-chart">' + renderAnnualChart(records, 'publishTime', { title: ps.tab + '年度发布', isCount: true, color: PLATFORM_COLORS[ps.tab] || '#9DC8FF' }) + '</div>';
 
     // Stats: only current platform（6 项：本月/总计 的发布数、平均更新、最高浏览）
