@@ -449,6 +449,8 @@ ul,li{list-style:none}
   .comm-list-nostats{display:none}
   /* v668：人物关系模块底部卡片电脑端两列（一行两个），手机端单列 */
   .oc-rel-list-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  /* v669：接稿排期日历视图 日历↔柱状图 间距由~58px收紧至~34px（分隔线 24/16→8/10），分隔线保留 */
+  .comm-cal-chartstats .stats-divider{margin:8px 0 10px}
 }
 @media (max-width:640px){
   .comm-cal-two-col{display:block}
@@ -2803,7 +2805,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=668"></script>
+  <script src="app.js?v=669"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

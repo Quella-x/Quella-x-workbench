@@ -2636,7 +2636,7 @@ function renderListPage(pageKey, mod) {
   }).filter(Boolean).sort((a, b) => _orderedKeys.indexOf(a.key) - _orderedKeys.indexOf(b.key));
 
   const isGbTwoCol = ['groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'design-auth', 'oc-commission'].includes(pageKey);
-  const gbWrapped = isGbTwoCol && records.length > 0;
+  const gbWrapped = isGbTwoCol && (records.length > 0 || window.innerWidth >= 641);
   if (!records.length) {
     const emptyCls = isCommDual ? ' class="empty-state" style="grid-column:1/-1"' : ' class="empty-state"';
     html += `<div${emptyCls}><div class="empty-icon">📋</div><div class="empty-text">暂无记录，点击新增开始添加</div></div>`;
