@@ -450,10 +450,10 @@ ul,li{list-style:none}
   /* v668：人物关系模块底部卡片电脑端两列（一行两个），手机端单列 */
   .oc-rel-list-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   /* v672：接稿排期日历视图 日历↔柱状图 间距收紧（grid 行距16→8，列距保持16px不动；分隔线上margin归0、下margin保持16px恢复柱状图呼吸感），仅动日历底→分隔线 */
-  /* v675：方案D——去掉分隔线 + 卡片内部padding-top/标题margin-bottom归0，图例→柱状图总距约38px→约20px */
-  .comm-cal-chartstats .stats-divider{display:none}
-  .comm-cal-chartstats .annual-chart{padding-top:0}
-  .comm-cal-chartstats .annual-chart-title{margin-bottom:0}
+  /* v676：恢复分隔线 + 标题上间距8px/下间距8px，避免标题贴上边框 */
+  .comm-cal-chartstats .stats-divider{margin:8px 0}
+  .comm-cal-chartstats .annual-chart{padding-top:8px}
+  .comm-cal-chartstats .annual-chart-title{margin-bottom:8px}
 }
 @media (max-width:640px){
   .comm-cal-two-col{display:block}
@@ -2808,7 +2808,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=675"></script>
+  <script src="app.js?v=676"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
