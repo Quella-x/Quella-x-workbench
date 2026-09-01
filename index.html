@@ -429,10 +429,12 @@ ul,li{list-style:none}
   /* v641：电脑端接稿排期日历视图双列（日历左、列表右，移动端单列） */
   .comm-cal-two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
   /* v660：电脑端列表/首页平台图表+统计双列；厂家记录仅统计也双列（右列留空） */
+  /* v662：左右两卡片 flex:1 填满整列 → 图表与统计模块高度一致；厂家仅 stats 时整行铺满 */
   .chart-stats-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch}
-  .chart-stats-2col .cs-col{min-width:0}
-  .chart-stats-2col .cs-col-chart .annual-chart{margin-bottom:0}
-  .chart-stats-2col .cs-col-stats .stats-section{margin-top:0}
+  .chart-stats-2col .cs-col{display:flex;flex-direction:column;min-width:0}
+  .chart-stats-2col .cs-col-chart .annual-chart{margin-bottom:0;flex:1;width:100%}
+  .chart-stats-2col .cs-col-stats .stats-section{margin-top:0;flex:1;width:100%}
+  .chart-stats-2col > .cs-col-stats:only-child{grid-column:1 / -1}
 }
 @media (max-width:640px){
   .comm-cal-two-col{display:block}
@@ -844,6 +846,12 @@ ul,li{list-style:none}
 .detail-rel-item,.detail-rel-sub{flex:1 0 0 !important;min-width:80px !important;padding:4px 8px;display:flex !important;flex-direction:row !important;align-items:center !important;justify-content:center !important;gap:6px !important;white-space:nowrap !important;border-right:1px solid var(--c-border) !important}
 .detail-rel-item:last-child,.detail-rel-sub:last-child{border-right:none !important}
 .detail-rel-divider{display:none}
+/* v662：电脑端人物关系底部展示模块改为两列（手机端保持单排横向滚动） */
+@media (min-width:641px){
+  .detail-relations{display:grid !important;grid-template-columns:repeat(2,1fr);gap:8px;overflow:visible !important}
+  .detail-rel-item,.detail-rel-sub{flex:initial !important;min-width:0 !important;width:100% !important;border-right:none !important;justify-content:flex-start !important;white-space:normal !important}
+  .detail-rel-item:last-child,.detail-rel-sub:last-child{border-right:none !important}
+}
 .detail-rel-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .detail-rel-status{color:var(--c-text-muted);font-size:12px}
 .detail-rel-other{font-size:13px;line-height:1.5}
@@ -2778,7 +2786,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=661"></script>
+  <script src="app.js?v=662"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
