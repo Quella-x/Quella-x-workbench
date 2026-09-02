@@ -2672,12 +2672,10 @@ const PAGE_SIZES = {
 // 单列(手机/单列模块)每页 6 条，双列(桌面双列模块)每页 12 条
 const YEAR_FILTER_MODULES = ['groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'design-inspiration', 'design-auth', 'oc-stories', 'oc-commission', 'design-commission'];
 function isModuleTwoCol(pageKey) {
-  if (window.innerWidth < 641) return false; // 手机端一律单列
-  const gb = ['home', 'groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'design-auth', 'oc-commission'];
-  if (gb.includes(pageKey)) return true; // 阈值 641
-  if (window.innerWidth < 921) return false;
-  const wide = ['design-inspiration', 'oc-profiles', 'oc-relations', 'life-record', 'design-calc', 'groupbuy-calc', 'design-commission', 'design-commission-detail'];
-  return wide.includes(pageKey); // 阈值 921
+  if (window.innerWidth < 641) return false; // 手机竖屏一律单列
+  // 以手机端（含横屏/平板）真实双列布局为准：>=641 时这些模块会渲染为双列
+  const dual = ['home', 'groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'design-auth', 'oc-commission', 'design-commission', 'life-record', 'oc-relations'];
+  return dual.includes(pageKey);
 }
 function getPageSize(pageKey) { return isModuleTwoCol(pageKey) ? 12 : 6; }
 function getRecordYearStr(r, mod) {
@@ -2962,6 +2960,11 @@ function renderListPage(pageKey, mod) {
       html += `<div style="text-align:center;margin-top:8px"><span class="tag tag-info" style="cursor:pointer" onclick="commissionClearDate()">清除日期筛选: ${ps.dateFilter} ${lucide('x',12)}</span></div>`;
     }
     html += '</div>'; // close .calendar
+    // v704：接稿排期日历视图年份导航移入左侧日历列（日历下方、展示模块上方），并居中
+    if (YEAR_FILTER_MODULES.includes(pageKey)) {
+      if (ps.yearFilter == null) ps.yearFilter = new Date().getFullYear();
+      html += '<div style="position:relative;margin-top:8px">' + renderYearNavHTML(pageKey, ps) + '</div>';
+    }
     html += '</div>'; // close .comm-cal-col left
     html += '<div class="comm-cal-col comm-cal-col-list">'; // right column for record list
   }
@@ -3117,11 +3120,7 @@ function renderListPage(pageKey, mod) {
     }
     html += '</div>'; // close .comm-cal-two-col
   }
-  // 接稿排期日历视图：年份筛选按钮（日历下方）
-  if (pageKey === 'design-commission' && commissionAllRecords && YEAR_FILTER_MODULES.includes(pageKey)) {
-    if (ps.yearFilter == null) ps.yearFilter = new Date().getFullYear();
-    html += '<div style="position:relative">' + renderYearNavHTML(pageKey, ps) + '</div>';
-  }
+  // v704：接稿排期日历视图年份导航已移入左侧日历列（日历下方、展示模块上方），见上方 .comm-cal-col-cal 内插入
 
   // 双栏：关闭 .comm-dual 容器（接稿排期列表视图）
   if (isCommDual) html += '</div>';
@@ -4149,7 +4148,9 @@ async function onDelete(pageKey, id) {
 /* ===== Home Page (v5: 平台按钮一排4个, 进平台隐藏日历, 图表在统计上) ===== */
 function renderHome() {
   const body = $('#mainBody');
-  if (!pageState.home) pageState.home = { tab: null, calYear: new Date().getFullYear(), calMonth: new Date().getMonth(), view: 'main', search: '', dateFilter: '', chartYear: new Date().getFullYear(), statsScope: 'all' };
+  const now = new Date();
+  const thisYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  if (!pageState.home) pageState.home = { tab: null, calYear: now.getFullYear(), calMonth: now.getMonth(), view: 'main', search: '', dateFilter: thisYM, chartYear: now.getFullYear(), statsScope: 'all', contentTypeFilter: '', monthPickerOpen: false, monthPickerY: null };
   const ps = pageState.home;
   const allRecords = DB.list('publishRecords');
 
@@ -4205,11 +4206,19 @@ function renderHome() {
     html += '</div>';
   } else if (ps.view === 'platform') {
     // Platform view: 当前平台记录 + 状态筛选 + 分页列表 + 图表统计
+    if (!ps.dateFilter) ps.dateFilter = thisYM;
     const records = allRecords.filter(r => valIncludes(r.platform, ps.tab));
 
-    // Toolbar
-    html += '<div class="toolbar home-toolbar" style="margin-top:4px">';
+    // Toolbar：搜索 + 内容类型筛选 + 新增记录（与开团记录 toolbar 结构一致）
+    const contentTypes = ['图文', '短视频', '推文', '直播'];
+    const ctAll = `<div class="combobox-option${ps.contentTypeFilter === '' ? ' selected' : ''}" onclick="homeContentTypeFilter('')" data-value="">全部类型</div>`;
+    const ctOpts = ctAll + contentTypes.map(t => `<div class="combobox-option${ps.contentTypeFilter === t ? ' selected' : ''}" onclick="homeContentTypeFilter('${esc(t)}')" data-value="${esc(t)}">${esc(t)}</div>`).join('');
+    const ctDisplay = ps.contentTypeFilter || '全部类型';
+    const ctId = 'homeContentType';
+    html += '<div class="toolbar home-toolbar">';
     html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="homeSearch(this.value)"><span class="search-icon">${lucide('search',16)}</span></div>`;
+    html += `<div class="combobox-wrapper filter-combobox home-content-type"><input type="text" class="form-input combobox-input filter-combobox-input" value="${esc(ctDisplay)}" placeholder="内容类型" readonly onfocus="showComboboxDropdown('${ctId}')" onclick="showComboboxDropdown('${ctId}')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${ctId}')">▼</button><div class="combobox-dropdown" id="${ctId}">${ctOpts}</div></div>`;
+    html += '<div class="spacer"></div>';
     html += '<button class="btn btn-primary" onclick="openAddForm(\'home\')">+ 新增记录</button>';
     html += '</div>';
 
@@ -4219,6 +4228,7 @@ function renderHome() {
     // Records（v223：待发布/已发布筛选与全部列表使用同一模块）
     let filteredRecords = records;
     if (ps.statusFilter) filteredRecords = filteredRecords.filter(r => statusOf(r) === ps.statusFilter);
+    if (ps.contentTypeFilter) filteredRecords = filteredRecords.filter(r => valIncludes(r.contentType, ps.contentTypeFilter));
     if (ps.search) filteredRecords = filteredRecords.filter(r => (r.title || '').toLowerCase().includes(ps.search.toLowerCase()));
     if (ps.dateFilter) filteredRecords = filteredRecords.filter(r => (r.publishTime || '').startsWith(ps.dateFilter));
     filteredRecords.sort((a, b) => (b.publishTime || '').localeCompare(a.publishTime || ''));
@@ -4334,6 +4344,13 @@ function enterPlatformView(tab) {
 function homeBackToMain() { pageState.home.view = 'main'; pageState.home.statusFilter = ''; renderHome(); }
 function homeSearch(val) { pageState.home.search = val; pageState.home.homePageNo = 1; renderHome(); _restoreSearchFocus('#mainBody .toolbar .search-box input'); }
 function homeDateFilter(val) { pageState.home.dateFilter = val; pageState.home.homePageNo = 1; renderHome(); }
+function homeContentTypeFilter(t) {
+  const ps = pageState.home || {};
+  ps.contentTypeFilter = (ps.contentTypeFilter === t) ? '' : t;
+  ps.homePageNo = 1;
+  renderHome();
+  _restoreSearchFocus('#mainBody .toolbar .search-box input');
+}
 function homeGoPage(pageNo) { pageState.home.homePageNo = pageNo; renderHome(); }
 function homeSetStatusFilter(s) {
   const ps = pageState.home;
@@ -4371,13 +4388,13 @@ function renderHomeStatusFilterBar() {
   h += '</div>';
   return h;
 }
-// 首页平台记录：按月日期按钮（样式参考接稿详情 cd-month-nav），按月份筛选发布时间
+// 首页平台记录：月份导航（样式参考接稿详情 cd-month-nav），按月份筛选发布时间
 function renderHomeMonthNav() {
   const ps = pageState.home || {};
-  const mf = ps.dateFilter || '';
   const now = new Date();
-  const [y, m] = mf ? mf.split('-').map(Number) : [now.getFullYear(), now.getMonth() + 1];
-  const label = mf ? `${y}年${m}月` : '全部月份';
+  const mf = ps.dateFilter || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const [y, m] = mf.split('-').map(Number);
+  const label = `${y}年${m}月`;
   const open = ps.monthPickerOpen ? 'show' : '';
   let h = '<div class="cd-month-nav">';
   h += `<button class="cd-month-btn" onclick="homeMonthShift(-1)">‹ 上月</button>`;
@@ -4396,7 +4413,7 @@ function renderHomeMonthNav() {
   return `<div style="position:relative">${h}</div>`;
 }
 function homeMonthShift(d) {
-  const ps = pageState.home; if (!ps) pageState.home = {}; ps = pageState.home;
+  let ps = pageState.home; if (!ps) pageState.home = {}; ps = pageState.home;
   let y, m;
   if (ps.dateFilter) { [y, m] = ps.dateFilter.split('-').map(Number); }
   else { const n = new Date(); y = n.getFullYear(); m = n.getMonth() + 1; }
@@ -4405,16 +4422,16 @@ function homeMonthShift(d) {
   ps.homePageNo = 1; renderHome();
 }
 function homeMonthTogglePicker() {
-  const ps = pageState.home; if (!ps) pageState.home = {}; ps = pageState.home;
+  let ps = pageState.home; if (!ps) pageState.home = {}; ps = pageState.home;
   ps.monthPickerOpen = !ps.monthPickerOpen; renderHome();
 }
 function homeMonthPickerYear(d) {
-  const ps = pageState.home; if (!ps) pageState.home = {}; ps = pageState.home;
+  let ps = pageState.home; if (!ps) pageState.home = {}; ps = pageState.home;
   const base = ps.monthPickerY != null ? ps.monthPickerY : (ps.dateFilter ? Number(ps.dateFilter.split('-')[0]) : new Date().getFullYear());
   ps.monthPickerY = base + d; renderHome();
 }
 function homeMonthPick(y, mo) {
-  const ps = pageState.home; if (!ps) pageState.home = {}; ps = pageState.home;
+  let ps = pageState.home; if (!ps) pageState.home = {}; ps = pageState.home;
   ps.dateFilter = `${y}-${String(mo + 1).padStart(2, '0')}`;
   ps.monthPickerOpen = false; ps.homePageNo = 1; renderHome();
 }
@@ -5007,7 +5024,7 @@ function renderRelations() {
     html += '</div>';
     // Person buttons (缩略为姓名按钮可展开)
     if (chars.length) {
-      html += `<div style="margin-top:8px"><div style="font-size:13px;font-weight:600;color:var(--c-primary-dark);margin-bottom:4px">${lucide('users',16)} 人物关系快捷查看</div>`;
+      html += `<div style="margin-top:16px"><div style="font-size:13px;font-weight:600;color:var(--c-primary-dark);margin-bottom:8px">${lucide('users',16)} 人物关系快捷查看</div>`;
       html += '<div class="relation-person-row">';
       html += `<div class="relation-person-btn active" onclick="showAllPersonRelations(this)"><span>${lucide('menu',14)} 全部</span></div>`;
       html += '<div class="relation-person-grid collapsed distribute">';
@@ -5037,7 +5054,7 @@ function renderRelations() {
       if (ps.pageNo > totalPairPages) ps.pageNo = 1;
       const pageNo = ps.pageNo || 1;
       const pagedPairs = pairList.slice((pageNo - 1) * pageSize, pageNo * pageSize);
-      html += '<div class="record-list oc-rel-list-2col" style="margin-top:16px">';
+      html += '<div class="record-list oc-rel-list-2col" style="margin-top:8px">';
       pagedPairs.forEach(group => {
         const first = group[0];
         const a = pureOcName(first.charA), b = pureOcName(first.charB);
@@ -8928,7 +8945,7 @@ function renderSleepWeekLineChart(days) {
   const isDesktop = window.innerWidth > 768;
   const W = 720, H = 568;
   const LM = isDesktop ? 45 : 80, RM = isDesktop ? 15 : 40, TM = isDesktop ? 70 : 46, BM = isDesktop ? 40 : 4;
-  const hourLabelY = isDesktop ? TM - 26 : TM - 55;
+  const hourLabelY = isDesktop ? TM - 52 : TM - 32;
   const CW = W - LM - RM, CH = H - TM - BM;
   const xOf = v => LM + (maxV > 0 ? v / maxV * CW : 0);
   const yOf = i => TM + CH * i / 6;

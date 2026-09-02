@@ -218,14 +218,7 @@ ul,li{list-style:none}
 }
 .toolbar .spacer{flex:1}
 .toolbar .btn-primary{width:112px;justify-content:center}
-/* v593：#795 首页 toolbar 改用 grid 三列（1fr 38px 1fr），确保日期输入框 / 新增按钮 严格等宽，日历按钮固定38px精确居中 */
-.toolbar.home-toolbar{display:grid;grid-template-columns:1fr 38px 1fr;gap:8px;align-items:center}
-.toolbar.home-toolbar .search-box{grid-column:1/-1;margin-bottom:8px}
-.toolbar.home-toolbar .search-box input{width:100%}
-.toolbar.home-toolbar .date-field-wrap.home-date-wrap{width:100%;min-width:0}
-.toolbar.home-toolbar .date-field-wrap.home-date-wrap .filter-select{width:100%;padding-right:8px;text-align:center}
-.toolbar.home-toolbar .date-pick-btn.home-date-pick{width:38px;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border)!important;background:var(--c-primary-bg)!important;border-radius:var(--radius-sm);cursor:pointer;color:var(--c-primary)!important;padding:0;line-height:1;-webkit-tap-highlight-color:rgba(0,0,0,0)!important;touch-action:manipulation;-webkit-touch-callout:none}
-.toolbar.home-toolbar .btn-primary{width:100%;min-width:0;justify-content:center}
+/* v704：首页平台 toolbar 改为与开团记录一致的 base .toolbar flex 布局（搜索 + 内容类型 + 新增记录 同行），移除 v593 旧 grid 三列覆盖 */
 .view-toggle-top{
   display:flex;gap:8px;align-items:center;
   margin-bottom:8px;/* v225: 用户要求搜索框到切换按钮间距 8px */
@@ -458,8 +451,8 @@ ul,li{list-style:none}
   .gb-records-2col .chart-stats-2col{margin-top:0}
   /* v683：电脑端「每日记录」首页/历史页 两列 1:1 均分（左=顶部卡片+切换+日期条/周导航+图表，右=记录块）；左列 sticky 固定仅右列滚动 */
   .lr-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
-  .lr-2col>.lr-left{min-width:0;position:sticky;top:0;align-self:start;will-change:transform;max-height:calc(100vh - 24px);overflow-y:auto}
-  .lr-2col>.lr-right{min-width:0}
+  .lr-2col>.lr-left{min-width:0}
+  .lr-2col>.lr-right{min-width:0;position:sticky;top:0;align-self:start;will-change:transform;max-height:calc(100vh - 24px);overflow-y:auto}
   /* v668：接稿排期列表视图「图+统计」仅电脑端隐藏（手机端保留原顺序） */
   .comm-list-nostats{display:none}
   /* v668：人物关系模块底部卡片电脑端两列（一行两个），手机端单列 */
@@ -479,7 +472,7 @@ ul,li{list-style:none}
   .gb-records-2col{display:block}
   /* v683：每日记录两列仅电脑端，手机端单列堆叠（左列->右列自然上下） */
   .lr-2col{display:block}
-  .lr-2col>.lr-left{position:static;max-height:none;overflow:visible}
+  .lr-2col>.lr-right{position:static;max-height:none;overflow:visible}
   /* v668：接稿排期列表视图「图+统计」手机端保留显示（原顺序 日历->列表->图->统计） */
   .comm-list-nostats{display:block}
   /* v668：人物关系底部卡片手机端保持原样单列（默认 .record-list 垂直堆叠） */
@@ -1111,12 +1104,7 @@ ul,li{list-style:none}
   .filter-combobox{flex:1 1 0;min-width:0;width:auto;max-width:none}
   .toolbar .btn-primary{flex:1 1 0;min-width:0;width:auto;padding:8px 6px}
   .toolbar .toolbar-eq{flex:1 1 0;min-width:0;width:auto;padding:8px 6px}
-  .toolbar.home-toolbar{gap:8px;justify-items:stretch}
-  .toolbar.home-toolbar .search-box{grid-column:1/-1;margin-bottom:6px}
-  .toolbar.home-toolbar .date-field-wrap.home-date-wrap{width:100%;min-width:0}
-  .toolbar.home-toolbar .date-field-wrap.home-date-wrap .filter-select{width:100%;padding-right:8px;text-align:center}
-  .toolbar.home-toolbar .date-pick-btn.home-date-pick{width:38px;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border)!important;background:var(--c-primary-bg)!important;border-radius:var(--radius-sm);cursor:pointer;color:var(--c-primary)!important;padding:0;line-height:1;-webkit-tap-highlight-color:rgba(0,0,0,0)!important;touch-action:manipulation;-webkit-touch-callout:none}
-  .toolbar.home-toolbar .btn-primary{width:100%;min-width:0;padding:8px 6px;justify-content:center}
+  /* v704：移动端首页 toolbar 同样继承 base .toolbar（gap:6 flex-wrap:wrap），与开团记录一致 */
   .sync-badge{font-size:10px;padding:2px 6px;gap:3px}
   .sync-badge .sync-txt{display:none}
 }
@@ -1260,7 +1248,7 @@ ul,li{list-style:none}
 
 /* ===== Platform Buttons (Home) ===== */
 .platform-buttons{
-  display:flex;flex-wrap:nowrap;gap:10px;margin-bottom:16px;
+  display:flex;flex-wrap:nowrap;gap:16px;margin-bottom:16px;
 }
 .platform-btn{
   flex:1;min-width:0;padding:9px 10px;
@@ -1287,7 +1275,7 @@ ul,li{list-style:none}
 .platform-btn .platform-status-row .platform-sep{opacity:.85;font-weight:700}
 
 /* ===== Global Status Filter Buttons (DN-4轮) ===== */
-.home-status-filter{display:flex;gap:10px;margin-bottom:14px}
+.home-status-filter{display:flex;gap:10px;margin:8px 0 14px}
 .home-status-btn{
   flex:1;min-width:0;padding:0 12px;border-radius:10px;cursor:pointer;
   border:1px solid var(--c-border);background:var(--c-card-bg,#fff);
@@ -1922,6 +1910,7 @@ ul,li{list-style:none}
 }
 /* 时间线页面toolbar与重要性按钮间距回退8px（与toolbar内部按钮gap一致） */
 .toolbar:has(+ .timeline-filter-bar){margin-bottom:8px}
+.toolbar:has(+ .home-status-filter){margin-bottom:8px}
 .timeline-color-filter{
   flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:4px;
   width:84px;padding:6px 0;font-size:13px;font-weight:600;white-space:nowrap;
@@ -2156,7 +2145,7 @@ ul,li{list-style:none}
 .life-monthbar{position:relative;z-index:60;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
 .life-monthbar-center{display:flex;align-items:center;justify-content:flex-start;gap:10px;flex:1}
 .life-monthbar.week-mode .life-monthbar-center{justify-content:flex-start;gap:2px}
-.life-monthbar.year-mode .life-monthbar-center{justify-content:flex-start;gap:2px}
+.life-monthbar.year-mode .life-monthbar-center{justify-content:center;gap:2px}
 .life-monthbar .btn{border:none;background:transparent;color:var(--c-text-light);font-size:14px;padding:4px 8px;box-shadow:none}
 .life-monthbar .btn:hover{color:var(--c-primary);background:transparent}
 .life-monthbar .btn:disabled{opacity:.35;cursor:not-allowed;color:var(--c-text-light);background:transparent}
@@ -2931,7 +2920,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=703"></script>
+  <script src="app.js?v=704"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
