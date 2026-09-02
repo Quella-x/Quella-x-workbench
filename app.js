@@ -2938,7 +2938,7 @@ function renderListPage(pageKey, mod) {
   if (YEAR_FILTER_MODULES.includes(pageKey)) {
     if (ps.yearFilter == null) ps.yearFilter = new Date().getFullYear();
     if (pageKey !== 'design-commission' || ps.viewMode === 'list') {
-      html += '<div style="position:relative">' + renderYearNavHTML(pageKey, ps) + '</div>';
+      html += '<div class="comm-yearnav comm-list-yearnav" style="position:relative">' + renderYearNavHTML(pageKey, ps) + '</div>';
     }
   }
 
@@ -2978,7 +2978,7 @@ function renderListPage(pageKey, mod) {
     // v704：接稿排期日历视图年份导航移入左侧日历列（日历下方、展示模块上方），并居中
     if (YEAR_FILTER_MODULES.includes(pageKey)) {
       if (ps.yearFilter == null) ps.yearFilter = new Date().getFullYear();
-      html += '<div style="position:relative">' + renderYearNavHTML(pageKey, ps) + '</div>';
+      html += '<div class="comm-yearnav comm-cal-yearnav" style="position:relative">' + renderYearNavHTML(pageKey, ps) + '</div>';
     }
     html += '</div>'; // close .comm-cal-col left
     html += '<div class="comm-cal-col comm-cal-col-list">'; // right column for record list
@@ -4175,10 +4175,13 @@ function renderHome() {
 
   // Platform buttons (always visible, 4 in a row, for switching)
   // 每个平台按钮底部直接显示该平台「待发布 / 已发布」数量（待发布左、已发布右）
+  // v711：平台按钮数字跟随柱状图年份(chartYear)联动
   html += '<div class="platform-buttons">';
   const platformIcons = { '小红书': 'book-open', '抖音': 'music', '视频号': 'video', '公众号': 'newspaper' };
+  const curYear = ps.chartYear || new Date().getFullYear();
+  const yearRecords = allRecords.filter(r => (r.publishTime || '').startsWith(String(curYear)));
   MODULES.home.tabs.forEach(t => {
-    const tRecords = allRecords.filter(r => valIncludes(r.platform, t.value));
+    const tRecords = yearRecords.filter(r => valIncludes(r.platform, t.value));
     const pendingForT = tRecords.filter(r => statusOf(r) === '待发布').length;
     const publishedForT = tRecords.filter(r => statusOf(r) === '已发布').length;
     const activeStyle = (ps.view === 'platform' && ps.tab === t.value) ? 'box-shadow:0 0 0 3px rgba(255,255,255,.6);transform:translateY(-2px)' : '';
@@ -6625,29 +6628,10 @@ function renderPriceList() {
   html += '<div class="toolbar" style="margin-bottom:8px">';
   html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onSearch('design-pricelist', this.value)"><span class="search-icon">${lucide('search',16)}</span></div>`;
   html += '<div class="spacer"></div>';
-  html += `<button class="btn btn-outline toolbar-eq" onclick="togglePriceListNotes()">${lucide('file-text',14)} 其他说明</button>`;
+  html += `<button class="btn btn-outline toolbar-eq" onclick="openPriceListNotes()">${lucide('file-text',14)} 其他说明</button>`;
   html += `<button class="btn btn-outline toolbar-eq" onclick="openPriceListSort()">${lucide('arrow-up-down',16)} 调整排序</button>`;
   html += '<button class="btn btn-primary" onclick="openAddForm(\'design-pricelist\')">+ 新增价目</button>';
   html += '</div>';
-
-  // Collapsible 其他说明（v26: toolbar->其他说明 12px）
-  if (notes.length) {
-    html += '<div style="margin-bottom:10px">';
-    html += '<div class="collapsible-toggle pricelist-notes-toggle" onclick="this.classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">';
-    html += '<span>其他说明</span><span class="toggle-arrow">▼</span></div>';
-    html += '<div class="collapsible-content">';
-    html += '<div class="pricelist-notes-panel" style="margin-top:8px;margin-bottom:8px">';
-    html += '<div class="pricelist-notes-grid">';
-    notes.forEach(n => {
-      html += '<div class="pricelist-note-item">';
-      html += `<div class="pricelist-note-title">${esc(n.title)}</div>`;
-      const contentHtml = (n.content || '').split('\n').map(line => `<div>${esc(line)}</div>`).join('');
-      html += `<div class="pricelist-note-content">${contentHtml}</div>`;
-      html += '</div>';
-    });
-    html += '</div></div>';
-    html += '</div></div>';
-  }
 
   if (!records.length) {
     html += `<div class="empty-state"><div class="empty-icon">${lucide('wallet',32)}</div><div class="empty-text">暂无价目，点击「新增价目」开始添加</div></div>`;
@@ -6731,6 +6715,26 @@ function openPriceListSort() {
   });
   html += '</div>';
   openModal('调整价目排序', html, [{ label: '完成', class: 'btn-primary', action: () => { closeModal(); renderPriceList(); } }]);
+}
+
+function openPriceListNotes() {
+  const settings = getSettings();
+  const notes = settings.priceListNotes || [];
+  if (!notes.length) { Toast.info('暂无其他说明'); return; }
+  let html = '<div class="pricelist-notes-panel">';
+  html += '<div class="pricelist-notes-grid">';
+  notes.forEach(n => {
+    html += '<div class="pricelist-note-item">';
+    html += `<div class="pricelist-note-title">${esc(n.title)}</div>`;
+    const contentHtml = (n.content || '').split('\n').map(line => `<div>${esc(line)}</div>`).join('');
+    html += `<div class="pricelist-note-content">${contentHtml}</div>`;
+    html += '</div>';
+  });
+  html += '</div></div>';
+  openModal('其他说明', html, [
+    { label: '编辑', class: 'btn-outline', action: () => { closeModal(); editPriceListNotes(); } },
+    { label: '关闭', class: 'btn-primary', action: closeModal }
+  ]);
 }
 
 function editPriceListNotes() {
@@ -9936,6 +9940,7 @@ function cdShiftMonth(dir) {
   ps.cdMonth = `${y}-${String(m).padStart(2, '0')}`;
   ps.cdPage = 1;
   renderCommissionDetailPage();
+  const mb = document.getElementById('mainBody'); if (mb) mb.scrollTop = 0;
 }
 function cdToggleMonthPicker() {
   const ps = pageState['design-commission-detail'];
@@ -9948,6 +9953,7 @@ function cdPickerYear(d) {
   y += d;
   ps.cdMonth = `${y}-${String(m).padStart(2, '0')}`;
   renderCommissionDetailPage();
+  const mb = document.getElementById('mainBody'); if (mb) mb.scrollTop = 0;
 }
 function cdJumpMonth(y, m) {
   const ps = pageState['design-commission-detail'];
@@ -9955,6 +9961,7 @@ function cdJumpMonth(y, m) {
   ps.cdPickerOpen = false;
   ps.cdPage = 1;
   renderCommissionDetailPage();
+  const mb = document.getElementById('mainBody'); if (mb) mb.scrollTop = 0;
 }
 function cdSetPage(p) {
   const ps = pageState['design-commission-detail'];

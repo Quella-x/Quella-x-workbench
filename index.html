@@ -449,10 +449,10 @@ ul,li{list-style:none}
   .gb-records-2col .gb-right{position:sticky;top:12px;align-self:start}
   .gb-records-2col .stats-divider{display:none}
   .gb-records-2col .chart-stats-2col{margin-top:0}
-  /* v683：电脑端「每日记录」首页/历史页 两列 1:1 均分（左=顶部卡片+切换+日期条/周导航+图表，右=记录块）；左列 sticky 固定仅右列滚动 */
-  .lr-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
-  .lr-2col>.lr-left{min-width:0;max-height:calc(100vh - 24px);overflow-y:auto}
-  .lr-2col>.lr-right{min-width:0;max-height:calc(100vh - 24px);overflow-y:auto}
+  /* v711：双列容器占满 main-body 高度，左右列 height:100% 实现真正独立滚动 */
+  .lr-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch;height:100%}
+  .lr-2col>.lr-left{min-width:0;height:100%;overflow-y:auto}
+  .lr-2col>.lr-right{min-width:0;height:100%;overflow-y:auto}
   
 /* v705：双列独立滚动 + 4px 滚动条 */
 .lr-2col>.lr-left,.lr-2col>.lr-right,.calc-input-col,.calc-receipt-col{scrollbar-width:thin;scrollbar-color:transparent transparent}
@@ -463,9 +463,10 @@ ul,li{list-style:none}
 .home-toolbar .search-box{flex:1 1 100%;min-width:0}
 .home-toolbar .search-box input{width:100%;min-width:0}
 .home-toolbar .spacer{display:none}
-.home-toolbar .combobox-wrapper{flex:0 0 calc(50% - 4px);min-width:0;width:calc(50% - 4px);max-width:none}
+/* v712：首页 toolbar 筛选/新增记录 用 flex:1 1 0（basis:0 等比伸缩，避免 flex:0 0 calc 在亚像素舍入时换行），严格等宽且同一行 */
+.home-toolbar .combobox-wrapper,.home-toolbar .combobox-wrapper.filter-combobox,.home-toolbar .btn-primary{flex:1 1 0!important;min-width:0!important;width:auto!important;max-width:none!important}
 .home-toolbar .combobox-wrapper .combobox-input{width:100%}
-.home-toolbar .btn-primary{flex:0 0 calc(50% - 4px);min-width:0;width:calc(50% - 4px);padding:8px 6px}
+.home-toolbar .btn-primary{padding:8px 6px}
 
 /* v668：接稿排期列表视图「图+统计」仅电脑端隐藏（手机端保留原顺序） */
   .comm-list-nostats{display:none}
@@ -474,9 +475,13 @@ ul,li{list-style:none}
   /* v672：接稿排期日历视图 日历↔柱状图 间距收紧（grid 行距16->8，列距保持16px不动；分隔线上margin归0、下margin保持16px恢复柱状图呼吸感），仅动日历底->分隔线 */
   /* v677：接稿排期日历视图 divider/标题间距回归初始(全局16px)——分割线上下统一16px；标题到上边框 8->16px 对齐开团记录 */
   .comm-cal-chartstats .stats-divider{margin:16px 0}
-  .comm-cal-chartstats .annual-chart{padding-top:0}
+  .comm-cal-chartstats .annual-chart{padding-top:16px}
   .comm-cal-chartstats .annual-chart-title{margin:4px 0 6px}
   .chart-stats-2col .annual-chart-title{margin:4px 0 6px}
+  /* v711：接稿排期年份导航上下边距与首页月份导航一致（列表/日历分别微调） */
+  .comm-list-yearnav{margin:4px 0 6px}
+  .comm-cal-yearnav{margin:4px 0 6px}
+  .comm-cal-yearnav + .cal-divider{margin-top:0}
 }
 @media (max-width:640px){
   .comm-cal-two-col{display:block}
@@ -1120,6 +1125,10 @@ ul,li{list-style:none}
   .filter-combobox{flex:1 1 0;min-width:0;width:auto;max-width:none}
   .toolbar .btn-primary{flex:1 1 0;min-width:0;width:auto;padding:8px 6px}
   .toolbar .toolbar-eq{flex:1 1 0;min-width:0;width:auto;padding:8px 6px}
+  /* v711：首页 toolbar 筛选/新增记录在手机端强制等宽（覆盖 .filter-combobox 112px 限制） */
+  .home-toolbar .combobox-wrapper{flex:1 1 0!important;min-width:0!important;width:auto!important;max-width:none!important}
+  .home-toolbar .combobox-wrapper.filter-combobox{flex:1 1 0!important;width:auto!important;max-width:none!important}
+  .home-toolbar .btn-primary{flex:1 1 0!important;min-width:0!important;width:auto!important}
   /* v704：移动端首页 toolbar 同样继承 base .toolbar（gap:6 flex-wrap:wrap），与开团记录一致 */
   .sync-badge{font-size:10px;padding:2px 6px;gap:3px}
   .sync-badge .sync-txt{display:none}
@@ -1148,11 +1157,6 @@ ul,li{list-style:none}
   letter-spacing:1px;
 }
 .pricelist-notes-hint{font-size:11px;color:var(--c-text-muted)}
-.pricelist-notes-header{cursor:pointer;transition:background .15s}
-.pricelist-notes-header:hover{background:var(--c-primary-bg);color:var(--c-primary-dark)}
-.pricelist-notes-header.collapsible-toggle:hover{background:var(--c-primary-bg);color:var(--c-primary-dark)}
-.pricelist-notes-toggle{cursor:pointer;transition:background .15s}
-.pricelist-notes-toggle:hover{background:var(--c-primary-bg)!important;color:var(--c-primary-dark)!important}
 .pricelist-notes-grid{
   display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;
 }
@@ -1240,6 +1244,8 @@ ul,li{list-style:none}
 .annual-chart-title-main{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
 .annual-chart-title-main .lucide-icon{vertical-align:-2px;transform:translateY(2px)}
 .annual-chart-yearnav{display:flex;gap:4px;flex-shrink:0}
+/* v712：接稿排期年份导航（手机/桌面）上下边距与首页月份导航 .cd-month-nav(4px 0 6px) 一致 */
+.comm-yearnav{margin:4px 0 6px}
 .annual-chart-yearnav .btn-xs{padding:2px 8px;font-size:11px}
 .annual-chart-bars{
   display:flex;align-items:flex-end;gap:3px;
@@ -1677,8 +1683,8 @@ ul,li{list-style:none}
 
 /* ===== Design Quote Calculator ===== */
 .calc-page{max-width:1200px;margin:0 auto}
-.calc-page-grid{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
-.calc-input-col{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 24px);overflow-y:auto;container-type:inline-size}
+.calc-page-grid{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:stretch;height:100%}
+.calc-input-col{display:flex;flex-direction:column;gap:12px;height:100%;overflow-y:auto;container-type:inline-size}
 .calc-card{background:var(--c-card-bg,#fff);border:1px solid var(--c-border-light,#e8e8e8);border-radius:10px;padding:14px}
 .calc-card-title{font-size:14px;font-weight:600;color:var(--c-text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .price-calc-title{margin-bottom:16px}
@@ -1770,7 +1776,7 @@ ul,li{list-style:none}
 .calc-rate-fixed{font-size:13px;color:var(--c-text-muted);width:70px;text-align:center}
 .calc-sub-area{padding:4px 0 4px 20px;transition:opacity .2s}
 .calc-sub-area.disabled{opacity:.4;pointer-events:none}
-.calc-receipt-col{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 24px);overflow-y:auto}
+.calc-receipt-col{display:flex;flex-direction:column;gap:12px;height:100%;overflow-y:auto}
 .calc-receipt{background:linear-gradient(135deg,var(--c-primary-bg),#f8fbff);border:1px solid var(--c-primary-light);border-radius:10px;padding:16px}
 .dc-r-title{font-size:18px;font-weight:700;color:var(--c-text);margin-bottom:12px;text-align:center}
 /* v26: 实时报价分隔线归一
@@ -2944,7 +2950,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=710"></script>
+  <script src="app.js?v=712"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
