@@ -2684,7 +2684,7 @@ function getPageSize(pageKey) { return PAGE_SIZES[pageKey] || 6; }
 
 /* ===== 响应式分页 + 年份筛选 (v703) ===== */
 // 单列(手机/单列模块)每页 6 条，双列(桌面双列模块)每页 12 条
-const YEAR_FILTER_MODULES = ['groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'design-inspiration', 'design-auth', 'oc-stories', 'oc-commission', 'design-commission'];
+const YEAR_FILTER_MODULES = ['groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'design-inspiration', 'design-auth', 'oc-stories', 'oc-commission', 'design-commission', 'design-commission-detail-twy', 'design-commission-detail-fm', 'design-commission-detail-fq', 'design-commission-detail-ec'];
 function isModuleTwoCol(pageKey) {
   if (window.innerWidth < 641) return false; // 手机竖屏一律单列
   // 以手机端（含横屏/平板）真实双列布局为准：>=641 时这些模块会渲染为双列
@@ -2722,7 +2722,8 @@ function renderYearNavHTML(pageKey, ps) {
 function modYearShift(pageKey, d) {
   const ps = pageState[pageKey]; if (!ps) return;
   if (ps.yearFilter == null) ps.yearFilter = new Date().getFullYear();
-  ps.yearFilter += d; ps.yearPickerY = ps.yearFilter; ps.pageNo = 1;
+  ps.yearFilter += d; ps.chartYear = ps.yearFilter; ps.statsScope = String(ps.yearFilter);
+  ps.yearPickerY = ps.yearFilter; ps.pageNo = 1;
   renderListPage(pageKey, MODULES[pageKey]);
 }
 function modYearTogglePicker(pageKey) {
@@ -2738,7 +2739,8 @@ function modYearPickerShift(pageKey, d) {
 }
 function modYearPick(pageKey, y) {
   const ps = pageState[pageKey]; if (!ps) return;
-  ps.yearFilter = y; ps.yearPickerY = y; ps.yearPickerOpen = false; ps.pageNo = 1;
+  ps.yearFilter = y; ps.chartYear = y; ps.statsScope = String(y);
+  ps.yearPickerY = y; ps.yearPickerOpen = false; ps.pageNo = 1;
   renderListPage(pageKey, MODULES[pageKey]);
 }
 
@@ -4389,7 +4391,10 @@ function renderHomeStatusFilterBar() {
   const ps = pageState.home || {};
   const allRecords = DB.list('publishRecords');
   const statusOf = (r) => (r.status === '已发布' ? '已发布' : '待发布');
-  const scopeRecords = ps.tab ? allRecords.filter(r => valIncludes(r.platform, ps.tab)) : allRecords;
+  // v705：计数按当前年份筛选（与列表+图表+统计同步）
+  const curYear = ps.yearFilter || new Date().getFullYear();
+  const yearRecords = allRecords.filter(r => (r.publishTime || '').startsWith(String(curYear)));
+  const scopeRecords = ps.tab ? yearRecords.filter(r => valIncludes(r.platform, ps.tab)) : yearRecords;
   const pendingCount = scopeRecords.filter(r => statusOf(r) === '待发布').length;
   const publishedCount = scopeRecords.filter(r => statusOf(r) === '已发布').length;
   const sf = ps.statusFilter;
@@ -5067,7 +5072,7 @@ function renderRelations() {
       if (ps.pageNo > totalPairPages) ps.pageNo = 1;
       const pageNo = ps.pageNo || 1;
       const pagedPairs = pairList.slice((pageNo - 1) * pageSize, pageNo * pageSize);
-      html += '<div class="record-list oc-rel-list-2col" style="margin-top:8px">';
+      html += '<div class="record-list oc-rel-list-2col" style="margin-top:6px">';
       pagedPairs.forEach(group => {
         const first = group[0];
         const a = pureOcName(first.charA), b = pureOcName(first.charB);
@@ -8974,7 +8979,7 @@ function renderSleepWeekLineChart(days) {
   const gridLines = gridHours.map(h => {
     const x = xOf(h);
     return `<line x1="${x.toFixed(1)}" y1="${TM}" x2="${x.toFixed(1)}" y2="${TM + CH}" stroke="var(--c-border-light)" stroke-width="0.8"/>` +
-           `<text x="${x.toFixed(1)}" y="${hourLabelY}" text-anchor="middle" font-size="${isDesktop?16:20}" font-weight="700" fill="var(--c-text-muted)">${h}h</text>`;
+           `<text x="${x.toFixed(1)}" y="${hourLabelY}" text-anchor="middle" font-size="${isDesktop?18:20}" font-weight="700" fill="var(--c-text-muted)">${h}h</text>`;
   }).join('');
   const dayLabels = nightVals.map((v, i) => {
     const y = yOf(i);
@@ -8985,8 +8990,8 @@ function renderSleepWeekLineChart(days) {
     const label = formatSleepDuration(v);
     const anchor = (v / maxV) > 0.78 ? 'end' : 'start';
     const lx = anchor === 'end' ? x - 12 : x + 12;
-    // v556：右侧接近边界的点标签放到点下方，避免与顶部小时刻度重叠
-    const ly = anchor === 'end' ? y + 26 : y - 22;
+    // v705：行0数据标签放点下方，避免与顶部小时刻度重叠（移动端 v1.1.28 边距 TM=46 时关键）
+    const ly = (i === 0 || anchor === 'end') ? y + 26 : y - 22;
     return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${label}</text><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/></g>`;
   }).join('');
   return `<div class="lr-history-stat-card">

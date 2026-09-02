@@ -429,7 +429,7 @@ ul,li{list-style:none}
   .home-cal-insp .calendar{margin-top:0 !important}
   .home-cal-insp .home-insp{margin-top:0;padding-top:12px}
   /* v641：电脑端接稿排期日历视图双列（日历左、列表右，移动端单列） */
-  .comm-cal-two-col{display:grid;grid-template-columns:1fr 1fr;column-gap:16px;row-gap:0;align-items:start;grid-template-areas:"cal list" "chart list"}
+  .comm-cal-two-col{display:grid;grid-template-columns:1fr 1fr;column-gap:10px;row-gap:0;align-items:start;grid-template-areas:"cal list" "chart list"}
   .comm-cal-col-cal{grid-area:cal}
   /* v679：右列列表 height:0 使其只向下溢出、不参与 grid 行高计算，避免记录过多时撑大左侧日历↔图表间距；整页全局滚动（去掉 v678 内部滚动） */
   .comm-cal-col-list{grid-area:list;align-self:start;height:0;min-height:0}
@@ -455,15 +455,16 @@ ul,li{list-style:none}
   .lr-2col>.lr-right{min-width:0;max-height:calc(100vh - 24px);overflow-y:auto}
   
 /* v705：双列独立滚动 + 4px 滚动条 */
-.lr-2col>.lr-left,.lr-2col>.lr-right,.calc-input-col,.calc-receipt-col{scrollbar-width:thin;scrollbar-color:#cdd5dd transparent}
-.lr-2col>.lr-left::-webkit-scrollbar,.lr-2col>.lr-right::-webkit-scrollbar,.calc-input-col::-webkit-scrollbar,.calc-receipt-col::-webkit-scrollbar{width:4px;height:4px}
-.lr-2col>.lr-left::-webkit-scrollbar-thumb,.lr-2col>.lr-right::-webkit-scrollbar-thumb,.calc-input-col::-webkit-scrollbar-thumb,.calc-receipt-col::-webkit-scrollbar-thumb{background:#cdd5dd;border-radius:2px}
+.lr-2col>.lr-left,.lr-2col>.lr-right,.calc-input-col,.calc-receipt-col{scrollbar-width:thin;scrollbar-color:transparent transparent}
+.lr-2col>.lr-left::-webkit-scrollbar,.lr-2col>.lr-right::-webkit-scrollbar,.calc-input-col::-webkit-scrollbar,.calc-receipt-col::-webkit-scrollbar{width:2px;height:2px}
+.lr-2col>.lr-left::-webkit-scrollbar-thumb,.lr-2col>.lr-right::-webkit-scrollbar-thumb,.calc-input-col::-webkit-scrollbar-thumb,.calc-receipt-col::-webkit-scrollbar-thumb{background:transparent}
 .lr-2col>.lr-left::-webkit-scrollbar-track,.lr-2col>.lr-right::-webkit-scrollbar-track,.calc-input-col::-webkit-scrollbar-track,.calc-receipt-col::-webkit-scrollbar-track{background:transparent}
 /* v705：首页 toolbar 照抄其他页面手机端样式 */
 .home-toolbar .search-box{flex:1 1 100%;min-width:0}
 .home-toolbar .search-box input{width:100%;min-width:0}
 .home-toolbar .spacer{display:none}
-.home-toolbar .filter-combobox{flex:1 1 0;min-width:0;width:auto;max-width:none}
+.home-toolbar .combobox-wrapper{flex:1 1 0;min-width:0;width:auto;max-width:none}
+.home-toolbar .combobox-wrapper .combobox-input{width:100%}
 .home-toolbar .btn-primary{flex:1 1 0;min-width:0;width:auto;padding:8px 6px}
 
 /* v668：接稿排期列表视图「图+统计」仅电脑端隐藏（手机端保留原顺序） */
@@ -1146,6 +1147,8 @@ ul,li{list-style:none}
   letter-spacing:1px;
 }
 .pricelist-notes-hint{font-size:11px;color:var(--c-text-muted)}
+.pricelist-notes-header{cursor:pointer;transition:background .15s}
+.pricelist-notes-header:hover{background:var(--c-primary-bg);color:var(--c-primary-dark)}
 .pricelist-notes-grid{
   display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;
 }
