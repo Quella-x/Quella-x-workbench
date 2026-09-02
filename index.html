@@ -451,8 +451,8 @@ ul,li{list-style:none}
   .gb-records-2col .chart-stats-2col{margin-top:0}
   /* v683：电脑端「每日记录」首页/历史页 两列 1:1 均分（左=顶部卡片+切换+日期条/周导航+图表，右=记录块）；左列 sticky 固定仅右列滚动 */
   .lr-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
-  .lr-2col>.lr-left{min-width:0;max-height:calc(100vh - 24px);overflow-y:auto}
-  .lr-2col>.lr-right{min-width:0;max-height:calc(100vh - 24px);overflow-y:auto}
+  .lr-2col>.lr-left{min-width:0;max-height:calc(100vh - 100px);overflow-y:auto}
+  .lr-2col>.lr-right{min-width:0;max-height:calc(100vh - 100px);overflow-y:auto}
   
 /* v705：双列独立滚动 + 4px 滚动条 */
 .lr-2col>.lr-left,.lr-2col>.lr-right,.calc-input-col,.calc-receipt-col{scrollbar-width:thin;scrollbar-color:transparent transparent}
@@ -475,7 +475,8 @@ ul,li{list-style:none}
   /* v677：接稿排期日历视图 divider/标题间距回归初始(全局16px)——分割线上下统一16px；标题到上边框 8->16px 对齐开团记录 */
   .comm-cal-chartstats .stats-divider{margin:16px 0}
   .comm-cal-chartstats .annual-chart{padding-top:16px}
-  .comm-cal-chartstats .annual-chart-title{margin-bottom:8px}
+  .comm-cal-chartstats .annual-chart-title{margin:4px 0 6px}
+  .chart-stats-2col .annual-chart-title{margin:4px 0 6px}
 }
 @media (max-width:640px){
   .comm-cal-two-col{display:block}
@@ -1149,6 +1150,7 @@ ul,li{list-style:none}
 .pricelist-notes-hint{font-size:11px;color:var(--c-text-muted)}
 .pricelist-notes-header{cursor:pointer;transition:background .15s}
 .pricelist-notes-header:hover{background:var(--c-primary-bg);color:var(--c-primary-dark)}
+.pricelist-notes-header.collapsible-toggle:hover{background:var(--c-primary-bg);color:var(--c-primary-dark)}
 .pricelist-notes-grid{
   display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;
 }
@@ -1265,7 +1267,7 @@ ul,li{list-style:none}
 
 /* ===== Platform Buttons (Home) ===== */
 .platform-buttons{
-  display:flex;flex-wrap:nowrap;gap:10px;margin-bottom:10px;
+  display:flex;flex-wrap:nowrap;gap:8px;margin-bottom:10px;
 }
 .platform-btn{
   flex:1;min-width:0;padding:9px 10px;
@@ -1292,7 +1294,7 @@ ul,li{list-style:none}
 .platform-btn .platform-status-row .platform-sep{opacity:.85;font-weight:700}
 
 /* ===== Global Status Filter Buttons (DN-4轮) ===== */
-.home-status-filter{display:flex;gap:10px;margin:8px 0 14px}
+.home-status-filter{display:flex;gap:8px;margin:8px 0 14px}
 .home-status-btn{
   flex:1;min-width:0;padding:0 12px;border-radius:10px;cursor:pointer;
   border:1px solid var(--c-border);background:var(--c-card-bg,#fff);
@@ -1674,7 +1676,7 @@ ul,li{list-style:none}
 /* ===== Design Quote Calculator ===== */
 .calc-page{max-width:1200px;margin:0 auto}
 .calc-page-grid{display:grid;grid-template-columns:1fr 340px;gap:10px;align-items:start}
-.calc-input-col{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 24px);overflow-y:auto;container-type:inline-size}
+.calc-input-col{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 100px);overflow-y:auto;container-type:inline-size}
 .calc-card{background:var(--c-card-bg,#fff);border:1px solid var(--c-border-light,#e8e8e8);border-radius:10px;padding:14px}
 .calc-card-title{font-size:14px;font-weight:600;color:var(--c-text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .price-calc-title{margin-bottom:16px}
@@ -1766,7 +1768,7 @@ ul,li{list-style:none}
 .calc-rate-fixed{font-size:13px;color:var(--c-text-muted);width:70px;text-align:center}
 .calc-sub-area{padding:4px 0 4px 20px;transition:opacity .2s}
 .calc-sub-area.disabled{opacity:.4;pointer-events:none}
-.calc-receipt-col{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 24px);overflow-y:auto}
+.calc-receipt-col{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 100px);overflow-y:auto}
 .calc-receipt{background:linear-gradient(135deg,var(--c-primary-bg),#f8fbff);border:1px solid var(--c-primary-light);border-radius:10px;padding:16px}
 .dc-r-title{font-size:18px;font-weight:700;color:var(--c-text);margin-bottom:12px;text-align:center}
 /* v26: 实时报价分隔线归一
@@ -2939,7 +2941,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=708"></script>
+  <script src="app.js?v=709"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

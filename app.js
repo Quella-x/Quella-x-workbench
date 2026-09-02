@@ -4165,7 +4165,7 @@ function renderHome() {
   const body = $('#mainBody');
   const now = new Date();
   const thisYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  if (!pageState.home) pageState.home = { tab: null, calYear: now.getFullYear(), calMonth: now.getMonth(), view: 'main', search: '', dateFilter: thisYM, chartYear: now.getFullYear(), statsScope: 'all', contentTypeFilter: '', monthPickerOpen: false, monthPickerY: null };
+  if (!pageState.home) pageState.home = { tab: null, calYear: now.getFullYear(), calMonth: now.getMonth(), view: 'main', search: '', dateFilter: thisYM, chartYear: now.getFullYear(), statsScope: 'year', contentTypeFilter: '', monthPickerOpen: false, monthPickerY: null };
   const ps = pageState.home;
   const allRecords = DB.list('publishRecords');
 
@@ -4283,8 +4283,8 @@ function renderHome() {
 
     // Stats: only current platform（6 项：本月/总计 的发布数、平均更新、最高浏览）
     const scope = ps.statsScope || 'all';
-    const statYear = new Date().getFullYear();
-    // 年度 scope：统计范围限定到当前年（与接稿排期等模块一致，不联动柱状图年份切换）
+    const statYear = ps.chartYear || new Date().getFullYear();
+    // v709：统计模块跟随柱状图年份(chartYear)联动，年份切换时统计一起变
     const scopeRecords = scope === 'year' ? records.filter(r => (r.publishTime || '').startsWith(String(statYear))) : records;
     const thisMonth = todayStr().slice(0, 7);
     const published = scopeRecords.filter(r => statusOf(r) === '已发布');
@@ -4393,10 +4393,10 @@ function renderHomeStatusFilterBar() {
   const statusOf = (r) => (r.status === '已发布' ? '已发布' : '待发布');
   // v705：计数按当前年份筛选（与列表+图表+统计同步）
 
-  // v706: 计数按当前月份(dateFilter)筛
-  const curMonth = ps.dateFilter || (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0'));
-  const monthRecords = allRecords.filter(r => (r.publishTime || '').startsWith(curMonth));
-  const scopeRecords = ps.tab ? monthRecords.filter(r => valIncludes(r.platform, ps.tab)) : monthRecords;
+  // v709：计数按当前年份(chartYear)筛，与柱状图/统计模块年份联动
+  const curYear = ps.chartYear || new Date().getFullYear();
+  const yearRecords = allRecords.filter(r => (r.publishTime || '').startsWith(String(curYear)));
+  const scopeRecords = ps.tab ? yearRecords.filter(r => valIncludes(r.platform, ps.tab)) : yearRecords;
   const pendingCount = scopeRecords.filter(r => statusOf(r) === '待发布').length;
   const publishedCount = scopeRecords.filter(r => statusOf(r) === '已发布').length;
   const sf = ps.statusFilter;
@@ -8985,7 +8985,7 @@ function renderSleepWeekLineChart(days) {
   }).join('');
   const dayLabels = nightVals.map((v, i) => {
     const y = yOf(i);
-    return `<text x="${LM - 14}" y="${(y + 9).toFixed(1)}" text-anchor="end" font-size="18" font-weight="600" fill="var(--c-text)">${wdLabels[i]}</text>`;
+    return `<text x="${LM - 14}" y="${(y + 9).toFixed(1)}" text-anchor="end" font-size="${isDesktop?18:24}" font-weight="600" fill="var(--c-text)">${wdLabels[i]}</text>`;
   }).join('');
   const seriesPoints = (vals, color) => vals.map((v, i) => {
     const x = xOf(v), y = yOf(i);
@@ -8993,7 +8993,7 @@ function renderSleepWeekLineChart(days) {
     const anchor = (v / maxV) > 0.78 ? 'end' : 'start';
     const lx = anchor === 'end' ? x - 12 : x + 12;
     // v706：恢复 v1.1.28 数据标签位置（上方），行0 也走 y-22
-    const ly = anchor === 'end' ? y + 26 : y - 22;
+    const ly = isDesktop ? (anchor === 'end' ? y + 26 : y - 22) : y - 22;
     return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${label}</text><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/></g>`;
   }).join('');
   return `<div class="lr-history-stat-card">
@@ -9627,9 +9627,10 @@ function renderCommissionDetailPage() {
   // 2) 品类切换按钮（名字与用户一致；数字不带灰底；点激活按钮返回全部）
   html += '<div class="cd-cat-bar">';
   COMM_DETAIL_CATS.forEach(c => {
-    // v706：计数按当前月份筛，月份导航直接联动
-    const monthRecords = allRecords.filter(r => (r.startTime || r.acceptTime || '').startsWith(ps.cdMonth));
-    const cnt = monthRecords.filter(r => r.category === c.cat).length;
+    // v709：品类计数按当前年份筛（取 cdMonth 的年份部分），与月份导航年份联动
+    const curYear = (ps.cdMonth || '').slice(0, 4) || String(new Date().getFullYear());
+    const yearRecords = allRecords.filter(r => (r.startTime || r.acceptTime || '').startsWith(curYear));
+    const cnt = yearRecords.filter(r => r.category === c.cat).length;
     const active = ps.tab === c.key;
     html += `<div class="cd-cat-btn ${active ? 'active' : ''}" onclick="setCdTab('${c.key}')">
       <span class="cd-cat-name">${esc(c.label)}</span>
