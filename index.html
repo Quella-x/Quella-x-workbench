@@ -248,7 +248,7 @@ ul,li{list-style:none}
 .filter-select:focus{border-color:var(--c-primary-light)}
 .filter-combobox{min-width:0;width:112px;max-width:112px}
 .filter-combobox-input{padding:8px 24px 8px 8px!important;font-size:13px;text-align:center;background:var(--c-card);cursor:pointer;border:1px solid var(--c-border);border-radius:var(--radius-sm);transition:border-color .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.filter-combobox .combobox-toggle{right:4px;width:16px;font-size:11px}
+.filter-combobox .combobox-toggle{right:4px;width:16px;font-size:9px}
 .filter-combobox-input:focus{border-color:var(--c-primary-light)}
 .filter-combobox .combobox-option{text-align:center}
 
@@ -330,7 +330,7 @@ ul,li{list-style:none}
 .tag-gray{background:#f5f5f5;color:#999}
 .tag-orange{background:#fff3e8;color:var(--c-orange)}
 .tag-yellow{background:#fffbe6;color:#f2c418}
-.tag-sm{font-size:11px;padding:1px 6px}
+.tag-sm{font-size:10px;padding:1px 6px}
 
 /* Status dots */
 .status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px}
@@ -342,7 +342,7 @@ ul,li{list-style:none}
   padding:16px;box-shadow:var(--shadow-sm);
 }
 .stat-card .stat-label{font-size:12px;color:var(--c-text-muted);margin-bottom:6px}
-.stat-card .stat-value{font-size:24px;font-weight:700;color:var(--c-primary);display:flex;align-items:baseline;justify-content:space-between;gap:4px}
+.stat-card .stat-value{font-size:22px;font-weight:700;color:var(--c-primary);display:flex;align-items:baseline;justify-content:space-between;gap:4px}
 .stat-card .stat-sub{font-size:11px;color:var(--c-text-light);margin-top:4px}
 .stat-card .stat-unit{font-size:11px;font-weight:400;color:var(--c-text-muted);margin-left:0;white-space:nowrap}
 
@@ -386,7 +386,7 @@ ul,li{list-style:none}
 .cal-day .cal-date{font-size:12px;flex-shrink:0;line-height:1.3}
 .cal-day .cal-dot{width:4px;height:4px;min-width:4px;min-height:4px;border-radius:50%;flex-shrink:0;box-sizing:border-box}
 .cal-day .cal-dots{display:flex;flex-wrap:nowrap;gap:2px;align-items:center;margin-top:1px;height:14px;min-height:14px;overflow:hidden}
-.cal-day-count{font-size:11px;color:var(--c-text-muted);line-height:1;white-space:nowrap;flex-shrink:0;margin-left:4px}
+.cal-day-count{font-size:9px;color:var(--c-text-muted);line-height:1;white-space:nowrap;flex-shrink:0;margin-left:4px}
 .cal-legend-wrap{border-top:1px solid var(--c-border-light)}
 .cal-legend{display:flex;flex-wrap:wrap;gap:8px 16px;padding:7px 16px;font-size:12px;line-height:18px;color:var(--c-text-light);align-items:center}
 .cal-legend-sep{height:1px;background:var(--c-border-light);margin:0}
@@ -397,40 +397,40 @@ ul,li{list-style:none}
 .cal-legend .legend-item .status-dot{margin-right:0}
 /* v29: 日历日期格事件标签（开稿/截稿实心圆点+名字） */
 .cal-day-events{display:flex;flex-direction:column;gap:1px;width:100%;margin-top:1px}
-.cal-day-event{display:flex;align-items:center;gap:3px;font-size:11px;line-height:1.2;min-width:0}
+.cal-day-event{display:flex;align-items:center;gap:3px;font-size:10px;line-height:1.2;min-width:0}
 .cal-day-event-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .cal-day-event-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--c-text-light)}
-.cal-day-event-more{font-size:11px;color:var(--c-text-muted);padding-left:10px}
+.cal-day-event-more{font-size:9px;color:var(--c-text-muted);padding-left:10px}
 /* v29-fix2: 接稿排期日历日期同行标签（实心圆点+开稿/截稿文字） */
 .cal-day-tags{display:inline-flex;align-items:center;flex-wrap:wrap;gap:2px 4px;min-width:0}
 .cal-tag-rows{display:flex;flex-direction:column;gap:2px;width:100%;margin-top:0}
 .cal-tag-row{min-height:14px;display:flex;align-items:center;flex-wrap:wrap;gap:1px 3px}
 /* v589：接稿排期日历标签再缩小，防止「开+截」溢出 */
-.cal-day-tag{display:inline-flex;align-items:center;gap:1px;font-size:11px;white-space:nowrap}
+.cal-day-tag{display:inline-flex;align-items:center;gap:1px;font-size:8px;white-space:nowrap}
 .cal-day-tag-dot{width:3px;height:3px;border-radius:50%;flex-shrink:0}
-.cal-day-tag-text{font-size:11px;line-height:1;font-weight:600}
+.cal-day-tag-text{font-size:8px;line-height:1;font-weight:600}
 .cal-day-tag-end{margin-left:auto}
-.cal-day-tag-more{font-size:11px;color:var(--c-text-muted)}
+.cal-day-tag-more{font-size:9px;color:var(--c-text-muted)}
 /* v604：首页日历日期格内的开稿/截稿/开+截/进入临空 圆点和文字大小与底部图例一致（仅首页） */
 .home-comm-tags .cal-day-tag,
 .home-deep-tags .cal-day-tag{font-size:12px;gap:2px}
 .home-comm-tags .cal-day-tag-dot,
 .home-deep-tags .cal-day-tag-dot{width:4px;height:4px;min-width:4px;min-height:4px;box-sizing:border-box;border-radius:50%}
 .home-comm-tags .cal-day-tag-text,
-.home-deep-tags .cal-day-tag-text{font-size:11px;font-weight:600}
+.home-deep-tags .cal-day-tag-text{font-size:9px;font-weight:600}
 /* v637：电脑端两个日历圆点改为 5×5px（仅桌面，移动保持小尺寸） */
 @media (min-width:641px){
   .cal-day-tag-dot{width:5px;height:5px;min-width:5px;min-height:5px}
-  .cal-day-tag-text{font-size:11px}
+  .cal-day-tag-text{font-size:10px}
   .home-comm-tags .cal-day-tag-dot,
   .home-deep-tags .cal-day-tag-dot{width:5px;height:5px;min-width:5px;min-height:5px}
   .home-comm-tags .cal-day-tag-text,
-  .home-deep-tags .cal-day-tag-text{font-size:11px}
+  .home-deep-tags .cal-day-tag-text{font-size:10px}
   .cal-day .cal-dot{width:5px;height:5px;min-width:5px;min-height:5px}
   /* v639：接稿排期日历标签完全镜像首页（font-size/gap/box-sizing/border-radius），消除圆点相对比例与间距差异 */
   .commission-cal-grid .cal-day-tag{font-size:12px;gap:2px}
   .commission-cal-grid .cal-day-tag-dot{width:5px;height:5px;min-width:5px;min-height:5px;box-sizing:border-box;border-radius:50%}
-  .commission-cal-grid .cal-day-tag-text{font-size:11px}
+  .commission-cal-grid .cal-day-tag-text{font-size:10px}
   /* v640：电脑端首页日历 + 灵感速记双列（移动端保持单列） */
   .home-cal-insp{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;align-items:start}
   .home-cal-insp .calendar{margin-top:0 !important}
@@ -487,11 +487,11 @@ ul,li{list-style:none}
 @media (max-width:640px){
   .commission-cal-grid .cal-day-tag{gap:2px}
   .commission-cal-grid .cal-day-tag-dot{width:4px;height:4px;min-width:4px;min-height:4px;box-sizing:border-box;border-radius:50%;flex-shrink:0}
-  .commission-cal-grid .cal-day-tag-text{font-size:11px}
+  .commission-cal-grid .cal-day-tag-text{font-size:9px}
 }
 /* Calendar period bar (开稿~截稿时间段连续显示) */
 .cal-period-bar{
-  position:absolute;left:1px;right:1px;opacity:.85;font-size:11px;color:#fff;
+  position:absolute;left:1px;right:1px;opacity:.85;font-size:8px;color:#fff;
   display:flex;align-items:center;justify-content:flex-start;font-weight:600;
   overflow:hidden;white-space:nowrap;padding:0 3px;z-index:1;
   text-overflow:ellipsis;
@@ -501,7 +501,7 @@ ul,li{list-style:none}
 .cal-period-bar.full{border-radius:5px}
 .cal-period-bar.middle{border-radius:0}
 .cal-period-overflow{
-  position:absolute;left:0;right:0;font-size:11px;color:var(--c-text-muted);
+  position:absolute;left:0;right:0;font-size:9px;color:var(--c-text-muted);
   text-align:center;font-weight:600;z-index:1;
 }
 .cal-day{position:relative;overflow:visible}
@@ -602,7 +602,7 @@ ul,li{list-style:none}
 .cal-date-popup{position:relative;background:var(--c-card);border-radius:12px;padding:16px;width:340px;max-width:92vw;box-shadow:0 12px 48px rgba(0,0,0,.22);font-size:14px;max-height:80vh;display:flex;flex-direction:column}
 .cal-date-stats{display:flex;gap:12px;margin:12px 0}
 .cal-date-stat{flex:1;border-radius:10px;padding:10px 12px;text-align:center;border:2px solid var(--c-primary);background:transparent}
-.cal-date-stat .num{font-size:24px;font-weight:700;line-height:1.1}
+.cal-date-stat .num{font-size:22px;font-weight:700;line-height:1.1}
 .cal-date-stat .lbl{font-size:12px;color:var(--c-text-muted);margin-top:2px}
 /* v640：接稿排期弹窗 今日开稿/今日截稿 统计卡框线配色 */
 .cal-date-stat.start{border-color:#f6ad5c}
@@ -824,7 +824,7 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="products"] .combobox-wrapper[data-subkey="factory"]{flex:1 1 0!important;min-width:80px!important}
 .dynamic-list-container[data-key="products"] .combobox-wrapper[data-subkey="isDisbanded"]{flex:0 0 90px!important;min-width:0!important}
 .dynamic-list-row .combobox-input{padding:6px 26px 6px 8px!important;font-size:12px}
-.dynamic-list-row .combobox-toggle{right:2px;width:18px;font-size:11px}
+.dynamic-list-row .combobox-toggle{right:2px;width:18px;font-size:10px}
 .dynamic-list-row button{
   flex:0 0 40px;padding:0;font-size:14px;
   display:inline-flex;align-items:center;justify-content:center;
@@ -1088,7 +1088,7 @@ ul,li{list-style:none}
   .dynamic-list-row .combobox-wrapper{min-width:80px;flex:1 1 80px}
   .dynamic-list-row > button{flex-shrink:0;min-width:40px}
   /* v22 mobile 标题与内容列对齐 */
-  .dynamic-list-header{font-size:11px;padding:6px 0;display:flex!important;gap:4px;background:transparent}
+  .dynamic-list-header{font-size:10px;padding:6px 0;display:flex!important;gap:4px;background:transparent}
   .dynamic-list-header span{padding-left:8px;box-sizing:border-box;text-align:left}
   .dynamic-list-header span.combobox-col{padding-left:16px}
   /* v22 mobile: 全面隐藏所有 dynamic-list 标题（仅靠 placeholder 提示） */
@@ -1116,7 +1116,7 @@ ul,li{list-style:none}
   .toolbar.home-toolbar .date-field-wrap.home-date-wrap .filter-select{width:100%;padding-right:8px;text-align:center}
   .toolbar.home-toolbar .date-pick-btn.home-date-pick{width:38px;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--c-border)!important;background:var(--c-primary-bg)!important;border-radius:var(--radius-sm);cursor:pointer;color:var(--c-primary)!important;padding:0;line-height:1;-webkit-tap-highlight-color:rgba(0,0,0,0)!important;touch-action:manipulation;-webkit-touch-callout:none}
   .toolbar.home-toolbar .btn-primary{width:100%;min-width:0;padding:8px 6px;justify-content:center}
-  .sync-badge{font-size:11px;padding:2px 6px;gap:3px}
+  .sync-badge{font-size:10px;padding:2px 6px;gap:3px}
   .sync-badge .sync-txt{display:none}
 }
 
@@ -1247,14 +1247,14 @@ ul,li{list-style:none}
 }
 .annual-chart-bar-fill:hover{opacity:.8}
 .annual-chart-bar-value{
-  position:absolute;left:50%;transform:translateX(-50%);font-size:11px;color:var(--c-text-light);
+  position:absolute;left:50%;transform:translateX(-50%);font-size:10px;color:var(--c-text-light);
   white-space:nowrap;
 }
 .annual-chart-labels{
   display:flex;gap:3px;padding:4px 2px 0;
 }
 .annual-chart-labels span{
-  flex:1;text-align:center;font-size:11px;color:var(--c-text-muted);
+  flex:1;text-align:center;font-size:10px;color:var(--c-text-muted);
 }
 
 /* ===== Platform Buttons (Home) ===== */
@@ -1388,7 +1388,7 @@ ul,li{list-style:none}
   max-width:420px;margin:16px auto 0;
 }
 .pricelist-menu-header{
-  text-align:center;font-size:24px;font-weight:700;
+  text-align:center;font-size:22px;font-weight:700;
   letter-spacing:0;padding-bottom:6px;margin-bottom:10px;
   border-bottom:2px dashed var(--c-border);color:var(--c-primary-dark);
 }
@@ -1408,7 +1408,7 @@ ul,li{list-style:none}
   font-weight:700;color:var(--c-primary-dark);
 }
 .pricelist-menu-item .menu-size-sub{
-  font-size:11px;font-weight:400;color:var(--c-text-muted);
+  font-size:10px;font-weight:400;color:var(--c-text-muted);
   margin-left:2px;vertical-align:baseline;
   line-height:1;
 }
@@ -1451,7 +1451,7 @@ ul,li{list-style:none}
 
 /* ===== Mindmap Arrow Labels ===== */
 .mindmap-arrow-label{
-  font-size:11px;font-weight:600;
+  font-size:10px;font-weight:600;
   paint-order:stroke;stroke:#fff;stroke-width:3px;
   paint-order:stroke fill;
 }
@@ -1542,7 +1542,7 @@ ul,li{list-style:none}
 .combobox-toggle{
   position:absolute;right:8px;top:50%;transform:translateY(-50%);
   width:20px;height:20px;border:none;background:transparent;
-  color:var(--c-text-muted);font-size:11px;cursor:pointer;
+  color:var(--c-text-muted);font-size:10px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
 }
 .combobox-dropdown{
@@ -1822,7 +1822,7 @@ ul,li{list-style:none}
 /* DY轮：回退 DV/DW/DX 的修改项目强调面板，恢复 v163 原版——最终总价/需付尾款用普通小计行（.dc-rr.total），不再额外强调 */
 .calc-actions{display:flex;gap:8px}
 /* v37: 实时报价收据底部署名——字号 11px（与 dc-r-sub/改人 小字同号），色与 .dc-rr 同（var(--c-text)），居中；与上下模块间距 8px 略小 */
-.dc-r-footer{text-align:center;font-size:11px;color:var(--c-text);padding:8px 12px 2px;margin-top:6px}
+.dc-r-footer{text-align:center;font-size:10px;color:var(--c-text);padding:8px 12px 2px;margin-top:6px}
 
 /* ===== v15: Deposit/Balance big blocks (浅蓝/白统一底色) ===== */
 .dc-r-deposit-balance{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
@@ -1868,7 +1868,7 @@ ul,li{list-style:none}
   text-align:center;overflow:hidden;
 }
 .mindmap-node.circular img{width:44px!important;height:44px!important;border-radius:50%!important}
-.mindmap-node.circular .mm-node-alias{font-size:11px;opacity:.7;line-height:1.1;max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mindmap-node.circular .mm-node-alias{font-size:9px;opacity:.7;line-height:1.1;max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mindmap-zoom-controls{
   position:absolute;top:8px;right:8px;z-index:10;
   display:flex;flex-direction:column;gap:4px;
@@ -2027,7 +2027,7 @@ ul,li{list-style:none}
 /* Summary cards */
 .life-summary-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin:12px 0 14px}
 .life-summary-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:12px 10px;text-align:center;box-shadow:var(--shadow-sm)}
-.life-summary-card .lsc-val{font-size:24px;font-weight:800;color:var(--c-primary-dark)}
+.life-summary-card .lsc-val{font-size:22px;font-weight:800;color:var(--c-primary-dark)}
 .life-summary-card .lsc-label{font-size:12px;color:var(--c-text-light);margin-top:2px}
 
 /* Quick check-in block */
@@ -2045,7 +2045,7 @@ ul,li{list-style:none}
 .lqc-weekly:not(.done){background:rgba(250,140,22,.07);border-color:#ffe0b2;color:var(--c-text)}
 .lqc-weekly:not(.done):hover{background:rgba(250,140,22,.12);border-color:rgba(250,140,22,.12);color:var(--c-text)}
 .lqc-btn.lqc-weekly.done{background:rgba(250,140,22,.24);border-color:rgba(250,140,22,.24);color:var(--c-text)}
-.lqc-ico{font-size:24px;line-height:1}
+.lqc-ico{font-size:22px;line-height:1}
 .lqc-label{font-size:18px;font-weight:550;white-space:nowrap}
 /* 日版块 / 周版块 切换（v221：缩小并置于月份条右侧） */
 .life-block-toggle{display:flex;gap:6px;margin:0 0 0 auto;align-items:center}
@@ -2091,7 +2091,7 @@ ul,li{list-style:none}
 .lgc-rate-stat.rated .lgc-num{color:var(--c-orange)}
 .lgc-num{font-size:16px;font-weight:800;color:var(--c-primary-dark);line-height:1}
 .lgc-stats-4 .lgc-num{font-size:16px}
-.lgc-unit{font-size:11px;color:var(--c-text-light);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lgc-unit{font-size:10px;color:var(--c-text-light);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lgc-heatmap{width:66px;flex-shrink:0}
 .lgc-heatmap .life-heatmap{gap:2px}
 .lgc-heatmap .hm-day{border-radius:3px}
@@ -2203,7 +2203,7 @@ ul,li{list-style:none}
 .life-year-card.lyc-day .lyc-num{color:var(--c-primary)}
 .lyc-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .lyc-stat{background:var(--c-bg);border-radius:var(--radius-sm);padding:10px;text-align:center}
-.lyc-num{font-size:24px;font-weight:800;color:var(--c-primary);line-height:1.1}
+.lyc-num{font-size:22px;font-weight:800;color:var(--c-primary);line-height:1.1}
 .lyc-unit{font-size:12px;color:var(--c-text-light);margin-top:3px}
 /* 年视图评分面板（评分作为第 4 个统计按钮模块，点击后展开评分选择） */
 .year-rate-panel{display:none;flex-wrap:wrap;gap:6px;padding:8px 0 2px;align-items:center;justify-content:center}
@@ -2281,7 +2281,7 @@ ul,li{list-style:none}
 .lwm-row-hd .lwm-habit{font-size:11px;color:var(--c-text-muted)}
 .lwm-habit{font-size:14px;font-weight:600;color:var(--c-text);display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:0;text-align:left;padding-left:0;padding-right:8px;overflow:hidden}
 .lwm-habit-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}
-.lwm-habit .lwm-tag{font-size:11px;font-weight:400;color:var(--c-text-light);white-space:nowrap;flex-shrink:0;margin-left:5px}
+.lwm-habit .lwm-tag{font-size:9px;font-weight:400;color:var(--c-text-light);white-space:nowrap;flex-shrink:0;margin-left:5px}
 .lwm-cell{width:100%;aspect-ratio:1/1;border-radius:3px;background:var(--c-bg);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;box-sizing:border-box;border:1px solid var(--c-border-light);cursor:pointer}
 .lwm-cell.done{background:var(--c-primary);border-color:var(--c-primary)}
 .lwm-cell.week{background:rgba(250,140,22,.16);border-color:rgba(250,140,22,.25)}
@@ -2332,12 +2332,12 @@ ul,li{list-style:none}
 .sleep-chart-bars{position:relative;display:flex;align-items:flex-end;gap:5px;height:120px;padding:0 2px}
 .sleep-ref{position:absolute;left:2px;right:2px;border-top:1px dashed var(--c-warning);opacity:.7;z-index:1}
 .sleep-bar-col{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
-.sleep-bar-val{font-size:11px;color:var(--c-text-light);margin-bottom:2px;white-space:nowrap;line-height:1}
+.sleep-bar-val{font-size:9px;color:var(--c-text-light);margin-bottom:2px;white-space:nowrap;line-height:1}
 .sleep-bar{width:100%;max-width:20px;background:linear-gradient(180deg,var(--c-primary),var(--c-primary-dark));border-radius:4px 4px 0 0;position:relative;z-index:2}
 .sleep-bar.today{background:linear-gradient(180deg,var(--c-orange),#fa8c16)}
 .sleep-bar.zero{background:repeating-linear-gradient(180deg,var(--c-border-light) 0 4px,transparent 4px 8px)}
 .sleep-chart-x{display:flex;gap:5px;padding:4px 2px 0}
-.sleep-x-col{flex:1;min-width:0;text-align:center;font-size:11px;color:var(--c-text-muted);white-space:nowrap;overflow:hidden}
+.sleep-x-col{flex:1;min-width:0;text-align:center;font-size:9px;color:var(--c-text-muted);white-space:nowrap;overflow:hidden}
 .sleep-x-col.cur{color:var(--c-orange);font-weight:700}
 .sleep-chart-foot{margin-top:6px;font-size:11px;color:var(--c-text-muted);display:flex;align-items:center;gap:5px}
 .sleep-chart-foot .sch-dot{width:9px;height:9px;border-radius:2px;background:linear-gradient(180deg,var(--c-orange),#fa8c16)}
@@ -2370,7 +2370,7 @@ ul,li{list-style:none}
 .lts-val .dur-unit{font-size:18px}
 .lts-val .lts-unit{font-size:28px;font-weight:600}
 .lr-diet-btns{min-width:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px;align-content:center;justify-content:center;padding:16px 16px 16px 28px;width:100%;box-sizing:border-box;height:100%}
-.lr-diet-qbtn{box-sizing:border-box;width:100%;border:1px solid #d6e6fb;border-radius:var(--radius-sm);background:#eef7ff;color:var(--c-text);font-size:24px;font-weight:700;padding:20px 8px;cursor:pointer;transition:.15s}
+.lr-diet-qbtn{box-sizing:border-box;width:100%;border:1px solid #d6e6fb;border-radius:var(--radius-sm);background:#eef7ff;color:var(--c-text);font-size:22px;font-weight:700;padding:20px 8px;cursor:pointer;transition:.15s}
 .lr-diet-qbtn:hover{background:#e0f2ff;border-color:var(--c-primary-light);color:var(--c-text)}
 .lr-diet-qbtn.filled{background:rgba(24,144,255,.24);border-color:rgba(24,144,255,.24);color:var(--c-text)}
 .lr-diet-qbtn.filled:hover{background:rgba(24,144,255,.24);border-color:rgba(24,144,255,.24);color:var(--c-text)}
@@ -2520,15 +2520,15 @@ ul,li{list-style:none}
   .lr-top-card{padding:10px}
   .lr-top-left{gap:6px;padding:10px 10px 10px 1px;border-right:1px solid var(--c-border-light)}
   .sleep-ring-wrap{width:100px;height:100px}
-  .sleep-ring-text{font-size:24px}
+  .sleep-ring-text{font-size:22px}
   .sleep-ring-text .dur-unit{font-size:14px}
-  .sleep-ring-status{font-size:11px;margin-top:5px}
+  .sleep-ring-status{font-size:10px;margin-top:5px}
   .lr-top-stats{gap:8px}
   .lr-top-stat{gap:0}
-  .lts-label{font-size:11px}
+  .lts-label{font-size:9px}
   .lts-val{font-size:18px}
   .lts-val .dur-unit{font-size:16px}
-  .lts-val .lts-unit{font-size:24px;font-weight:600}
+  .lts-val .lts-unit{font-size:22px;font-weight:600}
   .lr-diet-btns{gap:5px;padding:10px 10px 10px 18px}
   .lr-diet-qbtn{font-size:18px;font-weight:700;padding:14px 6px;border-radius:var(--radius-sm)}
   .lqc-grid{gap:6px;grid-template-columns:repeat(auto-fit,minmax(64px,1fr))}
@@ -2547,7 +2547,7 @@ ul,li{list-style:none}
   .lr-info-val{font-size:14px}
   .lr-info-full .lr-info-val{font-size:12px}
   .lr-record-ops .btn{padding:1px 6px;font-size:11px}
-  .lr-size-note{font-size:11px}
+  .lr-size-note{font-size:10px}
   .lr-history-stat-card{padding:8px}
   .lr-hsc-title{font-size:14px}
   .lr-hsc-chart-body{height:324px;margin-top:10px}
@@ -2724,12 +2724,12 @@ ul,li{list-style:none}
 .coop-proj{font-weight:600;color:var(--c-text)}
 .coop-date{color:var(--c-text-light)}
 .coop-date{color:var(--c-text-muted);font-size:11px}
-.coop-src{display:block;font-size:11px;color:var(--c-text-muted);font-weight:400;margin-top:2px}
+.coop-src{display:block;font-size:10px;color:var(--c-text-muted);font-weight:400;margin-top:2px}
 .comm-dual .comm-detail-card:hover{box-shadow:var(--shadow-sm);border-color:transparent}
 .comm-detail-card .cdc-header-label{font-size:13px;color:var(--c-text-muted);font-weight:500}
 .comm-detail-card .cdc-header-value{font-size:14px;color:var(--c-text);font-weight:600}
 .comm-detail-card .cdc-header-main{white-space:nowrap}
-.comm-detail-card .cdc-header-hint{font-size:11px;color:var(--c-text-muted);font-weight:500;white-space:nowrap}
+.comm-detail-card .cdc-header-hint{font-size:10px;color:var(--c-text-muted);font-weight:500;white-space:nowrap}
 .comm-detail-card .cdc-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;padding:8px 12px;overflow:hidden}
 .comm-detail-card .cdc-empty{flex:1;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--c-text-muted);min-height:80px}
 .comm-detail-card .cdc-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:0;-webkit-overflow-scrolling:touch;scrollbar-width:none;min-width:0}
@@ -2756,9 +2756,9 @@ ul,li{list-style:none}
   .record-card-body{font-size:11px}
   .cd-import-row{grid-template-columns:repeat(3,1fr);gap:6px}
   .cd-import-btn{padding:10px 8px}
-  .cd-import-btn-icon{font-size:24px}
+  .cd-import-btn-icon{font-size:22px}
   .cd-import-btn-name{font-size:12px}
-  .cd-import-btn-desc{font-size:11px}
+  .cd-import-btn-desc{font-size:10px}
   .cd-cat-btn{padding:9px 8px;font-size:13px}
   .cd-ep-inline{gap:8px}
   .cd-ep-4col{grid-template-columns:repeat(2,1fr);gap:8px}
@@ -2857,7 +2857,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=696"></script>
+  <script src="app.js?v=697"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
