@@ -111,11 +111,11 @@ ul,li{list-style:none}
 /* v686：Logo 改为固定尺寸图片模块，支持点击上传自定义图片 */
 /* v690：去掉 v689 的 transform:translateY(-3px)（v689 把色块往上推导致偏上），让 flex center 自然对齐 */
 .sidebar-logo{align-items:center}
-.sidebar-logo .logo-icon{width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:8px;overflow:hidden;cursor:pointer;background:rgba(255,255,255,.18);font-size:18px}
+.sidebar-logo .logo-icon{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:8px;overflow:hidden;cursor:pointer;background:rgba(255,255,255,.18);font-size:18px}
 .sidebar-logo .logo-icon:hover{background:rgba(255,255,255,.3)}
-.sidebar-logo .logo-icon img{width:20px;height:20px;object-fit:cover;display:block}
+.sidebar-logo .logo-icon img{width:28px;height:28px;object-fit:cover;display:block}
 /* v693：在 v692(-1px) 基础上再上移 1px → 共 -2px */
-.sidebar-logo .logo-text{font-size:17px;font-weight:600;opacity:1;transition:opacity .2s;display:flex;align-items:center;transform:translateY(-2px)}
+.sidebar-logo .logo-text{font-size:16px;font-weight:600;opacity:1;transition:opacity .2s;display:flex;align-items:center;transform:translateY(-2px)}
 .sidebar.collapsed .sidebar-logo .logo-text{opacity:0;width:0}
 .toggle-btn{
   width:28px;height:28px;border-radius:6px;
@@ -284,7 +284,7 @@ ul,li{list-style:none}
 .record-card:hover{box-shadow:var(--shadow);border-color:var(--c-primary-bg)}
 .record-list.two-col .record-card{min-height:110px}
 .record-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;flex-wrap:wrap}
-.record-card-title{font-size:15px;font-weight:600;color:var(--c-text);flex:1;word-break:break-word;min-width:0}
+.record-card-title{font-size:14px;font-weight:600;color:var(--c-text);flex:1;word-break:break-word;min-width:0}
 /* v452：九大模块列表视图卡片标题底部分割线与接稿排期列表视图右侧接稿详情模块(.cdc-header)统一为同款 1px solid var(--c-border-light) */
 .record-list .record-card-header{border-bottom:1px solid var(--c-border-light);padding-bottom:8px}
 /* v535：接稿排期日历视图卡片标题/编辑/删除/分割线整体下移 1px（累计 -3px） */
@@ -2004,7 +2004,7 @@ ul,li{list-style:none}
   .nav-item{font-size:14px!important;padding:12px 16px!important}
   .nav-item .nav-icon{font-size:18px!important}
   .nav-group-title{font-size:12px!important}
-  .sidebar-logo .logo-text{font-size:17px!important}
+  .sidebar-logo .logo-text{font-size:16px!important}
 }
 
 /* ===== v15: Combobox structure preserved on all devices ===== */
@@ -2058,7 +2058,7 @@ ul,li{list-style:none}
 /* 日版块：习惯卡片整体缩短 */
 .life-goal-grid.compact{gap:10px}
 .life-goal-grid.compact .life-goal-card{padding:10px 12px;gap:6px}
-.life-goal-grid.compact .lgc-name{font-size:16px}
+.life-goal-grid.compact .lgc-name{font-size:14px}
 .life-goal-grid.compact .lgc-body{gap:10px}
 .life-goal-grid.compact .lgc-heatmap{width:66px}
 .life-goal-grid.compact .lgc-desc{font-size:11px}
@@ -2195,7 +2195,7 @@ ul,li{list-style:none}
 #lifePickerBackdrop.show{display:block}
 .life-year-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .life-year-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow-sm)}
-.lyc-name{font-size:16px;font-weight:700;color:var(--c-text);display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.lyc-name{font-size:14px;font-weight:700;color:var(--c-text);display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .lyc-tag{font-size:11px;font-weight:500;color:var(--c-text-light);background:transparent;border:none;padding:1px 4px}
 .life-year-card.lyc-week{border-left:3px solid var(--c-orange)}
 .life-year-card.lyc-week .lyc-num{color:var(--c-orange)}
@@ -2394,7 +2394,7 @@ ul,li{list-style:none}
 .lr-card-head{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--c-primary-bg);border-bottom:1px solid var(--c-border-light)}
 /* v687：标题改为 flex 容器，让图标与文字视觉中心对齐（消除 lucide-icon 基线偏上） */
 /* v688：撤销 v687 的 flex（vertical-align:middle 已全局生效，不再需要 flex 居中） */
-.lr-card-title{font-weight:700;font-size:16px;color:var(--c-text);flex:1}
+.lr-card-title{font-weight:700;font-size:14px;color:var(--c-text);flex:1}
 .lr-card-body{padding:10px 12px}
 .lr-subtype-box{display:flex;align-items:center;gap:10px;border:1px solid var(--c-border-light);border-radius:var(--radius-sm);background:#eef7ff;margin-bottom:10px;padding:10px 12px;position:relative}
 .lr-subtype-box:last-child{margin-bottom:0}
@@ -2490,7 +2490,7 @@ ul,li{list-style:none}
 .lr-hsc-diet-count{font-weight:700;color:var(--c-primary)}
 .lr-history-day-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-bottom:12px;overflow:hidden}
 .lr-history-day-head{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--c-primary-bg);border-bottom:1px solid var(--c-border-light)}
-.lr-history-day-date{font-size:16px;font-weight:700;color:var(--c-text)}
+.lr-history-day-date{font-size:14px;font-weight:700;color:var(--c-text)}
 .lr-history-day-wd{font-size:12px;color:var(--c-text-light);font-weight:500}
 .lr-history-day-extra{margin-left:auto;font-size:13px;font-weight:700;color:var(--c-primary-dark)}
 .lr-history-day-body{padding:10px 12px}
@@ -2536,7 +2536,7 @@ ul,li{list-style:none}
   .lqc-label{font-size:18px;font-weight:550;white-space:nowrap}
   .lr-toggle-btn{font-size:13px;padding:0 12px}
   .lr-card-head{padding:8px 10px}
-  .lr-card-title{font-size:16px}
+  .lr-card-title{font-size:14px}
   .lr-card-body{padding:8px 10px}
   .lr-subtype-box{align-items:center;gap:8px;padding:8px 10px}
   .lr-subtype-label{width:36px;font-size:16px;margin-top:10px}
@@ -2752,7 +2752,7 @@ ul,li{list-style:none}
 @media (max-width:768px){
   .comm-dual{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
   .record-card{padding:12px}
-  .record-card-title{font-size:15px}
+  .record-card-title{font-size:14px}
   .record-card-body{font-size:11px}
   .cd-import-row{grid-template-columns:repeat(3,1fr);gap:6px}
   .cd-import-btn{padding:10px 8px}
@@ -2857,7 +2857,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=698"></script>
+  <script src="app.js?v=699"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
