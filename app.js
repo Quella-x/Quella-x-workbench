@@ -2667,6 +2667,70 @@ const PAGE_SIZES = {
   'design-commission': 5, 'design-auth': 5, 'oc-commission': 5,
   'groupbuy-factories': 10, 'design-inspiration': 20, 'oc-profiles': 20, 'oc-stories': 10, 'oc-relations': 10,
 };
+
+/* ===== 响应式分页 + 年份筛选 (v703) ===== */
+// 单列(手机/单列模块)每页 6 条，双列(桌面双列模块)每页 12 条
+const YEAR_FILTER_MODULES = ['groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'design-inspiration', 'design-auth', 'oc-stories', 'oc-commission', 'design-commission'];
+function isModuleTwoCol(pageKey) {
+  if (window.innerWidth < 641) return false; // 手机端一律单列
+  const gb = ['home', 'groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'design-auth', 'oc-commission'];
+  if (gb.includes(pageKey)) return true; // 阈值 641
+  if (window.innerWidth < 921) return false;
+  const wide = ['design-inspiration', 'oc-profiles', 'oc-relations', 'life-record', 'design-calc', 'groupbuy-calc', 'design-commission', 'design-commission-detail'];
+  return wide.includes(pageKey); // 阈值 921
+}
+function getPageSize(pageKey) { return isModuleTwoCol(pageKey) ? 12 : 6; }
+function getRecordYearStr(r, mod) {
+  if (mod && mod.fields) {
+    const df = mod.fields.find(f => f.date);
+    if (df && r[df.key]) return String(r[df.key]);
+  }
+  if (r._ct) { const d = new Date(r._ct); if (!isNaN(d.getTime())) return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+  return '';
+}
+function renderYearNavHTML(pageKey, ps) {
+  const yf = ps.yearFilter != null ? ps.yearFilter : new Date().getFullYear();
+  const open = ps.yearPickerOpen ? 'show' : '';
+  let h = '<div class="life-monthbar year-mode">';
+  h += '<div class="life-monthbar-center">';
+  h += `<button class="btn btn-ghost btn-sm" onclick="modYearShift('${pageKey}',-1)">‹ 上一年</button>`;
+  h += `<span class="life-monthbar-txt" onclick="modYearTogglePicker('${pageKey}')">${yf}年 ▾</span>`;
+  h += `<button class="btn btn-ghost btn-sm" onclick="modYearShift('${pageKey}',1)">下一年 ›</button>`;
+  h += '</div></div>';
+  const py = ps.yearPickerY != null ? ps.yearPickerY : yf;
+  h += `<div class="life-year-picker ${open}">`;
+  h += `<div class="lmp-yearbar"><button class="btn btn-ghost btn-xs" onclick="modYearPickerShift('${pageKey}',-1)">‹</button><span>${py}年</span><button class="btn btn-ghost btn-xs" onclick="modYearPickerShift('${pageKey}',1)">›</button></div>`;
+  h += '<div class="lyp-years">';
+  for (let yy = py - 6; yy <= py + 5; yy++) {
+    const sel = (yy === yf) ? 'sel' : '';
+    h += `<button class="lyp-year ${sel}" onclick="modYearPick('${pageKey}',${yy})">${yy}年</button>`;
+  }
+  h += '</div></div>';
+  return `<div style="position:relative">${h}</div>`;
+}
+function modYearShift(pageKey, d) {
+  const ps = pageState[pageKey]; if (!ps) return;
+  if (ps.yearFilter == null) ps.yearFilter = new Date().getFullYear();
+  ps.yearFilter += d; ps.yearPickerY = ps.yearFilter; ps.pageNo = 1;
+  renderListPage(pageKey, MODULES[pageKey]);
+}
+function modYearTogglePicker(pageKey) {
+  const ps = pageState[pageKey]; if (!ps) return;
+  ps.yearPickerOpen = !ps.yearPickerOpen;
+  renderListPage(pageKey, MODULES[pageKey]);
+}
+function modYearPickerShift(pageKey, d) {
+  const ps = pageState[pageKey]; if (!ps) return;
+  const base = ps.yearPickerY != null ? ps.yearPickerY : (ps.yearFilter != null ? ps.yearFilter : new Date().getFullYear());
+  ps.yearPickerY = base + d;
+  renderListPage(pageKey, MODULES[pageKey]);
+}
+function modYearPick(pageKey, y) {
+  const ps = pageState[pageKey]; if (!ps) return;
+  ps.yearFilter = y; ps.yearPickerY = y; ps.yearPickerOpen = false; ps.pageNo = 1;
+  renderListPage(pageKey, MODULES[pageKey]);
+}
+
 const TWO_COL_MODULES = ['design-inspiration', 'oc-profiles'];
 // v515: 九模块列表字段对齐（与接稿排期左栏一致：64px 右对齐标签 + 1fr 值列），仅改内部字段样式，单双列保持原样
 const COMM_LIST_STYLE_MODULES = ['groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'design-inspiration', 'design-commission', 'design-auth', 'oc-profiles', 'oc-stories', 'oc-commission'];
@@ -2787,6 +2851,14 @@ function renderListPage(pageKey, mod) {
     records.sort((a, b) => (b._ct || 0) - (a._ct || 0));
   }
 
+  // 年份筛选（默认当年，按模块首个 date 字段或创建时间筛选）
+  if (YEAR_FILTER_MODULES.includes(pageKey)) {
+    if (ps.yearFilter == null) ps.yearFilter = new Date().getFullYear();
+    const yf = String(ps.yearFilter);
+    records = records.filter(r => getRecordYearStr(r, mod).startsWith(yf));
+    if (pageKey === 'design-commission') ps.calYear = ps.yearFilter;
+  }
+
   let html = '<div class="fade-in">';
   // 顶部视图切换行：接稿排期「列表 / 日历」按钮挪至页面最顶部
   if (pageKey === 'design-commission') {
@@ -2849,6 +2921,14 @@ function renderListPage(pageKey, mod) {
   html += `<button class="btn btn-primary" onclick="openAddForm('${pageKey}')">+ 新增记录</button>`;
   html += '</div>';
 
+  // 年份筛选按钮（按年筛选，默认当年）：七模块 + 接稿排期列表视图
+  if (YEAR_FILTER_MODULES.includes(pageKey)) {
+    if (ps.yearFilter == null) ps.yearFilter = new Date().getFullYear();
+    if (pageKey !== 'design-commission' || ps.viewMode === 'list') {
+      html += '<div style="position:relative">' + renderYearNavHTML(pageKey, ps) + '</div>';
+    }
+  }
+
   // Commission calendar view: 默认日历视图；日历在上，列表在下
   let commissionAllRecords = null;
   if (pageKey === 'design-commission' && ps.viewMode === 'calendar') {
@@ -2890,7 +2970,7 @@ function renderListPage(pageKey, mod) {
   if (isCommDual) html += '<div class="comm-dual">';
 
   // Records
-  const pageSize = PAGE_SIZES[pageKey] || 10;
+  const pageSize = getPageSize(pageKey);
   const totalPages = Math.ceil(records.length / pageSize);
   if (ps.pageNo > totalPages) ps.pageNo = 1;
   const pageNo = ps.pageNo || 1;
@@ -3036,6 +3116,11 @@ function renderListPage(pageKey, mod) {
       html += '</div>'; // close .comm-cal-chartstats
     }
     html += '</div>'; // close .comm-cal-two-col
+  }
+  // 接稿排期日历视图：年份筛选按钮（日历下方）
+  if (pageKey === 'design-commission' && commissionAllRecords && YEAR_FILTER_MODULES.includes(pageKey)) {
+    if (ps.yearFilter == null) ps.yearFilter = new Date().getFullYear();
+    html += '<div style="position:relative">' + renderYearNavHTML(pageKey, ps) + '</div>';
   }
 
   // 双栏：关闭 .comm-dual 容器（接稿排期列表视图）
@@ -4125,12 +4210,11 @@ function renderHome() {
     // Toolbar
     html += '<div class="toolbar home-toolbar" style="margin-top:4px">';
     html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="homeSearch(this.value)"><span class="search-icon">${lucide('search',16)}</span></div>`;
-    html += `<div class="date-field-wrap home-date-wrap"><input type="text" class="filter-select" value="${ps.dateFilter}" placeholder="请选择或输入日期" title="请选择或输入日期" onchange="homeDateFilter(this.value)"></div>`;
-    html += `<button type="button" class="date-pick-btn home-date-pick" onclick="openDatePicker(this)" title="选择日期" aria-label="选择日期"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></button>`;
     html += '<button class="btn btn-primary" onclick="openAddForm(\'home\')">+ 新增记录</button>';
     html += '</div>';
 
     html += renderHomeStatusFilterBar();
+    html += renderHomeMonthNav();
 
     // Records（v223：待发布/已发布筛选与全部列表使用同一模块）
     let filteredRecords = records;
@@ -4141,7 +4225,7 @@ function renderHome() {
 
     // Pagination
     if (ps.homePageNo == null) ps.homePageNo = 1;
-    const homePageSize = 5;
+    const homePageSize = getPageSize('home');
     const homeTotalPages = Math.ceil(filteredRecords.length / homePageSize);
     if (ps.homePageNo > homeTotalPages) ps.homePageNo = 1;
     const homePaged = filteredRecords.slice((ps.homePageNo - 1) * homePageSize, ps.homePageNo * homePageSize);
@@ -4242,6 +4326,7 @@ function enterPlatformView(tab) {
     ps.statusFilter = '';
     ps.search = '';
     ps.dateFilter = '';
+    ps.monthPickerOpen = false; ps.monthPickerY = null;
     ps.homePageNo = 1;
   }
   renderHome();
@@ -4285,6 +4370,53 @@ function renderHomeStatusFilterBar() {
   h += `<button class="home-status-btn ${sf === '已发布' ? 'active published' : ''}" onclick="${onPublished}">已发布 <b>${publishedCount}</b></button>`;
   h += '</div>';
   return h;
+}
+// 首页平台记录：按月日期按钮（样式参考接稿详情 cd-month-nav），按月份筛选发布时间
+function renderHomeMonthNav() {
+  const ps = pageState.home || {};
+  const mf = ps.dateFilter || '';
+  const now = new Date();
+  const [y, m] = mf ? mf.split('-').map(Number) : [now.getFullYear(), now.getMonth() + 1];
+  const label = mf ? `${y}年${m}月` : '全部月份';
+  const open = ps.monthPickerOpen ? 'show' : '';
+  let h = '<div class="cd-month-nav">';
+  h += `<button class="cd-month-btn" onclick="homeMonthShift(-1)">‹ 上月</button>`;
+  h += `<span class="cd-month-label" onclick="homeMonthTogglePicker()" style="cursor:pointer">${label} ▾</span>`;
+  h += `<button class="cd-month-btn" onclick="homeMonthShift(1)">下月 ›</button>`;
+  h += '</div>';
+  const py = ps.monthPickerY != null ? ps.monthPickerY : y;
+  h += `<div class="life-month-picker ${open}">`;
+  h += `<div class="lmp-yearbar"><button class="btn btn-ghost btn-xs" onclick="homeMonthPickerYear(-1)">‹</button><span>${py}年</span><button class="btn btn-ghost btn-xs" onclick="homeMonthPickerYear(1)">›</button></div>`;
+  h += '<div class="lmp-months">';
+  for (let mo = 0; mo < 12; mo++) {
+    const sel = (mf && mo === m - 1) ? 'sel' : '';
+    h += `<button class="lmp-month ${sel}" onclick="homeMonthPick(${py},${mo})">${mo + 1}月</button>`;
+  }
+  h += '</div></div>';
+  return `<div style="position:relative">${h}</div>`;
+}
+function homeMonthShift(d) {
+  const ps = pageState.home; if (!ps) pageState.home = {}; ps = pageState.home;
+  let y, m;
+  if (ps.dateFilter) { [y, m] = ps.dateFilter.split('-').map(Number); }
+  else { const n = new Date(); y = n.getFullYear(); m = n.getMonth() + 1; }
+  m += d; if (m < 1) { m = 12; y--; } if (m > 12) { m = 1; y++; }
+  ps.dateFilter = `${y}-${String(m).padStart(2, '0')}`;
+  ps.homePageNo = 1; renderHome();
+}
+function homeMonthTogglePicker() {
+  const ps = pageState.home; if (!ps) pageState.home = {}; ps = pageState.home;
+  ps.monthPickerOpen = !ps.monthPickerOpen; renderHome();
+}
+function homeMonthPickerYear(d) {
+  const ps = pageState.home; if (!ps) pageState.home = {}; ps = pageState.home;
+  const base = ps.monthPickerY != null ? ps.monthPickerY : (ps.dateFilter ? Number(ps.dateFilter.split('-')[0]) : new Date().getFullYear());
+  ps.monthPickerY = base + d; renderHome();
+}
+function homeMonthPick(y, mo) {
+  const ps = pageState.home; if (!ps) pageState.home = {}; ps = pageState.home;
+  ps.dateFilter = `${y}-${String(mo + 1).padStart(2, '0')}`;
+  ps.monthPickerOpen = false; ps.homePageNo = 1; renderHome();
 }
 
 // v29: 首页灵感速记 -> 写入 inspirations（首页不展示，进入「美工·灵感记录」）
@@ -4875,7 +5007,7 @@ function renderRelations() {
     html += '</div>';
     // Person buttons (缩略为姓名按钮可展开)
     if (chars.length) {
-      html += `<div style="margin-top:16px"><div style="font-size:13px;font-weight:600;color:var(--c-primary-dark);margin-bottom:8px">${lucide('users',16)} 人物关系快捷查看</div>`;
+      html += `<div style="margin-top:8px"><div style="font-size:13px;font-weight:600;color:var(--c-primary-dark);margin-bottom:4px">${lucide('users',16)} 人物关系快捷查看</div>`;
       html += '<div class="relation-person-row">';
       html += `<div class="relation-person-btn active" onclick="showAllPersonRelations(this)"><span>${lucide('menu',14)} 全部</span></div>`;
       html += '<div class="relation-person-grid collapsed distribute">';
@@ -4892,7 +5024,7 @@ function renderRelations() {
     if (relations.length) {
       if (!pageState['oc-relations']) pageState['oc-relations'] = { pageNo: 1 };
       const ps = pageState['oc-relations'];
-      const pageSize = 5;
+      const pageSize = getPageSize('oc-relations');
       // v616: 同一对人物的多条关系合并为一个卡片，类型与状态并排，子关系用竖分割线分隔
       const pairGroups = {};
       relations.forEach(r => {
@@ -7849,9 +7981,14 @@ function renderCheckinHeatmap(typeKey, year, month, isModal) {
     const click = isModal ? ` onclick="lifeCheckinCellClick('${typeKey}','${ds}')"` : '';
     html += `<div class="${cls}" title="${ds}"${click}></div>`;
   }
-  // trailing other-month squares to complete the last week
-  const total = firstWeekday + daysInMonth;
-  const rem = total % 7 === 0 ? 0 : 7 - (total % 7);
+  // 非弹窗(月视图卡片)统一补到 6 周(42格)，保证各月打卡卡片高度一致；弹窗按自然周补满
+  let rem;
+  if (isModal) {
+    const total = firstWeekday + daysInMonth;
+    rem = total % 7 === 0 ? 0 : 7 - (total % 7);
+  } else {
+    rem = 42 - (firstWeekday + daysInMonth);
+  }
   for (let i = 0; i < rem; i++) html += '<div class="hm-day other-month"></div>';
   html += '</div>';
   return html;
@@ -9517,7 +9654,7 @@ function renderCommissionDetailPage() {
   if (ps.showUnlinked) {
     monthRecs = monthRecs.filter(r => !r.clientInfo || !DB.list('commissions').some(c => (c.clientInfo || '') === (r.clientInfo || '')));
   }
-  const PER_PAGE = 10;
+  const PER_PAGE = getPageSize('design-commission-detail');
   const totalPages = Math.max(1, Math.ceil(monthRecs.length / PER_PAGE));
   if (ps.cdPage > totalPages) ps.cdPage = totalPages;
   const pageRecs = monthRecs.slice((ps.cdPage - 1) * PER_PAGE, ps.cdPage * PER_PAGE);

@@ -458,7 +458,7 @@ ul,li{list-style:none}
   .gb-records-2col .chart-stats-2col{margin-top:0}
   /* v683：电脑端「每日记录」首页/历史页 两列 1:1 均分（左=顶部卡片+切换+日期条/周导航+图表，右=记录块）；左列 sticky 固定仅右列滚动 */
   .lr-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
-  .lr-2col>.lr-left{min-width:0;position:sticky;top:0;align-self:start;will-change:transform}
+  .lr-2col>.lr-left{min-width:0;position:sticky;top:0;align-self:start;will-change:transform;max-height:calc(100vh - 24px);overflow-y:auto}
   .lr-2col>.lr-right{min-width:0}
   /* v668：接稿排期列表视图「图+统计」仅电脑端隐藏（手机端保留原顺序） */
   .comm-list-nostats{display:none}
@@ -479,6 +479,7 @@ ul,li{list-style:none}
   .gb-records-2col{display:block}
   /* v683：每日记录两列仅电脑端，手机端单列堆叠（左列->右列自然上下） */
   .lr-2col{display:block}
+  .lr-2col>.lr-left{position:static;max-height:none;overflow:visible}
   /* v668：接稿排期列表视图「图+统计」手机端保留显示（原顺序 日历->列表->图->统计） */
   .comm-list-nostats{display:block}
   /* v668：人物关系底部卡片手机端保持原样单列（默认 .record-list 垂直堆叠） */
@@ -1584,7 +1585,7 @@ ul,li{list-style:none}
   .platform-btn .platform-status-row{font-size:12px;gap:4px}
   .pricelist-menu{max-width:100%}
   .calc-page-grid{grid-template-columns:1fr !important}
-  .calc-receipt-col{position:static !important}
+  .calc-receipt-col{position:static !important;max-height:none;overflow:visible}
   /* AT轮: mobile 报价计算制品两行——列序：序号、制品、柄图标识、价格、数量；第二排：加急、同模 */
   .dc-product-header{display:none!important}
   .dc-extra-header{display:none!important}
@@ -1760,7 +1761,7 @@ ul,li{list-style:none}
 .calc-rate-fixed{font-size:13px;color:var(--c-text-muted);width:70px;text-align:center}
 .calc-sub-area{padding:4px 0 4px 20px;transition:opacity .2s}
 .calc-sub-area.disabled{opacity:.4;pointer-events:none}
-.calc-receipt-col{position:sticky;top:0;display:flex;flex-direction:column;gap:12px}
+.calc-receipt-col{position:sticky;top:0;display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 24px);overflow-y:auto}
 .calc-receipt{background:linear-gradient(135deg,var(--c-primary-bg),#f8fbff);border:1px solid var(--c-primary-light);border-radius:10px;padding:16px}
 .dc-r-title{font-size:18px;font-weight:700;color:var(--c-text);margin-bottom:12px;text-align:center}
 /* v26: 实时报价分隔线归一
@@ -2930,7 +2931,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=702"></script>
+  <script src="app.js?v=703"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
