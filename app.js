@@ -1712,7 +1712,20 @@ function renderCalendar(year, month, records, commissionRecords = []) {
 
 /* ===== Annual Bar Chart ===== */
 function getChartYear(pageKey) { const ps = pageState[pageKey]; return (ps && ps.chartYear) || new Date().getFullYear(); }
-function setChartYear(pageKey, y) { if (pageKey === 'home') { if (!pageState.home) pageState.home = {}; pageState.home.chartYear = y; renderHome(); return; } if (!pageState[pageKey]) pageState[pageKey] = {}; pageState[pageKey].chartYear = y; renderListPage(pageKey, MODULES[pageKey]); }
+function setChartYear(pageKey, y) {
+  if (!pageState[pageKey]) pageState[pageKey] = {};
+  pageState[pageKey].chartYear = y;
+  if (pageKey === 'home') { renderHome(); return; }
+  renderListPage(pageKey, MODULES[pageKey]);
+}
+// v705：列表切年 → 列表+柱状图+统计全变（列表优先）
+function setYearFilter(pageKey, y) {
+  if (!pageState[pageKey]) pageState[pageKey] = {};
+  pageState[pageKey].yearFilter = y;
+  pageState[pageKey].chartYear = y;
+  pageState[pageKey].statsScope = String(y);
+  if (pageKey === 'home') renderHome(); else renderListPage(pageKey, MODULES[pageKey]);
+}
 function renderAnnualChart(records, dateField, opts = {}, pageKey) {
   const { title = '', color = '#9DC8FF', valueField = null, isCount = false, series = null, year = null } = opts;
   const yr = year || new Date().getFullYear();
@@ -2661,12 +2674,13 @@ let currentPage = 'home';
 let pageState = {};
 let _searchTimer, _homeSearchTimer;
 
-/* ===== Page Sizes (v13: 分页) ===== */
+/* ===== Page Sizes (v705: 统一6行, 条数=列数×6) ===== */
 const PAGE_SIZES = {
-  'home': 5, 'groupbuy-records': 5, 'groupbuy-samples': 5,
-  'design-commission': 5, 'design-auth': 5, 'oc-commission': 5,
-  'groupbuy-factories': 10, 'design-inspiration': 20, 'oc-profiles': 20, 'oc-stories': 10, 'oc-relations': 10,
+  'design-inspiration': 12, 'oc-profiles': 12,
+  'design-commission': 12,
+  'design-commission-detail': 18,
 };
+function getPageSize(pageKey) { return PAGE_SIZES[pageKey] || 6; }
 
 /* ===== 响应式分页 + 年份筛选 (v703) ===== */
 // 单列(手机/单列模块)每页 6 条，双列(桌面双列模块)每页 12 条
@@ -2677,7 +2691,6 @@ function isModuleTwoCol(pageKey) {
   const dual = ['home', 'groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'design-auth', 'oc-commission', 'design-commission', 'life-record', 'oc-relations'];
   return dual.includes(pageKey);
 }
-function getPageSize(pageKey) { return isModuleTwoCol(pageKey) ? 12 : 6; }
 function getRecordYearStr(r, mod) {
   if (mod && mod.fields) {
     const df = mod.fields.find(f => f.date);
@@ -8945,7 +8958,7 @@ function renderSleepWeekLineChart(days) {
   const isDesktop = window.innerWidth > 768;
   const W = 720, H = 568;
   const LM = isDesktop ? 45 : 80, RM = isDesktop ? 15 : 40, TM = isDesktop ? 70 : 46, BM = isDesktop ? 40 : 4;
-  const hourLabelY = isDesktop ? TM - 52 : TM - 32;
+  const hourLabelY = isDesktop ? TM - 52 : TM - 32; // v705：桌面维持 v704(TM-52)，手机端维持 v704(TM-32，刻度可见)
   const CW = W - LM - RM, CH = H - TM - BM;
   const xOf = v => LM + (maxV > 0 ? v / maxV * CW : 0);
   const yOf = i => TM + CH * i / 6;
@@ -8961,7 +8974,7 @@ function renderSleepWeekLineChart(days) {
   const gridLines = gridHours.map(h => {
     const x = xOf(h);
     return `<line x1="${x.toFixed(1)}" y1="${TM}" x2="${x.toFixed(1)}" y2="${TM + CH}" stroke="var(--c-border-light)" stroke-width="0.8"/>` +
-           `<text x="${x.toFixed(1)}" y="${hourLabelY}" text-anchor="middle" font-size="20" font-weight="700" fill="var(--c-text-muted)">${h}h</text>`;
+           `<text x="${x.toFixed(1)}" y="${hourLabelY}" text-anchor="middle" font-size="${isDesktop?16:20}" font-weight="700" fill="var(--c-text-muted)">${h}h</text>`;
   }).join('');
   const dayLabels = nightVals.map((v, i) => {
     const y = yOf(i);

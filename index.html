@@ -425,7 +425,7 @@ ul,li{list-style:none}
   .commission-cal-grid .cal-day-tag-dot{width:5px;height:5px;min-width:5px;min-height:5px;box-sizing:border-box;border-radius:50%}
   .commission-cal-grid .cal-day-tag-text{font-size:10px}
   /* v640：电脑端首页日历 + 灵感速记双列（移动端保持单列） */
-  .home-cal-insp{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;align-items:start}
+  .home-cal-insp{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;align-items:start}
   .home-cal-insp .calendar{margin-top:0 !important}
   .home-cal-insp .home-insp{margin-top:0;padding-top:12px}
   /* v641：电脑端接稿排期日历视图双列（日历左、列表右，移动端单列） */
@@ -444,19 +444,32 @@ ul,li{list-style:none}
   .chart-stats-2col .cs-col-stats .stats-section{margin-top:0;width:100%}
   /* v681：撤销 v680 右列内图+统计双列，恢复开团记录样式（整体由 .gb-records-2col 实现列表左/图统计右，右列内图统计上下堆叠） */
   /* v666/v667：电脑端开团记录两列（左列表、右图+统计，右栏 sticky 固定仅左滚） */
-  .gb-records-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  .gb-records-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
   .gb-records-2col .gb-left{min-width:0}
   .gb-records-2col .gb-right{position:sticky;top:12px;align-self:start}
   .gb-records-2col .stats-divider{display:none}
   .gb-records-2col .chart-stats-2col{margin-top:0}
   /* v683：电脑端「每日记录」首页/历史页 两列 1:1 均分（左=顶部卡片+切换+日期条/周导航+图表，右=记录块）；左列 sticky 固定仅右列滚动 */
-  .lr-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
-  .lr-2col>.lr-left{min-width:0}
-  .lr-2col>.lr-right{min-width:0;position:sticky;top:0;align-self:start;will-change:transform;max-height:calc(100vh - 24px);overflow-y:auto}
-  /* v668：接稿排期列表视图「图+统计」仅电脑端隐藏（手机端保留原顺序） */
+  .lr-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+  .lr-2col>.lr-left{min-width:0;max-height:calc(100vh - 24px);overflow-y:auto}
+  .lr-2col>.lr-right{min-width:0;max-height:calc(100vh - 24px);overflow-y:auto}
+  
+/* v705：双列独立滚动 + 4px 滚动条 */
+.lr-2col>.lr-left,.lr-2col>.lr-right,.calc-input-col,.calc-receipt-col{scrollbar-width:thin;scrollbar-color:#cdd5dd transparent}
+.lr-2col>.lr-left::-webkit-scrollbar,.lr-2col>.lr-right::-webkit-scrollbar,.calc-input-col::-webkit-scrollbar,.calc-receipt-col::-webkit-scrollbar{width:4px;height:4px}
+.lr-2col>.lr-left::-webkit-scrollbar-thumb,.lr-2col>.lr-right::-webkit-scrollbar-thumb,.calc-input-col::-webkit-scrollbar-thumb,.calc-receipt-col::-webkit-scrollbar-thumb{background:#cdd5dd;border-radius:2px}
+.lr-2col>.lr-left::-webkit-scrollbar-track,.lr-2col>.lr-right::-webkit-scrollbar-track,.calc-input-col::-webkit-scrollbar-track,.calc-receipt-col::-webkit-scrollbar-track{background:transparent}
+/* v705：首页 toolbar 照抄其他页面手机端样式 */
+.home-toolbar .search-box{flex:1 1 100%;min-width:0}
+.home-toolbar .search-box input{width:100%;min-width:0}
+.home-toolbar .spacer{display:none}
+.home-toolbar .filter-combobox{flex:1 1 0;min-width:0;width:auto;max-width:none}
+.home-toolbar .btn-primary{flex:1 1 0;min-width:0;width:auto;padding:8px 6px}
+
+/* v668：接稿排期列表视图「图+统计」仅电脑端隐藏（手机端保留原顺序） */
   .comm-list-nostats{display:none}
   /* v668：人物关系模块底部卡片电脑端两列（一行两个），手机端单列 */
-  .oc-rel-list-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .oc-rel-list-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   /* v672：接稿排期日历视图 日历↔柱状图 间距收紧（grid 行距16->8，列距保持16px不动；分隔线上margin归0、下margin保持16px恢复柱状图呼吸感），仅动日历底->分隔线 */
   /* v677：接稿排期日历视图 divider/标题间距回归初始(全局16px)——分割线上下统一16px；标题到上边框 8->16px 对齐开团记录 */
   .comm-cal-chartstats .stats-divider{margin:16px 0}
@@ -472,6 +485,7 @@ ul,li{list-style:none}
   .gb-records-2col{display:block}
   /* v683：每日记录两列仅电脑端，手机端单列堆叠（左列->右列自然上下） */
   .lr-2col{display:block}
+  .lr-2col>.lr-left{position:static;max-height:none;overflow:visible}
   .lr-2col>.lr-right{position:static;max-height:none;overflow:visible}
   /* v668：接稿排期列表视图「图+统计」手机端保留显示（原顺序 日历->列表->图->统计） */
   .comm-list-nostats{display:block}
@@ -1248,7 +1262,7 @@ ul,li{list-style:none}
 
 /* ===== Platform Buttons (Home) ===== */
 .platform-buttons{
-  display:flex;flex-wrap:nowrap;gap:16px;margin-bottom:16px;
+  display:flex;flex-wrap:nowrap;gap:10px;margin-bottom:10px;
 }
 .platform-btn{
   flex:1;min-width:0;padding:9px 10px;
@@ -1656,8 +1670,8 @@ ul,li{list-style:none}
 
 /* ===== Design Quote Calculator ===== */
 .calc-page{max-width:1200px;margin:0 auto}
-.calc-page-grid{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
-.calc-input-col{display:flex;flex-direction:column;gap:12px;container-type:inline-size}
+.calc-page-grid{display:grid;grid-template-columns:1fr 340px;gap:10px;align-items:start}
+.calc-input-col{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 24px);overflow-y:auto;container-type:inline-size}
 .calc-card{background:var(--c-card-bg,#fff);border:1px solid var(--c-border-light,#e8e8e8);border-radius:10px;padding:14px}
 .calc-card-title{font-size:14px;font-weight:600;color:var(--c-text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .price-calc-title{margin-bottom:16px}
@@ -1749,7 +1763,7 @@ ul,li{list-style:none}
 .calc-rate-fixed{font-size:13px;color:var(--c-text-muted);width:70px;text-align:center}
 .calc-sub-area{padding:4px 0 4px 20px;transition:opacity .2s}
 .calc-sub-area.disabled{opacity:.4;pointer-events:none}
-.calc-receipt-col{position:sticky;top:0;display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 24px);overflow-y:auto}
+.calc-receipt-col{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 24px);overflow-y:auto}
 .calc-receipt{background:linear-gradient(135deg,var(--c-primary-bg),#f8fbff);border:1px solid var(--c-primary-light);border-radius:10px;padding:16px}
 .dc-r-title{font-size:18px;font-weight:700;color:var(--c-text);margin-bottom:12px;text-align:center}
 /* v26: 实时报价分隔线归一
@@ -2920,7 +2934,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=704"></script>
+  <script src="app.js?v=705"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
