@@ -379,6 +379,12 @@ function resetAppLogo() {
 /* ===== Lucide Icon Library (inlined at build time — offline safe, ISC license) ===== */
 /* 统一规范：viewBox 0 0 24 24 / stroke=currentColor / stroke-width 2 / 尺寸由参数控制 */
 const LUCIDE_SVG = {
+  "calendar-check": '<path d="M8 2v3" /> <path d="M16 2v3" /> <rect x="3" y="3" width="18" height="18" rx="2" /> <path d="M3 9h18" /> <path d="m9 15 2 2 4-4" />',
+  "warehouse": '<path d="M18 21V10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v11" /> <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 1.132-1.803l7.95-3.974a2 2 0 0 1 1.837 0l7.948 3.974A2 2 0 0 1 22 8z" /> <path d="M6 13h12" /> <path d="M6 17h12" />',
+  "cog": '<path d="M11 10.27 7 3.34" /> <path d="m11 13.73-4 6.93" /> <path d="M12 22v-2" /> <path d="M12 2v2" /> <path d="M14 12h8" /> <path d="m17 20.66-1-1.73" /> <path d="m17 3.34-1 1.73" /> <path d="M2 12h2" /> <path d="m20.66 17-1.73-1" /> <path d="m20.66 7-1.73 1" /> <path d="m3.34 17 1.73-1" /> <path d="m3.34 7 1.73 1" /> <circle cx="12" cy="12" r="2" /> <circle cx="12" cy="12" r="8" />',
+  "barcode": '<path d="M3 5v14" /> <path d="M8 5v14" /> <path d="M12 5v14" /> <path d="M17 5v14" /> <path d="M21 5v14" />',
+  "calendar-clock": '<path d="M16 14v2.2l1.6 1" /> <path d="M16 2v3" /> <path d="M21 7.338V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2.338" /> <path d="M3 9h5.859" /> <path d="M8 2v3" /> <circle cx="16" cy="16" r="6" />',
+  "archive": '<rect width="20" height="5" x="2" y="3" rx="1" /> <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" /> <path d="M10 12h4" />',
   "pin": '<path d="M12 17v5" /> <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />',
   "house": '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /> <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />',
   "package": '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" /> <path d="M12 22V12" /> <polyline points="3.29 7 12 12 20.71 7" /> <path d="m7.5 4.27 9 5.15" />',
@@ -463,11 +469,11 @@ function lucide(name, size, cls) {
 /* ===== Settings System ===== */
 /* v686：导航图标改用 Lucide 图标名（原为 emoji），取值即 LUCIDE_SVG 的键名 */
 const DEFAULT_NAV_ICONS = {
-  'home': 'house', 'groupbuy': 'package', 'groupbuy-records': 'clipboard-list', 'groupbuy-factories': 'factory',
-  'groupbuy-samples': 'microscope', 'groupbuy-calc': 'calculator', 'design': 'palette', 'design-inspiration': 'lightbulb',
-  'design-commission': 'calendar-days', 'design-commission-detail': 'file-text', 'design-calc': 'receipt', 'design-auth': 'scroll-text', 'design-pricelist': 'wallet',
-  'oc': 'user', 'oc-profiles': 'drama', 'oc-relations': 'link', 'oc-stories': 'book-open', 'oc-timeline': 'clock', 'oc-commission': 'paintbrush',
-  'life-checkin': 'check-check', 'life-record': 'notebook-pen'
+  'home': 'house', 'groupbuy': 'package', 'groupbuy-records': 'package', 'groupbuy-factories': 'warehouse',
+  'groupbuy-samples': 'cog', 'groupbuy-calc': 'barcode', 'design': 'palette', 'design-inspiration': 'lightbulb',
+  'design-commission': 'calendar-clock', 'design-commission-detail': 'file-text', 'design-calc': 'calculator', 'design-auth': 'scroll-text', 'design-pricelist': 'clipboard-list',
+  'oc': 'user', 'oc-profiles': 'users', 'oc-relations': 'link', 'oc-stories': 'book-open', 'oc-timeline': 'clock', 'oc-commission': 'palette',
+  'life-checkin': 'calendar-check', 'life-record': 'notebook-pen'
 };
 /* 旧版本存的是 emoji，迁移为图标名；已是图标名的原样保留 */
 const DEFAULT_SETTINGS = {
@@ -6610,8 +6616,8 @@ function renderNavIconSettings(html) {
   const s = getSettings();
   const icons = s.navIcons || { ...DEFAULT_NAV_ICONS };
   html += '<div class="settings-section active">';
-  html += '<h4 style="font-size:14px;margin-bottom:8px;color:var(--c-primary)">导航栏图标自定义</h4>';
-  html += '<p style="font-size:12px;color:var(--c-text-muted);margin-bottom:12px">可分别自定义每个导航的图标（emoji/文字，留空用默认）与显示名称（留空用默认名称）</p>';
+  html += '<h4 style="font-size:14px;margin-bottom:8px;color:var(--c-primary)">导航栏名称自定义</h4>';
+  html += '<p style="font-size:12px;color:var(--c-text-muted);margin-bottom:12px">可自定义每个导航的显示名称（留空用默认名称）；图标已固定为默认样式</p>';
   html += '<div class="nav-icon-edit-list">';
   // Home
   html += renderNavIconEditItem('home', '首页', icons.home);
@@ -6625,12 +6631,10 @@ function renderNavIconSettings(html) {
   html += '</div>';
   return html;
 }
-function renderNavIconEditItem(key, label, currentIcon) {
+function renderNavIconEditItem(key, label) {
   const currentLabel = getNavLabel(key, label);
   return `<div class="nav-icon-edit-item">
-    <span class="icon-preview" id="navicon_preview_${key}">${lucide(currentIcon || DEFAULT_NAV_ICONS[key] || 'pin', 18)}</span>
     <label class="nav-icon-edit-name">${esc(label)}</label>
-    <input type="text" class="nav-icon-input" id="navicon_${key}" value="${esc(currentIcon || '')}" placeholder="pin" oninput="document.getElementById('navicon_preview_${key}').innerHTML = lucide(this.value, 18) || this.value || lucide(DEFAULT_NAV_ICONS['${key}'] || 'pin', 18)" title="图标">
     <input type="text" class="nav-label-input" id="navlabel_${key}" value="${esc(currentLabel !== label ? currentLabel : '')}" placeholder="${esc(label)}" title="名称">
   </div>`;
 }
@@ -6932,14 +6936,9 @@ function saveSettingsAction() {
     const el = $('#set_' + k);
     if (el) s.theme[k] = el.value;
   });
-  // Nav icons
+  // Nav labels（图标已固定为默认，仅名称可自定义）
   const allNavKeys = ['home', ...NAV.slice(1).flatMap(g => g.children.map(c => c.key))];
   allNavKeys.forEach(k => {
-    const el = $('#navicon_' + k);
-    if (el) {
-      if (el.value.trim()) s.navIcons[k] = el.value.trim();
-      else delete s.navIcons[k];
-    }
     const lblEl = $('#navlabel_' + k);
     if (lblEl) {
       if (lblEl.value.trim()) s.navLabels[k] = lblEl.value.trim();
@@ -9317,7 +9316,7 @@ function renderCommissionDetailPage() {
       <div class="cd-import-btn-name">JSON 导入</div>
     </div>
     <div class="cd-import-btn" onclick="openCdClientForm()">
-      <div class="cd-import-btn-icon">${lucide('send',22)}</div>
+      <div class="cd-import-btn-icon">${lucide('archive',22)}</div>
       <div class="cd-import-btn-name">生成约稿单导入</div>
     </div>
   </div>`;
