@@ -4392,9 +4392,11 @@ function renderHomeStatusFilterBar() {
   const allRecords = DB.list('publishRecords');
   const statusOf = (r) => (r.status === '已发布' ? '已发布' : '待发布');
   // v705：计数按当前年份筛选（与列表+图表+统计同步）
-  const curYear = ps.yearFilter || new Date().getFullYear();
-  const yearRecords = allRecords.filter(r => (r.publishTime || '').startsWith(String(curYear)));
-  const scopeRecords = ps.tab ? yearRecords.filter(r => valIncludes(r.platform, ps.tab)) : yearRecords;
+
+  // v706: 计数按当前月份(dateFilter)筛
+  const curMonth = ps.dateFilter || (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0'));
+  const monthRecords = allRecords.filter(r => (r.publishTime || '').startsWith(curMonth));
+  const scopeRecords = ps.tab ? monthRecords.filter(r => valIncludes(r.platform, ps.tab)) : monthRecords;
   const pendingCount = scopeRecords.filter(r => statusOf(r) === '待发布').length;
   const publishedCount = scopeRecords.filter(r => statusOf(r) === '已发布').length;
   const sf = ps.statusFilter;
@@ -8979,7 +8981,7 @@ function renderSleepWeekLineChart(days) {
   const gridLines = gridHours.map(h => {
     const x = xOf(h);
     return `<line x1="${x.toFixed(1)}" y1="${TM}" x2="${x.toFixed(1)}" y2="${TM + CH}" stroke="var(--c-border-light)" stroke-width="0.8"/>` +
-           `<text x="${x.toFixed(1)}" y="${hourLabelY}" text-anchor="middle" font-size="${isDesktop?18:20}" font-weight="700" fill="var(--c-text-muted)">${h}h</text>`;
+           `<text x="${x.toFixed(1)}" y="${hourLabelY}" text-anchor="middle" font-size="${isDesktop?18:16}" font-weight="700" fill="var(--c-text-muted)">${h}h</text>`;
   }).join('');
   const dayLabels = nightVals.map((v, i) => {
     const y = yOf(i);
@@ -8990,8 +8992,8 @@ function renderSleepWeekLineChart(days) {
     const label = formatSleepDuration(v);
     const anchor = (v / maxV) > 0.78 ? 'end' : 'start';
     const lx = anchor === 'end' ? x - 12 : x + 12;
-    // v705：行0数据标签放点下方，避免与顶部小时刻度重叠（移动端 v1.1.28 边距 TM=46 时关键）
-    const ly = (i === 0 || anchor === 'end') ? y + 26 : y - 22;
+    // v706：恢复 v1.1.28 数据标签位置（上方），行0 也走 y-22
+    const ly = anchor === 'end' ? y + 26 : y - 22;
     return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${label}</text><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/></g>`;
   }).join('');
   return `<div class="lr-history-stat-card">
@@ -9625,7 +9627,9 @@ function renderCommissionDetailPage() {
   // 2) 品类切换按钮（名字与用户一致；数字不带灰底；点激活按钮返回全部）
   html += '<div class="cd-cat-bar">';
   COMM_DETAIL_CATS.forEach(c => {
-    const cnt = allRecords.filter(r => r.category === c.cat).length;
+    // v706：计数按当前月份筛，月份导航直接联动
+    const monthRecords = allRecords.filter(r => (r.startTime || r.acceptTime || '').startsWith(ps.cdMonth));
+    const cnt = monthRecords.filter(r => r.category === c.cat).length;
     const active = ps.tab === c.key;
     html += `<div class="cd-cat-btn ${active ? 'active' : ''}" onclick="setCdTab('${c.key}')">
       <span class="cd-cat-name">${esc(c.label)}</span>

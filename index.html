@@ -457,7 +457,7 @@ ul,li{list-style:none}
 /* v705：双列独立滚动 + 4px 滚动条 */
 .lr-2col>.lr-left,.lr-2col>.lr-right,.calc-input-col,.calc-receipt-col{scrollbar-width:thin;scrollbar-color:transparent transparent}
 .lr-2col>.lr-left::-webkit-scrollbar,.lr-2col>.lr-right::-webkit-scrollbar,.calc-input-col::-webkit-scrollbar,.calc-receipt-col::-webkit-scrollbar{width:2px;height:2px}
-.lr-2col>.lr-left::-webkit-scrollbar-thumb,.lr-2col>.lr-right::-webkit-scrollbar-thumb,.calc-input-col::-webkit-scrollbar-thumb,.calc-receipt-col::-webkit-scrollbar-thumb{background:transparent}
+.lr-2col>.lr-left::-webkit-scrollbar-thumb,.lr-2col>.lr-right::-webkit-scrollbar-thumb,.calc-input-col::-webkit-scrollbar-thumb,.calc-receipt-col::-webkit-scrollbar-thumb{background:rgba(120,140,160,.25);border-radius:1px}
 .lr-2col>.lr-left::-webkit-scrollbar-track,.lr-2col>.lr-right::-webkit-scrollbar-track,.calc-input-col::-webkit-scrollbar-track,.calc-receipt-col::-webkit-scrollbar-track{background:transparent}
 /* v705：首页 toolbar 照抄其他页面手机端样式 */
 .home-toolbar .search-box{flex:1 1 100%;min-width:0}
@@ -2165,6 +2165,8 @@ ul,li{list-style:none}
 .life-monthbar.year-mode .life-monthbar-center{justify-content:center;gap:2px}
 .life-monthbar .btn{border:none;background:transparent;color:var(--c-text-light);font-size:14px;padding:4px 8px;box-shadow:none}
 .life-monthbar .btn:hover{color:var(--c-primary);background:transparent}
+
+.life-monthbar .btn-sm{padding:4px 8px !important;font-size:14px !important}
 .life-monthbar .btn:disabled{opacity:.35;cursor:not-allowed;color:var(--c-text-light);background:transparent}
 .life-monthbar-txt{font-size:14px;font-weight:700;color:var(--c-text);min-width:96px;text-align:center;cursor:pointer;user-select:none}
 .life-monthbar-txt:hover{color:var(--c-primary)}
@@ -2937,7 +2939,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=706"></script>
+  <script src="app.js?v=707"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
