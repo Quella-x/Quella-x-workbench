@@ -2811,6 +2811,75 @@ ul,li{list-style:none}
     }
   })();
 </script>
+<style id="spacing-grid-override">
+.main-header{padding-top:8px;padding-bottom:8px}
+.modal:not(:has(.cd-form)) .sync-field{padding-right:8px;padding-left:8px;margin-top:4px}
+.settings-section .sync-field{padding-right:8px;padding-left:8px;margin-top:4px}
+.cd-form .sync-field{padding-right:8px;padding-left:8px;margin-top:4px}
+.modal:not(:has(.cd-form)) .form-row{margin-bottom:16px}
+.settings-section .form-row{margin-bottom:16px}
+.cd-form .form-row{margin-bottom:16px}
+.modal:not(:has(.cd-form)) .form-select{padding-right:32px}
+.settings-section .form-select{padding-right:32px}
+.cd-form .form-select{padding-right:32px}
+.modal:not(:has(.cd-form)) .form-section{margin-bottom:8px;padding-bottom:8px}
+.settings-section .form-section{margin-bottom:8px;padding-bottom:8px}
+.cd-form .form-section{margin-bottom:8px;padding-bottom:8px}
+.modal:not(:has(.cd-form)) .form-row-inline{margin-bottom:16px}
+.settings-section .form-row-inline{margin-bottom:16px}
+.cd-form .form-row-inline{margin-bottom:16px}
+.modal:not(:has(.cd-form)) .dynamic-list-row .form-input{padding-top:8px;padding-bottom:8px}
+.settings-section .dynamic-list-row .form-input{padding-top:8px;padding-bottom:8px}
+.cd-form .dynamic-list-row .form-input{padding-top:8px;padding-bottom:8px}
+.modal:not(:has(.cd-form)) .color-picker-row{margin-bottom:16px}
+.settings-section .color-picker-row{margin-bottom:16px}
+.cd-form .color-picker-row{margin-bottom:16px}
+.modal:not(:has(.cd-form)) .color-picker-row input[type="text"]{padding-top:8px;padding-right:8px;padding-bottom:8px;padding-left:8px}
+.settings-section .color-picker-row input[type="text"]{padding-top:8px;padding-right:8px;padding-bottom:8px;padding-left:8px}
+.cd-form .color-picker-row input[type="text"]{padding-top:8px;padding-right:8px;padding-bottom:8px;padding-left:8px}
+.modal:not(:has(.cd-form)) .option-edit-item{gap:8px}
+.settings-section .option-edit-item{gap:8px}
+.cd-form .option-edit-item{gap:8px}
+.modal:not(:has(.cd-form)) .option-edit-item input{padding-top:8px;padding-right:8px;padding-bottom:8px;padding-left:8px}
+.settings-section .option-edit-item input{padding-top:8px;padding-right:8px;padding-bottom:8px;padding-left:8px}
+.cd-form .option-edit-item input{padding-top:8px;padding-right:8px;padding-bottom:8px;padding-left:8px}
+.modal:not(:has(.cd-form)) .option-field-title{padding-top:8px;padding-right:8px}
+.settings-section .option-field-title{padding-top:8px;padding-right:8px}
+.cd-form .option-field-title{padding-top:8px;padding-right:8px}
+.modal:not(:has(.cd-form)) .add-opt-btn{padding-top:8px;padding-right:8px;padding-bottom:8px;padding-left:8px}
+.settings-section .add-opt-btn{padding-top:8px;padding-right:8px;padding-bottom:8px;padding-left:8px}
+.cd-form .add-opt-btn{padding-top:8px;padding-right:8px;padding-bottom:8px;padding-left:8px}
+.pricelist-notes-grid{gap:16px}
+.pricelist-note-item{padding-top:8px;padding-bottom:8px}
+.pricelist-note-title{margin-bottom:8px}
+.pricelist-category-header{padding-right:16px;padding-left:16px}
+.pricelist-category-count{padding-right:8px;padding-left:8px}
+.pricelist-item-row{padding-right:16px;padding-left:16px}
+.pricelist-category-desc{padding-top:8px;padding-right:16px;padding-bottom:8px;padding-left:16px}
+.modal:not(:has(.cd-form)) .home-insp-row .combobox-wrapper.home-insp-combo .form-input{padding-right:32px}
+.settings-section .home-insp-row .combobox-wrapper.home-insp-combo .form-input{padding-right:32px}
+.cd-form .home-insp-row .combobox-wrapper.home-insp-combo .form-input{padding-right:32px}
+.pricelist-menu-header{padding-bottom:8px;margin-bottom:8px}
+.pricelist-menu-item{padding-top:4px;padding-bottom:4px}
+.pricelist-menu-item .menu-dots{margin-right:8px;margin-left:8px}
+.pricelist-menu-category{margin-bottom:8px}
+.pricelist-sort-category{margin-top:16px;margin-bottom:8px}
+.pricelist-sort-item{padding-top:8px;padding-bottom:8px}
+.pricelist-sort-item .sort-price{margin-right:8px;margin-left:8px}
+.life-quick-checkin{padding-top:16px;padding-bottom:16px;margin-bottom:16px}
+.lqc-hd{gap:8px}
+.lqc-grid{gap:8px}
+.lqc-btn{padding-top:12px;padding-right:8px;padding-bottom:12px;padding-left:8px}
+.cd-rec-subcard{padding-right:8px;padding-left:8px;margin-top:8px;margin-bottom:8px}
+.cd-rec-row{gap:8px;padding-top:4px;padding-bottom:4px}
+.settings-section .btn{padding:8px 16px!important}
+.cd-form .cd-extra-product-row .form-row{margin-bottom:0!important}
+.cd-form .cd-form-preview .form-row{margin-bottom:8px!important}
+.cd-form .cd-link-box textarea.form-input{padding:11px 10px!important}
+.cd-rec-section{margin:14px 0 8px!important}
+.cd-rec-subtitle{margin-bottom:4px!important}
+.cd-form .form-section-title{margin:14px 0 8px!important}
+</style>
 </head>
 <body>
 <div id="app">
@@ -2861,7 +2930,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=701"></script>
+  <script src="app.js?v=702"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
