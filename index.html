@@ -455,12 +455,13 @@ ul,li{list-style:none}
   .lr-2col>.lr-right{min-width:0;height:100%;overflow-y:auto}
   
 /* v705：双列独立滚动 + 4px 滚动条 */
-.lr-2col>.lr-left,.lr-2col>.lr-right,.calc-input-col,.calc-receipt-col{scrollbar-width:thin;scrollbar-color:transparent transparent}
-.lr-2col>.lr-left::-webkit-scrollbar,.lr-2col>.lr-right::-webkit-scrollbar,.calc-input-col::-webkit-scrollbar,.calc-receipt-col::-webkit-scrollbar{width:2px;height:2px}
-.lr-2col>.lr-left::-webkit-scrollbar-thumb,.lr-2col>.lr-right::-webkit-scrollbar-thumb,.calc-input-col::-webkit-scrollbar-thumb,.calc-receipt-col::-webkit-scrollbar-thumb{background:rgba(120,140,160,.25);border-radius:1px}
-.lr-2col>.lr-left::-webkit-scrollbar-track,.lr-2col>.lr-right::-webkit-scrollbar-track,.calc-input-col::-webkit-scrollbar-track,.calc-receipt-col::-webkit-scrollbar-track{background:transparent}
-/* v705：首页 toolbar 照抄其他页面手机端样式 */
-.home-toolbar .search-box{flex:1 1 100%;min-width:0}
+.lr-2col>.lr-left,.lr-2col>.lr-right,.calc-input-col,.calc-receipt-col,#mainBody{scrollbar-width:thin;scrollbar-color:transparent transparent;scrollbar-gutter:stable}
+.lr-2col>.lr-left::-webkit-scrollbar,.lr-2col>.lr-right::-webkit-scrollbar,.calc-input-col::-webkit-scrollbar,.calc-receipt-col::-webkit-scrollbar,#mainBody::-webkit-scrollbar{width:2px;height:2px}
+.lr-2col>.lr-left::-webkit-scrollbar-thumb,.lr-2col>.lr-right::-webkit-scrollbar-thumb,.calc-input-col::-webkit-scrollbar-thumb,.calc-receipt-col::-webkit-scrollbar-thumb,#mainBody::-webkit-scrollbar-thumb{background:rgba(120,140,160,.25);border-radius:1px}
+.lr-2col>.lr-left::-webkit-scrollbar-track,.lr-2col>.lr-right::-webkit-scrollbar-track,.calc-input-col::-webkit-scrollbar-track,.calc-receipt-col::-webkit-scrollbar-track,#mainBody::-webkit-scrollbar-track{background:transparent}
+/* v713：首页 toolbar 改 grid 1fr 1fr，筛选/新增记录强制等宽（实测 flex 方案下 490/502 不等），search-box 独占首行 */
+.toolbar.home-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}
+.toolbar.home-toolbar .search-box{grid-column:1 / -1}
 .home-toolbar .search-box input{width:100%;min-width:0}
 .home-toolbar .spacer{display:none}
 /* v712：首页 toolbar 筛选/新增记录 用 flex:1 1 0（basis:0 等比伸缩，避免 flex:0 0 calc 在亚像素舍入时换行），严格等宽且同一行 */
@@ -1161,9 +1162,8 @@ ul,li{list-style:none}
   display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;
 }
 .pricelist-note-item{
-  background:#fff;border-radius:8px;padding:10px 12px;
-  border:1px solid var(--c-border-light);
-  box-shadow:0 1px 3px rgba(0,0,0,.04);
+  background:transparent;border-radius:8px;padding:8px 12px;
+  border-left:3px solid var(--c-primary-light);
 }
 .pricelist-note-title{
   font-size:14px;font-weight:700;color:var(--c-text);
@@ -1247,6 +1247,10 @@ ul,li{list-style:none}
 /* v712：接稿排期年份导航（手机/桌面）上下边距与首页月份导航 .cd-month-nav(4px 0 6px) 一致 */
 .comm-yearnav{margin:4px 0 6px}
 .annual-chart-yearnav .btn-xs{padding:2px 8px;font-size:11px}
+/* v713：接稿排期年份导航按钮上下内边距/字号与首页月份导航(.cd-month-btn 4px 10px/14px)对齐，消除「上下边距不一致」 */
+.comm-yearnav .btn-xs{padding:4px 10px;font-size:14px}
+/* v713：接稿排期列表视图年份导航（嵌在 .comm-list-nostats 年度图表内）同样对齐 */
+.comm-list-nostats .annual-chart-yearnav .btn-xs{padding:4px 10px;font-size:14px}
 .annual-chart-bars{
   display:flex;align-items:flex-end;gap:3px;
   height:120px;padding:0 2px;
@@ -2950,7 +2954,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=712"></script>
+  <script src="app.js?v=713"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
