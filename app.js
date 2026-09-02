@@ -8965,7 +8965,7 @@ function renderSleepWeekLineChart(days) {
   const isDesktop = window.innerWidth > 768;
   const W = 720, H = 568;
   const LM = isDesktop ? 45 : 80, RM = isDesktop ? 15 : 40, TM = isDesktop ? 70 : 46, BM = isDesktop ? 40 : 4;
-  const hourLabelY = isDesktop ? TM - 52 : TM - 32; // v705：桌面维持 v704(TM-52)，手机端维持 v704(TM-32，刻度可见)
+  const hourLabelY = isDesktop ? TM - 52 : TM - 55; // v707：桌面 v704(TM-52)；手机端回 v1.1.28(TM-55)，因 .lr-hsc-chart-body svg{overflow:visible} 刻度画在 viewBox 上方仍可见且不压数据
   const CW = W - LM - RM, CH = H - TM - BM;
   const xOf = v => LM + (maxV > 0 ? v / maxV * CW : 0);
   const yOf = i => TM + CH * i / 6;
@@ -8981,7 +8981,7 @@ function renderSleepWeekLineChart(days) {
   const gridLines = gridHours.map(h => {
     const x = xOf(h);
     return `<line x1="${x.toFixed(1)}" y1="${TM}" x2="${x.toFixed(1)}" y2="${TM + CH}" stroke="var(--c-border-light)" stroke-width="0.8"/>` +
-           `<text x="${x.toFixed(1)}" y="${hourLabelY}" text-anchor="middle" font-size="${isDesktop?18:16}" font-weight="700" fill="var(--c-text-muted)">${h}h</text>`;
+           `<text x="${x.toFixed(1)}" y="${hourLabelY}" text-anchor="middle" font-size="${isDesktop?18:20}" font-weight="700" fill="var(--c-text-muted)">${h}h</text>`;
   }).join('');
   const dayLabels = nightVals.map((v, i) => {
     const y = yOf(i);
