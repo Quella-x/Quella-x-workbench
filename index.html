@@ -1023,6 +1023,9 @@ ul,li{list-style:none}
 .df-btn.primary:hover{filter:brightness(.95)}
 .df-btn.danger{color:var(--c-red);border-color:var(--c-red)}
 .df-btn.danger:hover{background:rgba(232,133,126,.12)}
+.df-btn.df-sort-btn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border:none;background:transparent;color:var(--c-text-light);font-size:12px;line-height:1;border-radius:4px}
+.df-btn.df-sort-btn:hover{background:var(--c-primary-bg);color:var(--c-primary)}
+.df-btn.df-sort-btn:disabled{background:transparent;color:var(--c-border);opacity:1;cursor:not-allowed}
 
 /* Home settings bar */
 .home-settings-bar{
@@ -2854,7 +2857,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=694"></script>
+  <script src="app.js?v=695"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

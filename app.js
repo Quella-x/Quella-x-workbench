@@ -650,10 +650,9 @@ function applyTheme(theme) {
   root.style.setProperty('--c-sidebar-end', theme.sidebarEnd);
   root.style.setProperty('--c-info', theme.primary);
 }
-/* v691：v690 删了 NAV_ICON_LEGACY_MAP，getNavIcon 不能再引用——直接返回 v（v690 后 navIcons 存储值就是图标名；旧 emoji 数据会落空需用户重选） */
+/* v695：导航图标已统一写死为 DEFAULT_NAV_ICONS，不再读取用户旧自定义图标（避免旧 emoji/旧图标覆盖新默认） */
 function getNavIcon(key) {
-  const s = getSettings();
-  return (s.navIcons && s.navIcons[key]) || DEFAULT_NAV_ICONS[key] || 'pin';
+  return DEFAULT_NAV_ICONS[key] || 'pin';
 }
 function getNavLabel(key, defaultLabel) { const s = getSettings(); return (s.navLabels && s.navLabels[key]) || defaultLabel; }
 function getFieldLabel(moduleKey, fieldKey, defaultLabel) {
@@ -6499,7 +6498,7 @@ function renderSettingsModal() {
   if (!validTabs.includes(_settingsTab)) _settingsTab = 'theme';
   let html = '<div class="settings-tabs">';
   html += `<div class="settings-tab ${_settingsTab === 'theme' ? 'active' : ''}" onclick="switchSettingsTab('theme')">配色设置</div>`;
-  html += `<div class="settings-tab ${_settingsTab === 'navicons' ? 'active' : ''}" onclick="switchSettingsTab('navicons')">导航图标</div>`;
+  html += `<div class="settings-tab ${_settingsTab === 'navicons' ? 'active' : ''}" onclick="switchSettingsTab('navicons')">导航名称</div>`;
   html += `<div class="settings-tab ${_settingsTab === 'fields' ? 'active' : ''}" onclick="switchSettingsTab('fields')">版块设置</div>`;
   html += `<div class="settings-tab ${_settingsTab === 'display' ? 'active' : ''}" onclick="switchSettingsTab('display')">展示字段</div>`;
   html += `<div class="settings-tab ${_settingsTab === 'data' ? 'active' : ''}" onclick="switchSettingsTab('data')">数据管理</div>`;
@@ -6848,8 +6847,8 @@ function renderDisplayFieldsSettings(html) {
       html += `<div class="df-row">
         <span class="df-label">${esc(labelMap[k] || k)}</span>
         <span class="df-actions">
-          <button type="button" class="df-btn" ${canUp} onclick="moveDisplayField('${k}','up')">${lucide('chevron-up',12)}</button>
-          <button type="button" class="df-btn" ${canDown} onclick="moveDisplayField('${k}','down')">${lucide('chevron-down',12)}</button>
+          <button type="button" class="df-btn df-sort-btn" ${canUp} onclick="moveDisplayField('${k}','up')">▲</button>
+          <button type="button" class="df-btn df-sort-btn" ${canDown} onclick="moveDisplayField('${k}','down')">▼</button>
           <button type="button" class="df-btn danger" onclick="toggleDisplayField('${k}')">隐藏</button>
         </span>
       </div>`;
