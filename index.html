@@ -450,9 +450,9 @@ ul,li{list-style:none}
   .gb-records-2col .stats-divider{display:none}
   .gb-records-2col .chart-stats-2col{margin-top:0}
   /* v683：电脑端「每日记录」首页/历史页 两列 1:1 均分（左=顶部卡片+切换+日期条/周导航+图表，右=记录块）；左列 sticky 固定仅右列滚动 */
-  .lr-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
-  .lr-2col>.lr-left{min-width:0;max-height:calc(100vh - 100px);overflow-y:auto}
-  .lr-2col>.lr-right{min-width:0;max-height:calc(100vh - 100px);overflow-y:auto}
+  .lr-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  .lr-2col>.lr-left{min-width:0;max-height:calc(100vh - 24px);overflow-y:auto}
+  .lr-2col>.lr-right{min-width:0;max-height:calc(100vh - 24px);overflow-y:auto}
   
 /* v705：双列独立滚动 + 4px 滚动条 */
 .lr-2col>.lr-left,.lr-2col>.lr-right,.calc-input-col,.calc-receipt-col{scrollbar-width:thin;scrollbar-color:transparent transparent}
@@ -463,9 +463,9 @@ ul,li{list-style:none}
 .home-toolbar .search-box{flex:1 1 100%;min-width:0}
 .home-toolbar .search-box input{width:100%;min-width:0}
 .home-toolbar .spacer{display:none}
-.home-toolbar .combobox-wrapper{flex:1 1 0;min-width:0;width:auto;max-width:none}
+.home-toolbar .combobox-wrapper{flex:0 0 calc(50% - 4px);min-width:0;width:calc(50% - 4px);max-width:none}
 .home-toolbar .combobox-wrapper .combobox-input{width:100%}
-.home-toolbar .btn-primary{flex:1 1 0;min-width:0;width:auto;padding:8px 6px}
+.home-toolbar .btn-primary{flex:0 0 calc(50% - 4px);min-width:0;width:calc(50% - 4px);padding:8px 6px}
 
 /* v668：接稿排期列表视图「图+统计」仅电脑端隐藏（手机端保留原顺序） */
   .comm-list-nostats{display:none}
@@ -474,7 +474,7 @@ ul,li{list-style:none}
   /* v672：接稿排期日历视图 日历↔柱状图 间距收紧（grid 行距16->8，列距保持16px不动；分隔线上margin归0、下margin保持16px恢复柱状图呼吸感），仅动日历底->分隔线 */
   /* v677：接稿排期日历视图 divider/标题间距回归初始(全局16px)——分割线上下统一16px；标题到上边框 8->16px 对齐开团记录 */
   .comm-cal-chartstats .stats-divider{margin:16px 0}
-  .comm-cal-chartstats .annual-chart{padding-top:16px}
+  .comm-cal-chartstats .annual-chart{padding-top:0}
   .comm-cal-chartstats .annual-chart-title{margin:4px 0 6px}
   .chart-stats-2col .annual-chart-title{margin:4px 0 6px}
 }
@@ -1151,6 +1151,8 @@ ul,li{list-style:none}
 .pricelist-notes-header{cursor:pointer;transition:background .15s}
 .pricelist-notes-header:hover{background:var(--c-primary-bg);color:var(--c-primary-dark)}
 .pricelist-notes-header.collapsible-toggle:hover{background:var(--c-primary-bg);color:var(--c-primary-dark)}
+.pricelist-notes-toggle{cursor:pointer;transition:background .15s}
+.pricelist-notes-toggle:hover{background:var(--c-primary-bg)!important;color:var(--c-primary-dark)!important}
 .pricelist-notes-grid{
   display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;
 }
@@ -1675,8 +1677,8 @@ ul,li{list-style:none}
 
 /* ===== Design Quote Calculator ===== */
 .calc-page{max-width:1200px;margin:0 auto}
-.calc-page-grid{display:grid;grid-template-columns:1fr 340px;gap:10px;align-items:start}
-.calc-input-col{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 100px);overflow-y:auto;container-type:inline-size}
+.calc-page-grid{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
+.calc-input-col{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 24px);overflow-y:auto;container-type:inline-size}
 .calc-card{background:var(--c-card-bg,#fff);border:1px solid var(--c-border-light,#e8e8e8);border-radius:10px;padding:14px}
 .calc-card-title{font-size:14px;font-weight:600;color:var(--c-text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .price-calc-title{margin-bottom:16px}
@@ -1768,7 +1770,7 @@ ul,li{list-style:none}
 .calc-rate-fixed{font-size:13px;color:var(--c-text-muted);width:70px;text-align:center}
 .calc-sub-area{padding:4px 0 4px 20px;transition:opacity .2s}
 .calc-sub-area.disabled{opacity:.4;pointer-events:none}
-.calc-receipt-col{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 100px);overflow-y:auto}
+.calc-receipt-col{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 24px);overflow-y:auto}
 .calc-receipt{background:linear-gradient(135deg,var(--c-primary-bg),#f8fbff);border:1px solid var(--c-primary-light);border-radius:10px;padding:16px}
 .dc-r-title{font-size:18px;font-weight:700;color:var(--c-text);margin-bottom:12px;text-align:center}
 /* v26: 实时报价分隔线归一
@@ -2162,6 +2164,7 @@ ul,li{list-style:none}
 
 /* Check-in month switcher */
 .life-monthbar{position:relative;z-index:60;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.life-monthbar.year-mode{margin:4px 0 6px}
 .life-monthbar-center{display:flex;align-items:center;justify-content:flex-start;gap:10px;flex:1}
 .life-monthbar.week-mode .life-monthbar-center{justify-content:flex-start;gap:2px}
 .life-monthbar.year-mode .life-monthbar-center{justify-content:center;gap:2px}
@@ -2391,7 +2394,7 @@ ul,li{list-style:none}
 .lr-diet-qbtn.filled:hover{background:rgba(24,144,255,.24);border-color:rgba(24,144,255,.24);color:var(--c-text)}
 
 /* Toggle buttons */
-.lr-toggle-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.lr-toggle-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
 .lr-date-nav{position:relative;display:flex;align-items:center;justify-content:center;gap:6px;margin-top:-4px;margin-bottom:8px}
 .lr-date-nav .cd-month-label{font-size:14px;font-weight:700;color:var(--c-text);min-width:96px;text-align:center;cursor:pointer;user-select:none}
 .lr-date-nav .cd-month-label:hover{color:var(--c-primary)}
@@ -2941,7 +2944,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=709"></script>
+  <script src="app.js?v=710"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

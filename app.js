@@ -2978,7 +2978,7 @@ function renderListPage(pageKey, mod) {
     // v704：接稿排期日历视图年份导航移入左侧日历列（日历下方、展示模块上方），并居中
     if (YEAR_FILTER_MODULES.includes(pageKey)) {
       if (ps.yearFilter == null) ps.yearFilter = new Date().getFullYear();
-      html += '<div style="position:relative;margin-top:8px">' + renderYearNavHTML(pageKey, ps) + '</div>';
+      html += '<div style="position:relative">' + renderYearNavHTML(pageKey, ps) + '</div>';
     }
     html += '</div>'; // close .comm-cal-col left
     html += '<div class="comm-cal-col comm-cal-col-list">'; // right column for record list
@@ -4439,6 +4439,7 @@ function homeMonthShift(d) {
   else { const n = new Date(); y = n.getFullYear(); m = n.getMonth() + 1; }
   m += d; if (m < 1) { m = 12; y--; } if (m > 12) { m = 1; y++; }
   ps.dateFilter = `${y}-${String(m).padStart(2, '0')}`;
+  ps.chartYear = y; ps.statsScope = 'year';
   ps.homePageNo = 1; renderHome();
 }
 function homeMonthTogglePicker() {
@@ -4453,6 +4454,7 @@ function homeMonthPickerYear(d) {
 function homeMonthPick(y, mo) {
   let ps = pageState.home; if (!ps) pageState.home = {}; ps = pageState.home;
   ps.dateFilter = `${y}-${String(mo + 1).padStart(2, '0')}`;
+  ps.chartYear = y; ps.statsScope = 'year';
   ps.monthPickerOpen = false; ps.homePageNo = 1; renderHome();
 }
 
@@ -6631,7 +6633,7 @@ function renderPriceList() {
   // Collapsible 其他说明（v26: toolbar->其他说明 12px）
   if (notes.length) {
     html += '<div style="margin-bottom:10px">';
-    html += '<div class="collapsible-toggle" onclick="this.classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">';
+    html += '<div class="collapsible-toggle pricelist-notes-toggle" onclick="this.classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">';
     html += '<span>其他说明</span><span class="toggle-arrow">▼</span></div>';
     html += '<div class="collapsible-content">';
     html += '<div class="pricelist-notes-panel" style="margin-top:8px;margin-bottom:8px">';
@@ -9627,9 +9629,9 @@ function renderCommissionDetailPage() {
   // 2) 品类切换按钮（名字与用户一致；数字不带灰底；点激活按钮返回全部）
   html += '<div class="cd-cat-bar">';
   COMM_DETAIL_CATS.forEach(c => {
-    // v709：品类计数按当前年份筛（取 cdMonth 的年份部分），与月份导航年份联动
+    // v710：品类计数按当前年份筛（取 cdMonth 的年份部分），与月份导航年份联动
     const curYear = (ps.cdMonth || '').slice(0, 4) || String(new Date().getFullYear());
-    const yearRecords = allRecords.filter(r => (r.startTime || r.acceptTime || '').startsWith(curYear));
+    const yearRecords = allRecords.filter(r => cdRecMonth(r).startsWith(curYear));
     const cnt = yearRecords.filter(r => r.category === c.cat).length;
     const active = ps.tab === c.key;
     html += `<div class="cd-cat-btn ${active ? 'active' : ''}" onclick="setCdTab('${c.key}')">
