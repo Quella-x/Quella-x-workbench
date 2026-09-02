@@ -2062,8 +2062,10 @@ ul,li{list-style:none}
 .life-goal-grid.compact .lgc-body{gap:10px}
 .life-goal-grid.compact .lgc-heatmap{width:66px}
 .life-goal-grid.compact .lgc-desc{font-size:11px}
-.life-goal-grid.compact .lgc-monthprog{margin-top:5px}
+.life-goal-grid.compact .lgc-monthprog{margin-top:3px}
 .life-goal-grid.compact .lgc-foot{margin-top:0}
+.life-goal-grid.compact .lgc-status{font-size:12px}
+.life-goal-grid.compact .lgc-status .lgc-dot{width:6px;height:6px}
 .life-goal-grid.compact + .life-goal-add{margin-top:10px}
 
 /* Goal cards */
@@ -2195,7 +2197,9 @@ ul,li{list-style:none}
 #lifePickerBackdrop.show{display:block}
 .life-year-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .life-year-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow-sm)}
+.life-year-grid .life-goal-card{padding-top:10px}
 .lyc-name{font-size:14px;font-weight:700;color:var(--c-text);display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.life-year-grid .lgc-name{font-size:14px}
 .lyc-tag{font-size:11px;font-weight:500;color:var(--c-text-light);background:transparent;border:none;padding:1px 4px}
 .life-year-card.lyc-week{border-left:3px solid var(--c-orange)}
 .life-year-card.lyc-week .lyc-num{color:var(--c-orange)}
@@ -2857,7 +2861,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=699"></script>
+  <script src="app.js?v=700"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
