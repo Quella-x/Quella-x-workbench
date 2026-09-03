@@ -227,20 +227,20 @@ ul,li{list-style:none}
 .search-box{position:relative;display:flex;align-items:center}
 .search-box input{
   width:200px;padding:8px 32px 8px 12px;
-  border:1px solid var(--c-border);border-radius:var(--radius-sm);
+  border:1px solid transparent;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm);
   font-size:13px;background:var(--c-card);transition:border-color .2s;
 }
 .search-box input:focus{border-color:var(--c-primary-light)}
 .search-box .search-icon{position:absolute;right:10px;color:var(--c-text-muted);font-size:14px;pointer-events:none}
 
 .filter-select{
-  padding:8px 12px;border:1px solid var(--c-border);border-radius:var(--radius-sm);
+  padding:8px 12px;border:1px solid transparent;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm);
   font-size:13px;background:var(--c-card);cursor:pointer;transition:border-color .2s;
   text-align:center;color-scheme:light;
 }
 .filter-select:focus{border-color:var(--c-primary-light)}
 .filter-combobox{min-width:0;width:112px;max-width:112px}
-.filter-combobox-input{padding:8px 24px 8px 8px!important;font-size:13px;text-align:center;background:var(--c-card);cursor:pointer;border:1px solid var(--c-border);border-radius:var(--radius-sm);transition:border-color .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.filter-combobox-input{padding:8px 24px 8px 8px!important;font-size:13px;text-align:center;background:var(--c-card);cursor:pointer;border:1px solid transparent;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm);transition:border-color .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .filter-combobox .combobox-toggle{right:4px;width:16px;font-size:9px}
 .filter-combobox-input:focus{border-color:var(--c-primary-light)}
 .filter-combobox .combobox-option{text-align:center}
@@ -1347,7 +1347,7 @@ ul,li{list-style:none}
 .home-status-filter{display:flex;gap:6px;margin:8px 0 14px}
 .home-status-btn{
   flex:1;min-width:0;padding:0 12px;border-radius:var(--radius-sm);cursor:pointer;
-  border:1px solid var(--c-border);background:var(--c-card);box-shadow:none;
+  border:1px solid transparent;background:var(--c-card);box-shadow:var(--shadow-sm);
   font-size:13px;font-weight:600;color:var(--c-text-light);line-height:1;height:var(--pill-h);min-height:var(--pill-h);
   display:flex;align-items:center;justify-content:center;gap:4px;transition:all .15s;
 }
@@ -2992,7 +2992,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=726"></script>
+  <script src="app.js?v=727"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
