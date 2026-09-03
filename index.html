@@ -450,7 +450,7 @@ ul,li{list-style:none}
   .gb-records-2col .stats-divider{display:none}
   .gb-records-2col .chart-stats-2col{margin-top:0}
   /* v711：双列容器占满 main-body 高度，左右列 height:100% 实现真正独立滚动 */
-  .lr-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch;height:100%}
+  .lr-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch;height:100%}
   .lr-2col>.lr-left{min-width:0;height:100%;overflow-y:auto}
   .lr-2col>.lr-right{min-width:0;height:100%;overflow-y:auto}
   
@@ -479,14 +479,20 @@ ul,li{list-style:none}
   .comm-cal-chartstats .annual-chart{padding-top:16px}
   .comm-cal-chartstats .annual-chart-title{margin:4px 0 6px}
   .chart-stats-2col .annual-chart-title{margin:4px 0 6px}
-  /* v711：接稿排期年份导航上下边距与首页月份导航一致（列表/日历分别微调） */
-  .comm-list-yearnav{margin:4px 0 6px}
-  .comm-cal-yearnav{margin:4px 0 6px}
+  /* v714：接稿排期年份导航上下边距与首页月份导航(真实视觉 上23/下14) 对齐 */
+  .comm-list-yearnav{margin:23px 0 14px}
+  .comm-cal-yearnav{margin:23px 0 14px}
   .comm-cal-yearnav + .cal-divider{margin-top:0}
 }
 @media (max-width:640px){
+  /* v714：手机端 #mainBody 同样预留滚动条槽，避免接稿详情等有记录时切月顶部工具条宽度抖动（桌面端已在 min-width:641 内预留） */
+  #mainBody{scrollbar-gutter:stable}
+  /* v714：手机端首页 toolbar 也走 grid 1fr 1fr 等宽（原 grid 规则在 min-width:641 内，手机端落到 flex 导致筛选/新增不等宽、间距 6px≠状态栏 8px） */
+  .toolbar.home-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}
+  .toolbar.home-toolbar .search-box{grid-column:1 / -1}
+  .home-toolbar .search-box input{width:100%;min-width:0}
   .comm-cal-two-col{display:block}
-  .comm-cal-two-col .comm-cal-col + .comm-cal-col{margin-top:16px}
+  .comm-cal-two-col .comm-cal-col + .comm-cal-col{margin-top:6px}
   /* v660：手机端图表统计保持单列（顺序同原版） */
   .chart-stats-2col{display:block}
   /* v666：开团记录两列仅电脑端，手机端单列堆叠 */
@@ -495,6 +501,9 @@ ul,li{list-style:none}
   .lr-2col{display:block}
   .lr-2col>.lr-left{position:static;max-height:none;overflow:visible}
   .lr-2col>.lr-right{position:static;max-height:none;overflow:visible}
+  /* v714：首页 toolbar 手机端也走 grid 1fr 1fr 等宽（原 grid 规则在 min-width:641 内，手机端落到 flex 导致筛选/新增不等宽、间距 6px≠状态栏 8px） */
+  .toolbar.home-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}
+  .toolbar.home-toolbar .search-box{grid-column:1 / -1}
   /* v668：接稿排期列表视图「图+统计」手机端保留显示（原顺序 日历->列表->图->统计） */
   .comm-list-nostats{display:block}
   /* v668：人物关系底部卡片手机端保持原样单列（默认 .record-list 垂直堆叠） */
@@ -1141,7 +1150,7 @@ ul,li{list-style:none}
 
 /* Price List 价目表专用样式 */
 .pricelist-notes-panel{
-  background:linear-gradient(135deg,var(--c-primary-bg),#fff);
+  background:#fff;
   border:1px solid var(--c-primary-light);
   border-radius:12px;
   padding:16px 20px;
@@ -1163,8 +1172,8 @@ ul,li{list-style:none}
 }
 .pricelist-note-item{
   background:transparent;border-radius:8px;padding:8px 12px;
-  border-left:3px solid var(--c-primary-light);
 }
+.pricelist-note-item + .pricelist-note-item{border-top:1px solid var(--c-border-light)}
 .pricelist-note-title{
   font-size:14px;font-weight:700;color:var(--c-text);
   margin-bottom:6px;
@@ -1244,8 +1253,10 @@ ul,li{list-style:none}
 .annual-chart-title-main{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
 .annual-chart-title-main .lucide-icon{vertical-align:-2px;transform:translateY(2px)}
 .annual-chart-yearnav{display:flex;gap:4px;flex-shrink:0}
-/* v712：接稿排期年份导航（手机/桌面）上下边距与首页月份导航 .cd-month-nav(4px 0 6px) 一致 */
-.comm-yearnav{margin:4px 0 6px}
+/* v714：接稿排期年份导航上下边距与首页月份导航(.cal-nav 真实视觉 上23/下14) 对齐 */
+.comm-yearnav{margin:23px 0 14px}
+/* 年份导航内 .life-monthbar.year-mode 自身 margin 归零，避免与外部 .comm-yearnav margin 坍塌叠加（仅作用于接稿排期，不动生活页 year-mode） */
+.comm-yearnav .life-monthbar.year-mode,.comm-list-yearnav .life-monthbar.year-mode,.comm-cal-yearnav .life-monthbar.year-mode{margin:0}
 .annual-chart-yearnav .btn-xs{padding:2px 8px;font-size:11px}
 /* v713：接稿排期年份导航按钮上下内边距/字号与首页月份导航(.cd-month-btn 4px 10px/14px)对齐，消除「上下边距不一致」 */
 .comm-yearnav .btn-xs{padding:4px 10px;font-size:14px}
@@ -1687,7 +1698,7 @@ ul,li{list-style:none}
 
 /* ===== Design Quote Calculator ===== */
 .calc-page{max-width:1200px;margin:0 auto}
-.calc-page-grid{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:stretch;height:100%}
+.calc-page-grid{display:grid;grid-template-columns:1fr 340px;gap:10px;align-items:stretch;height:100%}
 .calc-input-col{display:flex;flex-direction:column;gap:12px;height:100%;overflow-y:auto;container-type:inline-size}
 .calc-card{background:var(--c-card-bg,#fff);border:1px solid var(--c-border-light,#e8e8e8);border-radius:10px;padding:14px}
 .calc-card-title{font-size:14px;font-weight:600;color:var(--c-text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
@@ -2725,7 +2736,7 @@ ul,li{list-style:none}
 .form-section{font-size:13px;font-weight:700;color:var(--c-primary-dark);margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--c-border-light)}
 
 /* ===== 接稿排期双栏预览：左右并排等宽卡片，一一对应、等高联动 ===== */
-.comm-dual{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:stretch;margin-top:14px}
+.comm-dual{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:stretch;margin-top:6px}
 .comm-dual .record-card{height:100%;box-sizing:border-box;display:flex;flex-direction:column;min-width:0;padding-top:13px}
 .comm-dual .record-card-body{flex:1;min-width:0;padding-top:8px}
 /* v465：左栏卡片头部——标题、编辑/删除按钮在一条水平线上(标题左/按钮右)、分割线保留，整体往上移 2px，分隔线下边距 -4px */
@@ -2954,7 +2965,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=713"></script>
+  <script src="app.js?v=714"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
