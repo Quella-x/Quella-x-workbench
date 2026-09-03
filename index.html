@@ -213,7 +213,7 @@ ul,li{list-style:none}
 .card-body{padding:16px}
 
 .toolbar{
-  display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  display:flex;flex-wrap:wrap;gap:6px;align-items:center;
   margin-bottom:14px;
 }
 .toolbar .spacer{flex:1}
@@ -449,8 +449,9 @@ ul,li{list-style:none}
   .gb-records-2col .gb-right{position:sticky;top:12px;align-self:start}
   .gb-records-2col .stats-divider{display:none}
   .gb-records-2col .chart-stats-2col{margin-top:0}
-  /* v711：双列容器占满 main-body 高度，左右列 height:100% 实现真正独立滚动 */
-  .lr-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch;height:100%}
+  /* v715：双列容器占满 main-body 高度，左右列 height:100% 实现真正独立滚动 */
+  /* v715：双列 gap 设 0（左右列各占 scrollbar 10px，视觉间距 = scrollbar 10px = 与其他双列模块 10px 一致） */
+  .lr-2col{display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:stretch;height:100%}
   .lr-2col>.lr-left{min-width:0;height:100%;overflow-y:auto}
   .lr-2col>.lr-right{min-width:0;height:100%;overflow-y:auto}
   
@@ -460,10 +461,10 @@ ul,li{list-style:none}
 .lr-2col>.lr-left::-webkit-scrollbar-thumb,.lr-2col>.lr-right::-webkit-scrollbar-thumb,.calc-input-col::-webkit-scrollbar-thumb,.calc-receipt-col::-webkit-scrollbar-thumb,#mainBody::-webkit-scrollbar-thumb{background:rgba(120,140,160,.25);border-radius:1px}
 .lr-2col>.lr-left::-webkit-scrollbar-track,.lr-2col>.lr-right::-webkit-scrollbar-track,.calc-input-col::-webkit-scrollbar-track,.calc-receipt-col::-webkit-scrollbar-track,#mainBody::-webkit-scrollbar-track{background:transparent}
 /* v713：首页 toolbar 改 grid 1fr 1fr，筛选/新增记录强制等宽（实测 flex 方案下 490/502 不等），search-box 独占首行 */
-.toolbar.home-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}
-.toolbar.home-toolbar .search-box{grid-column:1 / -1}
-.home-toolbar .search-box input{width:100%;min-width:0}
-.home-toolbar .spacer{display:none}
+.toolbar.home-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center}
+  .toolbar.home-toolbar .search-box{grid-column:1 / -1}
+  .home-toolbar .search-box input{width:100%;min-width:0}
+  .home-toolbar .spacer{display:none}
 /* v712：首页 toolbar 筛选/新增记录 用 flex:1 1 0（basis:0 等比伸缩，避免 flex:0 0 calc 在亚像素舍入时换行），严格等宽且同一行 */
 .home-toolbar .combobox-wrapper,.home-toolbar .combobox-wrapper.filter-combobox,.home-toolbar .btn-primary{flex:1 1 0!important;min-width:0!important;width:auto!important;max-width:none!important}
 .home-toolbar .combobox-wrapper .combobox-input{width:100%}
@@ -479,16 +480,16 @@ ul,li{list-style:none}
   .comm-cal-chartstats .annual-chart{padding-top:16px}
   .comm-cal-chartstats .annual-chart-title{margin:4px 0 6px}
   .chart-stats-2col .annual-chart-title{margin:4px 0 6px}
-  /* v714：接稿排期年份导航上下边距与首页月份导航(真实视觉 上23/下14) 对齐 */
-  .comm-list-yearnav{margin:23px 0 14px}
-  .comm-cal-yearnav{margin:23px 0 14px}
+  /* v715：接稿排期年份导航上下边距 = 首页月份导航(23/14) 再按用户要求「上减2/下减20」= 21/-6（负底边距与下方 .comm-cal-chartstats 的 .annual-chart padding-top:16 叠加，视觉下间距回到 14px） */
+  .comm-list-yearnav{margin:21px 0 -6px}
+  .comm-cal-yearnav{margin:21px 0 -6px}
   .comm-cal-yearnav + .cal-divider{margin-top:0}
 }
 @media (max-width:640px){
   /* v714：手机端 #mainBody 同样预留滚动条槽，避免接稿详情等有记录时切月顶部工具条宽度抖动（桌面端已在 min-width:641 内预留） */
   #mainBody{scrollbar-gutter:stable}
   /* v714：手机端首页 toolbar 也走 grid 1fr 1fr 等宽（原 grid 规则在 min-width:641 内，手机端落到 flex 导致筛选/新增不等宽、间距 6px≠状态栏 8px） */
-  .toolbar.home-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}
+  .toolbar.home-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center}
   .toolbar.home-toolbar .search-box{grid-column:1 / -1}
   .home-toolbar .search-box input{width:100%;min-width:0}
   .comm-cal-two-col{display:block}
@@ -502,7 +503,7 @@ ul,li{list-style:none}
   .lr-2col>.lr-left{position:static;max-height:none;overflow:visible}
   .lr-2col>.lr-right{position:static;max-height:none;overflow:visible}
   /* v714：首页 toolbar 手机端也走 grid 1fr 1fr 等宽（原 grid 规则在 min-width:641 内，手机端落到 flex 导致筛选/新增不等宽、间距 6px≠状态栏 8px） */
-  .toolbar.home-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}
+  .toolbar.home-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center}
   .toolbar.home-toolbar .search-box{grid-column:1 / -1}
   /* v668：接稿排期列表视图「图+统计」手机端保留显示（原顺序 日历->列表->图->统计） */
   .comm-list-nostats{display:block}
@@ -1151,7 +1152,8 @@ ul,li{list-style:none}
 /* Price List 价目表专用样式 */
 .pricelist-notes-panel{
   background:#fff;
-  border:1px solid var(--c-primary-light);
+  /* v715：去掉外框蓝色边框（用户要求弹窗内页不要蓝色外边框） */
+  border:none;
   border-radius:12px;
   padding:16px 20px;
   margin-bottom:20px;
@@ -1253,8 +1255,8 @@ ul,li{list-style:none}
 .annual-chart-title-main{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
 .annual-chart-title-main .lucide-icon{vertical-align:-2px;transform:translateY(2px)}
 .annual-chart-yearnav{display:flex;gap:4px;flex-shrink:0}
-/* v714：接稿排期年份导航上下边距与首页月份导航(.cal-nav 真实视觉 上23/下14) 对齐 */
-.comm-yearnav{margin:23px 0 14px}
+/* v715：手机端年份导航上下边距 = 首页(23/14) 再按用户要求「上减2/下减1」= 21/13 */
+.comm-yearnav{margin:21px 0 13px}
 /* 年份导航内 .life-monthbar.year-mode 自身 margin 归零，避免与外部 .comm-yearnav margin 坍塌叠加（仅作用于接稿排期，不动生活页 year-mode） */
 .comm-yearnav .life-monthbar.year-mode,.comm-list-yearnav .life-monthbar.year-mode,.comm-cal-yearnav .life-monthbar.year-mode{margin:0}
 .annual-chart-yearnav .btn-xs{padding:2px 8px;font-size:11px}
@@ -1290,7 +1292,7 @@ ul,li{list-style:none}
 
 /* ===== Platform Buttons (Home) ===== */
 .platform-buttons{
-  display:flex;flex-wrap:nowrap;gap:8px;margin-bottom:10px;
+  display:flex;flex-wrap:nowrap;gap:6px;margin-bottom:10px;
 }
 .platform-btn{
   flex:1;min-width:0;padding:9px 10px;
@@ -1317,7 +1319,7 @@ ul,li{list-style:none}
 .platform-btn .platform-status-row .platform-sep{opacity:.85;font-weight:700}
 
 /* ===== Global Status Filter Buttons (DN-4轮) ===== */
-.home-status-filter{display:flex;gap:8px;margin:8px 0 14px}
+.home-status-filter{display:flex;gap:6px;margin:8px 0 14px}
 .home-status-btn{
   flex:1;min-width:0;padding:0 12px;border-radius:10px;cursor:pointer;
   border:1px solid var(--c-border);background:var(--c-card-bg,#fff);
@@ -2965,7 +2967,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=714"></script>
+  <script src="app.js?v=715"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
