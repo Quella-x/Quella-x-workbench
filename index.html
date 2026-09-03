@@ -488,6 +488,8 @@ ul,li{list-style:none}
 @media (max-width:640px){
   /* v714：手机端 #mainBody 同样预留滚动条槽，避免接稿详情等有记录时切月顶部工具条宽度抖动（桌面端已在 min-width:641 内预留） */
   #mainBody{scrollbar-gutter:stable}
+  /* v715：手机端年份导航边距覆盖 = 21/13（桌面端 base 21/-6 在手机端无意义，强制改回 21/13） */
+  .comm-yearnav{margin:21px 0 13px}
   /* v714：手机端首页 toolbar 也走 grid 1fr 1fr 等宽（原 grid 规则在 min-width:641 内，手机端落到 flex 导致筛选/新增不等宽、间距 6px≠状态栏 8px） */
   .toolbar.home-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center}
   .toolbar.home-toolbar .search-box{grid-column:1 / -1}
@@ -1255,8 +1257,8 @@ ul,li{list-style:none}
 .annual-chart-title-main{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
 .annual-chart-title-main .lucide-icon{vertical-align:-2px;transform:translateY(2px)}
 .annual-chart-yearnav{display:flex;gap:4px;flex-shrink:0}
-/* v715：手机端年份导航上下边距 = 首页(23/14) 再按用户要求「上减2/下减1」= 21/13 */
-.comm-yearnav{margin:21px 0 13px}
+/* v715：年份导航上下边距：桌面 = 首页(23/14)「上减2/下减20」= 21/-6（与下方 .annual-chart padding-top:16 叠加，视觉下间距回到 14）；手机 = 「上减2/下减1」= 21/13（见 @media 覆盖） */
+.comm-yearnav{margin:21px 0 -6px}
 /* 年份导航内 .life-monthbar.year-mode 自身 margin 归零，避免与外部 .comm-yearnav margin 坍塌叠加（仅作用于接稿排期，不动生活页 year-mode） */
 .comm-yearnav .life-monthbar.year-mode,.comm-list-yearnav .life-monthbar.year-mode,.comm-cal-yearnav .life-monthbar.year-mode{margin:0}
 .annual-chart-yearnav .btn-xs{padding:2px 8px;font-size:11px}
@@ -2967,7 +2969,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=715"></script>
+  <script src="app.js?v=716"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
