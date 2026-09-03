@@ -274,7 +274,7 @@ ul,li{list-style:none}
 .record-card{
   background:var(--c-card);border-radius:var(--radius);
   box-shadow:var(--shadow-sm);padding:16px;transition:box-shadow .2s,transform .15s;
-  cursor:pointer;border:1px solid transparent;
+  cursor:pointer;border:1px solid var(--c-border);
 }
 .record-card:hover{box-shadow:var(--shadow);border-color:var(--c-primary-bg)}
 .record-list.two-col .record-card{min-height:110px}
@@ -1324,6 +1324,7 @@ ul,li{list-style:none}
   border-radius:var(--radius-sm);color:#fff;font-size:13px;font-weight:600;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:2px;cursor:pointer;transition:all .2s;border:none;
+  box-shadow:var(--shadow-sm);
   position:relative;overflow:hidden;
 }
 .platform-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
@@ -2992,7 +2993,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=723"></script>
+  <script src="app.js?v=724"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
