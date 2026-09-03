@@ -2646,8 +2646,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-import-btn-desc{font-size:12px;color:var(--c-text-muted);margin-top:1px}
 /* 品类切换按钮（四个并排均分，与首页平台按钮同款均分布局） */
 .cd-cat-bar{display:flex;gap:6px;margin-bottom:8px}
-.cd-cat-btn{flex:1;justify-content:center;padding:11px 6px;border-radius:var(--radius-sm);font-size:14px;cursor:pointer;background:#fff;color:var(--c-text);transition:.15s;display:flex;align-items:center;gap:6px;font-weight:700;margin-bottom:-2px}
-.cd-cat-btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.cd-cat-btn{flex:1;justify-content:center;padding:11px 6px;border:1px solid transparent;border-radius:var(--radius-sm);font-size:14px;cursor:pointer;background:#fff;color:var(--c-text);transition:.15s;display:flex;align-items:center;gap:6px;font-weight:700;margin-bottom:-2px;box-shadow:var(--shadow-sm)}
+.cd-cat-btn:hover{color:var(--c-primary)}
 .cd-cat-btn.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary)}
 /* v452：品类按钮后数字颜色与按钮内文字色(var(--c-text))一致；激活态保持 #fff */
 .cd-cat-count{font-size:11px;color:var(--c-text);font-weight:700}
@@ -2996,7 +2996,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=730"></script>
+  <script src="app.js?v=731"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
