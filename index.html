@@ -274,7 +274,7 @@ ul,li{list-style:none}
 .record-card{
   background:var(--c-card);border-radius:var(--radius);
   box-shadow:var(--shadow-sm);padding:16px;transition:box-shadow .2s,transform .15s;
-  cursor:pointer;border:1px solid var(--c-border);
+  cursor:pointer;
 }
 .record-card:hover{box-shadow:var(--shadow);border-color:var(--c-primary-bg)}
 .record-list.two-col .record-card{min-height:110px}
@@ -2073,7 +2073,7 @@ ul,li{list-style:none}
 .spacer{flex:1}
 
 /* Hero */
-.life-hero{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,var(--c-primary-bg),#fff);border:1px solid var(--c-border);border-radius:var(--radius);padding:14px 16px;margin:2px 0 14px;box-shadow:var(--shadow-sm)}
+.life-hero{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,var(--c-primary-bg),#fff);border-radius:var(--radius);padding:14px 16px;margin:2px 0 14px;box-shadow:var(--shadow-sm)}
 .life-hero .lh-ico{font-size:30px}
 .life-hero .lh-title{font-size:16px;font-weight:800;color:var(--c-text)}
 .life-hero .lh-sub{font-size:12px;color:var(--c-text-light);margin-top:2px}
@@ -2086,12 +2086,12 @@ ul,li{list-style:none}
 
 /* Summary cards */
 .life-summary-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin:12px 0 14px}
-.life-summary-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:12px 10px;text-align:center;box-shadow:var(--shadow-sm)}
+.life-summary-card{background:var(--c-card);border-radius:var(--radius);padding:12px 10px;text-align:center;box-shadow:var(--shadow-sm)}
 .life-summary-card .lsc-val{font-size:22px;font-weight:800;color:var(--c-primary-dark)}
 .life-summary-card .lsc-label{font-size:12px;color:var(--c-text-light);margin-top:2px}
 
 /* Quick check-in block */
-.life-quick-checkin{background:#fff;border:1px solid var(--c-border-light);border-radius:var(--radius);padding:18px 12px;margin-bottom:14px;box-shadow:var(--shadow-sm)}
+.life-quick-checkin{background:#fff;border-radius:var(--radius);padding:18px 12px;margin-bottom:14px;box-shadow:var(--shadow-sm)}
 .lqc-hd{display:flex;align-items:center;justify-content:flex-start;gap:10px;margin-bottom:12px}
 .lqc-title{font-size:18px;font-weight:700;color:var(--c-text)}
 .lqc-count{font-size:11px;font-weight:500;color:var(--c-text-light);background:var(--c-card);padding:2px 8px;border-radius:99px}
@@ -2134,7 +2134,7 @@ ul,li{list-style:none}
 .life-goal-add:hover{border-color:var(--c-primary);color:var(--c-primary)}
 .lga-plus{font-size:30px;line-height:1}
 .lga-txt{font-size:13px}
-.life-goal-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:10px 12px;box-shadow:var(--shadow-sm);transition:box-shadow .2s,transform .2s,border-color .2s;display:flex;flex-direction:column;gap:8px}
+.life-goal-card{background:var(--c-card);border-radius:var(--radius);padding:10px 12px;box-shadow:var(--shadow-sm);transition:box-shadow .2s,transform .2s,border-color .2s;display:flex;flex-direction:column;gap:8px}
 .life-goal-card:hover{box-shadow:var(--shadow);transform:translateY(-2px);border-color:var(--c-primary-light)}
 .lgc-head{display:flex;align-items:center;gap:12px}
 .lgc-ico{width:44px;height:44px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
@@ -2190,7 +2190,7 @@ ul,li{list-style:none}
 .lgc-mp-fill.week{background:var(--c-orange)}
 
 /* Quick check-in matrix */
-.life-quick-matrix{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
+.life-quick-matrix{background:var(--c-card);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
 .life-qm-table{width:100%;border-collapse:collapse;font-size:13px}
 .life-qm-table th{padding:10px 6px;text-align:center;font-weight:600;color:var(--c-text-light);background:var(--c-primary-bg);border-bottom:1px solid var(--c-border-light)}
 .life-qm-table th .wd{font-weight:400;font-size:11px}
@@ -2259,7 +2259,7 @@ ul,li{list-style:none}
 #lifePickerBackdrop{display:none}
 #lifePickerBackdrop.show{display:block}
 .life-year-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.life-year-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow-sm)}
+.life-year-card{background:var(--c-card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow-sm)}
 .life-year-grid .life-goal-card{padding-top:10px}
 .lyc-name{font-size:14px;font-weight:700;color:var(--c-text);display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .life-year-grid .lgc-name{font-size:14px}
@@ -2338,7 +2338,7 @@ ul,li{list-style:none}
 /* ===== /v627 每日打卡配色局部调整 ===== */
 
 /* 本周概览（主页面大模块） */
-.life-week-module{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow-sm);max-width:420px;margin:0 auto 14px}
+.life-week-module{background:var(--c-card);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow-sm);max-width:420px;margin:0 auto 14px}
 .lwm-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap;padding-left:0;padding-right:0}
 .lwm-title{font-size:18px;font-weight:700;color:var(--c-text)}
 .lwm-range{font-size:12px;font-weight:600;color:var(--c-text-light);min-width:120px;text-align:right}
@@ -2355,13 +2355,13 @@ ul,li{list-style:none}
 .lwm-cell.week.done{background:var(--c-orange);border-color:var(--c-orange)}
 .lwm-cell.today{outline:1px solid var(--c-primary);outline-offset:-1px}
 .lwm-cell.week.today{outline-color:var(--c-orange)}
-.lwm-summary{display:flex;gap:10px;flex-wrap:wrap;margin:0 auto 12px;max-width:420px;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow-sm)}
+.lwm-summary{display:flex;gap:10px;flex-wrap:wrap;margin:0 auto 12px;max-width:420px;background:var(--c-card);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow-sm)}
 .lwm-sum-item{flex:1;min-width:100px;display:flex;flex-direction:column;gap:3px}
 .lwm-sum-label{font-size:11px;color:var(--c-text-light)}
 .lwm-sum-val{font-size:18px;font-weight:800;color:var(--c-text)}
 
 /* Daily record */
-.life-record-datebar{display:flex;align-items:center;gap:10px;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:10px 14px;margin-bottom:4px;flex-wrap:wrap}
+.life-record-datebar{display:flex;align-items:center;gap:10px;background:var(--c-card);border-radius:var(--radius);padding:10px 14px;margin-bottom:4px;box-shadow:var(--shadow-sm);flex-wrap:wrap}
 .life-record-datebar input[type=date]{padding:7px 9px;font-size:14px;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:#fff;color-scheme:light}
 .life-stat-row{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 4px}
 .life-stat{flex:1;min-width:120px;background:var(--c-primary-bg);border-radius:var(--radius);padding:10px 14px;text-align:center}
@@ -2384,7 +2384,7 @@ ul,li{list-style:none}
 .life-rec-form .form-input,.life-rec-form .form-select{font-size:13px}
 .life-rec-form .checkbox-group.pill-group,.life-rec-form .checkbox-group.tag-group{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 
-.life-panel{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-top:14px;overflow:hidden}
+.life-panel{background:var(--c-card);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-top:14px;overflow:hidden}
 .life-panel-head{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--c-primary-bg);border-bottom:1px solid var(--c-border-light)}
 .life-panel-head .lph-ico{font-size:18px}
 .life-panel-head .lph-label{font-weight:700;font-size:14px;color:var(--c-text)}
@@ -2420,7 +2420,7 @@ ul,li{list-style:none}
 .life-record-page{background:var(--c-bg);border-radius:var(--radius);padding:0;margin:0}
 
 /* Top overview card — v311: 左右两盒均分，中间竖线用左盒 border-right，底色白色 */
-.lr-top-card{display:grid;grid-template-columns:1fr 1fr;align-items:stretch;background:#FFFFFF;border:1px solid var(--c-border);border-radius:var(--radius);padding:0;margin-bottom:12px;box-shadow:var(--shadow-sm);overflow:hidden}
+.lr-top-card{display:grid;grid-template-columns:1fr 1fr;align-items:stretch;background:#FFFFFF;border-radius:var(--radius);padding:0;margin-bottom:12px;box-shadow:var(--shadow-sm);overflow:hidden}
 .lr-top-left{min-width:0;display:flex;align-items:flex-start;justify-content:flex-start;gap:14px;padding:16px 16px 16px 3px;border-right:1px solid var(--c-border-light);box-sizing:border-box}
 .lr-ring-col{flex-shrink:0;display:flex;flex-direction:column;align-items:center;min-width:0;margin-left:-2px}
 .sleep-ring-wrap{position:relative;width:160px;height:160px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
@@ -2451,13 +2451,13 @@ ul,li{list-style:none}
 .lr-date-nav .cd-month-btn:hover{color:var(--c-primary);background:transparent}
 .lr-date-nav .cd-month-btn:disabled{opacity:.35;cursor:not-allowed;color:var(--c-text-light);background:transparent}
 .lmp-back{font-size:12px;color:var(--c-primary);text-align:center;padding:4px 0 8px;cursor:pointer}
-.lr-toggle-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-sm);padding:0 12px;font-size:13px;font-weight:800;color:var(--c-text);cursor:pointer;transition:.15s;box-shadow:var(--shadow-sm);line-height:1;height:var(--pill-h);min-height:var(--pill-h)}
+.lr-toggle-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--c-card);border-radius:var(--radius-sm);padding:0 12px;font-size:13px;font-weight:800;color:var(--c-text);cursor:pointer;transition:.15s;box-shadow:var(--shadow-sm);line-height:1;height:var(--pill-h);min-height:var(--pill-h)}
 .lr-toggle-btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
 .lr-toggle-btn.active{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
 .lr-toggle-btn span{font-size:18px}
 
 /* Record cards */
-.lr-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-bottom:12px;overflow:hidden}
+.lr-card{background:var(--c-card);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-bottom:12px;overflow:hidden}
 .lr-card-head{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--c-primary-bg);border-bottom:1px solid var(--c-border-light)}
 /* v687：标题改为 flex 容器，让图标与文字视觉中心对齐（消除 lucide-icon 基线偏上） */
 /* v688：撤销 v687 的 flex（vertical-align:middle 已全局生效，不再需要 flex 居中） */
@@ -2511,7 +2511,7 @@ ul,li{list-style:none}
 .life-rec-form .flavor-name{white-space:normal;word-break:break-word;overflow:visible;min-width:0;flex:1}
 
 /* History view */
-.lr-history-stat-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:10px;margin-bottom:8px;box-shadow:var(--shadow-sm)}
+.lr-history-stat-card{background:var(--c-card);border-radius:var(--radius);padding:10px;margin-bottom:8px;box-shadow:var(--shadow-sm)}
 .lr-hsc-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-top:10px}
 .lr-hsc-title{font-size:14px;font-weight:800;color:var(--c-text)}
 .lr-hsc-sub{font-size:13px;font-weight:600;color:var(--c-text-light)}
@@ -2555,7 +2555,7 @@ ul,li{list-style:none}
 .lr-hsc-diet-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 12px;padding:4px 2px}
 .lr-hsc-diet-item{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--c-text)}
 .lr-hsc-diet-count{font-weight:700;color:var(--c-primary)}
-.lr-history-day-card{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-bottom:12px;overflow:hidden}
+.lr-history-day-card{background:var(--c-card);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-bottom:12px;overflow:hidden}
 .lr-history-day-head{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--c-primary-bg);border-bottom:1px solid var(--c-border-light)}
 .lr-history-day-date{font-size:14px;font-weight:700;color:var(--c-text)}
 .lr-history-day-wd{font-size:12px;color:var(--c-text-light);font-weight:500}
@@ -2635,7 +2635,7 @@ ul,li{list-style:none}
 .cd-page-head{font-size:18px;font-weight:700;color:var(--c-primary-dark);margin:2px 0 12px}
 /* 信息录入：三个按钮并列 */
 .cd-import-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
-.cd-import-btn{padding:14px 12px;border:1px solid var(--c-border-light);border-radius:var(--radius-sm);background:#fff;cursor:pointer;transition:.15s;text-align:center;margin-bottom:-2px}
+.cd-import-btn{padding:14px 12px;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm);background:#fff;cursor:pointer;transition:.15s;text-align:center;margin-bottom:-2px}
 .cd-import-btn:hover{border-color:var(--c-primary);box-shadow:0 2px 10px rgba(0,0,0,.06);transform:translateY(-2px)}
 .cd-import-btn-icon{font-size:26px;margin-bottom:3px}
 /* v452：顶部导入渠道按钮字色与接稿详情四个品类按钮内文字色(var(--c-text))统一 */
@@ -2643,7 +2643,7 @@ ul,li{list-style:none}
 .cd-import-btn-desc{font-size:12px;color:var(--c-text-muted);margin-top:1px}
 /* 品类切换按钮（四个并排均分，与首页平台按钮同款均分布局） */
 .cd-cat-bar{display:flex;gap:6px;margin-bottom:8px}
-.cd-cat-btn{flex:1;justify-content:center;padding:11px 6px;border:1px solid var(--c-border-light);border-radius:var(--radius-sm);font-size:14px;cursor:pointer;background:#fff;color:var(--c-text);transition:.15s;display:flex;align-items:center;gap:6px;font-weight:700;margin-bottom:-2px}
+.cd-cat-btn{flex:1;justify-content:center;padding:11px 6px;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm);font-size:14px;cursor:pointer;background:#fff;color:var(--c-text);transition:.15s;display:flex;align-items:center;gap:6px;font-weight:700;margin-bottom:-2px}
 .cd-cat-btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
 .cd-cat-btn.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary)}
 /* v452：品类按钮后数字颜色与按钮内文字色(var(--c-text))一致；激活态保持 #fff */
@@ -2783,7 +2783,7 @@ ul,li{list-style:none}
 .comm-dual .record-card-body .comm-product-item input{width:14px;height:14px;accent-color:var(--c-green);cursor:pointer}
 .comm-dual .empty-state{grid-column:1 / -1}
 .comm-dual .comm-detail-card{cursor:default;display:flex;flex-direction:column;overflow:hidden}
-.comm-dual .comm-detail-card.record-card{background:var(--c-card);border:1px solid var(--c-border-light);padding:0}
+.comm-dual .comm-detail-card.record-card{background:var(--c-card);padding:0}
 /* 厂家记录：由关联开团自动汇总的合作记录 */
 .coop-from-groupbuy{display:flex;flex-direction:column;gap:4px;margin-top:2px}
 .coop-row{display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap}
@@ -2993,7 +2993,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=724"></script>
+  <script src="app.js?v=725"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
