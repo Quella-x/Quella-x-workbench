@@ -249,14 +249,13 @@ ul,li{list-style:none}
   display:inline-flex;align-items:center;justify-content:center;gap:6px;
   padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;
   font-weight:500;transition:all .2s;white-space:nowrap;
-  box-shadow:var(--shadow-sm)
+  border:1px solid transparent
 }
-.btn:hover{box-shadow:var(--shadow)}
-.btn-primary{background:var(--c-primary);color:#fff}
-.btn-primary:hover{background:var(--c-primary-dark)}
-.btn-outline{background:var(--c-card);color:var(--c-primary);border:1px solid var(--c-primary-light)}
+.btn-primary{background:var(--c-primary);color:#fff;box-shadow:var(--shadow-sm)}
+.btn-primary:hover{background:var(--c-primary-dark);box-shadow:var(--shadow)}
+.btn-outline{background:var(--c-card);color:var(--c-primary);border:1px solid var(--c-primary-light);box-shadow:none}
 .btn-outline:hover{background:var(--c-primary-bg)}
-.btn-ghost{background:transparent;color:var(--c-text-light)}
+.btn-ghost{background:transparent;color:var(--c-text-light);box-shadow:none}
 .btn-ghost:hover{background:var(--c-primary-bg);color:var(--c-primary)}
 .btn-danger{background:var(--c-danger);color:#fff}
 .btn-danger:hover{background:#d9363b}
@@ -1348,7 +1347,7 @@ ul,li{list-style:none}
 .home-status-filter{display:flex;gap:6px;margin:8px 0 14px}
 .home-status-btn{
   flex:1;min-width:0;padding:0 12px;border-radius:var(--radius-sm);cursor:pointer;
-  border:1px solid var(--c-border);background:var(--c-card-bg,#fff);
+  border:1px solid var(--c-border);background:var(--c-card);box-shadow:none;
   font-size:13px;font-weight:600;color:var(--c-text-light);line-height:1;height:var(--pill-h);min-height:var(--pill-h);
   display:flex;align-items:center;justify-content:center;gap:4px;transition:all .15s;
 }
@@ -2110,7 +2109,7 @@ ul,li{list-style:none}
 /* 日版块 / 周版块 切换（v221：缩小并置于月份条右侧） */
 .life-block-toggle{display:flex;gap:6px;margin:0 0 0 auto;align-items:center}
 .lbt-btn{
-  border:1px solid var(--c-border);background:var(--c-card);color:var(--c-text-light);
+  border:1px solid var(--c-primary-light);background:var(--c-card);color:var(--c-primary);box-shadow:none;
   font-size:12px;font-weight:600;padding:5px 12px;border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;
 }
 .lbt-btn:hover{border-color:var(--c-primary)}
@@ -2451,7 +2450,7 @@ ul,li{list-style:none}
 .lr-date-nav .cd-month-btn:hover{color:var(--c-primary);background:transparent}
 .lr-date-nav .cd-month-btn:disabled{opacity:.35;cursor:not-allowed;color:var(--c-text-light);background:transparent}
 .lmp-back{font-size:12px;color:var(--c-primary);text-align:center;padding:4px 0 8px;cursor:pointer}
-.lr-toggle-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--c-card);border-radius:var(--radius-sm);padding:0 12px;font-size:13px;font-weight:800;color:var(--c-text);cursor:pointer;transition:.15s;box-shadow:var(--shadow-sm);line-height:1;height:var(--pill-h);min-height:var(--pill-h)}
+.lr-toggle-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--c-card);border-radius:var(--radius-sm);padding:0 12px;font-size:13px;font-weight:800;color:var(--c-text);cursor:pointer;transition:.15s;line-height:1;height:var(--pill-h);min-height:var(--pill-h)}
 .lr-toggle-btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
 .lr-toggle-btn.active{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
 .lr-toggle-btn span{font-size:18px}
@@ -2635,7 +2634,7 @@ ul,li{list-style:none}
 .cd-page-head{font-size:18px;font-weight:700;color:var(--c-primary-dark);margin:2px 0 12px}
 /* 信息录入：三个按钮并列 */
 .cd-import-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
-.cd-import-btn{padding:14px 12px;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm);background:#fff;cursor:pointer;transition:.15s;text-align:center;margin-bottom:-2px}
+.cd-import-btn{padding:14px 12px;border-radius:var(--radius-sm);background:#fff;cursor:pointer;transition:.15s;text-align:center;margin-bottom:-2px}
 .cd-import-btn:hover{border-color:var(--c-primary);box-shadow:0 2px 10px rgba(0,0,0,.06);transform:translateY(-2px)}
 .cd-import-btn-icon{font-size:26px;margin-bottom:3px}
 /* v452：顶部导入渠道按钮字色与接稿详情四个品类按钮内文字色(var(--c-text))统一 */
@@ -2643,7 +2642,7 @@ ul,li{list-style:none}
 .cd-import-btn-desc{font-size:12px;color:var(--c-text-muted);margin-top:1px}
 /* 品类切换按钮（四个并排均分，与首页平台按钮同款均分布局） */
 .cd-cat-bar{display:flex;gap:6px;margin-bottom:8px}
-.cd-cat-btn{flex:1;justify-content:center;padding:11px 6px;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm);font-size:14px;cursor:pointer;background:#fff;color:var(--c-text);transition:.15s;display:flex;align-items:center;gap:6px;font-weight:700;margin-bottom:-2px}
+.cd-cat-btn{flex:1;justify-content:center;padding:11px 6px;border-radius:var(--radius-sm);font-size:14px;cursor:pointer;background:#fff;color:var(--c-text);transition:.15s;display:flex;align-items:center;gap:6px;font-weight:700;margin-bottom:-2px}
 .cd-cat-btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
 .cd-cat-btn.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary)}
 /* v452：品类按钮后数字颜色与按钮内文字色(var(--c-text))一致；激活态保持 #fff */
@@ -2652,7 +2651,7 @@ ul,li{list-style:none}
 /* 月导航（像每日打卡日期按钮：无边框、透明底、浅色字、hover 变主色） */
 .cd-month-nav{display:flex;align-items:center;justify-content:center;gap:12px;margin:4px 0 6px;position:relative;padding:0 70px}
 /* v638：未关联按钮样式参考每日打卡周/月/年按钮(.lbt-btn)，宽度自适配 */
-.cd-unlinked-btn{position:absolute;right:0;top:50%;transform:translateY(-50%);border:1px solid var(--c-border);background:var(--c-card);color:var(--c-text-light);font-size:12px;font-weight:600;padding:5px 12px;border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;white-space:nowrap}
+.cd-unlinked-btn{position:absolute;right:0;top:50%;transform:translateY(-50%);border:1px solid var(--c-primary-light);background:var(--c-card);color:var(--c-primary);box-shadow:none;font-size:12px;font-weight:600;padding:5px 12px;border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;white-space:nowrap}
 .cd-unlinked-btn:hover{border-color:var(--c-primary)}
 .cd-unlinked-btn.active{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
 @media (max-width:640px){
@@ -2993,7 +2992,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=725"></script>
+  <script src="app.js?v=726"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
