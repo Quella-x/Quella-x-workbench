@@ -1263,20 +1263,20 @@ ul,li{list-style:none}
 }
 .annual-chart-title-main{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
 .annual-chart-title-main .lucide-icon{vertical-align:-2px;transform:translateY(2px)}
-/* v720：年份导航容器补回与首页月份导航(.life-monthbar.year-mode)一致的上下边距 4/6，避免透明按钮视觉上「贴紧下方」 */
-.annual-chart-yearnav{display:flex;gap:4px;flex-shrink:0;margin:4px 0 6px}
+/* v721：还原 v705 记录页年份导航容器（无 margin），与 v705 首页月份导航一致 */
+.annual-chart-yearnav{display:flex;gap:4px;flex-shrink:0}
 /* v720：桌面接稿排期 = 上一轮 21px 再减 2px = 19px；底边距保持 -6px（与下方 .annual-chart padding-top:16 叠加后视觉 10px） */
-.comm-yearnav{margin:19px 0 -6px}
+.comm-yearnav{margin:9px 0 -6px}
 @media (max-width:640px){
   /* v718：手机端年份导航：日历视图不变 21/13（必须在 base 规则之后，否则被 base 覆盖） */
-  .comm-yearnav{margin:21px 0 13px}
+  .comm-yearnav{margin:19px 0 11px}
   /* v720：手机端列表视图 = 基础 13px 再减 1px = 12px；上边距 = 基础 21px 再减 4px = 17px */
-  .comm-list-yearnav{margin:17px 0 12px}
+  .comm-list-yearnav{margin:15px 0 10px}
 }
 /* 年份导航内 .life-monthbar.year-mode 自身 margin 归零，避免与外部 .comm-yearnav margin 坍塌叠加（仅作用于接稿排期，不动生活页 year-mode） */
 .comm-yearnav .life-monthbar.year-mode,.comm-list-yearnav .life-monthbar.year-mode,.comm-cal-yearnav .life-monthbar.year-mode{margin:0}
 /* v718：开团/厂家/打样/灵感/故事小记/约稿记录等模块的年份导航按钮，与首页月份导航(.cd-month-btn 4px 10px/14px)对齐（原 2px 8px/11px 不一致） */
-.annual-chart-yearnav .btn-xs{padding:4px 10px;font-size:14px}
+.annual-chart-yearnav .btn-xs{padding:2px 8px;font-size:11px}
 /* v713：接稿排期年份导航按钮上下内边距/字号与首页月份导航(.cd-month-btn 4px 10px/14px)对齐，消除「上下边距不一致」 */
 .comm-yearnav .btn-xs{padding:4px 10px;font-size:14px}
 /* v713：接稿排期列表视图年份导航（嵌在 .comm-list-nostats 年度图表内）同样对齐 */
@@ -2984,7 +2984,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=720"></script>
+  <script src="app.js?v=721"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
