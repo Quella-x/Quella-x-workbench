@@ -224,6 +224,7 @@ ul,li{list-style:none}
   margin-bottom:8px;/* v225: 用户要求搜索框到切换按钮间距 8px */
 }
 .view-toggle-top .btn{padding:8px 16px;font-weight:700}
+.view-toggle-top .btn-primary,.view-toggle-top .btn-primary:hover{box-shadow:none}
 .search-box{position:relative;display:flex;align-items:center}
 .search-box input{
   width:200px;padding:8px 32px 8px 12px;
@@ -240,7 +241,7 @@ ul,li{list-style:none}
 }
 .filter-select:focus{border-color:var(--c-primary-light)}
 .filter-combobox{min-width:0;width:112px;max-width:112px}
-.filter-combobox-input{padding:8px 24px 8px 8px!important;font-size:13px;text-align:center;background:var(--c-card);cursor:pointer;border:1px solid transparent;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm);transition:border-color .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.filter-combobox-input{padding:8px 24px 8px 8px!important;font-size:13px;text-align:center;background:var(--c-card);cursor:pointer;border:1px solid transparent !important;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm);transition:border-color .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .filter-combobox .combobox-toggle{right:4px;width:16px;font-size:9px}
 .filter-combobox-input:focus{border-color:var(--c-primary-light)}
 .filter-combobox .combobox-option{text-align:center}
@@ -693,7 +694,7 @@ ul,li{list-style:none}
 /* v32: 时间线重要性分段胶囊 — 一个长椭圆容器，里面四段；未选中=白底彩点+黑字，选中=整段填色+白点白字 */
 .checkbox-group.importance-pills{
   display:inline-flex;flex-wrap:nowrap;gap:0;
-  background:#fff;border:1px solid var(--c-border);border-radius:999px;
+  background:#fff;border:none;border-radius:999px;box-shadow:var(--shadow-sm);
   padding:3px;overflow:hidden;height:var(--pill-h);
 }
 .checkbox-group.importance-pills .checkbox-item{
@@ -1267,8 +1268,8 @@ ul,li{list-style:none}
 .annual-chart-title-main{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
 .annual-chart-title-main .lucide-icon{vertical-align:-2px;transform:translateY(2px)}
 /* v723：年份导航从标题行拆出为独立一行，其 margin 才能真实生效；有导航时标题下边距缩为4px，让导航上边距=4px */
-.annual-chart.has-yearnav .annual-chart-title{margin-bottom:4px}
-.annual-chart-yearnav{display:flex;gap:4px;flex-shrink:0;margin:4px 0 6px;justify-content:flex-end}
+.annual-chart.has-yearnav .annual-chart-title{margin-bottom:12px}
+.annual-chart-yearnav{display:inline-flex;gap:4px;flex-shrink:0;margin:0;justify-content:flex-end}
 /* v728 根因修复：此前 .comm-yearnav 作为 base 写在各具体规则之后、等特异性下覆盖了 .comm-cal-yearnav/.comm-list-yearnav，且底边距 -6px 负值导致「贴死没下边距」。统一为每日记录年份导航标准 4/6（顶4底6），七模块与接稿排期年份导航下边距一致可见 */
 .comm-yearnav{margin:4px 0 6px}
 /* v729 电脑端接稿排期左侧年份导航上下边距改 8px（仅桌面；移动端 .comm-cal-yearnav 15/5 不变） */
@@ -1727,6 +1728,7 @@ ul,li{list-style:none}
 
 /* ===== Design Quote Calculator ===== */
 .calc-page{max-width:1200px;margin:0 auto}
+button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .calc-page-grid{display:grid;grid-template-columns:1fr 340px;gap:10px;align-items:stretch;height:100%}
 .calc-input-col{display:flex;flex-direction:column;gap:12px;height:100%;overflow-y:auto;container-type:inline-size}
 .calc-card{background:var(--c-card-bg,#fff);border:1px solid var(--c-border-light,#e8e8e8);border-radius:10px;padding:14px}
@@ -2452,8 +2454,8 @@ ul,li{list-style:none}
 .lr-date-nav .cd-month-btn:hover{color:var(--c-primary);background:transparent}
 .lr-date-nav .cd-month-btn:disabled{opacity:.35;cursor:not-allowed;color:var(--c-text-light);background:transparent}
 .lmp-back{font-size:12px;color:var(--c-primary);text-align:center;padding:4px 0 8px;cursor:pointer}
-.lr-toggle-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--c-card);border-radius:var(--radius-sm);padding:0 12px;font-size:13px;font-weight:800;color:var(--c-text);cursor:pointer;transition:.15s;line-height:1;height:var(--pill-h);min-height:var(--pill-h)}
-.lr-toggle-btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.lr-toggle-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--c-card);border:1px solid transparent;border-radius:var(--radius-sm);padding:0 12px;font-size:13px;font-weight:800;color:var(--c-text);cursor:pointer;transition:.15s;line-height:1;height:var(--pill-h);min-height:var(--pill-h);box-shadow:var(--shadow-sm)}
+.lr-toggle-btn:hover{color:var(--c-primary);box-shadow:var(--shadow)}
 .lr-toggle-btn.active{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
 .lr-toggle-btn span{font-size:18px}
 
@@ -2636,8 +2638,8 @@ ul,li{list-style:none}
 .cd-page-head{font-size:18px;font-weight:700;color:var(--c-primary-dark);margin:2px 0 12px}
 /* 信息录入：三个按钮并列 */
 .cd-import-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
-.cd-import-btn{padding:14px 12px;border-radius:var(--radius-sm);background:#fff;cursor:pointer;transition:.15s;text-align:center;margin-bottom:-2px}
-.cd-import-btn:hover{border-color:var(--c-primary);box-shadow:0 2px 10px rgba(0,0,0,.06);transform:translateY(-2px)}
+.cd-import-btn{padding:14px 12px;border-radius:var(--radius-sm);background:#fff;border:1px solid transparent;box-shadow:var(--shadow-sm);cursor:pointer;transition:.15s;text-align:center;margin-bottom:-2px}
+.cd-import-btn:hover{box-shadow:0 2px 10px rgba(0,0,0,.06);transform:translateY(-2px)}
 .cd-import-btn-icon{font-size:26px;margin-bottom:3px}
 /* v452：顶部导入渠道按钮字色与接稿详情四个品类按钮内文字色(var(--c-text))统一 */
 .cd-import-btn-name{font-size:14px;font-weight:700;color:var(--c-primary-dark)}
@@ -2994,7 +2996,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=729"></script>
+  <script src="app.js?v=730"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
