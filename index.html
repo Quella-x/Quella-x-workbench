@@ -1263,13 +1263,14 @@ ul,li{list-style:none}
 }
 .annual-chart-title-main{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
 .annual-chart-title-main .lucide-icon{vertical-align:-2px;transform:translateY(2px)}
-.annual-chart-yearnav{display:flex;gap:4px;flex-shrink:0}
-/* v719：年份导航上下边距：桌面 = 21 再「上减2」= 19/-6（与下方 .annual-chart padding-top:16 叠加，视觉下间距回到 10）；手机见下方 @media 覆盖 */
+/* v720：年份导航容器补回与首页月份导航(.life-monthbar.year-mode)一致的上下边距 4/6，避免透明按钮视觉上「贴紧下方」 */
+.annual-chart-yearnav{display:flex;gap:4px;flex-shrink:0;margin:4px 0 6px}
+/* v720：桌面接稿排期 = 上一轮 21px 再减 2px = 19px；底边距保持 -6px（与下方 .annual-chart padding-top:16 叠加后视觉 10px） */
 .comm-yearnav{margin:19px 0 -6px}
 @media (max-width:640px){
   /* v718：手机端年份导航：日历视图不变 21/13（必须在 base 规则之后，否则被 base 覆盖） */
   .comm-yearnav{margin:21px 0 13px}
-  /* v718：手机端列表视图再「上减4/下减1」= 17/12（放在 .comm-yearnav 之后才能生效） */
+  /* v720：手机端列表视图 = 基础 13px 再减 1px = 12px；上边距 = 基础 21px 再减 4px = 17px */
   .comm-list-yearnav{margin:17px 0 12px}
 }
 /* 年份导航内 .life-monthbar.year-mode 自身 margin 归零，避免与外部 .comm-yearnav margin 坍塌叠加（仅作用于接稿排期，不动生活页 year-mode） */
@@ -1337,7 +1338,7 @@ ul,li{list-style:none}
 /* ===== Global Status Filter Buttons (DN-4轮) ===== */
 .home-status-filter{display:flex;gap:6px;margin:8px 0 14px}
 .home-status-btn{
-  flex:1;min-width:0;padding:0 12px;border-radius:10px;cursor:pointer;
+  flex:1;min-width:0;padding:0 12px;border-radius:var(--radius-sm);cursor:pointer;
   border:1px solid var(--c-border);background:var(--c-card-bg,#fff);
   font-size:13px;font-weight:600;color:var(--c-text-light);line-height:1;height:var(--pill-h);min-height:var(--pill-h);
   display:flex;align-items:center;justify-content:center;gap:4px;transition:all .15s;
@@ -1350,7 +1351,7 @@ ul,li{list-style:none}
 /* 首页待发布按钮（按平台分组查看） */
 .home-pending-bar{margin:10px 0 12px}
 .home-pending-btn{
-  width:100%;padding:11px 14px;border-radius:10px;cursor:pointer;
+  width:100%;padding:11px 14px;border-radius:var(--radius-sm);cursor:pointer;
   border:1px solid var(--c-orange);background:#fffbe6;color:var(--c-orange);
   font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;
 }
@@ -2983,7 +2984,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=719"></script>
+  <script src="app.js?v=720"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
