@@ -249,7 +249,9 @@ ul,li{list-style:none}
   display:inline-flex;align-items:center;justify-content:center;gap:6px;
   padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;
   font-weight:500;transition:all .2s;white-space:nowrap;
+  box-shadow:var(--shadow-sm)
 }
+.btn:hover{box-shadow:var(--shadow)}
 .btn-primary{background:var(--c-primary);color:#fff}
 .btn-primary:hover{background:var(--c-primary-dark)}
 .btn-outline{background:var(--c-card);color:var(--c-primary);border:1px solid var(--c-primary-light)}
@@ -1265,9 +1267,9 @@ ul,li{list-style:none}
 }
 .annual-chart-title-main{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
 .annual-chart-title-main .lucide-icon{vertical-align:-2px;transform:translateY(2px)}
-/* v721：还原 v705 记录页年份导航容器（无 margin），与 v705 首页月份导航一致 */
-/* v722：八模块列表视图年份导航容器 margin 统一为 每日记录年份导航标准 4px 0 6px（首页月份导航本就 4/6，故全局一致） */
-.annual-chart-yearnav{display:flex;gap:4px;flex-shrink:0;margin:4px 0 6px}
+/* v723：年份导航从标题行拆出为独立一行，其 margin 才能真实生效；有导航时标题下边距缩为4px，让导航上边距=4px */
+.annual-chart.has-yearnav .annual-chart-title{margin-bottom:4px}
+.annual-chart-yearnav{display:flex;gap:4px;flex-shrink:0;margin:4px 0 6px;justify-content:flex-end}
 /* v720：桌面接稿排期 = 上一轮 21px 再减 2px = 19px；底边距保持 -6px（与下方 .annual-chart padding-top:16 叠加后视觉 10px） */
 .comm-yearnav{margin:9px 0 -6px}
 @media (max-width:640px){
@@ -2990,7 +2992,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=722"></script>
+  <script src="app.js?v=723"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

@@ -1759,7 +1759,8 @@ function renderAnnualChart(records, dateField, opts = {}, pageKey) {
     let labels = ''; for (let i = 0; i < 12; i++) labels += `<span>${i + 1}月</span>`;
     let legend = '';
     series.forEach(s => { legend += `<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:${s.color}"></span>${esc(s.name)}</span>`; });
-    return `<div class="annual-chart"><div class="annual-chart-title"><span class="annual-chart-title-main">${lucide('bar-chart-3',16)} ${esc(title)} · ${yr}年</span>${yearNav}</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div><div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--c-text-light)">${legend}</div></div>`;
+    const hasYearnav = yearNav ? ' has-yearnav' : '';
+    return `<div class="annual-chart${hasYearnav}"><div class="annual-chart-title"><span class="annual-chart-title-main">${lucide('bar-chart-3',16)} ${esc(title)} · ${yr}年</span></div>${yearNav}<div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div><div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--c-text-light)">${legend}</div></div>`;
   }
   const months = Array(12).fill(0);
   records.forEach(r => {
@@ -1779,7 +1780,8 @@ function renderAnnualChart(records, dateField, opts = {}, pageKey) {
     bars += '</div>';
   });
   let labels = ''; for (let i = 0; i < 12; i++) labels += `<span>${i + 1}月</span>`;
-  return `<div class="annual-chart"><div class="annual-chart-title"><span class="annual-chart-title-main">${lucide('bar-chart-3',16)} ${esc(title)} · ${yr}年</span>${yearNav}</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div></div>`;
+  const hasYearnav = yearNav ? ' has-yearnav' : '';
+    return `<div class="annual-chart${hasYearnav}"><div class="annual-chart-title"><span class="annual-chart-title-main">${lucide('bar-chart-3',16)} ${esc(title)} · ${yr}年</span></div>${yearNav}<div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div></div>`;
 }
 
 /* ===== Navigation Config ===== */
