@@ -384,7 +384,7 @@ ul,li{list-style:none}
 .cal-legend{display:flex;flex-wrap:wrap;gap:8px 16px;padding:7px 16px;font-size:12px;line-height:18px;color:var(--c-text-light);align-items:center}
 .cal-legend-sep{height:1px;background:var(--c-border-light);margin:0}
 .cal-legend-vbar{width:1px;height:14px;background:var(--c-border-light);margin:0 2px}
-.cal-divider{height:2px;background:var(--c-primary-dark);margin:24px 0 16px;border-radius:1px;opacity:.3;border:none}
+.cal-divider{height:2px;background:var(--c-primary-dark);margin:16px 0 16px;border-radius:1px;opacity:.3;border:none}
 .cal-legend .legend-item{display:inline-flex;align-items:center;gap:5px;line-height:18px;white-space:nowrap}
 .commission-cal-grid .cal-date-row{justify-content:flex-start}
 .cal-legend .legend-item .status-dot{margin-right:0}
@@ -485,8 +485,10 @@ ul,li{list-style:none}
   .chart-stats-2col .annual-chart-title{margin:4px 0 12px}
   /* v715：接稿排期年份导航上下边距 = 首页月份导航(23/14) 再按用户要求「上减2/下减20」= 21/-6（负底边距与下方 .comm-cal-chartstats 的 .annual-chart padding-top:16 叠加，视觉下间距回到 14px） */
   .comm-list-yearnav{margin:21px 0 -6px}
-  .comm-cal-yearnav{margin:21px 0 -6px}
-  .comm-cal-yearnav + .cal-divider{margin-top:0}
+  /* v722：电脑端接稿排期日历视图年份导航 删除下方分割线后上下边距一致(6/6) */
+  .comm-cal-yearnav{margin:6px 0 6px}
+  /* v722：电脑端接稿排期 删除左侧年份导航按钮下的分割线（图表统计区顶部 .stats-divider） */
+  .comm-cal-chartstats > .stats-divider:first-child{display:none}
 }
 @media (max-width:640px){
   /* v714：手机端 #mainBody 同样预留滚动条槽，避免接稿详情等有记录时切月顶部工具条宽度抖动（桌面端已在 min-width:641 内预留） */
@@ -1264,14 +1266,18 @@ ul,li{list-style:none}
 .annual-chart-title-main{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
 .annual-chart-title-main .lucide-icon{vertical-align:-2px;transform:translateY(2px)}
 /* v721：还原 v705 记录页年份导航容器（无 margin），与 v705 首页月份导航一致 */
-.annual-chart-yearnav{display:flex;gap:4px;flex-shrink:0}
+/* v722：八模块列表视图年份导航容器 margin 统一为 每日记录年份导航标准 4px 0 6px（首页月份导航本就 4/6，故全局一致） */
+.annual-chart-yearnav{display:flex;gap:4px;flex-shrink:0;margin:4px 0 6px}
 /* v720：桌面接稿排期 = 上一轮 21px 再减 2px = 19px；底边距保持 -6px（与下方 .annual-chart padding-top:16 叠加后视觉 10px） */
 .comm-yearnav{margin:9px 0 -6px}
 @media (max-width:640px){
   /* v718：手机端年份导航：日历视图不变 21/13（必须在 base 规则之后，否则被 base 覆盖） */
   .comm-yearnav{margin:19px 0 11px}
+  /* v722：手机端接稿排期日历视图年份导航 上-4(19→15) 下-6(11→5) */
+  .comm-cal-yearnav{margin:15px 0 5px}
   /* v720：手机端列表视图 = 基础 13px 再减 1px = 12px；上边距 = 基础 21px 再减 4px = 17px */
-  .comm-list-yearnav{margin:15px 0 10px}
+  /* v722：手机端接稿排期列表视图年份导航 上-2(15→13) 下-4(10→6) */
+  .comm-list-yearnav{margin:13px 0 6px}
 }
 /* 年份导航内 .life-monthbar.year-mode 自身 margin 归零，避免与外部 .comm-yearnav margin 坍塌叠加（仅作用于接稿排期，不动生活页 year-mode） */
 .comm-yearnav .life-monthbar.year-mode,.comm-list-yearnav .life-monthbar.year-mode,.comm-cal-yearnav .life-monthbar.year-mode{margin:0}
@@ -1559,7 +1565,7 @@ ul,li{list-style:none}
 
 /* ===== Stats Divider (solid line between records and stats) ===== */
 .stats-divider{
-  height:2px;background:var(--c-primary-dark);margin:24px 0 16px;
+  height:2px;background:var(--c-primary-dark);margin:16px 0 16px;
   border-radius:1px;opacity:.3;
 }
 
@@ -2984,7 +2990,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=721"></script>
+  <script src="app.js?v=722"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
