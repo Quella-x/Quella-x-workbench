@@ -460,6 +460,9 @@ ul,li{list-style:none}
 .lr-2col>.lr-left::-webkit-scrollbar,.lr-2col>.lr-right::-webkit-scrollbar,.calc-input-col::-webkit-scrollbar,.calc-receipt-col::-webkit-scrollbar,#mainBody::-webkit-scrollbar{width:2px;height:2px}
 .lr-2col>.lr-left::-webkit-scrollbar-thumb,.lr-2col>.lr-right::-webkit-scrollbar-thumb,.calc-input-col::-webkit-scrollbar-thumb,.calc-receipt-col::-webkit-scrollbar-thumb,#mainBody::-webkit-scrollbar-thumb{background:rgba(120,140,160,.25);border-radius:1px}
 .lr-2col>.lr-left::-webkit-scrollbar-track,.lr-2col>.lr-right::-webkit-scrollbar-track,.calc-input-col::-webkit-scrollbar-track,.calc-receipt-col::-webkit-scrollbar-track,#mainBody::-webkit-scrollbar-track{background:transparent}
+/* v718：右列隐藏滚动条（不占宽），使右侧卡片到浏览器右边距与开团记录一致（消除多出的 10px 滚动条槽） */
+.lr-2col>.lr-right,.calc-receipt-col{scrollbar-width:none;scrollbar-gutter:auto}
+.lr-2col>.lr-right::-webkit-scrollbar,.calc-receipt-col::-webkit-scrollbar{width:0;height:0}
 /* v713：首页 toolbar 改 grid 1fr 1fr，筛选/新增记录强制等宽（实测 flex 方案下 490/502 不等），search-box 独占首行 */
 .toolbar.home-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center}
   .toolbar.home-toolbar .search-box{grid-column:1 / -1}
@@ -554,6 +557,9 @@ ul,li{list-style:none}
 .modal.lg{width:1000px}
 .modal.xl{width:1120px}
 .modal.sm{width:420px}
+/* v718：价目表「其他说明」= 窄一点的居中小圆角弹窗 */
+.modal.notes-sm{width:520px;max-width:calc(100vw - 32px);border-radius:16px}
+.modal.notes-sm .pricelist-notes-panel{padding:4px 0 0}
 .modal.import-story{height:370px}
 /* v414：导入弹窗仅在默认 max-height:90vh 基础上增加 20px */
 .modal.add20{max-height:calc(90vh + 20px)}
@@ -1255,15 +1261,18 @@ ul,li{list-style:none}
 .annual-chart-title-main{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
 .annual-chart-title-main .lucide-icon{vertical-align:-2px;transform:translateY(2px)}
 .annual-chart-yearnav{display:flex;gap:4px;flex-shrink:0}
-/* v715：年份导航上下边距：桌面 = 首页(23/14)「上减2/下减20」= 21/-6（与下方 .annual-chart padding-top:16 叠加，视觉下间距回到 14）；手机 = 「上减2/下减1」= 21/13（见下方 @media 覆盖） */
-.comm-yearnav{margin:21px 0 -6px}
+/* v718：年份导航上下边距：桌面 = 21 再「上减10」= 11/-6（与下方 .annual-chart padding-top:16 叠加，视觉下间距回到 14）；手机见下方 @media 覆盖 */
+.comm-yearnav{margin:11px 0 -6px}
 @media (max-width:640px){
-  /* v715：手机端年份导航边距覆盖 21/13（必须在 base 规则之后，否则被 base 覆盖） */
+  /* v718：手机端年份导航：日历视图不变 21/13（必须在 base 规则之后，否则被 base 覆盖） */
   .comm-yearnav{margin:21px 0 13px}
+  /* v718：手机端列表视图再「上减4/下减1」= 17/12（放在 .comm-yearnav 之后才能生效） */
+  .comm-list-yearnav{margin:17px 0 12px}
 }
 /* 年份导航内 .life-monthbar.year-mode 自身 margin 归零，避免与外部 .comm-yearnav margin 坍塌叠加（仅作用于接稿排期，不动生活页 year-mode） */
 .comm-yearnav .life-monthbar.year-mode,.comm-list-yearnav .life-monthbar.year-mode,.comm-cal-yearnav .life-monthbar.year-mode{margin:0}
-.annual-chart-yearnav .btn-xs{padding:2px 8px;font-size:11px}
+/* v718：开团/厂家/打样/灵感/故事小记/约稿记录等模块的年份导航按钮，与首页月份导航(.cd-month-btn 4px 10px/14px)对齐（原 2px 8px/11px 不一致） */
+.annual-chart-yearnav .btn-xs{padding:4px 10px;font-size:14px}
 /* v713：接稿排期年份导航按钮上下内边距/字号与首页月份导航(.cd-month-btn 4px 10px/14px)对齐，消除「上下边距不一致」 */
 .comm-yearnav .btn-xs{padding:4px 10px;font-size:14px}
 /* v713：接稿排期列表视图年份导航（嵌在 .comm-list-nostats 年度图表内）同样对齐 */
@@ -1300,7 +1309,7 @@ ul,li{list-style:none}
 }
 .platform-btn{
   flex:1;min-width:0;padding:9px 10px;
-  border-radius:12px;color:#fff;font-size:13px;font-weight:600;
+  border-radius:var(--radius-sm);color:#fff;font-size:13px;font-weight:600;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:2px;cursor:pointer;transition:all .2s;border:none;
   position:relative;overflow:hidden;
@@ -2429,7 +2438,7 @@ ul,li{list-style:none}
 .lr-date-nav .cd-month-btn:hover{color:var(--c-primary);background:transparent}
 .lr-date-nav .cd-month-btn:disabled{opacity:.35;cursor:not-allowed;color:var(--c-text-light);background:transparent}
 .lmp-back{font-size:12px;color:var(--c-primary);text-align:center;padding:4px 0 8px;cursor:pointer}
-.lr-toggle-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);padding:0 12px;font-size:13px;font-weight:800;color:var(--c-text);cursor:pointer;transition:.15s;box-shadow:var(--shadow-sm);line-height:1;height:var(--pill-h);min-height:var(--pill-h)}
+.lr-toggle-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-sm);padding:0 12px;font-size:13px;font-weight:800;color:var(--c-text);cursor:pointer;transition:.15s;box-shadow:var(--shadow-sm);line-height:1;height:var(--pill-h);min-height:var(--pill-h)}
 .lr-toggle-btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
 .lr-toggle-btn.active{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
 .lr-toggle-btn span{font-size:18px}
@@ -2612,16 +2621,16 @@ ul,li{list-style:none}
 .commission-detail-page{margin-top:4px}
 .cd-page-head{font-size:18px;font-weight:700;color:var(--c-primary-dark);margin:2px 0 12px}
 /* 信息录入：三个按钮并列 */
-.cd-import-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
-.cd-import-btn{padding:14px 12px;border:1px solid var(--c-border-light);border-radius:12px;background:#fff;cursor:pointer;transition:.15s;text-align:center;margin-bottom:-2px}
+.cd-import-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+.cd-import-btn{padding:14px 12px;border:1px solid var(--c-border-light);border-radius:var(--radius-sm);background:#fff;cursor:pointer;transition:.15s;text-align:center;margin-bottom:-2px}
 .cd-import-btn:hover{border-color:var(--c-primary);box-shadow:0 2px 10px rgba(0,0,0,.06);transform:translateY(-2px)}
 .cd-import-btn-icon{font-size:26px;margin-bottom:3px}
 /* v452：顶部导入渠道按钮字色与接稿详情四个品类按钮内文字色(var(--c-text))统一 */
 .cd-import-btn-name{font-size:14px;font-weight:700;color:var(--c-primary-dark)}
 .cd-import-btn-desc{font-size:12px;color:var(--c-text-muted);margin-top:1px}
 /* 品类切换按钮（四个并排均分，与首页平台按钮同款均分布局） */
-.cd-cat-bar{display:flex;gap:8px;margin-bottom:8px}
-.cd-cat-btn{flex:1;justify-content:center;padding:11px 6px;border:1px solid var(--c-border-light);border-radius:12px;font-size:14px;cursor:pointer;background:#fff;color:var(--c-text);transition:.15s;display:flex;align-items:center;gap:6px;font-weight:700;margin-bottom:-2px}
+.cd-cat-bar{display:flex;gap:6px;margin-bottom:8px}
+.cd-cat-btn{flex:1;justify-content:center;padding:11px 6px;border:1px solid var(--c-border-light);border-radius:var(--radius-sm);font-size:14px;cursor:pointer;background:#fff;color:var(--c-text);transition:.15s;display:flex;align-items:center;gap:6px;font-weight:700;margin-bottom:-2px}
 .cd-cat-btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
 .cd-cat-btn.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary)}
 /* v452：品类按钮后数字颜色与按钮内文字色(var(--c-text))一致；激活态保持 #fff */
@@ -2971,7 +2980,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=717"></script>
+  <script src="app.js?v=718"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

@@ -6734,7 +6734,7 @@ function openPriceListNotes() {
   openModal('其他说明', html, [
     { label: '编辑', class: 'btn-outline', action: () => { closeModal(); editPriceListNotes(); } },
     { label: '关闭', class: 'btn-primary', action: closeModal }
-  ]);
+  ], 'notes-sm');
 }
 
 function editPriceListNotes() {
