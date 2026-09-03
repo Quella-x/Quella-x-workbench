@@ -460,9 +460,9 @@ ul,li{list-style:none}
 .lr-2col>.lr-left::-webkit-scrollbar,.lr-2col>.lr-right::-webkit-scrollbar,.calc-input-col::-webkit-scrollbar,.calc-receipt-col::-webkit-scrollbar,#mainBody::-webkit-scrollbar{width:2px;height:2px}
 .lr-2col>.lr-left::-webkit-scrollbar-thumb,.lr-2col>.lr-right::-webkit-scrollbar-thumb,.calc-input-col::-webkit-scrollbar-thumb,.calc-receipt-col::-webkit-scrollbar-thumb,#mainBody::-webkit-scrollbar-thumb{background:rgba(120,140,160,.25);border-radius:1px}
 .lr-2col>.lr-left::-webkit-scrollbar-track,.lr-2col>.lr-right::-webkit-scrollbar-track,.calc-input-col::-webkit-scrollbar-track,.calc-receipt-col::-webkit-scrollbar-track,#mainBody::-webkit-scrollbar-track{background:transparent}
-/* v718：右列隐藏滚动条（不占宽），使右侧卡片到浏览器右边距与开团记录一致（消除多出的 10px 滚动条槽） */
-.lr-2col>.lr-right,.calc-receipt-col{scrollbar-width:none;scrollbar-gutter:auto}
-.lr-2col>.lr-right::-webkit-scrollbar,.calc-receipt-col::-webkit-scrollbar{width:0;height:0}
+/* v719：报价/价目计算左列也隐藏滚动条，使左右卡片间距真正为 10px（原左列 stable gutter 让输入卡内缩 10px，卡间距视觉 20px） */
+.lr-2col>.lr-right,.calc-input-col,.calc-receipt-col{scrollbar-width:none;scrollbar-gutter:auto}
+.lr-2col>.lr-right::-webkit-scrollbar,.calc-input-col::-webkit-scrollbar,.calc-receipt-col::-webkit-scrollbar{width:0;height:0}
 /* v713：首页 toolbar 改 grid 1fr 1fr，筛选/新增记录强制等宽（实测 flex 方案下 490/502 不等），search-box 独占首行 */
 .toolbar.home-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center}
   .toolbar.home-toolbar .search-box{grid-column:1 / -1}
@@ -482,7 +482,7 @@ ul,li{list-style:none}
   .comm-cal-chartstats .stats-divider{margin:16px 0}
   .comm-cal-chartstats .annual-chart{padding-top:16px}
   .comm-cal-chartstats .annual-chart-title{margin:4px 0 6px}
-  .chart-stats-2col .annual-chart-title{margin:4px 0 6px}
+  .chart-stats-2col .annual-chart-title{margin:4px 0 12px}
   /* v715：接稿排期年份导航上下边距 = 首页月份导航(23/14) 再按用户要求「上减2/下减20」= 21/-6（负底边距与下方 .comm-cal-chartstats 的 .annual-chart padding-top:16 叠加，视觉下间距回到 14px） */
   .comm-list-yearnav{margin:21px 0 -6px}
   .comm-cal-yearnav{margin:21px 0 -6px}
@@ -557,9 +557,12 @@ ul,li{list-style:none}
 .modal.lg{width:1000px}
 .modal.xl{width:1120px}
 .modal.sm{width:420px}
-/* v718：价目表「其他说明」= 窄一点的居中小圆角弹窗 */
+/* v719：价目表「其他说明」= 窄一点的居中小圆角弹窗；去掉内层卡片阴影、分割线居中 */
 .modal.notes-sm{width:520px;max-width:calc(100vw - 32px);border-radius:16px}
-.modal.notes-sm .pricelist-notes-panel{padding:4px 0 0}
+.modal.notes-sm .pricelist-notes-panel{padding:4px 0 0;box-shadow:none}
+.modal.notes-sm .pricelist-notes-grid{grid-template-columns:1fr;gap:0}
+.modal.notes-sm .pricelist-notes-header{padding-bottom:16px;margin-bottom:8px}
+.modal.notes-sm .pricelist-note-item{padding:12px 12px}
 .modal.import-story{height:370px}
 /* v414：导入弹窗仅在默认 max-height:90vh 基础上增加 20px */
 .modal.add20{max-height:calc(90vh + 20px)}
@@ -1261,8 +1264,8 @@ ul,li{list-style:none}
 .annual-chart-title-main{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
 .annual-chart-title-main .lucide-icon{vertical-align:-2px;transform:translateY(2px)}
 .annual-chart-yearnav{display:flex;gap:4px;flex-shrink:0}
-/* v718：年份导航上下边距：桌面 = 21 再「上减10」= 11/-6（与下方 .annual-chart padding-top:16 叠加，视觉下间距回到 14）；手机见下方 @media 覆盖 */
-.comm-yearnav{margin:11px 0 -6px}
+/* v719：年份导航上下边距：桌面 = 21 再「上减2」= 19/-6（与下方 .annual-chart padding-top:16 叠加，视觉下间距回到 10）；手机见下方 @media 覆盖 */
+.comm-yearnav{margin:19px 0 -6px}
 @media (max-width:640px){
   /* v718：手机端年份导航：日历视图不变 21/13（必须在 base 规则之后，否则被 base 覆盖） */
   .comm-yearnav{margin:21px 0 13px}
@@ -2980,7 +2983,7 @@ ul,li{list-style:none}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=718"></script>
+  <script src="app.js?v=719"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
