@@ -483,8 +483,8 @@ ul,li{list-style:none}
   /* v677：接稿排期日历视图 divider/标题间距回归初始(全局16px)——分割线上下统一16px；标题到上边框 8->16px 对齐开团记录 */
   .comm-cal-chartstats .stats-divider{margin:16px 0}
   .comm-cal-chartstats .annual-chart{padding-top:16px}
-  .comm-cal-chartstats .annual-chart-title{margin:4px 0 6px}
-  .chart-stats-2col .annual-chart-title{margin:4px 0 12px}
+  .comm-cal-chartstats .annual-chart-title{margin:4px 0 16px}
+  .chart-stats-2col .annual-chart-title{margin:4px 0 16px}
   /* v715：接稿排期年份导航上下边距 = 首页月份导航(23/14) 再按用户要求「上减2/下减20」= 21/-6（负底边距与下方 .comm-cal-chartstats 的 .annual-chart padding-top:16 叠加，视觉下间距回到 14px） */
   .comm-list-yearnav{margin:21px 0 -6px}
   /* v722：电脑端接稿排期日历视图年份导航 删除下方分割线后上下边距一致(6/6) */
@@ -1263,12 +1263,12 @@ ul,li{list-style:none}
 /* v692：chart标题重构——图标+标题包成span做整体 flex，yearNav单独，space-between自然分布；图标用 vertical-align:text-bottom 让图标底与文字基线齐 */
 .annual-chart-title{
   font-size:14px;font-weight:600;color:var(--c-text);
-  margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;transform:translateY(-2px);
+  margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:8px;transform:translateY(-2px);
 }
 .annual-chart-title-main{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
 .annual-chart-title-main .lucide-icon{vertical-align:-2px;transform:translateY(2px)}
 /* v723：年份导航从标题行拆出为独立一行，其 margin 才能真实生效；有导航时标题下边距缩为4px，让导航上边距=4px */
-.annual-chart.has-yearnav .annual-chart-title{margin-bottom:12px}
+.annual-chart.has-yearnav .annual-chart-title{margin-bottom:16px}
 .annual-chart-yearnav{display:inline-flex;gap:4px;flex-shrink:0;margin:0;justify-content:flex-end}
 /* v728 根因修复：此前 .comm-yearnav 作为 base 写在各具体规则之后、等特异性下覆盖了 .comm-cal-yearnav/.comm-list-yearnav，且底边距 -6px 负值导致「贴死没下边距」。统一为每日记录年份导航标准 4/6（顶4底6），七模块与接稿排期年份导航下边距一致可见 */
 .comm-yearnav{margin:4px 0 6px}
@@ -1414,7 +1414,7 @@ ul,li{list-style:none}
 .stats-section-title-main{display:flex;align-items:center;gap:4px;min-width:0;flex:1}
 .stats-section-title-main .lucide-icon{vertical-align:-1px;transform:translateY(2px)}
 .stats-scope-toggle{display:flex;gap:4px;flex-shrink:0;align-items:stretch}
-.stats-scope-toggle .btn-xs{padding:3px 14px;font-size:11px;min-height:26px;display:inline-flex;align-items:center}
+.stats-scope-toggle .btn-xs{padding:3px 14px;font-size:11px;min-height:28px;display:inline-flex;align-items:center}
 .stats-section .stats-grid{
   grid-template-columns:repeat(3,1fr);margin:0;gap:10px;
   flex:1;align-items:stretch;
@@ -1975,7 +1975,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 /* AH轮修正：时间线选中胶囊加高(垂直padding)、外框内边距取消；全局toolbar间距回16px */
 .timeline-filter-bar{
   display:flex;flex-wrap:nowrap;gap:0;align-items:center;justify-content:center;
-  width:fit-content;min-width:auto;max-width:100%;background:#fff;border:1px solid var(--c-border);border-radius:999px;
+  width:fit-content;min-width:auto;max-width:100%;background:#fff;border:1px solid transparent;border-radius:999px;box-shadow:var(--shadow-sm);
   padding:0;margin:8px auto 16px;overflow:hidden;box-sizing:border-box;
 }
 @media (max-width:768px){
@@ -2645,7 +2645,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-import-btn-name{font-size:14px;font-weight:700;color:var(--c-primary-dark)}
 .cd-import-btn-desc{font-size:12px;color:var(--c-text-muted);margin-top:1px}
 /* 品类切换按钮（四个并排均分，与首页平台按钮同款均分布局） */
-.cd-cat-bar{display:flex;gap:6px;margin-bottom:8px}
+/* v733：接稿详情顶部顺序改 导入→搜索→品类 后，搜索框下边距跟随其余块统一为 8px（原继承 .toolbar 的 14px） */
+.cd-toolbar{margin-bottom:8px}
+.cd-cat-bar{display:flex;gap:6px;margin-bottom:14px}
 .cd-cat-btn{flex:1;justify-content:center;padding:11px 6px;border:1px solid transparent;border-radius:var(--radius-sm);font-size:14px;cursor:pointer;background:#fff;color:var(--c-text);transition:.15s;display:flex;align-items:center;gap:6px;font-weight:700;margin-bottom:-2px;box-shadow:var(--shadow-sm)}
 .cd-cat-btn:hover{color:var(--c-primary)}
 .cd-cat-btn.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary)}
@@ -2996,7 +2998,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=732"></script>
+  <script src="app.js?v=733"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

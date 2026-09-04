@@ -4186,8 +4186,8 @@ function renderHome() {
     const tRecords = yearRecords.filter(r => valIncludes(r.platform, t.value));
     const pendingForT = tRecords.filter(r => statusOf(r) === '待发布').length;
     const publishedForT = tRecords.filter(r => statusOf(r) === '已发布').length;
-    const activeStyle = (ps.view === 'platform' && ps.tab === t.value) ? 'box-shadow:0 0 0 3px rgba(255,255,255,.6);transform:translateY(-2px)' : '';
-    html += `<button class="platform-btn" style="background:${t.color};${activeStyle}">`;
+    /* v733：平台按钮激活态整段移除（此前 activeStyle 的 translateY(-2px) 让当前平台按钮比其他三个高出 2px）；hover 抬起保留在 CSS */
+    html += `<button class="platform-btn" style="background:${t.color}">`;
     html += `<span class="platform-main" onclick="enterPlatformView('${t.value}')">`;
     /* v688：首页顶部平台按钮图标加大（用户要求单独大一点） */
     html += `<span class="platform-icon">${lucide(platformIcons[t.value] || 'newspaper', 22)}</span>`;
@@ -9632,7 +9632,12 @@ function renderCommissionDetailPage() {
     </div>
   </div>`;
 
-  // 2) 品类切换按钮（名字与用户一致；数字不带灰底；点激活按钮返回全部）
+  // 2) 搜索条（无新增按钮）—— v733：由第 3 位前移到第 2 位（顶部顺序改为 导入→搜索→品类）
+  html += '<div class="toolbar cd-toolbar">';
+  html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onCdSearch(this.value)"><span class="search-icon">${lucide('search',16)}</span></div>`;
+  html += '</div>';
+
+  // 3) 品类切换按钮（名字与用户一致；数字不带灰底；点激活按钮返回全部）—— v733：由第 2 位后移到第 3 位
   html += '<div class="cd-cat-bar">';
   COMM_DETAIL_CATS.forEach(c => {
     // v710：品类计数按当前年份筛（取 cdMonth 的年份部分），与月份导航年份联动
@@ -9645,11 +9650,6 @@ function renderCommissionDetailPage() {
       <span class="cd-cat-count">${cnt}</span>
     </div>`;
   });
-  html += '</div>';
-
-  // 3) 搜索条（无新增按钮）
-  html += '<div class="toolbar cd-toolbar">';
-  html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onCdSearch(this.value)"><span class="search-icon">${lucide('search',16)}</span></div>`;
   html += '</div>';
 
   // 4) 接稿条模块：按月分页，一页最多 10 条，开稿日期最近在最上
