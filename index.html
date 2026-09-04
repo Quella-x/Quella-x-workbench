@@ -483,8 +483,8 @@ ul,li{list-style:none}
   /* v677：接稿排期日历视图 divider/标题间距回归初始(全局16px)——分割线上下统一16px；标题到上边框 8->16px 对齐开团记录 */
   .comm-cal-chartstats .stats-divider{margin:16px 0}
   .comm-cal-chartstats .annual-chart{padding-top:16px}
-  .comm-cal-chartstats .annual-chart-title{margin:4px 0 16px}
-  .chart-stats-2col .annual-chart-title{margin:4px 0 16px}
+  .comm-cal-chartstats .annual-chart-title{margin:4px 0 20px}
+  .chart-stats-2col .annual-chart-title{margin:4px 0 20px}
   /* v715：接稿排期年份导航上下边距 = 首页月份导航(23/14) 再按用户要求「上减2/下减20」= 21/-6（负底边距与下方 .comm-cal-chartstats 的 .annual-chart padding-top:16 叠加，视觉下间距回到 14px） */
   .comm-list-yearnav{margin:21px 0 -6px}
   /* v722：电脑端接稿排期日历视图年份导航 删除下方分割线后上下边距一致(6/6) */
@@ -1263,12 +1263,12 @@ ul,li{list-style:none}
 /* v692：chart标题重构——图标+标题包成span做整体 flex，yearNav单独，space-between自然分布；图标用 vertical-align:text-bottom 让图标底与文字基线齐 */
 .annual-chart-title{
   font-size:14px;font-weight:600;color:var(--c-text);
-  margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:8px;transform:translateY(-2px);
+  margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:8px;transform:translateY(-2px);
 }
 .annual-chart-title-main{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
 .annual-chart-title-main .lucide-icon{vertical-align:-2px;transform:translateY(2px)}
 /* v723：年份导航从标题行拆出为独立一行，其 margin 才能真实生效；有导航时标题下边距缩为4px，让导航上边距=4px */
-.annual-chart.has-yearnav .annual-chart-title{margin-bottom:16px}
+.annual-chart.has-yearnav .annual-chart-title{margin-bottom:20px}
 .annual-chart-yearnav{display:inline-flex;gap:4px;flex-shrink:0;margin:0;justify-content:flex-end}
 /* v728 根因修复：此前 .comm-yearnav 作为 base 写在各具体规则之后、等特异性下覆盖了 .comm-cal-yearnav/.comm-list-yearnav，且底边距 -6px 负值导致「贴死没下边距」。统一为每日记录年份导航标准 4/6（顶4底6），七模块与接稿排期年份导航下边距一致可见 */
 .comm-yearnav{margin:4px 0 6px}
@@ -2998,7 +2998,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=733"></script>
+  <script src="app.js?v=734"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
