@@ -1844,12 +1844,12 @@ MODULES['home'] = {
     { key: 'contentType', label: '内容类型', type: 'multiselect', single: true, options: [{ value: '图文', label: '图文' }, { value: '短视频', label: '短视频' }, { value: '推文', label: '推文' }, { value: '直播', label: '直播' }] },
     { key: 'status', label: '发布状态', type: 'multiselect', single: true, options: [{ value: '待发布', label: '待发布' }, { value: '已发布', label: '已发布' }] },
     { section: '24小时数据' },
-    { key: 'data24h_likes', label: '点赞', type: 'number', row: 'data24h' },
+    { key: 'data24h_likes', label: '24小时点赞', type: 'number', row: 'data24h' },
     { key: 'data24h_saves', label: '收藏', type: 'number', row: 'data24h' },
     { key: 'data24h_plays', label: '播放量', type: 'number', row: 'data24h' },
     { key: 'data24h_reads', label: '阅读量', type: 'number', row: 'data24h' },
     { section: '7天数据' },
-    { key: 'data7d_likes', label: '点赞', type: 'number', row: 'data7d' },
+    { key: 'data7d_likes', label: '7天点赞', type: 'number', row: 'data7d' },
     { key: 'data7d_saves', label: '收藏', type: 'number', row: 'data7d' },
     { key: 'data7d_plays', label: '播放量', type: 'number', row: 'data7d' },
     { key: 'data7d_reads', label: '阅读量', type: 'number', row: 'data7d' },
@@ -1857,12 +1857,8 @@ MODULES['home'] = {
   ],
   listFields: [
     { label: '平台', key: 'platform', tag: true },
-    { label: '状态', key: 'status', tag: true },
-    { label: '类型', key: 'contentType' },
+    { label: '内容类型', key: 'contentType' },
     { label: '发布时间', key: 'publishTime', date: true },
-    { label: '24h点赞', key: 'data24h_likes' },
-    { label: '7天点赞', key: 'data7d_likes' },
-    { label: '链接', key: 'link', link: true },
   ],
 };
 
@@ -1899,7 +1895,7 @@ MODULES['groupbuy-records'] = {
   ],
   filters: [{ key: 'status', label: '全部状态', options: [{ value: '', label: '全部状态' }, { value: '筹备中', label: '筹备中' }, { value: '进行中', label: '进行中' }, { value: '已截团', label: '已截团' }, { value: '流团', label: '流团' }, { value: '已结算', label: '已结算' }] }],
   listFields: [
-    { label: '状态', key: 'status', tag: true },
+    { label: '进度状态', key: 'status', tag: true },
     { label: '制品数', key: '_productCount' },
     { label: '制品', key: '_productNames' },
     { label: '开团时间', key: 'startTime', date: true },
@@ -2054,7 +2050,7 @@ MODULES['design-inspiration'] = {
   filters: [{ key: 'category', label: '全部制品', options: [{ value: '', label: '全部制品' }] }],
   listFields: [
     { label: '制品', key: 'category' },
-    { label: '标签', key: 'tags', tag: true },
+    { label: '标签分类', key: 'tags', tag: true },
     { label: '创建时间', key: 'createTime', date: true },
   ],
 };
@@ -2384,8 +2380,8 @@ MODULES['design-commission-detail-fq'] = {
     commDetailFixedEmailField(),
   ],
   listFields: [
-    { label: '用途', key: 'usageType' },
-    { label: '主题', key: 'theme' },
+    { label: '稿件用途', key: 'usageType' },
+    { label: '企划/主题名称', key: 'theme' },
     { label: '姓名', key: 'charName' },
   ],
 };
@@ -2417,9 +2413,9 @@ MODULES['design-commission-detail-ec'] = {
     commDetailFixedEmailField(),
   ],
   listFields: [
-    { label: '用途', key: 'usageType' },
+    { label: '稿件用途', key: 'usageType' },
     { label: 'IP', key: 'ipName' },
-    { label: '主题', key: 'theme' },
+    { label: '企划/主题名称', key: 'theme' },
   ],
 };
 
@@ -2473,7 +2469,7 @@ MODULES['design-pricelist'] = {
     { key: 'description', label: '备注', type: 'textarea' },
   ],
   listFields: [
-    { label: '分类', key: 'category', tag: true },
+    { label: '制品分类', key: 'category', tag: true },
     { label: '制品', key: 'product' },
     { label: '单价', key: 'price', prefix: '¥' },
   ],
@@ -2541,9 +2537,9 @@ MODULES['oc-relations'] = {
     { key: 'relationStatus', label: '关系状态', type: 'multiselect', single: true, default: '稳定', options: [{ value: '稳定', label: '稳定' }, { value: '变化', label: '变化' }, { value: '单向', label: '单向' }] },
   ],
   listFields: [
-    { label: '类型', key: 'relationType', tag: true },
-    { label: '状态', key: 'relationStatus', tag: true },
-    { label: '细节', key: 'relationDetail' },
+    { label: '关系类型', key: 'relationType', tag: true },
+    { label: '关系状态', key: 'relationStatus', tag: true },
+    { label: '关系细节', key: 'relationDetail' },
   ],
   special: 'mindMap',
 };
@@ -2561,10 +2557,10 @@ MODULES['oc-stories'] = {
   ],
   filters: [{ key: 'tags', label: '全部标签', options: [{ value: '', label: '全部标签' }, { value: '主线', label: '主线' }, { value: '支线', label: '支线' }, { value: '日常', label: '日常' }, { value: '随笔', label: '随笔' }, { value: '灵感', label: '灵感' }] }],
   listFields: [
-    { label: '标签', key: 'tags' },
-    { label: '状态', key: 'isComplete', tag: true },
-    { label: '关联', key: 'characterIds' },
-    { label: '创作', key: 'createTime', date: true },
+    { label: '剧情标签', key: 'tags' },
+    { label: '剧情状态', key: 'isComplete', tag: true },
+    { label: '关联OC', key: 'characterIds' },
+    { label: '创作时间', key: 'createTime', date: true },
   ],
   personFilterField: 'characterIds',
 };
@@ -2587,7 +2583,7 @@ MODULES['oc-timeline'] = {
   ],
   listFields: [
     { label: '重要性', key: 'importance', tag: true },
-    { label: '关联', key: 'characterIds' },
+    { label: '关联人物', key: 'characterIds' },
   ],
   special: 'timeline',
 };
@@ -2611,13 +2607,13 @@ MODULES['oc-commission'] = {
   ],
   filters: [{ key: 'status', label: '全部状态', options: [{ value: '', label: '全部状态' }, { value: '待接稿', label: '待接稿' }, { value: '进行中', label: '进行中' }, { value: '已完成', label: '已完成' }, { value: '已取消', label: '已取消' }] }],
   listFields: [
-    { label: '状态', key: 'status', tag: true },
-    { label: '画师', key: 'artistName' },
-    { label: '类型', key: 'commissionType' },
+    { label: '交易状态', key: 'status', tag: true },
+    { label: '画师名称', key: 'artistName' },
+    { label: '约稿类型', key: 'commissionType' },
     { label: 'OC', key: 'oc' },
-    { label: '平台', key: 'platform' },
-    { label: '费用', key: 'fee', prefix: '¥' },
-    { label: '交付', key: 'deliveryTime', date: true },
+    { label: '约稿平台', key: 'platform' },
+    { label: '约稿费用', key: 'fee', prefix: '¥' },
+    { label: '交付时间', key: 'deliveryTime', date: true },
     { label: '稿件评价', key: 'evaluation', tag: true },
   ],
   stats: (records) => {
@@ -4334,14 +4330,60 @@ function renderHomeRecordCard(r) {
   html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('home','${r.id}')">${lucide('trash-2',16)}</span>`;
   html += '</div></div>';
   html += '<div class="record-card-body comm-list-style">';
-  const platforms = arrVal(r.platform);
-  platforms.forEach(p => {
-    const pColor = PLATFORM_COLORS[p] || '#9DC8FF';
-    html += `<span class="field"><span class="field-label">平台</span><span class="field-value"><span class="tag" style="background:${pColor}20;color:${pColor}">${esc(p)}</span></span></span>`;
+  const pageKey = 'home';
+  const mod = MODULES[pageKey];
+  const fieldLabelMap = {};
+  (mod.fields || []).forEach(f2 => { if (f2.key) fieldLabelMap[f2.key] = f2.label; });
+  const _hiddenFields = ((getSettings().moduleFields || {})[pageKey]) || [];
+  const _order = ((getSettings().moduleFieldOrder || {})[pageKey]) || [];
+  const _shownFields = ((getSettings().moduleFieldsShown || {})[pageKey]) || [];
+  const _defaultVisibleKeys = (mod.listFields || []).map(f => f.key);
+  const _visibleKeys = _defaultVisibleKeys.filter(k => !_hiddenFields.includes(k)).concat(_shownFields.filter(k => !_defaultVisibleKeys.includes(k)));
+  const _orderedKeys = _order.filter(k => _visibleKeys.includes(k)).concat(_visibleKeys.filter(k => !_order.includes(k)));
+  // 元数据：优先 listFields（含 tag/link/date 标记），否则从 fields 取并补上 home 专属标记
+  const homeMeta = {
+    platform: { tag: false },
+    status: { tag: true },
+    contentType: {},
+    publishTime: { date: true },
+    data24h_likes: {},
+    data7d_likes: {},
+    link: { link: true },
+  };
+  const visibleListFields = _visibleKeys.map(k => {
+    const lf = (mod.listFields || []).find(f => f.key === k);
+    if (lf) return lf;
+    const ff = (mod.fields || []).find(f => f.key === k);
+    if (ff) return Object.assign({}, ff, homeMeta[k] || {});
+    return { key: k, label: k, ...(homeMeta[k] || {}) };
+  }).filter(Boolean).sort((a, b) => _orderedKeys.indexOf(a.key) - _orderedKeys.indexOf(b.key));
+  visibleListFields.forEach(f => {
+    const dispLabel = fieldLabelMap[f.key] || f.label;
+    let v = r[f.key];
+    if (v == null || v === '') v = '';
+    if (f.key === 'platform') {
+      const platforms = arrVal(v);
+      const tags = platforms.map(p => {
+        const pColor = PLATFORM_COLORS[p] || '#9DC8FF';
+        return `<span class="tag" style="background:${pColor}20;color:${pColor}">${esc(p)}</span>`;
+      }).join(' ');
+      html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value field-tags">${tags}</span></span>`;
+      return;
+    }
+    if (Array.isArray(v)) v = v.join('、');
+    if (f.date) v = fmtDate(v);
+    if (f.link) {
+      if (v && String(v).startsWith('http')) html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><a href="${esc(v)}" target="_blank" style="color:var(--c-primary)">${esc(String(v))}</a></span>`;
+      else html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value">${esc(String(v))}</span></span>`;
+      return;
+    }
+    if (f.tag) {
+      if (v === '') html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value"></span></span>`;
+      else html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value"><span class="tag tag-info">${esc(String(v))}</span></span></span>`;
+      return;
+    }
+    html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value">${esc(String(v))}</span></span>`;
   });
-  const ct = arrVal(r.contentType);
-  html += `<span class="field"><span class="field-label">内容类型</span><span class="field-value">${esc(ct.join('、') || '')}</span></span>`;
-  html += `<span class="field"><span class="field-label">发布时间</span><span class="field-value">${fmtDate(r.publishTime)}</span></span>`;
   html += '</div></div>';
   return html;
 }
