@@ -4638,7 +4638,7 @@ function renderTimeline() {
   if (!pageState['oc-timeline']) pageState['oc-timeline'] = { search: '', filters: {}, colorFilter: null, personFilter: null, pageNo: 1 };
   const ps = pageState['oc-timeline'];
   let records = DB.list('ocTimeline');
-  const chars = DB.list('ocCharacters');
+  let chars = DB.list('ocCharacters');
   if (ps.search) records = records.filter(r => JSON.stringify(r).toLowerCase().includes(ps.search.toLowerCase()));
 
   // Filter by color
