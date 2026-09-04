@@ -1326,10 +1326,10 @@ ul,li{list-style:none}
   border-radius:var(--radius-sm);color:#fff;font-size:13px;font-weight:600;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:2px;cursor:pointer;transition:all .2s;border:none;
-  box-shadow:0 4px 12px rgba(0,0,0,.18);
+  box-shadow:0 2px 8px rgba(0,0,0,.12);
   position:relative;overflow:hidden;
 }
-.platform-btn:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.22)}
+.platform-btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.16)}
 .platform-btn .platform-main{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
 .platform-btn .platform-name{font-size:13px;font-weight:700;opacity:.95}
 .platform-btn .platform-icon{font-size:18px;margin-bottom:1px}
@@ -1751,7 +1751,7 @@ ul,li{list-style:none}
 button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .calc-page-grid{display:grid;grid-template-columns:1fr 340px;gap:10px;align-items:stretch;height:100%}
 .calc-input-col{display:flex;flex-direction:column;gap:10px;height:100%;overflow-y:auto;container-type:inline-size}
-.calc-card{background:var(--c-card-bg,#fff);border:1px solid var(--c-border-light,#e8e8e8);border-radius:10px;padding:14px}
+.calc-card{background:var(--c-card);border-radius:10px;padding:14px;box-shadow:var(--shadow-sm)}
 .calc-card-title{font-size:14px;font-weight:600;color:var(--c-text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .price-calc-title{margin-bottom:16px}
 .calc-card-hint{font-size:11px;font-weight:400;color:var(--c-text-muted)}
@@ -3054,6 +3054,35 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .pricelist-split .pricelist-menu-price{display:none;}
   .pricelist-split .pricelist-menu{margin:16px auto 0;max-width:420px;}
 }
+
+/* ===== v747 手机端 ≤640px：间距 8px + 工具栏搜索框独占首行 + 第二行按钮 grid 等宽 ===== */
+@media (max-width:640px){
+  /* 列/行间距统一 8px */
+  .platform-buttons{gap:8px !important;}
+  .record-list{gap:8px !important;}
+  .record-list.two-col{gap:8px !important;}
+  .comm-dual{gap:8px !important;}
+  .life-goal-grid.compact{gap:8px !important;}
+  .life-year-grid{gap:8px !important;}
+  .lwm-summary{margin-bottom:8px !important;}
+  .cd-rec-list{gap:8px !important;}
+  .calc-input-col{gap:8px !important;}
+  .chart-stats-2col{display:block !important;gap:0 !important;margin:0 !important;}
+  .chart-stats-2col .cs-col{margin:0 !important;}
+  .chart-stats-2col .cs-col + .cs-col{margin-top:8px !important;}
+  .chart-stats-2col .cs-col-chart .annual-chart{margin-bottom:0 !important;}
+  .chart-stats-2col .cs-col-stats .stats-section{margin-top:0 !important;}
+  .calc-input-col,.calc-receipt-col{height:auto !important;overflow:visible !important;max-width:100% !important;container-type:normal !important;}
+
+  /* 工具栏：搜索框独占首行，按钮包进 grid 绝对等宽 */
+  .toolbar,.home-toolbar,.relations-toolbar{display:flex !important;flex-wrap:wrap !important;gap:0 !important;margin-bottom:8px !important;align-items:stretch !important;}
+  .toolbar > .search-box,.home-toolbar > .search-box{flex:1 1 100% !important;width:100% !important;margin-bottom:8px !important;}
+  .toolbar > .search-box input,.home-toolbar > .search-box input{width:100% !important;}
+  .toolbar > .spacer,.home-toolbar > .spacer,.relations-toolbar > .spacer{display:none !important;}
+  .toolbar-actions{display:grid !important;grid-template-columns:repeat(auto-fit, minmax(0, 1fr)) !important;gap:8px !important;width:100% !important;}
+  .toolbar-actions .btn-primary,.toolbar-actions .btn-outline,.toolbar-actions .filter-combobox,.toolbar-actions .toolbar-eq,.toolbar-actions .combobox-wrapper{width:auto !important;min-width:0 !important;max-width:none !important;}
+  .relations-toolbar > .btn-primary{grid-column:1 / -1 !important;width:100% !important;}
+}
 </style>
 </head>
 <body>
@@ -3105,7 +3134,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=745"></script>
+  <script src="app.js?v=747"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
@@ -3114,6 +3143,43 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
         navigator.serviceWorker.register('sw.js').catch(function () {});
       });
     }
+  })();
+</script>
+<script>
+  /* v747：手机端 toolbar 自动把按钮包进 .toolbar-actions，实现 grid 等宽 */
+  (function(){
+    function wrapToolbars(){
+      document.querySelectorAll('.toolbar,.home-toolbar,.relations-toolbar').forEach(function(t){
+        if(t.querySelector(':scope > .toolbar-actions')) return;
+        var search=t.querySelector(':scope > .search-box');
+        var spacer=t.querySelector(':scope > .spacer');
+        var actions=document.createElement('div');
+        actions.className='toolbar-actions';
+        var children=Array.prototype.slice.call(t.children);
+        children.forEach(function(child){
+          if(child===search || child===spacer || child.classList.contains('toolbar-actions')) return;
+          actions.appendChild(child);
+        });
+        if(spacer) spacer.style.display='none';
+        if(actions.children.length) t.appendChild(actions);
+      });
+    }
+    function bind(){
+      wrapToolbars();
+      var mainBody=document.getElementById('mainBody');
+      if(mainBody && !mainBody._toolbarObs){
+        var obs=new MutationObserver(wrapToolbars);
+        obs.observe(mainBody,{childList:true,subtree:false});
+        mainBody._toolbarObs=true;
+      }
+    }
+    if(document.readyState==='loading'){
+      document.addEventListener('DOMContentLoaded', bind);
+    }else{
+      bind();
+    }
+    setTimeout(bind, 0);
+    setTimeout(bind, 300);
   })();
 </script>
 </body>
