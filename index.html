@@ -1521,7 +1521,7 @@ ul,li{list-style:none}
 /* ===== Relation Person Buttons (collapsible) ===== */
 /* v692：人物关系模块到上面按钮的距离太远——减小 margin-bottom（用户要求） */
 .relation-person-row{
-  display:flex;align-items:flex-start;gap:8px;flex-wrap:nowrap;margin-bottom:8px;
+  display:flex;align-items:center;gap:8px;flex-wrap:nowrap;margin-bottom:8px;
 }
 .relation-person-grid{
   display:flex;flex-wrap:wrap;gap:8px;flex:1;min-width:0;margin-bottom:0;
@@ -1544,13 +1544,15 @@ ul,li{list-style:none}
   font-size:13px;font-weight:600;cursor:pointer;
   border:1px solid var(--c-primary-light);transition:all .2s;
   display:flex;align-items:center;gap:6px;
+  box-sizing:border-box;min-height:34px;line-height:1;
 }
 .relation-person-btn:hover{background:var(--c-primary);color:#fff}
 .relation-person-btn.active{background:var(--c-primary);color:#fff}
 .relation-toggle-btn{
-  flex:0 0 auto;margin:0;padding:8px 14px;border-radius:20px;line-height:1.4;white-space:nowrap;
+  flex:0 0 auto;margin:0 0 0 auto;padding:8px 14px;border-radius:20px;line-height:1;white-space:nowrap;
   background:var(--c-card);color:var(--c-primary);border:1px solid var(--c-primary-light);
   font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:34px;
 }
 .relation-toggle-btn:hover{background:var(--c-primary-bg)}
 .relation-expand{
@@ -3009,7 +3011,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=741"></script>
+  <script src="app.js?v=742"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
