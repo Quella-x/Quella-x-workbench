@@ -1521,13 +1521,13 @@ ul,li{list-style:none}
 /* ===== Relation Person Buttons (collapsible) ===== */
 /* v692：人物关系模块到上面按钮的距离太远——减小 margin-bottom（用户要求） */
 .relation-person-row{
-  display:flex;align-items:flex-start;gap:8px;flex-wrap:nowrap;margin-bottom:4px;
+  display:flex;align-items:flex-start;gap:8px;flex-wrap:nowrap;margin-bottom:8px;
 }
 .relation-person-grid{
   display:flex;flex-wrap:wrap;gap:8px;flex:1;min-width:0;margin-bottom:0;
 }
 /* 折叠态：只显示一排，超出隐藏，由右侧「展开/收起」按钮控制 */
-.relation-person-grid.collapsed{max-height:42px;overflow:hidden}
+.relation-person-grid.collapsed{max-height:34px;overflow:hidden}
 /* 中间角色按钮在剩余空间内均匀分布，全部(头) 与 展开(尾) 固定 */
 .relation-person-grid.distribute{justify-content:space-evenly}
 .relation-person-row>.relation-person-btn,.relation-person-row>.relation-toggle-btn{flex:0 0 auto}
@@ -1982,7 +1982,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .timeline-filter-bar{
   display:flex;flex-wrap:nowrap;gap:0;align-items:center;justify-content:center;
   width:fit-content;min-width:auto;max-width:100%;background:#fff;border:1px solid transparent;border-radius:999px;box-shadow:var(--shadow-sm);
-  padding:0;margin:8px auto 16px;overflow:hidden;box-sizing:border-box;
+  padding:0;margin:8px auto 14px;overflow:hidden;box-sizing:border-box;
 }
 @media (max-width:768px){
   .timeline-filter-bar{width:100%}
@@ -3005,7 +3005,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=738"></script>
+  <script src="app.js?v=739"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
