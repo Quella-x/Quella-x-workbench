@@ -2884,7 +2884,7 @@ function renderListPage(pageKey, mod) {
     if (!ps.personFilter) ps.personFilter = null;
     html += '<div class="relation-person-row">';
     html += `<div class="relation-person-btn ${!ps.personFilter ? 'active' : ''}" onclick="setPersonFilter('${pageKey}','')"><span>${lucide('menu',14)} 全部</span></div>`;
-    html += '<div class="relation-person-grid collapsed distribute">';
+    html += '<div class="relation-person-grid collapsed distribute' + (chars.length ? '' : ' empty') + '">';
     chars.forEach(c => {
       const active = ps.personFilter === c.name ? 'active' : '';
       html += `<div class="relation-person-btn ${active}" onclick="setPersonFilter('${pageKey}','${esc(c.name)}')"><span>${esc(c.name)}</span></div>`;
@@ -4663,7 +4663,7 @@ function renderTimeline() {
   // v16: 全部按钮常驻，即使没有人物档案也显示
   html += '<div class="relation-person-row">';
   html += `<div class="relation-person-btn ${!ps.personFilter ? 'active' : ''}" onclick="timelinePersonFilter('')"><span>${lucide('menu',14)} 全部</span></div>`;
-  html += '<div class="relation-person-grid collapsed distribute">';
+  html += '<div class="relation-person-grid collapsed distribute' + (chars.length ? '' : ' empty') + '">';
   chars.forEach(c => {
     const active = ps.personFilter === c.name ? 'active' : '';
     html += `<div class="relation-person-btn ${active}" onclick="timelinePersonFilter('${esc(c.name)}')"><span>${esc(c.name)}</span></div>`;
