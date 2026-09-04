@@ -6646,8 +6646,9 @@ function cdPriceListSizeText(r) {
 /* ===== Price List Custom Renderer (需求9: 菜单风格, 其他说明可折叠) ===== */
 function renderPriceList() {
   const body = $('#mainBody');
-  if (!pageState['design-pricelist']) pageState['design-pricelist'] = { search: '', filters: {} };
+  if (!pageState['design-pricelist']) pageState['design-pricelist'] = { search: '', filters: {}, mobileMode: 'category' };
   const ps = pageState['design-pricelist'];
+  const pm = ps.mobileMode || 'category';
   let records = DB.list('priceList');
   if (ps.search) records = records.filter(r => JSON.stringify(r).toLowerCase().includes(ps.search.toLowerCase()));
   const settings = getSettings();
@@ -6725,7 +6726,8 @@ function renderPriceList() {
       return h;
     };
 
-    html += '<div class="pricelist-split">';
+    html += '<div class="pricelist-toggle"><button class="pt-btn' + (pm === 'category' ? ' active' : '') + '" data-mode="category" onclick="setPricelistMobileMode(\'category\')">分类</button><button class="pt-btn' + (pm === 'price' ? ' active' : '') + '" data-mode="price" onclick="setPricelistMobileMode(\'price\')">价格</button></div>';
+    html += '<div class="pricelist-split' + (pm === 'price' ? ' show-price' : '') + '">';
     html += buildMenuCol(groups, sortedCats, '价目表', '', 'price');
     html += buildMenuCol(priceGroups, sortedPriceKeys, '价目表', 'pricelist-menu-price', 'category');
     html += '</div>';
@@ -6733,6 +6735,17 @@ function renderPriceList() {
 
   html += '</div>';
   body.innerHTML = html;
+}
+
+function setPricelistMobileMode(mode){
+  var ps = pageState['design-pricelist'];
+  if(!ps) return;
+  ps.mobileMode = mode;
+  var split = document.querySelector('.pricelist-split');
+  if(split) split.classList.toggle('show-price', mode === 'price');
+  document.querySelectorAll('.pricelist-toggle .pt-btn').forEach(function(b){
+    if(b.dataset.mode === mode) b.classList.add('active'); else b.classList.remove('active');
+  });
 }
 
 // v29-fix: 价目表条目上下移动排序（同类目内交换 sort，不自动刷新页面）
