@@ -1319,7 +1319,7 @@ ul,li{list-style:none}
 
 /* ===== Platform Buttons (Home) ===== */
 .platform-buttons{
-  display:flex;flex-wrap:nowrap;gap:6px;margin-bottom:10px;
+  display:flex;flex-wrap:nowrap;gap:10px;margin-bottom:14px;
 }
 .platform-btn{
   flex:1;min-width:0;padding:9px 10px;
@@ -1530,7 +1530,7 @@ ul,li{list-style:none}
   display:flex;flex-wrap:wrap;gap:8px;flex:1;min-width:0;margin-bottom:0;
 }
 /* 折叠态：只显示一排，超出隐藏，由右侧「展开/收起」按钮控制 */
-.relation-person-grid.collapsed{max-height:42px;overflow:hidden}
+.relation-person-grid.collapsed{max-height:34px;overflow:hidden}
 /* 中间角色按钮在剩余空间内均匀分布，全部(头) 与 展开(尾) 固定 */
 .relation-person-grid.distribute{justify-content:space-evenly}
 .relation-person-row>.relation-person-btn,.relation-person-row>.relation-toggle-btn{flex:0 0 auto}
@@ -1993,14 +1993,13 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .timeline-filter-bar{
   display:flex;flex-wrap:nowrap;gap:0;align-items:center;justify-content:center;
   width:fit-content;min-width:auto;max-width:100%;background:#fff;border:1px solid transparent;border-radius:999px;box-shadow:var(--shadow-sm);
-  padding:0;margin:8px auto 16px;overflow:hidden;box-sizing:border-box;
+  padding:0;margin:8px auto 14px;overflow:hidden;box-sizing:border-box;
 }
 @media (max-width:768px){
   .timeline-filter-bar{width:100%}
 }
 /* 时间线页面toolbar与重要性按钮间距回退8px（与toolbar内部按钮gap一致） */
 .toolbar:has(+ .timeline-filter-bar){margin-bottom:14px}
-.toolbar:has(+ .home-status-filter){margin-bottom:8px}
 .timeline-color-filter{
   flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:4px;
   width:84px;padding:6px 0;font-size:13px;font-weight:600;white-space:nowrap;
@@ -2967,12 +2966,12 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 /* v736：电脑端 toolbar 单行——搜索框填满剩余、动作按钮等宽112px */
 @media(min-width:921px){
-  .toolbar{flex-wrap:nowrap}
+  .toolbar{flex-wrap:nowrap;gap:10px}
   .toolbar .search-box{flex:1;min-width:0}
   .toolbar .search-box input{width:100%;min-width:0}
   .toolbar .spacer{flex:0 0 0;width:0;padding:0;margin:0}
   .toolbar .btn-primary,.toolbar .toolbar-eq,.toolbar .combobox-wrapper,.toolbar .filter-combobox{flex:0 0 112px;width:112px;min-width:0}
-  .toolbar.home-toolbar{display:flex;flex-wrap:nowrap;gap:6px;grid-template-columns:auto}
+  .toolbar.home-toolbar{display:flex;flex-wrap:nowrap;gap:10px;grid-template-columns:auto}
   .toolbar.home-toolbar .search-box{grid-column:auto;flex:1;min-width:0}
   .toolbar.home-toolbar .combobox-wrapper,.toolbar.home-toolbar .filter-combobox,.toolbar.home-toolbar .btn-primary{flex:0 0 112px!important;width:112px!important;min-width:0!important}
 }
@@ -3027,7 +3026,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=736"></script>
+  <script src="app.js?v=737"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
