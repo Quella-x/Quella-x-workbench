@@ -1326,10 +1326,10 @@ ul,li{list-style:none}
   border-radius:var(--radius-sm);color:#fff;font-size:13px;font-weight:600;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:2px;cursor:pointer;transition:all .2s;border:none;
-  box-shadow:var(--shadow-sm);
+  box-shadow:0 4px 12px rgba(0,0,0,.18);
   position:relative;overflow:hidden;
 }
-.platform-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.platform-btn:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.22)}
 .platform-btn .platform-main{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
 .platform-btn .platform-name{font-size:13px;font-weight:700;opacity:.95}
 .platform-btn .platform-icon{font-size:18px;margin-bottom:1px}
@@ -1473,6 +1473,9 @@ ul,li{list-style:none}
 }
 .pricelist-menu-item .menu-price{
   font-weight:700;color:var(--c-primary-dark);
+}
+.pricelist-menu-item .menu-cat{
+  font-weight:600;color:var(--c-text-muted);font-size:12px;
 }
 .pricelist-menu-item .menu-size-sub{
   font-size:10px;font-weight:400;color:var(--c-text-muted);
@@ -2965,6 +2968,92 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-form .form-section-title{margin:14px 0 8px!important}
 
 
+/* ===== v745 桌面端间距统一 10px（含价目表双栏均分） ===== */
+@media (min-width:641px){
+  /* 两列间距 → 10px */
+  .home-cal-insp{gap:10px !important;}
+  .gb-records-2col{gap:10px !important;}
+  .comm-cal-two-col{column-gap:10px !important;row-gap:0 !important;}
+  .calc-page-grid{gap:10px !important;}
+  .oc-rel-list-2col{gap:10px !important;}
+  .comm-dual{gap:10px !important;}
+
+  /* 三列间距 → 10px */
+  .life-goal-grid{gap:10px !important;}
+  .life-year-grid{gap:10px !important;}
+  .life-goal-grid.compact{gap:10px !important;}
+  .cd-rec-list{gap:10px !important;}
+
+  /* 首页平台按钮 → 10px */
+  .platform-buttons{gap:10px !important;}
+
+  /* 卡片/模块 行间距 → 10px（仅桌面）：覆盖之前漏掉的 margin-based 间距 */
+  .record-list{gap:10px !important;}
+  .chart-stats-2col .cs-col + .cs-col{margin-top:10px !important;}
+  .lwm-summary{margin-bottom:10px !important;}
+  .life-week-module{margin-bottom:10px !important;}
+  .lr-history-day-card{margin-bottom:10px !important;}
+  .lr-top-card{margin-bottom:10px !important;}
+  .lr-card{margin-bottom:10px !important;}
+  .life-hero{margin-bottom:10px !important;}
+  .life-summary-row{margin:10px 0 !important;gap:10px !important;}
+  .home-pending-bar{margin:10px 0 !important;}
+
+  /* 工具栏：间距 10px + 搜索框占满 + 固定按钮 135px */
+  .toolbar{gap:10px !important;margin-bottom:10px !important;}
+  .toolbar .spacer{display:none !important;}
+  .toolbar .search-box{flex:1 1 auto !important;width:auto !important;min-width:0 !important;}
+  .toolbar .search-box input{width:100% !important;min-width:0 !important;}
+  .toolbar .btn-primary{width:135px !important;flex:0 0 135px !important;max-width:135px !important;min-width:0 !important;}
+  .toolbar .btn-outline.toolbar-eq,
+  .toolbar .toolbar-eq{width:135px !important;flex:0 0 135px !important;max-width:135px !important;min-width:0 !important;padding-left:4px !important;padding-right:4px !important;}
+  .filter-combobox{width:135px !important;flex:0 0 135px !important;max-width:135px !important;min-width:0 !important;}
+
+  /* 首页 toolbar 改一行，搜索占满，按钮固定 135px */
+  .toolbar.home-toolbar{display:flex !important;flex-wrap:nowrap !important;gap:10px !important;align-items:center !important;}
+  .toolbar.home-toolbar .search-box{grid-column:auto !important;flex:1 1 auto !important;width:auto !important;}
+  .home-toolbar .combobox-wrapper,
+  .home-toolbar .combobox-wrapper.filter-combobox,
+  .home-toolbar .btn-primary{flex:0 0 135px !important;width:135px !important;max-width:135px !important;min-width:0 !important;}
+
+  /* 人物关系：新增按钮占满整行 */
+  .relations-toolbar .spacer{display:none !important;}
+  .relations-toolbar .btn-primary{width:100% !important;flex:1 1 auto !important;max-width:none !important;}
+
+  /* 接稿详情搜索框占满 */
+  .cd-toolbar .search-box{width:100% !important;flex:1 1 auto !important;}
+
+  /* 接稿详情：导入行→搜索框 10px；搜索框→品类行 10px；品类行→月份导航 保持14px(用户指定) */
+  .cd-import-row{gap:10px !important;margin-bottom:10px !important;}
+  .cd-cat-bar{gap:10px !important;margin-bottom:14px !important;}
+
+  /* 价目/报价计算右列模块间距 → 10px */
+  .calc-receipt-col{gap:10px !important;}
+  .calc-actions{gap:10px !important;}
+
+  /* 图表/统计模块间距 → 10px */
+  .annual-chart{margin-bottom:10px !important;}
+  .stats-section{margin-top:10px !important;}
+  .chart-stats-2col .cs-col-chart .annual-chart{margin-bottom:0 !important;}
+  .chart-stats-2col .cs-col-stats .stats-section{margin-top:0 !important;}
+  .chart-stats-2col .cs-col + .cs-col{margin-top:10px !important;}
+
+  /* 时间线：搜索框→重要性按钮 14px(用户指定)，重要性按钮→时间线模块 10px；人物行→搜索框 不动(8px) */
+  .timeline-page .toolbar{margin-bottom:14px !important;}
+  .timeline-filter-bar{margin-bottom:10px !important;}
+
+  /* 价目表：搜索框→价目表 10px；桌面双栏均分(左按分类/右按价格)，手机端仅左栏 */
+  .pricelist-page .toolbar{margin-bottom:10px !important;}
+  .pricelist-split{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+  .pricelist-split .pricelist-menu{margin:0;max-width:none;}
+}
+
+/* 手机端：价目表价格栏隐藏，保持原单栏分类视图（用户指定不动） */
+@media (max-width:640px){
+  .pricelist-split{display:block;margin-top:16px;}
+  .pricelist-split .pricelist-menu-price{display:none;}
+  .pricelist-split .pricelist-menu{margin:16px auto 0;max-width:420px;}
+}
 </style>
 </head>
 <body>
@@ -3016,7 +3105,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=744"></script>
+  <script src="app.js?v=745"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

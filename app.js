@@ -4664,7 +4664,7 @@ function renderTimeline() {
   // Sort by date descending (newest first)
   records.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
-  let html = '<div class="fade-in">';
+  let html = '<div class="fade-in timeline-page">';
   // Person name buttons (text only) — at very top (like stories page)
   // v16: 全部按钮常驻，即使没有人物档案也显示
   chars = chars.filter(c => c.name);
@@ -5082,7 +5082,7 @@ function renderRelations() {
   const chars = DB.list('ocCharacters').filter(c => c.name);
   const relations = DB.list('ocRelations');
   let html = '<div class="fade-in">';
-  html += '<div class="toolbar"><div class="spacer"></div>';
+  html += '<div class="toolbar relations-toolbar"><div class="spacer"></div>';
   html += '<button class="btn btn-primary" onclick="openAddForm(\'oc-relations\')">+ 新增关系</button></div>';
   // v30-fix: 自定义关系类型管理放回「关系类型」字段内，不再外置独立卡片
   if (chars.length === 0) {
@@ -6674,7 +6674,7 @@ function renderPriceList() {
     return ai - bi;
   });
 
-  let html = '<div class="fade-in">';
+  let html = '<div class="fade-in pricelist-page">';
   // v27: toolbar->其他说明 8px（用 inline mb 覆盖 .toolbar 默认 mb:16，避免塌陷）
   html += '<div class="toolbar" style="margin-bottom:8px">';
   html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="onSearch('design-pricelist', this.value)"><span class="search-icon">${lucide('search',16)}</span></div>`;
@@ -6687,27 +6687,47 @@ function renderPriceList() {
   if (!records.length) {
     html += `<div class="empty-state"><div class="empty-icon">${lucide('wallet',32)}</div><div class="empty-text">暂无价目，点击「新增价目」开始添加</div></div>`;
   } else {
-    // Menu/receipt style layout
-    html += '<div class="pricelist-menu">';
-    html += '<div class="pricelist-menu-header">价目表</div>';
-    sortedCats.forEach(cat => {
-      const items = groups[cat];
-      const desc = items.find(i => i.description)?.description || '';
-      html += `<div class="pricelist-menu-category">${esc(cat)}</div>`;
-      items.forEach(r => {
-        html += `<div class="pricelist-menu-item" onclick="openEditForm('design-pricelist','${r.id}')">`;
-        const sizeTxt = cdPriceListSizeText(r);
-        html += `<span class="menu-name">${esc(r.product || '未命名')}${sizeTxt ? `<sub class="menu-size-sub">(${sizeTxt})</sub>` : ''}</span>`;
-        const priceUnit = Array.isArray(r.priceUnit) ? (r.priceUnit[0] || '元') : (r.priceUnit || '元');
-        const unitSuffix = priceUnit === '元' ? '' : priceUnit.replace('元', '');
-        const priceText = `¥${esc(r.price || 0)}${esc(unitSuffix)}`;
-        html += `<span class="menu-price">${priceText}</span>`;
-        html += '</div>';
-      });
-      if (desc) {
-        html += `<div style="padding:6px 0;font-size:11px;color:var(--c-text-muted);white-space:pre-wrap">${esc(desc)}</div>`;
-      }
+    // 桌面端双栏均分：左=按分类，右=按价格(升序平铺、同价合并、组标题=确切价格)；手机端 CSS 隐藏右栏
+    const priceGroups = {};
+    records.slice().sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0) || (a.product || '').localeCompare(b.product || '')).forEach(r => {
+      const label = '¥' + (Number(r.price) || 0);
+      if (!priceGroups[label]) priceGroups[label] = [];
+      priceGroups[label].push(r);
     });
+    const sortedPriceKeys = Object.keys(priceGroups).sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));
+
+    const buildMenuCol = (groupsObj, sortedKeysArr, headerText, extraClass, rightSlot) => {
+      let h = `<div class="pricelist-menu${extraClass ? ' ' + extraClass : ''}">`;
+      h += `<div class="pricelist-menu-header">${headerText}</div>`;
+      sortedKeysArr.forEach(key => {
+        const items = groupsObj[key];
+        const desc = items.find(i => i.description)?.description || '';
+        h += `<div class="pricelist-menu-category">${esc(key)}</div>`;
+        items.forEach(r => {
+          h += `<div class="pricelist-menu-item" onclick="openEditForm('design-pricelist','${r.id}')">`;
+          const sizeTxt = cdPriceListSizeText(r);
+          h += `<span class="menu-name">${esc(r.product || '未命名')}${sizeTxt ? `<sub class="menu-size-sub">(${sizeTxt})</sub>` : ''}</span>`;
+          if (rightSlot === 'category') {
+            h += `<span class="menu-cat">${esc(r.category || '未分类')}</span>`;
+          } else {
+            const priceUnit = Array.isArray(r.priceUnit) ? (r.priceUnit[0] || '元') : (r.priceUnit || '元');
+            const unitSuffix = priceUnit === '元' ? '' : priceUnit.replace('元', '');
+            const priceText = `¥${esc(r.price || 0)}${esc(unitSuffix)}`;
+            h += `<span class="menu-price">${priceText}</span>`;
+          }
+          h += '</div>';
+        });
+        if (desc) {
+          html += `<div style="padding:6px 0;font-size:11px;color:var(--c-text-muted);white-space:pre-wrap">${esc(desc)}</div>`;
+        }
+      });
+      h += '</div>';
+      return h;
+    };
+
+    html += '<div class="pricelist-split">';
+    html += buildMenuCol(groups, sortedCats, '价目表', '', 'price');
+    html += buildMenuCol(priceGroups, sortedPriceKeys, '价目表', 'pricelist-menu-price', 'category');
     html += '</div>';
   }
 
