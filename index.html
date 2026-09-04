@@ -1349,6 +1349,11 @@ ul,li{list-style:none}
 /* ===== Global Status Filter Buttons (DN-4轮) ===== */
 .home-status-filter{display:flex;gap:6px;margin:8px 0 14px}
 
+/* 平台页：待发布/已发布/月份导航 移入左列顶部时的容器内间距（桌面端 .gb-left 内，手机端直接平铺不受影响） */
+.home-filter-stack{margin-bottom:8px}
+.home-filter-stack .home-status-filter{margin:0 0 8px}
+.home-filter-stack .cd-month-nav{margin:0}
+
 .home-status-btn{
   flex:1;min-width:0;padding:0 12px;border-radius:var(--radius-sm);cursor:pointer;
   border:1px solid transparent;background:var(--c-card);box-shadow:var(--shadow-sm);
@@ -3011,7 +3016,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=743"></script>
+  <script src="app.js?v=744"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
