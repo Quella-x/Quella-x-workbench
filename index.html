@@ -3002,6 +3002,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   /* 工具栏：间距 10px + 搜索框占满 + 固定按钮 135px */
   .toolbar{gap:10px !important;margin-bottom:10px !important;}
   .toolbar .spacer{display:none !important;}
+  .toolbar-actions{display:contents;}
   .toolbar .search-box{flex:1 1 auto !important;width:auto !important;min-width:0 !important;}
   .toolbar .search-box input{width:100% !important;min-width:0 !important;}
   .toolbar .btn-primary{width:135px !important;flex:0 0 135px !important;max-width:135px !important;min-width:0 !important;}
@@ -3089,12 +3090,16 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-top-card{margin-bottom:8px !important;}
   /* ⑧ 时间线：重要性按钮上方 14px(唯一例外) / 下方 8px */
   .timeline-filter-bar{margin-top:14px !important;margin-bottom:8px !important;}
-  /* ⑤ 价目表「分类|价格」切换（仅手机端显示） */
-  .pricelist-toggle{display:flex !important;gap:0;width:100%;margin-bottom:8px;border:1px solid var(--c-border);border-radius:8px;overflow:hidden;box-sizing:border-box;}
-  .pricelist-toggle .pt-btn{flex:1 1 0;min-width:0;padding:9px 0;border:none;background:var(--c-card);color:var(--c-text-muted);font-size:13px;cursor:pointer;}
-  .pricelist-toggle .pt-btn.active{background:var(--c-primary-bg);color:var(--c-primary-dark);font-weight:600;}
+  /* ⑤ 价目表手机端：标题位置/格式不动（居中/虚线），切换按钮固定在标题盒右上角、底部与标题文字底部对齐；只缩高度宽度不变 */
+  .pricelist-menu-header{position:relative;}
+  .pricelist-menu-header .pricelist-toggle{display:flex !important;gap:5px;position:absolute;top:0;right:0;bottom:8px;z-index:2;width:auto !important;min-width:auto !important;margin:0 !important;border:none !important;background:transparent !important;overflow:visible !important;box-sizing:border-box;align-items:flex-end;justify-content:flex-end;}
+  .pricelist-menu-header .pricelist-toggle .pt-btn{border:1px solid var(--c-primary-light);background:var(--c-card);color:var(--c-primary);box-shadow:none;font-size:11px;font-weight:600;padding:5px 8px;line-height:1.1;border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;flex:0 0 auto !important;min-width:0 !important;}
+  .pricelist-menu-header .pricelist-toggle .pt-btn:hover{border-color:var(--c-primary)}
+  .pricelist-menu-header .pricelist-toggle .pt-btn.active{background:var(--c-primary);border-color:var(--c-primary);color:#fff;font-weight:600;}
   .pricelist-split.show-price .pricelist-menu{display:none !important;}
   .pricelist-split.show-price .pricelist-menu-price{display:block !important;margin-top:0 !important;}
+  /* 接稿详情搜索框→品类行 8px：cd-toolbar 无按钮行，取消 search-box 额外 margin */
+  .cd-toolbar > .search-box{margin-bottom:0 !important;}
 }
 </style>
 </head>
@@ -3147,7 +3152,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=748"></script>
+  <script src="app.js?v=749"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

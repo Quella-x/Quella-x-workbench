@@ -6699,7 +6699,7 @@ function renderPriceList() {
 
     const buildMenuCol = (groupsObj, sortedKeysArr, headerText, extraClass, rightSlot) => {
       let h = `<div class="pricelist-menu${extraClass ? ' ' + extraClass : ''}">`;
-      h += `<div class="pricelist-menu-header">${headerText}</div>`;
+      h += `<div class="pricelist-menu-header">${headerText}<div class="pricelist-toggle"><button class="pt-btn${pm === 'price' ? ' active' : ''}" onclick="setPricelistMobileMode()">价格</button></div></div>`;
       sortedKeysArr.forEach(key => {
         const items = groupsObj[key];
         const desc = items.find(i => i.description)?.description || '';
@@ -6726,7 +6726,6 @@ function renderPriceList() {
       return h;
     };
 
-    html += '<div class="pricelist-toggle"><button class="pt-btn' + (pm === 'category' ? ' active' : '') + '" data-mode="category" onclick="setPricelistMobileMode(\'category\')">分类</button><button class="pt-btn' + (pm === 'price' ? ' active' : '') + '" data-mode="price" onclick="setPricelistMobileMode(\'price\')">价格</button></div>';
     html += '<div class="pricelist-split' + (pm === 'price' ? ' show-price' : '') + '">';
     html += buildMenuCol(groups, sortedCats, '价目表', '', 'price');
     html += buildMenuCol(priceGroups, sortedPriceKeys, '价目表', 'pricelist-menu-price', 'category');
@@ -6737,14 +6736,15 @@ function renderPriceList() {
   body.innerHTML = html;
 }
 
-function setPricelistMobileMode(mode){
+function setPricelistMobileMode(){
   var ps = pageState['design-pricelist'];
   if(!ps) return;
-  ps.mobileMode = mode;
+  var next = (ps.mobileMode === 'price') ? 'category' : 'price';
+  ps.mobileMode = next;
   var split = document.querySelector('.pricelist-split');
-  if(split) split.classList.toggle('show-price', mode === 'price');
+  if(split) split.classList.toggle('show-price', next === 'price');
   document.querySelectorAll('.pricelist-toggle .pt-btn').forEach(function(b){
-    if(b.dataset.mode === mode) b.classList.add('active'); else b.classList.remove('active');
+    b.classList.toggle('active', next === 'price');
   });
 }
 
