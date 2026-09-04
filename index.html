@@ -441,7 +441,7 @@ ul,li{list-style:none}
   /* v665：取消双列，恢复上下单列堆叠（图表在上、统计在下，整行宽） */
   .chart-stats-2col{display:block}
   .chart-stats-2col .cs-col{display:block}
-  .chart-stats-2col .cs-col + .cs-col{margin-top:16px}
+  .chart-stats-2col .cs-col + .cs-col{margin-top:10px}
   .chart-stats-2col .cs-col-chart .annual-chart{margin-bottom:0;width:100%}
   .chart-stats-2col .cs-col-stats .stats-section{margin-top:0;width:100%}
   /* v681：撤销 v680 右列内图+统计双列，恢复开团记录样式（整体由 .gb-records-2col 实现列表左/图统计右，右列内图统计上下堆叠） */
@@ -553,7 +553,7 @@ ul,li{list-style:none}
 }
 .modal-overlay.show{opacity:1;pointer-events:auto;transition:opacity .15s}
 .modal{
-  background:var(--c-card);border-radius:12px;
+  background:var(--c-card);border-radius:16px;
   width:780px;max-width:100%;max-height:90vh;
   display:flex;flex-direction:column;overflow:hidden;
   box-shadow:var(--shadow-lg);
@@ -567,7 +567,7 @@ ul,li{list-style:none}
 .modal.notes-sm .pricelist-notes-grid{grid-template-columns:1fr;gap:0}
 .modal.notes-sm .pricelist-notes-header{padding-bottom:16px;margin-bottom:8px}
 .modal.notes-sm .pricelist-note-item{padding:12px 12px}
-.modal.import-story{height:370px}
+.modal.import-story{width:520px;height:auto}
 /* v414：导入弹窗仅在默认 max-height:90vh 基础上增加 20px */
 .modal.add20{max-height:calc(90vh + 20px)}
 .modal.add60{max-height:calc(90vh + 60px)}
@@ -1348,6 +1348,10 @@ ul,li{list-style:none}
 
 /* ===== Global Status Filter Buttons (DN-4轮) ===== */
 .home-status-filter{display:flex;gap:6px;margin:8px 0 14px}
+/* v736：平台页桌面端 状态筛选+月份导航 移入左列时的容器间距 */
+.home-filter-stack{margin-bottom:8px}
+.home-filter-stack .home-status-filter{margin:0 0 8px}
+.home-filter-stack .cd-month-nav{margin:0}
 .home-status-btn{
   flex:1;min-width:0;padding:0 12px;border-radius:var(--radius-sm);cursor:pointer;
   border:1px solid transparent;background:var(--c-card);box-shadow:var(--shadow-sm);
@@ -1520,7 +1524,7 @@ ul,li{list-style:none}
 /* ===== Relation Person Buttons (collapsible) ===== */
 /* v692：人物关系模块到上面按钮的距离太远——减小 margin-bottom（用户要求） */
 .relation-person-row{
-  display:flex;align-items:flex-start;gap:8px;flex-wrap:nowrap;margin-bottom:4px;
+  display:flex;align-items:flex-start;gap:8px;flex-wrap:nowrap;margin-bottom:8px;
 }
 .relation-person-grid{
   display:flex;flex-wrap:wrap;gap:8px;flex:1;min-width:0;margin-bottom:0;
@@ -1685,6 +1689,19 @@ ul,li{list-style:none}
   .dc-product-row .combobox-input,.dc-extra-row .combobox-input,.dc-mod-row .combobox-input{padding-right:30px!important}
   /* v16: combobox dropdown scrollable on mobile */
   .combobox-dropdown{max-height:160px;-webkit-overflow-scrolling:touch;min-width:140px}
+  /* v736：手机端弹窗对齐其他说明（左右有边距的矩形卡片） */
+  .modal{width:auto;max-width:calc(100vw - 32px);border-radius:16px}
+  /* v736：手机端所有 toolbar 按钮尺寸间距对齐首页平台页（gap6/等宽/8px6px/13px） */
+  .toolbar{gap:6px;flex-wrap:wrap}
+  .toolbar .spacer{display:none}
+  .toolbar .search-box{flex:1 1 100%;min-width:0}
+  .toolbar .search-box input{width:100%;min-width:0}
+  .toolbar .btn,.toolbar .btn-primary,.toolbar .toolbar-eq,.toolbar .combobox-wrapper{flex:1 1 0!important;min-width:0!important;width:auto!important;padding:8px 6px;font-size:13px}
+  /* v736：手机端柱状图↔统计 补 10px（原 16px 仅桌面生效，手机原为 0 缺口） */
+  .chart-stats-2col .cs-col + .cs-col{margin-top:10px}
+  /* v736：手机端 oc/灵感 两列间距 6px */
+  .record-list.two-col{gap:6px}
+
 }
 
 /* AY轮：制品/加价/修改列表根据输入栏实际宽度决定是否两行（容器查询），解决两栏布局下输入栏<860px仍用8列一行的挤压问题 */
@@ -1730,7 +1747,7 @@ ul,li{list-style:none}
 .calc-page{max-width:1200px;margin:0 auto}
 button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .calc-page-grid{display:grid;grid-template-columns:1fr 340px;gap:10px;align-items:stretch;height:100%}
-.calc-input-col{display:flex;flex-direction:column;gap:12px;height:100%;overflow-y:auto;container-type:inline-size}
+.calc-input-col{display:flex;flex-direction:column;gap:10px;height:100%;overflow-y:auto;container-type:inline-size}
 .calc-card{background:var(--c-card-bg,#fff);border:1px solid var(--c-border-light,#e8e8e8);border-radius:10px;padding:14px}
 .calc-card-title{font-size:14px;font-weight:600;color:var(--c-text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .price-calc-title{margin-bottom:16px}
@@ -1956,7 +1973,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 /* ===== v15: Two-column record list (mobile keeps two columns) ===== */
 .record-list.two-col{
-  display:grid;grid-template-columns:1fr 1fr;gap:12px;
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;
 }
 
 /* ===== v15/v29-fix2: OC Profile 排序弹窗 ===== */
@@ -1982,7 +1999,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .timeline-filter-bar{width:100%}
 }
 /* 时间线页面toolbar与重要性按钮间距回退8px（与toolbar内部按钮gap一致） */
-.toolbar:has(+ .timeline-filter-bar){margin-bottom:8px}
+.toolbar:has(+ .timeline-filter-bar){margin-bottom:14px}
 .toolbar:has(+ .home-status-filter){margin-bottom:8px}
 .timeline-color-filter{
   flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:4px;
@@ -2446,7 +2463,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-diet-qbtn.filled:hover{background:rgba(24,144,255,.24);border-color:rgba(24,144,255,.24);color:var(--c-text)}
 
 /* Toggle buttons */
-.lr-toggle-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.lr-toggle-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
 .lr-date-nav{position:relative;display:flex;align-items:center;justify-content:center;gap:6px;margin-top:-4px;margin-bottom:8px}
 .lr-date-nav .cd-month-label{font-size:14px;font-weight:700;color:var(--c-text);min-width:96px;text-align:center;cursor:pointer;user-select:none}
 .lr-date-nav .cd-month-label:hover{color:var(--c-primary)}
@@ -2947,6 +2964,18 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-rec-section{margin:14px 0 8px!important}
 .cd-rec-subtitle{margin-bottom:4px!important}
 .cd-form .form-section-title{margin:14px 0 8px!important}
+
+/* v736：电脑端 toolbar 单行——搜索框填满剩余、动作按钮等宽112px */
+@media(min-width:921px){
+  .toolbar{flex-wrap:nowrap}
+  .toolbar .search-box{flex:1;min-width:0}
+  .toolbar .search-box input{width:100%;min-width:0}
+  .toolbar .spacer{flex:0 0 0;width:0;padding:0;margin:0}
+  .toolbar .btn-primary,.toolbar .toolbar-eq,.toolbar .combobox-wrapper,.toolbar .filter-combobox{flex:0 0 112px;width:112px;min-width:0}
+  .toolbar.home-toolbar{display:flex;flex-wrap:nowrap;gap:6px;grid-template-columns:auto}
+  .toolbar.home-toolbar .search-box{grid-column:auto;flex:1;min-width:0}
+  .toolbar.home-toolbar .combobox-wrapper,.toolbar.home-toolbar .filter-combobox,.toolbar.home-toolbar .btn-primary{flex:0 0 112px!important;width:112px!important;min-width:0!important}
+}
 </style>
 </head>
 <body>
@@ -2998,7 +3027,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=735"></script>
+  <script src="app.js?v=736"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

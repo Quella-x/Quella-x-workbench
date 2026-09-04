@@ -4238,8 +4238,8 @@ function renderHome() {
     html += '<button class="btn btn-primary" onclick="openAddForm(\'home\')">+ 新增记录</button>';
     html += '</div>';
 
-    html += renderHomeStatusFilterBar();
-    html += renderHomeMonthNav();
+    const homeStatusHtml = renderHomeStatusFilterBar();
+    const homeMonthHtml = renderHomeMonthNav();
 
     // Records（v223：待发布/已发布筛选与全部列表使用同一模块）
     let filteredRecords = records;
@@ -4258,7 +4258,8 @@ function renderHome() {
 
     // v682：桌面端平台视图始终双列（含空态），左侧展示列表/空态，右侧固定图表+统计，对齐开团记录
     const homeTwoCol = window.innerWidth >= 641;
-    if (homeTwoCol) { html += '<div class="gb-records-2col"><div class="gb-left">'; }
+    if (homeTwoCol) { html += '<div class="gb-records-2col"><div class="gb-left">'; html += '<div class="home-filter-stack">' + homeStatusHtml + homeMonthHtml + '</div>'; }
+    else { html += homeStatusHtml + homeMonthHtml; }
 
     if (!filteredRecords.length) {
       html += `<div class="empty-state"><div class="empty-icon">${lucide('file-text',32)}</div><div class="empty-text">暂无发布记录</div></div>`;
