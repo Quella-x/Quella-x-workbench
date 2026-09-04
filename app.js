@@ -2880,7 +2880,7 @@ function renderListPage(pageKey, mod) {
   }
   // Person filter buttons (for oc-stories and oc-commission) — 纯文字，不显示图片
   if (mod.personFilterField) {
-    const chars = DB.list('ocCharacters');
+    const chars = DB.list('ocCharacters').filter(c => c.name);
     if (!ps.personFilter) ps.personFilter = null;
     html += '<div class="relation-person-row">';
     html += `<div class="relation-person-btn ${!ps.personFilter ? 'active' : ''}" onclick="setPersonFilter('${pageKey}','')"><span>${lucide('menu',14)} 全部</span></div>`;
@@ -4661,6 +4661,7 @@ function renderTimeline() {
   let html = '<div class="fade-in">';
   // Person name buttons (text only) — at very top (like stories page)
   // v16: 全部按钮常驻，即使没有人物档案也显示
+  chars = chars.filter(c => c.name);
   html += '<div class="relation-person-row">';
   html += `<div class="relation-person-btn ${!ps.personFilter ? 'active' : ''}" onclick="timelinePersonFilter('')"><span>${lucide('menu',14)} 全部</span></div>`;
   html += '<div class="relation-person-grid collapsed distribute' + (chars.length ? '' : ' empty') + '">';
@@ -5072,7 +5073,7 @@ function normalizeOcProfileSocial() {
 
 function renderRelations() {
   const body = $('#mainBody');
-  const chars = DB.list('ocCharacters');
+  const chars = DB.list('ocCharacters').filter(c => c.name);
   const relations = DB.list('ocRelations');
   let html = '<div class="fade-in">';
   html += '<div class="toolbar"><div class="spacer"></div>';
