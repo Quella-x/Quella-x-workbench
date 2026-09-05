@@ -567,6 +567,11 @@ ul,li{list-style:none}
 .modal.notes-sm .pricelist-notes-grid{grid-template-columns:1fr;gap:0}
 .modal.notes-sm .pricelist-notes-header{padding-bottom:16px;margin-bottom:8px}
 .modal.notes-sm .pricelist-note-item{padding:12px 12px}
+/* v751：编辑其他说明弹窗与「其他说明」查看弹窗等高（JS 传入查看弹窗实测高度），输入框拉满剩余空间 */
+.modal.notes-equal{display:flex;flex-direction:column}
+.modal.notes-equal .modal-body{flex:1;display:flex;flex-direction:column;min-height:0}
+.modal.notes-equal .modal-body .form-row{flex:1;display:flex;flex-direction:column;min-height:0}
+.modal.notes-equal .form-textarea{flex:1}
 .modal.import-story{width:520px;height:auto}
 /* v414：导入弹窗仅在默认 max-height:90vh 基础上增加 20px */
 .modal.add20{max-height:calc(90vh + 20px)}
@@ -3152,7 +3157,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=750"></script>
+  <script src="app.js?v=751"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

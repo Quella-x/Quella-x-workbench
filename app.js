@@ -235,7 +235,7 @@ function openModal(title, bodyHTML, footerBtns, size = '') {
   if (footerBtns && footerBtns.length) {
     footerBtns.forEach(b => { const btn = document.createElement('button'); btn.className = 'btn ' + (b.class || 'btn-primary'); btn.textContent = b.label; btn.onclick = () => b.action && b.action(); fc.appendChild(btn); });
   } else { fc.style.display = 'none'; }
-  $('#modal').className = 'modal' + (size ? ' ' + size : '');
+  $('#modal').style.height = ''; $('#modal').className = 'modal' + (size ? ' ' + size : '');
   $('#modalOverlay').classList.add('show');
   initModalSwipe();
   if (!_modalHistoryPushed) { try { history.pushState({ wbModal: 1 }, ''); _modalHistoryPushed = true; } catch (e) {} }
@@ -6816,12 +6816,12 @@ function openPriceListNotes() {
   });
   html += '</div></div>';
   openModal('其他说明', html, [
-    { label: '编辑', class: 'btn-outline', action: () => { editPriceListNotes(); } },
+    { label: '编辑', class: 'btn-outline', action: () => { const m = $('#modal'); const h = m ? m.getBoundingClientRect().height : 0; editPriceListNotes(h); } },
     { label: '关闭', class: 'btn-primary', action: closeModal }
   ], 'notes-sm');
 }
 
-function editPriceListNotes() {
+function editPriceListNotes(equalH) {
   const settings = getSettings();
   const notes = settings.priceListNotes || [];
   const defaultText = notes.map(n => `${n.title} | ${(n.content || '').replace(/\n/g, ' / ')}`).join('\n');
@@ -6847,7 +6847,8 @@ function editPriceListNotes() {
         Toast.success('已保存其他说明');
       }
     },
-  ]);
+  ], 'notes-sm notes-equal');
+  if (equalH) { const m = $('#modal'); if (m) m.style.height = equalH + 'px'; }
 }
 
 /* ===== Settings Page (需求2: 导航栏图标自定义) ===== */
@@ -8337,7 +8338,7 @@ function lifeCheckinAdd() {
     </div>`, [
     { label: '取消', class: 'btn-ghost', action: closeModal },
     { label: '添加', class: 'btn-primary', action: lifeCheckinAddSubmit }
-  ]);
+  ], 'notes-sm');
 }
 function lifeCheckinSelPeriod(val, el) {
   const input = document.getElementById('lc-add-period');
