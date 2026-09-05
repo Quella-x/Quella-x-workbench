@@ -2673,11 +2673,17 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 /* ===== 约稿模板库 / 文本模板库 ===== */
 .tpl-lib{display:flex;flex-direction:column;gap:14px}
 .tpl-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
-/* v760：文件夹式标签，未激活浅灰底，激活态跟随工作台主题蓝 */
+/* 约稿模板库标签：保持主题蓝激活（v760，本次不动） */
 .tpl-tab{display:inline-flex;align-items:center;justify-content:center;flex:1;min-width:64px;padding:8px 10px;background:#f3f5f8;color:var(--c-text);border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;text-align:center;transition:.15s}
 .tpl-tab.active{background:var(--c-primary-dark);color:#fff}
 .tpl-tab:hover{background:#e9edf2}
 .tpl-tab.active:hover{background:var(--c-primary-dark)}
+/* v761：文本模板库标签 -> 浏览器页签式中性格（仅作用于 #txtTplCats，不动约稿模板库/弹窗外壳） */
+#txtTplCats{display:flex;gap:4px;flex-wrap:wrap;align-items:flex-end;border-bottom:1px solid #e5e7eb;padding-bottom:0}
+#txtTplCats .tpl-tab{flex:none;min-width:56px;padding:7px 14px;background:#e5e7eb;color:#4b5563;border:1px solid transparent;border-bottom:none;border-radius:8px 8px 0 0;font-weight:500}
+#txtTplCats .tpl-tab:hover{background:#d7dbe0}
+#txtTplCats .tpl-tab.active{background:#fff;color:#374151;border-color:#e5e7eb;border-bottom:1px solid #fff;margin-bottom:-1px;position:relative;z-index:1}
+#txtTplCats .tpl-tab.active:hover{background:#fff}
 .tpl-sec-title{font-size:13px;font-weight:700;color:var(--c-primary-dark);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
 .tpl-sec-title .btn{padding:4px 10px;font-size:12px}
 .tpl-list{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow:auto}
@@ -2692,11 +2698,11 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-new .form-input{background:#fff}
 .tpl-new-hint{font-size:12px;color:var(--c-text-muted)}
 .tpl-snippet-list{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow:auto}
-.tpl-snippet{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:#f3f5f8;border:none;border-radius:var(--radius-sm);cursor:pointer;transition:.15s}
-.tpl-snippet:hover{background:#e9edf2}
-.tpl-snippet-text{flex:1;font-size:13px;color:var(--c-text);white-space:pre-wrap;word-break:break-all;line-height:1.5}
-.tpl-snippet-del{color:#e8857e;font-size:12px;cursor:pointer;padding:2px 6px;border-radius:6px;flex:none}
-.tpl-snippet-del:hover{background:rgba(232,133,126,.12)}
+.tpl-snippet{display:flex;align-items:flex-start;gap:8px;padding:10px 2px;background:#fff;border:none;border-bottom:1px solid #f0f2f5;border-radius:0;transition:.15s}
+.tpl-snippet:hover{background:#fafbfc}
+.tpl-snippet-text{flex:1;font-size:13px;color:#374151;white-space:pre-wrap;word-break:break-all;line-height:1.5}
+.tpl-snippet-del{background:#fff;border:1px solid #e5e7eb;color:#6b7280;font-size:12px;font-family:inherit;cursor:pointer;padding:3px 12px;border-radius:6px;flex:none;transition:.15s}
+.tpl-snippet-del:hover{background:#f3f4f6;color:#374151}
 /* 约稿单表单内"文本模板"就地展开面板（保留兼容，v757 改用弹窗浮层） */
 .tpl-picker-panel{background:#f3f5f8;border:none;border-radius:var(--radius-sm);padding:10px;margin-bottom:8px}
 /* v755/v757：文案/小字字段标题行右侧的"文本模板"按钮（自适应宽，无边框） */
@@ -2710,8 +2716,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-newcat-btn{padding:4px 10px;font-size:12px;flex:none}
 .tpl-folder-list{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow:auto}
 .tpl-grp-title{font-size:12px;font-weight:700;color:var(--c-primary-dark);margin:6px 0 2px}
-.tpl-cat-del{margin-left:6px;color:#e8857e;font-size:13px;cursor:pointer;padding:0 4px;border-radius:6px}
-.tpl-cat-del:hover{background:rgba(232,133,126,.14)}
+.tpl-cat-del-row{margin-top:8px;padding-top:8px;border-top:1px dashed #eceef1}
+.tpl-cat-del-link{font-size:12px;color:#9ca3af;cursor:pointer}
+.tpl-cat-del-link:hover{color:#e8857e}
 /* 约稿模板库下方：生成约稿单导入式 新建模板 区块（无边框） */
 .tpl-newtpl-zone{background:transparent;border:none;border-radius:var(--radius-sm);padding:12px}
 .tpl-newtpl-title{font-size:14px;font-weight:700;color:var(--c-primary-dark)}
@@ -3217,7 +3224,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=760"></script>
+  <script src="app.js?v=761"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

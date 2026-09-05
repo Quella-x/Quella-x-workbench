@@ -10822,7 +10822,7 @@ function renderTxtTplCats() {
   const cats = DB.get('textTemplateCats', []);
   if (!cats.length) { tabs.innerHTML = '<span class="tpl-empty" style="padding:0">暂无分类</span>'; return; }
   if (!cats.includes(_txtTplCat)) _txtTplCat = cats[0];
-  tabs.innerHTML = cats.map(c => { const active = c === _txtTplCat; return `<div class="tpl-tab ${active ? 'active' : ''}" onclick="setTxtTplCat('${esc(c)}')">${esc(c)}<span class="tpl-cat-del" onclick="event.stopPropagation();delTextTemplateCat('${esc(c)}')">×</span></div>`; }).join('');
+  tabs.innerHTML = cats.map(c => { const active = c === _txtTplCat; return `<div class="tpl-tab ${active ? 'active' : ''}" onclick="setTxtTplCat('${esc(c)}')">${esc(c)}</div>`; }).join('');
 }
 function setTxtTplCat(c) { _txtTplCat = c; renderTxtTplCats(); renderTxtTplList(); }
 function addTextTemplateCat() {
@@ -10860,12 +10860,15 @@ function textTplCatComboboxHTML(sel) {
 function renderTxtTplList() {
   const list = $('#txtTplList');
   if (!list) return;
+  const cats = DB.get('textTemplateCats', []);
   const items = DB.list('textTemplates').filter(t => (t.cat || '通用') === _txtTplCat);
   if (!items.length) { list.innerHTML = '<div class="tpl-empty">「' + esc(_txtTplCat) + '」分类下暂无文案，在下方输入框添加。</div>'; return; }
-  list.innerHTML = items.map(t => `<div class="tpl-snippet">
+  let html = items.map(t => `<div class="tpl-snippet">
     <div class="tpl-snippet-text">${esc(t.text)}</div>
-    <div class="tpl-snippet-del" onclick="delTextTemplate('${t.id}')">删除</div>
+    <button type="button" class="tpl-snippet-del" onclick="delTextTemplate('${t.id}')">删除</button>
   </div>`).join('');
+  if (cats.length) html += `<div class="tpl-cat-del-row"><span class="tpl-cat-del-link" onclick="delTextTemplateCat('${esc(_txtTplCat)}')">删除分类「${esc(_txtTplCat)}」</span></div>`;
+  list.innerHTML = html;
 }
 function addTextTemplate() {
   const v = ($('#txtTplInput').value || '').trim();
