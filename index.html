@@ -441,7 +441,7 @@ ul,li{list-style:none}
   /* v665：取消双列，恢复上下单列堆叠（图表在上、统计在下，整行宽） */
   .chart-stats-2col{display:block}
   .chart-stats-2col .cs-col{display:block}
-  .chart-stats-2col .cs-col + .cs-col{margin-top:10px}
+  .chart-stats-2col .cs-col + .cs-col{margin-top:11px}
   .chart-stats-2col .cs-col-chart .annual-chart{margin-bottom:0;width:100%}
   .chart-stats-2col .cs-col-stats .stats-section{margin-top:0;width:100%}
   /* v681：撤销 v680 右列内图+统计双列，恢复开团记录样式（整体由 .gb-records-2col 实现列表左/图统计右，右列内图统计上下堆叠） */
@@ -1700,10 +1700,10 @@ ul,li{list-style:none}
   .dc-product-row .combobox-input,.dc-extra-row .combobox-input,.dc-mod-row .combobox-input{padding-right:30px!important}
   /* v16: combobox dropdown scrollable on mobile */
   .combobox-dropdown{max-height:160px;-webkit-overflow-scrolling:touch;min-width:140px}
-  /* v736：手机端弹窗对齐其他说明（左右有边距的矩形卡片） */
-  .modal{width:auto;max-width:calc(100vw - 32px);border-radius:16px}
+  /* v750：手机端默认弹窗宽度固定 520px 并受 max-width 约束（与 notes-sm 一致，避免内容过窄） */
+  .modal{width:520px;max-width:calc(100vw - 32px);border-radius:16px}
   /* v736：手机端柱状图↔统计 补 10px（原 16px 仅桌面生效，手机原为 0 缺口） */
-  .chart-stats-2col .cs-col + .cs-col{margin-top:10px}
+  .chart-stats-2col .cs-col + .cs-col{margin-top:11px}
 
 }
 
@@ -2989,7 +2989,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
   /* 卡片/模块 行间距 → 10px（仅桌面）：覆盖之前漏掉的 margin-based 间距 */
   .record-list{gap:10px !important;}
-  .chart-stats-2col .cs-col + .cs-col{margin-top:10px !important;}
+  .chart-stats-2col .cs-col + .cs-col{margin-top:11px !important;}
   .lwm-summary{margin-bottom:10px !important;}
   .life-week-module{margin-bottom:10px !important;}
   .lr-history-day-card{margin-bottom:10px !important;}
@@ -3071,7 +3071,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .calc-input-col{gap:8px !important;}
   .chart-stats-2col{display:block !important;gap:0 !important;margin:0 !important;}
   .chart-stats-2col .cs-col{margin:0 !important;}
-  .chart-stats-2col .cs-col + .cs-col{margin-top:8px !important;}
+  .chart-stats-2col .cs-col + .cs-col{margin-top:9px !important;}
   .chart-stats-2col .cs-col-chart .annual-chart{margin-bottom:0 !important;}
   .chart-stats-2col .cs-col-stats .stats-section{margin-top:0 !important;}
   .calc-input-col,.calc-receipt-col{height:auto !important;overflow:visible !important;max-width:100% !important;container-type:normal !important;}
@@ -3152,7 +3152,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=749"></script>
+  <script src="app.js?v=750"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

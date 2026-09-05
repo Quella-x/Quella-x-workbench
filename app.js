@@ -6798,7 +6798,7 @@ function openPriceListSort() {
     });
   });
   html += '</div>';
-  openModal('调整价目排序', html, [{ label: '完成', class: 'btn-primary', action: () => { closeModal(); renderPriceList(); } }]);
+  openModal('调整价目排序', html, [{ label: '完成', class: 'btn-primary', action: () => { closeModal(); renderPriceList(); } }], 'notes-sm');
 }
 
 function openPriceListNotes() {
@@ -6816,7 +6816,7 @@ function openPriceListNotes() {
   });
   html += '</div></div>';
   openModal('其他说明', html, [
-    { label: '编辑', class: 'btn-outline', action: () => { closeModal(); editPriceListNotes(); } },
+    { label: '编辑', class: 'btn-outline', action: () => { editPriceListNotes(); } },
     { label: '关闭', class: 'btn-primary', action: closeModal }
   ], 'notes-sm');
 }
@@ -10437,7 +10437,7 @@ function openCdImportChat() {
   html += '</div>';
   openModal('聊天记录导入', html, [
     { label: '关闭', class: 'btn-ghost', action: closeModal },
-  ], 'lg add60');
+  ], 'notes-sm add60');
 }
 function runCdChatParse() {
   const text = ($('#cdChatInput').value || '');
@@ -10567,7 +10567,7 @@ function openCdImportJson() {
   html += `<textarea class="form-textarea cd-chat-input" id="cdJsonInput" placeholder='[{"category":"土味","clientInfo":"小明","bookName":"青春纪事",...}]'></textarea>`;
   html += `<div class="cd-import-actions"><button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="runCdJsonImport()">解析并导入</button></div>`;
   html += '</div>';
-  openModal('JSON 导入', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'lg add60');
+  openModal('JSON 导入', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'notes-sm add60');
 }
 function runCdJsonImport() {
   const text = ($('#cdJsonInput').value || '').trim();
@@ -10604,7 +10604,7 @@ function openCdClientForm() {
   html += `<div style="margin-top:10px"><label class="form-label">选择分类</label>${cdCatComboboxHTML('cdClientCat', defKey, 'cdClientCatChange()')}</div>`;
   html += `<div id="cdClientLinkWrap" style="margin-top:8px">${cdClientLinkInner(defKey)}</div>`;
   html += '</div>';
-  openModal('生成约稿单导入', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'lg add60');
+  openModal('生成约稿单导入', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'notes-sm add60');
 }
 // 分类切换时刷新同一页面内的链接（不再切换界面）
 function cdShowClientLinkInline(catKey) {
@@ -10659,7 +10659,7 @@ function cdOpenClientFormFromLink(catKey) {
   openModal((mod.category || '约稿') + '约稿需求', bodyHTML, [
     { label: '取消', class: 'btn-ghost', action: closeModal },
     { label: '提交', class: 'btn-primary', action: () => saveCdClientForm(catKey) },
-  ], 'lg');
+  ]);
   setTimeout(() => { setupFormInteractions(catKey); }, 50);
 }
 // 从 URL 参数自动打开单主填写表单
