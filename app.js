@@ -242,6 +242,8 @@ function openModal(title, bodyHTML, footerBtns, size = '') {
 }
 // v752：最近一次「其他说明」查看弹窗的实际高度，供无参照物的弹窗对齐
 let _lastNotesModalH = 0;
+// v753：新增记录/约稿单直接填写弹窗高度，作为聊天记录导入弹窗的优先参照（其他说明极少打开）
+let _lastRefModalH = 0;
 // v752：弹窗等高统一出口——h 为参照高度(px)，缺省回退到弹窗最大高度 90vh
 function applyModalEqualHeight(h) {
   const m = $('#modal');
@@ -3883,6 +3885,8 @@ function openAddForm(pageKey) {
     { label: '取消', class: 'btn-ghost', action: closeModal },
     { label: '保存', class: 'btn-primary', action: () => saveForm(pageKey, mod, null) },
   ]);
+  // v753：记录新增记录弹窗高度，供聊天记录导入弹窗对齐
+  try { const m = $('#modal'); if (m) _lastRefModalH = m.getBoundingClientRect().height; } catch (e) {}
   setTimeout(() => { setupFormInteractions(pageKey); refreshCommissionBindOptions(); }, 50);
 }
 
@@ -10450,7 +10454,8 @@ function openCdImportChat() {
   openModal('聊天记录导入', html, [
     { label: '关闭', class: 'btn-ghost', action: closeModal },
   ], 'notes-sm add60');
-  applyModalEqualHeight(_lastNotesModalH);
+  // v753：优先用常用的「新增记录/约稿单直接填写」弹窗高度，其他说明仅作兜底
+  applyModalEqualHeight(_lastRefModalH || _lastNotesModalH);
 }
 function runCdChatParse() {
   const text = ($('#cdChatInput').value || '');
@@ -10673,6 +10678,8 @@ function cdOpenClientFormFromLink(catKey) {
     { label: '取消', class: 'btn-ghost', action: closeModal },
     { label: '提交', class: 'btn-primary', action: () => saveCdClientForm(catKey) },
   ]);
+  // v753：记录约稿单直接填写弹窗高度，供聊天记录导入弹窗对齐
+  try { const m = $('#modal'); if (m) _lastRefModalH = m.getBoundingClientRect().height; } catch (e) {}
   setTimeout(() => { setupFormInteractions(catKey); }, 50);
 }
 // 从 URL 参数自动打开单主填写表单
