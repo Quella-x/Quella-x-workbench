@@ -10664,10 +10664,12 @@ function runCdClientForm() {
   const catKey = ($('#cdClientCat') || {}).value || COMM_DETAIL_CATS[0].key;
   cdShowClientLink(catKey);
 }
-function cdShowClientLink(catKey) {
+// v757：可选 preset（约稿模板的固定值）编入链接，单主打开即看到预填内容
+function cdShowClientLink(catKey, preset) {
   const mod = MODULES[catKey];
   const base = (window.location.origin || '') + (window.location.pathname || '/index.html');
-  const link = base.replace(/\/$/, '') + '?cd_client=1&cat=' + encodeURIComponent(catKey) + '&standalone=1&_t=' + Date.now();
+  let link = base.replace(/\/$/, '') + '?cd_client=1&cat=' + encodeURIComponent(catKey) + '&standalone=1&_t=' + Date.now();
+  if (preset) { try { link += '&preset=' + encodeURIComponent(JSON.stringify(preset)); } catch (e) {} }
   let html = '<div class="cd-import-modal">';
   html += `<div class="cd-link-box"><textarea class="form-input" id="cdClientLink" readonly>${esc(link)}</textarea></div>`;
   html += `<div class="cd-import-actions"><button class="btn btn-outline" onclick="closeModal()">关闭</button><button class="btn btn-primary" onclick="copyCdClientLink()">复制链接</button><button class="btn btn-primary" onclick="cdOpenClientFormFromLink('${catKey}')">直接填写</button></div>`;
@@ -10740,14 +10742,20 @@ function saveAsCommissionTemplate(catKey) {
     } },
   ], 'notes-sm');
 }
-// v754：约稿模板库（按 土味/封面/饭圈/二次 分类列出已存模板，点模板直接生成约稿单）
+// v757：文件夹图标（激活态白色，非激活态灰色），用于文件夹式分类标签
+function folderSvg(active) {
+  const c = active ? '#ffffff' : '#9aa6b2';
+  return `<svg width="15" height="15" viewBox="0 0 24 24" fill="${c}" style="flex:none;vertical-align:-2px;margin-right:4px"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6z"/></svg>`;
+}
+// v754：约稿模板库（按 土味/封面/饭圈/二次 分类列出已存模板，点模板直接生成约稿单链接）
 function openCommissionTemplateLib() {
   if (!_tplLibCat) _tplLibCat = COMM_DETAIL_CATS[0].key;
   let html = '<div class="tpl-lib-folder">';
-  // 文件夹式：标题行 4 分类切换 tab（土味/封面/饭圈/二次）
+  // 文件夹式：标题行 4 分类切换 tab（土味/封面/饭圈/二次），带文件夹图标
   html += '<div class="tpl-folder-head"><div class="tpl-folder-tabs" id="tplCatTabs">';
   COMM_DETAIL_CATS.forEach(c => {
-    html += `<div class="tpl-tab ${c.key === _tplLibCat ? 'active' : ''}" onclick="setTplLibCat('${c.key}')">${esc(c.label)}</div>`;
+    const active = c.key === _tplLibCat;
+    html += `<div class="tpl-tab ${active ? 'active' : ''}" onclick="setTplLibCat('${c.key}')">${folderSvg(active)}${esc(c.label)}</div>`;
   });
   html += '</div></div>';
   // 模板库列表（卡片）
@@ -10784,12 +10792,12 @@ function renderTplLibList() {
     <div class="tpl-item-del" onclick="event.stopPropagation();delCommissionTemplate('${t.id}')">删除</div>
   </div>`).join('');
 }
+// v757：点已存模板 = 生成「复制约稿单链接」弹窗（带复制按钮），不打开可编辑表单
 function applyCommissionTemplate(id) {
   const t = DB.getById('commissionTemplates', id);
   if (!t) return;
   _tplLibCat = t.catKey;
-  closeModal();
-  cdOpenClientFormFromLink(t.catKey, { preset: t.data, fromLib: true });
+  cdShowClientLink(t.catKey, t.data);
 }
 function delCommissionTemplate(id) {
   DB.remove('commissionTemplates', id);
@@ -10819,7 +10827,7 @@ function renderTxtTplCats() {
   const cats = DB.get('textTemplateCats', []);
   if (!cats.length) { tabs.innerHTML = '<span class="tpl-empty" style="padding:0">暂无分类</span>'; return; }
   if (!cats.includes(_txtTplCat)) _txtTplCat = cats[0];
-  tabs.innerHTML = cats.map(c => `<div class="tpl-tab ${c === _txtTplCat ? 'active' : ''}" onclick="setTxtTplCat('${esc(c)}')">${esc(c)}<span class="tpl-cat-del" onclick="event.stopPropagation();delTextTemplateCat('${esc(c)}')">×</span></div>`).join('');
+  tabs.innerHTML = cats.map(c => { const active = c === _txtTplCat; return `<div class="tpl-tab ${active ? 'active' : ''}" onclick="setTxtTplCat('${esc(c)}')">${folderSvg(active)}${esc(c)}<span class="tpl-cat-del" onclick="event.stopPropagation();delTextTemplateCat('${esc(c)}')">×</span></div>`; }).join('');
 }
 function setTxtTplCat(c) { _txtTplCat = c; renderTxtTplCats(); renderTxtTplList(); }
 function addTextTemplateCat() {
@@ -10881,16 +10889,14 @@ function delTextTemplate(id) {
   Toast.success('已删除文案');
 }
 // 约稿单表单内的「文本模板」按钮：就地展开片段列表（不替换表单，按分类分组，插入到相邻的文案/小字文本框）
+// v757：约稿单表单内的「文本模板」按钮 -> 弹窗显示文本模板库（按分类分组），每条带「选择」按钮，点选填入并关闭弹窗
 function openTextTemplatePicker(fieldKey) {
   fieldKey = fieldKey || 'copyText';
-  const exist = $('#tplPickerPanel');
-  if (exist) { exist.remove(); return; }
-  const ta = document.querySelector(`textarea[data-key="${fieldKey}"]`);
-  if (!ta) return;
+  closeTextTemplatePicker();
   const items = DB.list('textTemplates');
   let inner;
   if (!items.length) {
-    inner = '<div class="tpl-empty">暂无文案模板，可点接稿详情页「文本模板」按钮前往添加。</div>';
+    inner = '<div class="tpl-empty">暂无文案模板，可前往「文本模板库」添加。</div>';
   } else {
     const cats = DB.get('textTemplateCats', []).slice();
     items.forEach(t => { if (t.cat && !cats.includes(t.cat)) cats.push(t.cat); });
@@ -10898,14 +10904,19 @@ function openTextTemplatePicker(fieldKey) {
     inner = cats.map(cat => {
       const group = items.filter(t => (t.cat || '通用') === cat);
       if (!group.length) return '';
-      return `<div class="tpl-grp-title">${esc(cat)}</div>` + group.map(t => `<div class="tpl-snippet" onclick="insertTextTemplateById('${t.id}','${fieldKey}')"><div class="tpl-snippet-text">${esc(t.text)}</div></div>`).join('');
+      return `<div class="txt-tpl-grp">${esc(cat)}</div>` + group.map(t => `<div class="txt-tpl-row"><div class="txt-tpl-row-text">${esc(t.text)}</div><button type="button" class="txt-tpl-choose" onclick="insertTextTemplateById('${t.id}','${fieldKey}');closeTextTemplatePicker();">选择</button></div>`).join('');
     }).join('');
   }
-  const panel = document.createElement('div');
-  panel.id = 'tplPickerPanel';
-  panel.className = 'tpl-picker-panel';
-  panel.innerHTML = inner;
-  ta.insertAdjacentElement('afterend', panel);
+  const ov = document.createElement('div');
+  ov.id = 'txtTplPickerOverlay';
+  ov.className = 'txt-tpl-picker-overlay';
+  ov.innerHTML = `<div class="txt-tpl-picker-card"><div class="txt-tpl-picker-head">文本模板<button type="button" class="txt-tpl-picker-close" onclick="closeTextTemplatePicker()">✕</button></div><div class="txt-tpl-picker-body">${inner}</div></div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener('click', e => { if (e.target === ov) closeTextTemplatePicker(); });
+}
+function closeTextTemplatePicker() {
+  const ov = $('#txtTplPickerOverlay');
+  if (ov) ov.remove();
 }
 function insertTextTemplateById(id, fieldKey) {
   const t = DB.getById('textTemplates', id);
@@ -10930,20 +10941,25 @@ function cdCheckClientFormFromUrl() {
     if (params.get('cd_client') !== '1') return;
     const catKey = params.get('cat');
     if (!catKey || !MODULES[catKey]) return;
+    let preset = null;
+    const p = params.get('preset');
+    if (p) { try { preset = JSON.parse(decodeURIComponent(p)); } catch (e) { preset = null; } }
     history.replaceState({}, '', window.location.pathname || window.location.href.split('?')[0]);
-    // 单主专用：打开干净独立填写页（不暴露用户工作台）
-    if (params.get('standalone') === '1') { cdRenderClientStandalone(catKey); return; }
-    cdOpenClientFormFromLink(catKey);
+    // 单主专用：打开干净独立填写页（不暴露用户工作台），模板预设值带入预填
+    if (params.get('standalone') === '1') { cdRenderClientStandalone(catKey, preset); return; }
+    cdOpenClientFormFromLink(catKey, preset ? { preset } : undefined);
   } catch (e) {}
 }
 // 单主专用独立填写页：仅渲染表单，隐藏侧边栏/顶栏，提交后显示致谢
-function cdRenderClientStandalone(catKey) {
+function cdRenderClientStandalone(catKey, preset) {
   const mod = MODULES[catKey];
   if (!mod) return;
   document.documentElement.classList.add('cd-standalone');
   document.body.classList.add('cd-standalone');
   const data = { category: mod.category };
   mod.fields.forEach(f => { if (f.default !== undefined && f.key !== 'category') data[f.key] = f.default; });
+  // v757：约稿模板生成的链接，单主打开即看到预填内容
+  if (preset) Object.assign(data, preset);
   const body = $('#mainBody');
   if (!body) return;
   let html = '<div class="cd-client-standalone">';
