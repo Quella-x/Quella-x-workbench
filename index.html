@@ -2688,7 +2688,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-item-name{font-size:14px;font-weight:600;color:var(--c-text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tpl-item-del{color:#e8857e;font-size:12px;cursor:pointer;padding:2px 6px;border-radius:6px;flex:none}
 .tpl-item-del:hover{background:rgba(232,133,126,.12)}
-.tpl-new{background:#f3f5f8;border:none;border-radius:var(--radius-sm);padding:12px;display:flex;flex-direction:column;gap:8px}
+.tpl-new{background:transparent;border:none;border-radius:var(--radius-sm);padding:12px;display:flex;flex-direction:column;gap:8px}
 .tpl-new .form-input{background:#fff}
 .tpl-new-hint{font-size:12px;color:var(--c-text-muted)}
 .tpl-snippet-list{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow:auto}
@@ -2713,15 +2713,17 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-cat-del{margin-left:6px;color:#e8857e;font-size:13px;cursor:pointer;padding:0 4px;border-radius:6px}
 .tpl-cat-del:hover{background:rgba(232,133,126,.14)}
 /* 约稿模板库下方：生成约稿单导入式 新建模板 区块（无边框） */
-.tpl-newtpl-zone{background:#f3f5f8;border:none;border-radius:var(--radius-sm);padding:12px}
+.tpl-newtpl-zone{background:transparent;border:none;border-radius:var(--radius-sm);padding:12px}
 .tpl-newtpl-title{font-size:14px;font-weight:700;color:var(--c-primary-dark)}
 .tpl-newtpl-tip{font-size:12px;color:var(--c-text-muted);margin:4px 0 2px;line-height:1.5}
 /* v757：文本模板插入弹窗（独立浮层，不替换约稿单表单） */
 .txt-tpl-picker-overlay{position:fixed;inset:0;background:rgba(20,30,45,.4);display:flex;align-items:center;justify-content:center;z-index:3000;padding:16px}
-.txt-tpl-picker-card{background:#fff;border-radius:var(--radius-lg);width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden}
-.txt-tpl-picker-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;font-size:15px;font-weight:500;color:var(--c-text);background:#f3f5f8}
-.txt-tpl-picker-close{background:none;border:none;font-size:18px;color:var(--c-text-muted);cursor:pointer;line-height:1}
-.txt-tpl-picker-body{padding:12px 16px;overflow:auto}
+.txt-tpl-picker-card{background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-lg)}
+.txt-tpl-picker-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--c-border);font-size:16px;font-weight:600;color:var(--c-text)}
+.txt-tpl-picker-close{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--c-text-light);background:transparent;border:none;cursor:pointer;line-height:1}
+.txt-tpl-picker-close:hover{background:var(--c-primary-bg);color:var(--c-primary)}
+.txt-tpl-picker-body{padding:16px 20px;overflow:auto;flex:1}
+.txt-tpl-picker-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid var(--c-border);flex-shrink:0}
 .txt-tpl-grp{font-size:12px;font-weight:700;color:var(--c-primary-dark);margin:10px 0 4px}
 .txt-tpl-row{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:#f3f5f8;border:none;border-radius:var(--radius-sm);margin-bottom:6px}
 .txt-tpl-row-text{flex:1;font-size:13px;color:var(--c-text);white-space:pre-wrap;word-break:break-all;line-height:1.5}
@@ -3215,7 +3217,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=757"></script>
+  <script src="app.js?v=758"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

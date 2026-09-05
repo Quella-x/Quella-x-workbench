@@ -10672,7 +10672,7 @@ function cdShowClientLink(catKey, preset) {
   if (preset) { try { link += '&preset=' + encodeURIComponent(JSON.stringify(preset)); } catch (e) {} }
   let html = '<div class="cd-import-modal">';
   html += `<div class="cd-link-box"><textarea class="form-input" id="cdClientLink" readonly>${esc(link)}</textarea></div>`;
-  html += `<div class="cd-import-actions"><button class="btn btn-outline" onclick="closeModal()">关闭</button><button class="btn btn-primary" onclick="copyCdClientLink()">复制链接</button><button class="btn btn-primary" onclick="cdOpenClientFormFromLink('${catKey}')">直接填写</button></div>`;
+  html += `<div class="cd-import-actions"><button class="btn btn-outline" onclick="closeModal()">关闭</button><button class="btn btn-primary" onclick="copyCdClientLink()">复制链接</button></div>`;
   html += '</div>';
   openModal('单主填写链接', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'link-narrow');
 }
@@ -10770,7 +10770,7 @@ function openCommissionTemplateLib() {
   html += '</div>';
   openModal('约稿模板库', html, [
     { label: '关闭', class: 'btn-ghost', action: closeModal },
-  ], 'notes-sm add60');
+  ], 'notes-sm');
   renderTplLibList();
 }
 function setTplLibCat(catKey) {
@@ -10816,7 +10816,7 @@ function openTextTemplateLib() {
   html += '<textarea class="form-textarea" id="txtTplInput" placeholder="输入一段固定文案，保存后可在约稿单中一键插入"></textarea>';
   html += '<div class="cd-import-actions"><button class="btn btn-primary" onclick="addTextTemplate()">保存文案</button></div></div>';
   html += '</div>';
-  openModal('文本模板库', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'notes-sm add60');
+  openModal('文本模板库', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'notes-sm');
   renderTxtTplCats();
   renderTxtTplList();
 }
@@ -10858,8 +10858,9 @@ function delTextTemplateCat(cat) {
 function textTplCatComboboxHTML(sel) {
   const cats = DB.get('textTemplateCats', []);
   const cbId = 'txtTplCatCb';
-  const opts = cats.map(c => `<div class="combobox-option" data-value="${esc(c)}" onclick="selectComboboxOption('${cbId}',this)">${esc(c)}</div>`).join('');
-  return `<div class="combobox-wrapper" style="max-width:240px"><input type="text" class="form-input combobox-input" id="${cbId}" value="${esc(sel)}" placeholder="选择或输入新分类" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${opts}</div></div>`;
+  const ddId = cbId + '-dropdown';
+  const opts = cats.map(c => `<div class="combobox-option" data-value="${esc(c)}" onclick="selectComboboxOption('${ddId}',this)">${esc(c)}</div>`).join('');
+  return `<div class="combobox-wrapper" style="max-width:240px"><input type="text" class="form-input combobox-input" id="${cbId}" value="${esc(sel)}" placeholder="选择或输入新分类" onfocus="showComboboxDropdown('${ddId}')" onclick="showComboboxDropdown('${ddId}')" oninput="filterComboboxDropdown('${ddId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${ddId}')">▼</button><div class="combobox-dropdown" id="${ddId}">${opts}</div></div>`;
 }
 function renderTxtTplList() {
   const list = $('#txtTplList');
@@ -10910,7 +10911,7 @@ function openTextTemplatePicker(fieldKey) {
   const ov = document.createElement('div');
   ov.id = 'txtTplPickerOverlay';
   ov.className = 'txt-tpl-picker-overlay';
-  ov.innerHTML = `<div class="txt-tpl-picker-card"><div class="txt-tpl-picker-head">文本模板<button type="button" class="txt-tpl-picker-close" onclick="closeTextTemplatePicker()">✕</button></div><div class="txt-tpl-picker-body">${inner}</div></div>`;
+  ov.innerHTML = `<div class="txt-tpl-picker-card"><div class="txt-tpl-picker-head">文本模板<button type="button" class="txt-tpl-picker-close" onclick="closeTextTemplatePicker()">✕</button></div><div class="txt-tpl-picker-body">${inner}</div><div class="txt-tpl-picker-foot"><button type="button" class="btn btn-ghost" onclick="closeTextTemplatePicker()">关闭</button></div></div>`;
   document.body.appendChild(ov);
   ov.addEventListener('click', e => { if (e.target === ov) closeTextTemplatePicker(); });
 }
