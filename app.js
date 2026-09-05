@@ -244,10 +244,12 @@ function openModal(title, bodyHTML, footerBtns, size = '') {
 let _lastNotesModalH = 0;
 // v753：新增记录/约稿单直接填写弹窗高度，作为聊天记录导入弹窗的优先参照（其他说明极少打开）
 let _lastRefModalH = 0;
-// v754：文本模板插入时记忆表单中最后一个聚焦的文本框
-let _tplLastFocus = null;
+// v755：文本模板库当前选中的自由分类
+let _txtTplCat = '通用';
 // v754：约稿模板库当前选中的品类 tab（延迟到首次打开时按 COMM_DETAIL_CATS 初始化，避免顶层 TDZ）
 let _tplLibCat = null;
+// v755：抑制"程序内 history.back（closeModal 后立即重开弹窗）"触发的 popstate，避免误清刚打开的弹窗
+let _suppressPop = false;
 // v752：弹窗等高统一出口——h 为参照高度(px)，缺省回退到弹窗最大高度 90vh
 function applyModalEqualHeight(h) {
   const m = $('#modal');
@@ -257,10 +259,11 @@ function applyModalEqualHeight(h) {
 }
 function closeModal() {
   $('#modalOverlay').classList.remove('show'); $('#modalBody').innerHTML = ''; $('#modalFooter').innerHTML = '';
-  if (_modalHistoryPushed) { _modalHistoryPushed = false; try { history.back(); } catch (e) {} }
+  if (_modalHistoryPushed) { _modalHistoryPushed = false; _suppressPop = true; try { history.back(); } catch (e) {} }
 }
 // 系统返回手势（Android 侧滑返回 / 浏览器后退）触发 popstate -> 关闭当前模态并回到上一级
 window.addEventListener('popstate', function () {
+  if (_suppressPop) { _suppressPop = false; return; }  // 程序内 history.back（closeModal 后重开弹窗）忽略，避免误清刚打开的弹窗
   if (_modalHistoryPushed) {
     _modalHistoryPushed = false;
     $('#modalOverlay').classList.remove('show'); $('#modalBody').innerHTML = ''; $('#modalFooter').innerHTML = '';
@@ -10684,25 +10687,23 @@ function cdOpenClientFormFromLink(catKey, opts) {
   mod.fields.forEach(f => { if (f.default !== undefined && f.key !== 'category') data[f.key] = f.default; });
   // v754：约稿模板点选后，用模板固定值覆盖默认空值
   if (opts.preset) Object.assign(data, opts.preset);
-  _tplLastFocus = null;
-  const insertBar = `<div class="tpl-insert-bar"><button type="button" class="btn btn-outline" onclick="openTextTemplatePicker()">${lucide('file-text',16)} 文本模板</button><span class="tpl-insert-hint">点选文案插入到当前聚焦的文本框</span></div>`;
-  const bodyHTML = insertBar + cdFormShell(buildCdClientForm(catKey, data));
+  // v755：把「文本模板」按钮从表单顶部整行，移到「文案/小字」字段标题行右侧（自适应宽），点开片段只插该字段
+  let bodyHTML = cdFormShell(buildCdClientForm(catKey, data));
+  bodyHTML = bodyHTML.replace(
+    /(<label class="form-label">)([^<]*)(<\/label>)(\s*<textarea class="form-textarea" data-key="copyText")/,
+    (m, a, lbl, c, ta) => `<div class="form-label-row">${a}${lbl}${c}<button type="button" class="tpl-inline-btn" onclick="openTextTemplatePicker('copyText')">${lucide('file-text',15)} 文本模板</button></div>${ta}`
+  );
+  // v755：从约稿模板库（新建模板/点模板）进入表单时，取消要回到库，避免"直接消失"
+  const cancelAction = opts.fromLib ? (() => { closeModal(); openCommissionTemplateLib(); }) : closeModal;
   openModal((mod.category || '约稿') + '约稿需求', bodyHTML, [
-    { label: '取消', class: 'btn-ghost', action: closeModal },
+    { label: '取消', class: 'btn-ghost', action: cancelAction },
     // v754：约稿单表单内「存为模板」按钮
     { label: '存为模板', class: 'btn-outline', action: () => saveAsCommissionTemplate(catKey) },
     { label: '提交', class: 'btn-primary', action: () => saveCdClientForm(catKey) },
   ]);
   // v753：记录约稿单直接填写弹窗高度，供聊天记录导入弹窗对齐
   try { const m = $('#modal'); if (m) _lastRefModalH = m.getBoundingClientRect().height; } catch (e) {}
-  setTimeout(() => {
-    setupFormInteractions(catKey);
-    const body = $('#modalBody');
-    if (body) body.addEventListener('focusin', e => {
-      const t = e.target;
-      if (t && (t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && t.type === 'text'))) _tplLastFocus = t;
-    });
-  }, 50);
+  setTimeout(() => { setupFormInteractions(catKey); }, 50);
 }
 // v754：收集当前约稿单表单数据（含饭圈/二次的附加制品）
 function collectCdFormData(catKey) {
@@ -10729,23 +10730,34 @@ function saveAsCommissionTemplate(catKey) {
       DB.add('commissionTemplates', { name, catKey, data });
       Toast.success('已保存模板：' + name);
       closeModal();
+      // v755：保存后回到约稿模板库，直接看到新模板（不再关掉整个库）
+      _tplLibCat = catKey;
+      openCommissionTemplateLib();
     } },
   ], 'notes-sm');
 }
 // v754：约稿模板库（按 土味/封面/饭圈/二次 分类列出已存模板，点模板直接生成约稿单）
 function openCommissionTemplateLib() {
   if (!_tplLibCat) _tplLibCat = COMM_DETAIL_CATS[0].key;
-  let html = '<div class="tpl-lib">';
-  html += '<div><div class="tpl-sec-title">已存模板</div>';
-  html += '<div class="tpl-tabs" id="tplCatTabs">';
+  let html = '<div class="tpl-lib-folder">';
+  // 文件夹式：标题行 4 分类切换 tab（土味/封面/饭圈/二次）
+  html += '<div class="tpl-folder-head"><div class="tpl-folder-tabs" id="tplCatTabs">';
   COMM_DETAIL_CATS.forEach(c => {
     html += `<div class="tpl-tab ${c.key === _tplLibCat ? 'active' : ''}" onclick="setTplLibCat('${c.key}')">${esc(c.label)}</div>`;
   });
+  html += '</div></div>';
+  // 模板库列表（卡片）
+  html += '<div class="tpl-folder-list" id="tplList"></div>';
+  // 下方：生成约稿单导入式 新建模板 区块（标题 + 选择分类下拉框 + 新建模板按钮）
+  html += '<div class="tpl-newtpl-zone">';
+  html += '<div class="tpl-newtpl-title">新建约稿模板</div>';
+  html += '<div class="tpl-newtpl-tip">选择分类后打开对应约稿单填写界面，填好固定值后点「存为模板」即可保存。</div>';
+  html += `<div style="margin-top:8px"><label class="form-label">选择分类</label>${cdCatComboboxHTML('tplNewCat', _tplLibCat, '')}</div>`;
+  html += `<div class="cd-import-actions"><button class="btn btn-primary" onclick="cdOpenClientFormFromLink(($('#tplNewCat')||{}).value||'${_tplLibCat}',{fromLib:true})">新建模板</button></div>`;
   html += '</div>';
-  html += '<div class="tpl-list" id="tplList"></div></div></div>';
+  html += '</div>';
   openModal('约稿模板库', html, [
     { label: '关闭', class: 'btn-ghost', action: closeModal },
-    { label: '新建模板', class: 'btn-primary', action: () => { closeModal(); openCdClientFormFromLink(_tplLibCat); } },
   ], 'notes-sm add60');
   renderTplLibList();
 }
@@ -10771,30 +10783,77 @@ function renderTplLibList() {
 function applyCommissionTemplate(id) {
   const t = DB.getById('commissionTemplates', id);
   if (!t) return;
+  _tplLibCat = t.catKey;
   closeModal();
-  cdOpenClientFormFromLink(t.catKey, { preset: t.data });
+  cdOpenClientFormFromLink(t.catKey, { preset: t.data, fromLib: true });
 }
 function delCommissionTemplate(id) {
   DB.remove('commissionTemplates', id);
   renderTplLibList();
   Toast.success('已删除模板');
 }
-// ===== v754：文本模板（全局零散文案库） =====
-// 顶部按钮入口：管理库（增删）
+// ===== v755：文本模板（全局零散文案库，支持自由分类） =====
+// 分类存储于 textTemplateCats（数组）；每条文案带 cat 字段
 function openTextTemplateLib() {
-  let html = '<div class="tpl-lib">';
-  html += '<div class="tpl-sec-title">零散文案模板</div>';
-  html += '<div class="tpl-snippet-list" id="txtTplList"></div>';
-  html += '<div class="tpl-new"><label class="form-label">新增文案</label><textarea class="form-textarea" id="txtTplInput" placeholder="输入一段固定文案，保存后可在约稿单中一键插入"></textarea><div class="cd-import-actions"><button class="btn btn-primary" onclick="addTextTemplate()">保存文案</button></div></div>';
+  let html = '<div class="tpl-lib-folder">';
+  html += '<div class="tpl-folder-head"><div class="tpl-folder-tabs" id="txtTplCats"></div>';
+  html += '<button type="button" class="btn btn-ghost tpl-newcat-btn" onclick="addTextTemplateCat()">+ 新建分类</button></div>';
+  html += '<div class="tpl-folder-list" id="txtTplList"></div>';
+  html += '<div class="tpl-new"><label class="form-label">新增文案</label>';
+  html += '<div id="txtTplCatWrap">' + textTplCatComboboxHTML(_txtTplCat) + '</div>';
+  html += '<textarea class="form-textarea" id="txtTplInput" placeholder="输入一段固定文案，保存后可在约稿单中一键插入"></textarea>';
+  html += '<div class="cd-import-actions"><button class="btn btn-primary" onclick="addTextTemplate()">保存文案</button></div></div>';
   html += '</div>';
   openModal('文本模板库', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'notes-sm add60');
+  renderTxtTplCats();
   renderTxtTplList();
+}
+// 分类 tab 渲染（含删除 ×）
+function renderTxtTplCats() {
+  const tabs = $('#txtTplCats');
+  if (!tabs) return;
+  const cats = DB.get('textTemplateCats', []);
+  if (!cats.length) { tabs.innerHTML = '<span class="tpl-empty" style="padding:0">暂无分类</span>'; return; }
+  if (!cats.includes(_txtTplCat)) _txtTplCat = cats[0];
+  tabs.innerHTML = cats.map(c => `<div class="tpl-tab ${c === _txtTplCat ? 'active' : ''}" onclick="setTxtTplCat('${esc(c)}')">${esc(c)}<span class="tpl-cat-del" onclick="event.stopPropagation();delTextTemplateCat('${esc(c)}')">×</span></div>`).join('');
+}
+function setTxtTplCat(c) { _txtTplCat = c; renderTxtTplCats(); renderTxtTplList(); }
+function addTextTemplateCat() {
+  let html = '<div class="cd-import-modal"><div class="tpl-new-hint">输入一个新分类名称，用于归类零散文案。</div>';
+  html += '<div style="margin-top:10px"><input class="form-input" id="newCatInput" placeholder="例如：封面宣传语" maxlength="20"></div></div>';
+  openModal('新建分类', html, [
+    { label: '取消', class: 'btn-ghost', action: closeModal },
+    { label: '确定', class: 'btn-primary', action: () => {
+      const n = ($('#newCatInput').value || '').trim();
+      if (!n) { Toast.warning('请输入分类名称'); return; }
+      const cats = DB.get('textTemplateCats', []);
+      if (!cats.includes(n)) { cats.push(n); DB.set('textTemplateCats', cats); }
+      _txtTplCat = n;
+      closeModal(); openTextTemplateLib();
+    } },
+  ], 'notes-sm');
+}
+function delTextTemplateCat(cat) {
+  if (!confirm('删除分类「' + cat + '」及其下所有文案？')) return;
+  let cats = DB.get('textTemplateCats', []);
+  cats = cats.filter(x => x !== cat);
+  DB.set('textTemplateCats', cats);
+  DB.list('textTemplates').filter(t => (t.cat || '通用') === cat).forEach(t => DB.remove('textTemplates', t.id));
+  if (_txtTplCat === cat) _txtTplCat = cats[0] || '通用';
+  renderTxtTplCats(); renderTxtTplList();
+}
+// 新增文案用到的分类下拉框（可输入新分类名）
+function textTplCatComboboxHTML(sel) {
+  const cats = DB.get('textTemplateCats', []);
+  const cbId = 'txtTplCatCb';
+  const opts = cats.map(c => `<div class="combobox-option" data-value="${esc(c)}" onclick="selectComboboxOption('${cbId}',this)">${esc(c)}</div>`).join('');
+  return `<div class="combobox-wrapper" style="max-width:240px"><input type="text" class="form-input combobox-input" id="${cbId}" value="${esc(sel)}" placeholder="选择或输入新分类" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${opts}</div></div>`;
 }
 function renderTxtTplList() {
   const list = $('#txtTplList');
   if (!list) return;
-  const items = DB.list('textTemplates');
-  if (!items.length) { list.innerHTML = '<div class="tpl-empty">暂无文案，在下方输入框添加后，可在约稿单中插入。</div>'; return; }
+  const items = DB.list('textTemplates').filter(t => (t.cat || '通用') === _txtTplCat);
+  if (!items.length) { list.innerHTML = '<div class="tpl-empty">「' + esc(_txtTplCat) + '」分类下暂无文案，在下方输入框添加。</div>'; return; }
   list.innerHTML = items.map(t => `<div class="tpl-snippet">
     <div class="tpl-snippet-text">${esc(t.text)}</div>
     <div class="tpl-snippet-del" onclick="delTextTemplate('${t.id}')">删除</div>
@@ -10803,9 +10862,13 @@ function renderTxtTplList() {
 function addTextTemplate() {
   const v = ($('#txtTplInput').value || '').trim();
   if (!v) { Toast.warning('请输入文案内容'); return; }
-  DB.add('textTemplates', { text: v });
+  let cat = (($('#txtTplCatCb') || {}).value || '').trim() || _txtTplCat || '通用';
+  const cats = DB.get('textTemplateCats', []);
+  if (!cats.includes(cat)) { cats.push(cat); DB.set('textTemplateCats', cats); }
+  DB.add('textTemplates', { text: v, cat });
+  _txtTplCat = cat;
   $('#txtTplInput').value = '';
-  renderTxtTplList();
+  renderTxtTplCats(); renderTxtTplList();
   Toast.success('已添加文案');
 }
 function delTextTemplate(id) {
@@ -10813,34 +10876,42 @@ function delTextTemplate(id) {
   renderTxtTplList();
   Toast.success('已删除文案');
 }
-// 约稿单表单内的「文本模板」按钮：就地展开片段列表（不替换表单，避免清空已填内容）
-function openTextTemplatePicker() {
+// 约稿单表单内的「文本模板」按钮：就地展开片段列表（不替换表单，按分类分组，插入到相邻的文案/小字文本框）
+function openTextTemplatePicker(fieldKey) {
+  fieldKey = fieldKey || 'copyText';
   const exist = $('#tplPickerPanel');
   if (exist) { exist.remove(); return; }
-  const bar = document.querySelector('.tpl-insert-bar');
-  if (!bar) return;
+  const ta = document.querySelector(`textarea[data-key="${fieldKey}"]`);
+  if (!ta) return;
   const items = DB.list('textTemplates');
-  let inner = items.length
-    ? '<div class="tpl-snippet-list">' + items.map(t => `<div class="tpl-snippet" onclick="insertTextTemplateById('${t.id}')"><div class="tpl-snippet-text">${esc(t.text)}</div></div>`).join('') + '</div>'
-    : '<div class="tpl-empty">暂无文案模板，可点接稿详情页「文本模板」按钮前往添加。</div>';
+  let inner;
+  if (!items.length) {
+    inner = '<div class="tpl-empty">暂无文案模板，可点接稿详情页「文本模板」按钮前往添加。</div>';
+  } else {
+    const cats = DB.get('textTemplateCats', []).slice();
+    items.forEach(t => { if (t.cat && !cats.includes(t.cat)) cats.push(t.cat); });
+    if (!cats.length) cats.push('通用');
+    inner = cats.map(cat => {
+      const group = items.filter(t => (t.cat || '通用') === cat);
+      if (!group.length) return '';
+      return `<div class="tpl-grp-title">${esc(cat)}</div>` + group.map(t => `<div class="tpl-snippet" onclick="insertTextTemplateById('${t.id}','${fieldKey}')"><div class="tpl-snippet-text">${esc(t.text)}</div></div>`).join('');
+    }).join('');
+  }
   const panel = document.createElement('div');
   panel.id = 'tplPickerPanel';
   panel.className = 'tpl-picker-panel';
   panel.innerHTML = inner;
-  bar.insertAdjacentElement('afterend', panel);
+  ta.insertAdjacentElement('afterend', panel);
 }
-function insertTextTemplateById(id) {
+function insertTextTemplateById(id, fieldKey) {
   const t = DB.getById('textTemplates', id);
-  if (t) insertTextTemplate(t.text);
+  if (t) insertTextTemplate(t.text, fieldKey);
 }
-// 把文案追加插入到约稿单中当前聚焦的文本框（无聚焦时退回第一个文本框）
-function insertTextTemplate(text) {
-  let el = _tplLastFocus;
-  const body = $('#modalBody');
-  if (!el || !body || !body.contains(el) || (el.tagName !== 'TEXTAREA' && !(el.tagName === 'INPUT' && el.type === 'text'))) {
-    el = body ? body.querySelector('textarea') : null;
-  }
-  if (!el) { Toast.warning('请先在约稿单中点击一个文本框'); return; }
+// 把文案追加插入到指定文本框（v755：固定为相邻的「文案/小字」字段）
+function insertTextTemplate(text, fieldKey) {
+  fieldKey = fieldKey || 'copyText';
+  const el = document.querySelector(`textarea[data-key="${fieldKey}"]`);
+  if (!el) { Toast.warning('未找到目标文本框'); return; }
   const sep = (el.value && !el.value.endsWith('\n') && !el.value.endsWith(' ')) ? '\n' : '';
   el.value = el.value + sep + text;
   el.focus();

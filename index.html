@@ -2684,11 +2684,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-item-name{font-size:14px;font-weight:600;color:var(--c-text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tpl-item-del{color:#e8857e;font-size:12px;cursor:pointer;padding:2px 6px;border-radius:6px;flex:none}
 .tpl-item-del:hover{background:rgba(232,133,126,.12)}
-.tpl-new{background:var(--c-primary-bg);border-radius:var(--radius-sm);padding:12px;display:flex;flex-direction:column;gap:8px}
+.tpl-new{background:var(--c-card);border:1px solid var(--c-primary-light);border-radius:var(--radius-sm);padding:12px;display:flex;flex-direction:column;gap:8px}
 .tpl-new .form-input{background:#fff}
 .tpl-new-hint{font-size:12px;color:var(--c-text-muted)}
-.tpl-insert-bar{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
-.tpl-insert-bar .tpl-insert-hint{font-size:12px;color:var(--c-text-muted)}
 .tpl-snippet-list{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow:auto}
 .tpl-snippet{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:var(--c-card);border:1px solid var(--c-primary-light);border-radius:var(--radius-sm);cursor:pointer;transition:.15s}
 .tpl-snippet:hover{border-color:var(--c-primary);background:var(--c-primary-bg)}
@@ -2696,7 +2694,24 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-snippet-del{color:#e8857e;font-size:12px;cursor:pointer;padding:2px 6px;border-radius:6px;flex:none}
 .tpl-snippet-del:hover{background:rgba(232,133,126,.12)}
 /* 约稿单表单内就地展开的文案片段面板（不替换表单） */
-.tpl-picker-panel{background:var(--c-primary-bg);border:1px solid var(--c-primary-light);border-radius:var(--radius-sm);padding:10px;margin-bottom:8px}
+.tpl-picker-panel{background:var(--c-card);border:1px solid var(--c-primary-light);border-radius:var(--radius-sm);padding:10px;margin-bottom:8px}
+/* v755：文案/小字字段标题行右侧的"文本模板"按钮（自适应宽，不占满整行） */
+.form-label-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.tpl-inline-btn{display:inline-flex;align-items:center;gap:4px;width:auto;padding:3px 10px;font-size:12px;line-height:1.4;border:1px solid var(--c-primary-light);background:var(--c-card);color:var(--c-primary-dark);border-radius:999px;cursor:pointer}
+.tpl-inline-btn:hover{background:var(--c-primary-bg);border-color:var(--c-primary)}
+/* v755：文件夹式模板库（约稿模板库 / 文本模板库通用） */
+.tpl-lib-folder{display:flex;flex-direction:column;gap:10px}
+.tpl-folder-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tpl-folder-tabs{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.tpl-newcat-btn{padding:4px 10px;font-size:12px;flex:none}
+.tpl-folder-list{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow:auto}
+.tpl-grp-title{font-size:12px;font-weight:700;color:var(--c-primary-dark);margin:6px 0 2px}
+.tpl-cat-del{margin-left:6px;color:#e8857e;font-size:13px;cursor:pointer;padding:0 4px;border-radius:6px}
+.tpl-cat-del:hover{background:rgba(232,133,126,.14)}
+/* 约稿模板库下方：生成约稿单导入式 新建模板 区块 */
+.tpl-newtpl-zone{background:var(--c-card);border:1px solid var(--c-primary-light);border-radius:var(--radius-sm);padding:12px}
+.tpl-newtpl-title{font-size:14px;font-weight:700;color:var(--c-primary-dark)}
+.tpl-newtpl-tip{font-size:12px;color:var(--c-text-muted);margin:4px 0 2px;line-height:1.5}
 /* 品类切换按钮（四个并排均分，与首页平台按钮同款均分布局） */
 /* v733：接稿详情顶部顺序改 导入→搜索→品类 后，搜索框下边距跟随其余块统一为 8px（原继承 .toolbar 的 14px） */
 .cd-toolbar{margin-bottom:8px}
@@ -3186,7 +3201,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=754"></script>
+  <script src="app.js?v=755"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
