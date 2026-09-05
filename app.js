@@ -244,6 +244,10 @@ function openModal(title, bodyHTML, footerBtns, size = '') {
 let _lastNotesModalH = 0;
 // v753：新增记录/约稿单直接填写弹窗高度，作为聊天记录导入弹窗的优先参照（其他说明极少打开）
 let _lastRefModalH = 0;
+// v754：文本模板插入时记忆表单中最后一个聚焦的文本框
+let _tplLastFocus = null;
+// v754：约稿模板库当前选中的品类 tab（延迟到首次打开时按 COMM_DETAIL_CATS 初始化，避免顶层 TDZ）
+let _tplLibCat = null;
 // v752：弹窗等高统一出口——h 为参照高度(px)，缺省回退到弹窗最大高度 90vh
 function applyModalEqualHeight(h) {
   const m = $('#modal');
@@ -9714,19 +9718,23 @@ function renderCommissionDetailPage() {
   const allRecords = DB.list('commissionDetails');
   let html = '<div class="fade-in commission-detail-page">';
 
-  // 1) 信息录入：三个按钮并列（不折叠）
+  // 1) 信息录入：四个按钮并列（桌面一排4 / 移动一排2，中性白卡）
   html += `<div class="cd-import-row">
     <div class="cd-import-btn" onclick="openCdImportChat()">
       <div class="cd-import-btn-icon">${lucide('message-circle',22)}</div>
       <div class="cd-import-btn-name">聊天记录导入</div>
     </div>
-    <div class="cd-import-btn" onclick="openCdImportJson()">
-      <div class="cd-import-btn-icon">${lucide('clipboard-list',22)}</div>
-      <div class="cd-import-btn-name">JSON 导入</div>
-    </div>
     <div class="cd-import-btn" onclick="openCdClientForm()">
       <div class="cd-import-btn-icon">${lucide('archive',22)}</div>
       <div class="cd-import-btn-name">生成约稿单导入</div>
+    </div>
+    <div class="cd-import-btn" onclick="openTextTemplateLib()">
+      <div class="cd-import-btn-icon">${lucide('file-text',22)}</div>
+      <div class="cd-import-btn-name">文本模板</div>
+    </div>
+    <div class="cd-import-btn" onclick="openCommissionTemplateLib()">
+      <div class="cd-import-btn-icon">${lucide('clipboard-list',22)}</div>
+      <div class="cd-import-btn-name">约稿模板</div>
     </div>
   </div>`;
 
@@ -10669,18 +10677,176 @@ function copyCdClientLink() {
     try { document.execCommand('copy'); Toast.success('链接已复制'); } catch (e) { Toast.error('复制失败，请手动复制'); }
   }
 }
-function cdOpenClientFormFromLink(catKey) {
+function cdOpenClientFormFromLink(catKey, opts) {
+  opts = opts || {};
   const mod = MODULES[catKey];
   const data = { category: mod.category };
   mod.fields.forEach(f => { if (f.default !== undefined && f.key !== 'category') data[f.key] = f.default; });
-  const bodyHTML = cdFormShell(buildCdClientForm(catKey, data));
+  // v754：约稿模板点选后，用模板固定值覆盖默认空值
+  if (opts.preset) Object.assign(data, opts.preset);
+  _tplLastFocus = null;
+  const insertBar = `<div class="tpl-insert-bar"><button type="button" class="btn btn-outline" onclick="openTextTemplatePicker()">${lucide('file-text',16)} 文本模板</button><span class="tpl-insert-hint">点选文案插入到当前聚焦的文本框</span></div>`;
+  const bodyHTML = insertBar + cdFormShell(buildCdClientForm(catKey, data));
   openModal((mod.category || '约稿') + '约稿需求', bodyHTML, [
     { label: '取消', class: 'btn-ghost', action: closeModal },
+    // v754：约稿单表单内「存为模板」按钮
+    { label: '存为模板', class: 'btn-outline', action: () => saveAsCommissionTemplate(catKey) },
     { label: '提交', class: 'btn-primary', action: () => saveCdClientForm(catKey) },
   ]);
   // v753：记录约稿单直接填写弹窗高度，供聊天记录导入弹窗对齐
   try { const m = $('#modal'); if (m) _lastRefModalH = m.getBoundingClientRect().height; } catch (e) {}
-  setTimeout(() => { setupFormInteractions(catKey); }, 50);
+  setTimeout(() => {
+    setupFormInteractions(catKey);
+    const body = $('#modalBody');
+    if (body) body.addEventListener('focusin', e => {
+      const t = e.target;
+      if (t && (t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && t.type === 'text'))) _tplLastFocus = t;
+    });
+  }, 50);
+}
+// v754：收集当前约稿单表单数据（含饭圈/二次的附加制品）
+function collectCdFormData(catKey) {
+  const container = $('#modalBody');
+  const data = readForm(container);
+  if (catKey === 'design-commission-detail-fq' || catKey === 'design-commission-detail-ec') {
+    data.extraProducts = readCdExtraProducts(container, catKey);
+  }
+  return data;
+}
+// v754：把当前约稿单存为模板（弹窗命名后保存）
+function saveAsCommissionTemplate(catKey) {
+  const data = collectCdFormData(catKey);
+  const mod = MODULES[catKey];
+  let html = '<div class="cd-import-modal">';
+  html += `<div class="tpl-new-hint">将当前填写的约稿单存为「${esc(mod.category)}」类模板，之后可在接稿详情页「约稿模板」一键生成。</div>`;
+  html += `<div style="margin-top:10px"><label class="form-label">模板名称</label><input class="form-input" id="tplNameInput" placeholder="例如：饭圈头像标准单"></div>`;
+  html += '</div>';
+  openModal('存为约稿模板', html, [
+    { label: '取消', class: 'btn-ghost', action: closeModal },
+    { label: '保存', class: 'btn-primary', action: () => {
+      const name = ($('#tplNameInput').value || '').trim();
+      if (!name) { Toast.warning('请填写模板名称'); return; }
+      DB.add('commissionTemplates', { name, catKey, data });
+      Toast.success('已保存模板：' + name);
+      closeModal();
+    } },
+  ], 'notes-sm');
+}
+// v754：约稿模板库（按 土味/封面/饭圈/二次 分类列出已存模板，点模板直接生成约稿单）
+function openCommissionTemplateLib() {
+  if (!_tplLibCat) _tplLibCat = COMM_DETAIL_CATS[0].key;
+  let html = '<div class="tpl-lib">';
+  html += '<div><div class="tpl-sec-title">已存模板</div>';
+  html += '<div class="tpl-tabs" id="tplCatTabs">';
+  COMM_DETAIL_CATS.forEach(c => {
+    html += `<div class="tpl-tab ${c.key === _tplLibCat ? 'active' : ''}" onclick="setTplLibCat('${c.key}')">${esc(c.label)}</div>`;
+  });
+  html += '</div>';
+  html += '<div class="tpl-list" id="tplList"></div></div></div>';
+  openModal('约稿模板库', html, [
+    { label: '关闭', class: 'btn-ghost', action: closeModal },
+    { label: '新建模板', class: 'btn-primary', action: () => { closeModal(); openCdClientFormFromLink(_tplLibCat); } },
+  ], 'notes-sm add60');
+  renderTplLibList();
+}
+function setTplLibCat(catKey) {
+  _tplLibCat = catKey;
+  const tabs = $('#tplCatTabs');
+  if (tabs) tabs.querySelectorAll('.tpl-tab').forEach(t => {
+    const k = t.getAttribute('onclick').match(/'([^']+)'/)[1];
+    t.classList.toggle('active', k === catKey);
+  });
+  renderTplLibList();
+}
+function renderTplLibList() {
+  const list = $('#tplList');
+  if (!list) return;
+  const items = DB.list('commissionTemplates').filter(t => t.catKey === _tplLibCat);
+  if (!items.length) { list.innerHTML = '<div class="tpl-empty">暂无「' + esc((COMM_DETAIL_CATS.find(c => c.key === _tplLibCat) || {}).label || '') + '」类模板，点右上角「新建模板」创建。</div>'; return; }
+  list.innerHTML = items.map(t => `<div class="tpl-item" onclick="applyCommissionTemplate('${t.id}')">
+    <div class="tpl-item-name">${esc(t.name)}</div>
+    <div class="tpl-item-del" onclick="event.stopPropagation();delCommissionTemplate('${t.id}')">删除</div>
+  </div>`).join('');
+}
+function applyCommissionTemplate(id) {
+  const t = DB.getById('commissionTemplates', id);
+  if (!t) return;
+  closeModal();
+  cdOpenClientFormFromLink(t.catKey, { preset: t.data });
+}
+function delCommissionTemplate(id) {
+  DB.remove('commissionTemplates', id);
+  renderTplLibList();
+  Toast.success('已删除模板');
+}
+// ===== v754：文本模板（全局零散文案库） =====
+// 顶部按钮入口：管理库（增删）
+function openTextTemplateLib() {
+  let html = '<div class="tpl-lib">';
+  html += '<div class="tpl-sec-title">零散文案模板</div>';
+  html += '<div class="tpl-snippet-list" id="txtTplList"></div>';
+  html += '<div class="tpl-new"><label class="form-label">新增文案</label><textarea class="form-textarea" id="txtTplInput" placeholder="输入一段固定文案，保存后可在约稿单中一键插入"></textarea><div class="cd-import-actions"><button class="btn btn-primary" onclick="addTextTemplate()">保存文案</button></div></div>';
+  html += '</div>';
+  openModal('文本模板库', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'notes-sm add60');
+  renderTxtTplList();
+}
+function renderTxtTplList() {
+  const list = $('#txtTplList');
+  if (!list) return;
+  const items = DB.list('textTemplates');
+  if (!items.length) { list.innerHTML = '<div class="tpl-empty">暂无文案，在下方输入框添加后，可在约稿单中插入。</div>'; return; }
+  list.innerHTML = items.map(t => `<div class="tpl-snippet">
+    <div class="tpl-snippet-text">${esc(t.text)}</div>
+    <div class="tpl-snippet-del" onclick="delTextTemplate('${t.id}')">删除</div>
+  </div>`).join('');
+}
+function addTextTemplate() {
+  const v = ($('#txtTplInput').value || '').trim();
+  if (!v) { Toast.warning('请输入文案内容'); return; }
+  DB.add('textTemplates', { text: v });
+  $('#txtTplInput').value = '';
+  renderTxtTplList();
+  Toast.success('已添加文案');
+}
+function delTextTemplate(id) {
+  DB.remove('textTemplates', id);
+  renderTxtTplList();
+  Toast.success('已删除文案');
+}
+// 约稿单表单内的「文本模板」按钮：就地展开片段列表（不替换表单，避免清空已填内容）
+function openTextTemplatePicker() {
+  const exist = $('#tplPickerPanel');
+  if (exist) { exist.remove(); return; }
+  const bar = document.querySelector('.tpl-insert-bar');
+  if (!bar) return;
+  const items = DB.list('textTemplates');
+  let inner = items.length
+    ? '<div class="tpl-snippet-list">' + items.map(t => `<div class="tpl-snippet" onclick="insertTextTemplateById('${t.id}')"><div class="tpl-snippet-text">${esc(t.text)}</div></div>`).join('') + '</div>'
+    : '<div class="tpl-empty">暂无文案模板，可点接稿详情页「文本模板」按钮前往添加。</div>';
+  const panel = document.createElement('div');
+  panel.id = 'tplPickerPanel';
+  panel.className = 'tpl-picker-panel';
+  panel.innerHTML = inner;
+  bar.insertAdjacentElement('afterend', panel);
+}
+function insertTextTemplateById(id) {
+  const t = DB.getById('textTemplates', id);
+  if (t) insertTextTemplate(t.text);
+}
+// 把文案追加插入到约稿单中当前聚焦的文本框（无聚焦时退回第一个文本框）
+function insertTextTemplate(text) {
+  let el = _tplLastFocus;
+  const body = $('#modalBody');
+  if (!el || !body || !body.contains(el) || (el.tagName !== 'TEXTAREA' && !(el.tagName === 'INPUT' && el.type === 'text'))) {
+    el = body ? body.querySelector('textarea') : null;
+  }
+  if (!el) { Toast.warning('请先在约稿单中点击一个文本框'); return; }
+  const sep = (el.value && !el.value.endsWith('\n') && !el.value.endsWith(' ')) ? '\n' : '';
+  el.value = el.value + sep + text;
+  el.focus();
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  const panel = $('#tplPickerPanel'); if (panel) panel.remove();
+  Toast.success('已插入文本模板');
 }
 // 从 URL 参数自动打开单主填写表单
 function cdCheckClientFormFromUrl() {
