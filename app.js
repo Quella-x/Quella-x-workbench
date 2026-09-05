@@ -227,8 +227,9 @@ function initModalSwipe() {
   }, { passive: true });
 }
 
-// v-DY: 模态打开时压入一条 history 状态，使手机系统「侧滑返回」手势优先关闭模态而非直接退出 APP
-let _modalHistoryPushed = false;
+// v-DY/v756: 模态打开时压入一条 history 状态，使手机系统「侧滑返回」手势优先关闭模态而非直接退出 APP
+// 用 #modalOverlay._pushed 记录该条目是否已压栈；closeModal 用 replaceState 把标记置为中性，
+// 不再调用 history.back()，避免在 iframe/file 等场景下把页面回退到 about:blank。
 function openModal(title, bodyHTML, footerBtns, size = '') {
   $('#modalTitle').textContent = title; $('#modalBody').innerHTML = bodyHTML;
   const fc = $('#modalFooter'); fc.innerHTML = ''; fc.style.display = '';
@@ -236,9 +237,9 @@ function openModal(title, bodyHTML, footerBtns, size = '') {
     footerBtns.forEach(b => { const btn = document.createElement('button'); btn.className = 'btn ' + (b.class || 'btn-primary'); btn.textContent = b.label; btn.onclick = () => b.action && b.action(); fc.appendChild(btn); });
   } else { fc.style.display = 'none'; }
   $('#modal').style.height = ''; $('#modal').className = 'modal' + (size ? ' ' + size : '');
-  $('#modalOverlay').classList.add('show');
+  const ov = $('#modalOverlay'); ov.classList.add('show');
   initModalSwipe();
-  if (!_modalHistoryPushed) { try { history.pushState({ wbModal: 1 }, ''); _modalHistoryPushed = true; } catch (e) {} }
+  if (!ov._pushed) { try { history.pushState({ wbModal: 1 }, ''); ov._pushed = true; } catch (e) {} }
 }
 // v752：最近一次「其他说明」查看弹窗的实际高度，供无参照物的弹窗对齐
 let _lastNotesModalH = 0;
@@ -248,8 +249,6 @@ let _lastRefModalH = 0;
 let _txtTplCat = '通用';
 // v754：约稿模板库当前选中的品类 tab（延迟到首次打开时按 COMM_DETAIL_CATS 初始化，避免顶层 TDZ）
 let _tplLibCat = null;
-// v755：抑制"程序内 history.back（closeModal 后立即重开弹窗）"触发的 popstate，避免误清刚打开的弹窗
-let _suppressPop = false;
 // v752：弹窗等高统一出口——h 为参照高度(px)，缺省回退到弹窗最大高度 90vh
 function applyModalEqualHeight(h) {
   const m = $('#modal');
@@ -258,15 +257,20 @@ function applyModalEqualHeight(h) {
   m.style.height = h ? h + 'px' : '90vh';
 }
 function closeModal() {
-  $('#modalOverlay').classList.remove('show'); $('#modalBody').innerHTML = ''; $('#modalFooter').innerHTML = '';
-  if (_modalHistoryPushed) { _modalHistoryPushed = false; _suppressPop = true; try { history.back(); } catch (e) {} }
+  const ov = $('#modalOverlay');
+  ov.classList.remove('show'); $('#modalBody').innerHTML = ''; $('#modalFooter').innerHTML = '';
+  // v756：把当前 history 条目的 modal 标记替换为中性对象，不触发导航，也不让之后的系统返回再去关闭已不存在的弹窗
+  if (ov._pushed) {
+    ov._pushed = false;
+    try { history.replaceState({}, '', location.href); } catch (e) {}
+  }
 }
 // 系统返回手势（Android 侧滑返回 / 浏览器后退）触发 popstate -> 关闭当前模态并回到上一级
-window.addEventListener('popstate', function () {
-  if (_suppressPop) { _suppressPop = false; return; }  // 程序内 history.back（closeModal 后重开弹窗）忽略，避免误清刚打开的弹窗
-  if (_modalHistoryPushed) {
-    _modalHistoryPushed = false;
-    $('#modalOverlay').classList.remove('show'); $('#modalBody').innerHTML = ''; $('#modalFooter').innerHTML = '';
+window.addEventListener('popstate', function (e) {
+  const ov = $('#modalOverlay');
+  if (e.state && e.state.wbModal && ov && ov.classList.contains('show')) {
+    ov._pushed = false;
+    ov.classList.remove('show'); $('#modalBody').innerHTML = ''; $('#modalFooter').innerHTML = '';
   }
 });
 
