@@ -249,6 +249,8 @@ let _lastRefModalH = 0;
 let _txtTplCat = '通用';
 // v754：约稿模板库当前选中的品类 tab（延迟到首次打开时按 COMM_DETAIL_CATS 初始化，避免顶层 TDZ）
 let _tplLibCat = null;
+let _commTplSelId = null; // v762：约稿模板库当前选中项
+let _txtTplSelId = null;  // v762：文本模板库当前选中项
 // v752：弹窗等高统一出口——h 为参照高度(px)，缺省回退到弹窗最大高度 90vh
 function applyModalEqualHeight(h) {
   const m = $('#modal');
@@ -10746,22 +10748,24 @@ function saveAsCommissionTemplate(catKey) {
 function openCommissionTemplateLib() {
   if (!_tplLibCat) _tplLibCat = COMM_DETAIL_CATS[0].key;
   let html = '<div class="tpl-lib-folder">';
-  // 文件夹式：标题行 4 分类切换 tab（土味/封面/饭圈/二次），带文件夹图标
-  html += '<div class="tpl-folder-head"><div class="tpl-folder-tabs" id="tplCatTabs">';
+  // v762 文件夹式：顶部 tab 行（激活 tab 主色蓝）
+  html += '<div class="tpl-top-row"><div class="tpl-folder-tabs" id="tplCatTabs">';
   COMM_DETAIL_CATS.forEach(c => {
     const active = c.key === _tplLibCat;
-    html += `<div class="tpl-tab ${active ? 'active' : ''}" onclick="setTplLibCat('${c.key}')">${esc(c.label)}</div>`;
+    html += `<div class="tpl-tab ${active ? 'active' : ''}" role="tab" tabindex="0" aria-selected="${active}" onclick="setTplLibCat('${c.key}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setTplLibCat('${c.key}')}">${esc(c.label)}</div>`;
   });
   html += '</div></div>';
-  // 模板库列表（卡片）
-  html += '<div class="tpl-folder-list" id="tplList"></div>';
-  // 下方：生成约稿单导入式 新建模板 区块（标题 + 选择分类下拉框 + 新建模板按钮）
+  // 白色大圆角卡片装列表 + 删除操作
+  html += '<div class="tpl-white-card"><div class="tpl-folder-list" id="tplList"></div>';
+  // 卡片内底部统一操作栏：生成链接 / 删除选中 / 清空分类
+  html += '<div class="tpl-lib-actions" id="tplActions"><button type="button" class="btn btn-primary" onclick="applySelectedCommissionTemplate()" disabled id="tplApplyBtn">生成链接</button><button type="button" class="btn btn-outline" onclick="delSelectedCommissionTemplate()" disabled id="tplDelBtn">删除选中</button><button type="button" class="btn btn-ghost" onclick="clearCommissionTemplateCat()" id="tplClearCatBtn">清空分类</button></div></div>';
+  html += '</div>';
+  // 下方：新建约稿模板区块（容器外，无底色）
   html += '<div class="tpl-newtpl-zone">';
   html += '<div class="tpl-newtpl-title">新建约稿模板</div>';
   html += '<div class="tpl-newtpl-tip">选择分类后打开对应约稿单填写界面，填好固定值后点「存为模板」即可保存。</div>';
   html += `<div style="margin-top:8px"><label class="form-label">选择分类</label>${cdCatComboboxHTML('tplNewCat', _tplLibCat, '')}</div>`;
   html += `<div class="cd-import-actions"><button class="btn btn-primary" onclick="cdOpenClientFormFromLink(($('#tplNewCat')||{}).value||'${_tplLibCat}',{fromLib:true})">新建模板</button></div>`;
-  html += '</div>';
   html += '</div>';
   openModal('约稿模板库', html, [
     { label: '关闭', class: 'btn-ghost', action: closeModal },
@@ -10770,29 +10774,67 @@ function openCommissionTemplateLib() {
 }
 function setTplLibCat(catKey) {
   _tplLibCat = catKey;
+  _commTplSelId = null;
   const tabs = $('#tplCatTabs');
   if (tabs) tabs.querySelectorAll('.tpl-tab').forEach(t => {
     const k = t.getAttribute('onclick').match(/'([^']+)'/)[1];
     t.classList.toggle('active', k === catKey);
   });
+  const nameEl = $('#tplSpaceName');
+  if (nameEl) nameEl.textContent = (COMM_DETAIL_CATS.find(c => c.key === catKey) || {}).label || '';
   renderTplLibList();
 }
 function renderTplLibList() {
   const list = $('#tplList');
   if (!list) return;
   const items = DB.list('commissionTemplates').filter(t => t.catKey === _tplLibCat);
-  if (!items.length) { list.innerHTML = '<div class="tpl-empty">暂无「' + esc((COMM_DETAIL_CATS.find(c => c.key === _tplLibCat) || {}).label || '') + '」类模板，点右上角「新建模板」创建。</div>'; return; }
-  list.innerHTML = items.map(t => `<div class="tpl-item" onclick="applyCommissionTemplate('${t.id}')">
+  if (!items.length) {
+    _commTplSelId = null; updateTplActions();
+    list.innerHTML = '<div class="tpl-empty">' + folderEmptySvg() +
+      '<div class="tpl-empty-title">「' + esc((COMM_DETAIL_CATS.find(c => c.key === _tplLibCat) || {}).label || '') + '」还没有模板</div>' +
+      '<div class="tpl-empty-hint">在下方「新建约稿模板」里创建一个</div></div>';
+    return;
+  }
+  list.innerHTML = items.map(t => { const sel = _commTplSelId === t.id; return `<div class="tpl-item ${sel ? 'selected' : ''}" role="option" tabindex="0" aria-selected="${sel}" onclick="selectCommissionTemplate('${t.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectCommissionTemplate('${t.id}')}">
     <div class="tpl-item-name">${esc(t.name)}</div>
-    <div class="tpl-item-del" onclick="event.stopPropagation();delCommissionTemplate('${t.id}')">删除</div>
-  </div>`).join('');
+  </div>`; }).join('');
+  updateTplActions();
 }
-// v757：点已存模板 = 生成「复制约稿单链接」弹窗（带复制按钮），不打开可编辑表单
-function applyCommissionTemplate(id) {
-  const t = DB.getById('commissionTemplates', id);
+function selectCommissionTemplate(id) {
+  _commTplSelId = (_commTplSelId === id ? null : id);
+  renderTplLibList();
+  updateTplActions();
+}
+function updateTplActions() {
+  const hasSel = !!_commTplSelId;
+  const applyBtn = $('#tplApplyBtn'), delBtn = $('#tplDelBtn'), clearBtn = $('#tplClearCatBtn');
+  if (applyBtn) applyBtn.disabled = !hasSel;
+  if (delBtn) delBtn.disabled = !hasSel;
+  if (clearBtn) clearBtn.disabled = false;
+}
+// v762：生成链接 / 删除选中 都改为从底部操作栏触发
+function applySelectedCommissionTemplate() {
+  if (!_commTplSelId) return;
+  const t = DB.getById('commissionTemplates', _commTplSelId);
   if (!t) return;
-  _tplLibCat = t.catKey;
   cdShowClientLink(t.catKey, t.data);
+}
+function delSelectedCommissionTemplate() {
+  if (!_commTplSelId) return;
+  if (!confirm('删除选中的约稿模板？')) return;
+  DB.remove('commissionTemplates', _commTplSelId);
+  _commTplSelId = null;
+  renderTplLibList();
+  updateTplActions();
+  Toast.success('已删除模板');
+}
+function clearCommissionTemplateCat() {
+  if (!confirm('清空当前分类下的所有约稿模板？')) return;
+  DB.list('commissionTemplates').filter(t => t.catKey === _tplLibCat).forEach(t => DB.remove('commissionTemplates', t.id));
+  _commTplSelId = null;
+  renderTplLibList();
+  updateTplActions();
+  Toast.success('已清空分类');
 }
 function delCommissionTemplate(id) {
   DB.remove('commissionTemplates', id);
@@ -10803,26 +10845,34 @@ function delCommissionTemplate(id) {
 // 分类存储于 textTemplateCats（数组）；每条文案带 cat 字段
 function openTextTemplateLib() {
   let html = '<div class="tpl-lib-folder">';
-  html += '<div class="tpl-folder-head"><div class="tpl-folder-tabs" id="txtTplCats"></div>';
-  html += '<button type="button" class="btn btn-ghost tpl-newcat-btn" onclick="addTextTemplateCat()">+ 新建分类</button></div>';
-  html += '<div class="tpl-folder-list" id="txtTplList"></div>';
+  // v762 文件夹式：顶部 tab 行（激活 tab 主色蓝，与主体用色阶区分）
+  html += '<div class="tpl-top-row"><div class="tpl-folder-tabs" id="txtTplCats"></div>';
+  html += '<button type="button" class="tpl-newcat-btn" onclick="addTextTemplateCat()">+ 新建分类</button></div>';
+  // 白色大圆角卡片装列表 + 删除操作
+  html += '<div class="tpl-white-card"><div class="tpl-folder-list" id="txtTplList"></div>';
+  html += '<div class="tpl-lib-actions" id="txtTplActions"><button type="button" class="btn btn-outline" onclick="delSelectedTextTemplate()" disabled id="txtTplDelBtn">删除选中</button><button type="button" class="btn btn-ghost" onclick="delTextTemplateCatCurrent()" id="txtTplDelCatBtn">删除分类</button></div></div>';
+  html += '</div>';
   html += '<div class="tpl-new"><label class="form-label">新增文案</label>';
   html += '<div id="txtTplCatWrap">' + textTplCatComboboxHTML(_txtTplCat) + '</div>';
   html += '<textarea class="form-textarea" id="txtTplInput" placeholder="输入一段固定文案，保存后可在约稿单中一键插入"></textarea>';
   html += '<div class="cd-import-actions"><button class="btn btn-primary" onclick="addTextTemplate()">保存文案</button></div></div>';
-  html += '</div>';
   openModal('文本模板库', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'notes-sm');
   renderTxtTplCats();
   renderTxtTplList();
 }
+function delTextTemplateCatCurrent() { delTextTemplateCat(_txtTplCat); }
 // 分类 tab 渲染（含删除 ×）
 function renderTxtTplCats() {
   const tabs = $('#txtTplCats');
   if (!tabs) return;
   const cats = DB.get('textTemplateCats', []);
-  if (!cats.length) { tabs.innerHTML = '<span class="tpl-empty" style="padding:0">暂无分类</span>'; return; }
-  if (!cats.includes(_txtTplCat)) _txtTplCat = cats[0];
-  tabs.innerHTML = cats.map(c => { const active = c === _txtTplCat; return `<div class="tpl-tab ${active ? 'active' : ''}" onclick="setTxtTplCat('${esc(c)}')">${esc(c)}</div>`; }).join('');
+  if (!cats.length) { tabs.innerHTML = '<span class="tpl-empty" style="padding:0">暂无分类</span>'; }
+  else {
+    if (!cats.includes(_txtTplCat)) _txtTplCat = cats[0];
+    tabs.innerHTML = cats.map(c => { const active = c === _txtTplCat; return `<div class="tpl-tab ${active ? 'active' : ''}" role="tab" tabindex="0" aria-selected="${active}" onclick="setTxtTplCat('${esc(c)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setTxtTplCat('${esc(c)}')}">${esc(c)}</div>`; }).join('');
+  }
+  const nameEl = $('#txtTplSpaceName');
+  if (nameEl) nameEl.textContent = _txtTplCat;
 }
 function setTxtTplCat(c) { _txtTplCat = c; renderTxtTplCats(); renderTxtTplList(); }
 function addTextTemplateCat() {
@@ -10862,13 +10912,38 @@ function renderTxtTplList() {
   if (!list) return;
   const cats = DB.get('textTemplateCats', []);
   const items = DB.list('textTemplates').filter(t => (t.cat || '通用') === _txtTplCat);
-  if (!items.length) { list.innerHTML = '<div class="tpl-empty">「' + esc(_txtTplCat) + '」分类下暂无文案，在下方输入框添加。</div>'; return; }
-  let html = items.map(t => `<div class="tpl-snippet">
+  if (!items.length) {
+    _txtTplSelId = null; updateTxtTplActions();
+    list.innerHTML = '<div class="tpl-empty">' + folderEmptySvg() +
+      '<div class="tpl-empty-title">「' + esc(_txtTplCat) + '」下还没有文案</div>' +
+      '<div class="tpl-empty-hint">在下方输入框添加第一条</div></div>';
+    return;
+  }
+  list.innerHTML = items.map(t => { const sel = _txtTplSelId === t.id; return `<div class="tpl-snippet ${sel ? 'selected' : ''}" role="option" tabindex="0" aria-selected="${sel}" onclick="selectTextTemplate('${t.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectTextTemplate('${t.id}')}">
     <div class="tpl-snippet-text">${esc(t.text)}</div>
-    <button type="button" class="tpl-snippet-del" onclick="delTextTemplate('${t.id}')">删除</button>
-  </div>`).join('');
-  if (cats.length) html += `<div class="tpl-cat-del-row"><span class="tpl-cat-del-link" onclick="delTextTemplateCat('${esc(_txtTplCat)}')">删除分类「${esc(_txtTplCat)}」</span></div>`;
-  list.innerHTML = html;
+  </div>`; }).join('');
+  updateTxtTplActions();
+}
+// v762：空状态用的文件夹图标
+function folderEmptySvg() {
+  return '<svg width="34" height="34" viewBox="0 0 24 24" fill="#cfd8e3" aria-hidden="true"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6z"/></svg>';
+}
+function selectTextTemplate(id) {
+  _txtTplSelId = (_txtTplSelId === id ? null : id);
+  renderTxtTplList();
+}
+function updateTxtTplActions() {
+  const delBtn = $('#txtTplDelBtn'), delCatBtn = $('#txtTplDelCatBtn');
+  if (delBtn) delBtn.disabled = !_txtTplSelId;
+  if (delCatBtn) delCatBtn.disabled = false;
+}
+function delSelectedTextTemplate() {
+  if (!_txtTplSelId) return;
+  if (!confirm('删除选中的文案？')) return;
+  DB.remove('textTemplates', _txtTplSelId);
+  _txtTplSelId = null;
+  renderTxtTplList();
+  Toast.success('已删除文案');
 }
 function addTextTemplate() {
   const v = ($('#txtTplInput').value || '').trim();
