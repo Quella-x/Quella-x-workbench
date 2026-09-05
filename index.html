@@ -572,6 +572,8 @@ ul,li{list-style:none}
 .modal.notes-equal .modal-body{flex:1;display:flex;flex-direction:column;min-height:0}
 .modal.notes-equal .modal-body .form-row{flex:1;display:flex;flex-direction:column;min-height:0}
 .modal.notes-equal .form-textarea{flex:1}
+/* v752：聊天记录导入弹窗与「其他说明」等高，输入框拉满剩余空间（.cd-import-modal 为其内容容器） */
+.modal.notes-equal .modal-body .cd-import-modal{flex:1;display:flex;flex-direction:column;min-height:0}
 .modal.import-story{width:520px;height:auto}
 /* v414：导入弹窗仅在默认 max-height:90vh 基础上增加 20px */
 .modal.add20{max-height:calc(90vh + 20px)}
@@ -3157,7 +3159,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=751"></script>
+  <script src="app.js?v=752"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

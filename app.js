@@ -240,6 +240,15 @@ function openModal(title, bodyHTML, footerBtns, size = '') {
   initModalSwipe();
   if (!_modalHistoryPushed) { try { history.pushState({ wbModal: 1 }, ''); _modalHistoryPushed = true; } catch (e) {} }
 }
+// v752：最近一次「其他说明」查看弹窗的实际高度，供无参照物的弹窗对齐
+let _lastNotesModalH = 0;
+// v752：弹窗等高统一出口——h 为参照高度(px)，缺省回退到弹窗最大高度 90vh
+function applyModalEqualHeight(h) {
+  const m = $('#modal');
+  if (!m) return;
+  m.classList.add('notes-equal');
+  m.style.height = h ? h + 'px' : '90vh';
+}
 function closeModal() {
   $('#modalOverlay').classList.remove('show'); $('#modalBody').innerHTML = ''; $('#modalFooter').innerHTML = '';
   if (_modalHistoryPushed) { _modalHistoryPushed = false; try { history.back(); } catch (e) {} }
@@ -6819,6 +6828,8 @@ function openPriceListNotes() {
     { label: '编辑', class: 'btn-outline', action: () => { const m = $('#modal'); const h = m ? m.getBoundingClientRect().height : 0; editPriceListNotes(h); } },
     { label: '关闭', class: 'btn-primary', action: closeModal }
   ], 'notes-sm');
+  // v752：记录「其他说明」查看弹窗实际高度，供无参照物的弹窗（如聊天记录导入）对齐使用
+  try { const m = $('#modal'); if (m) _lastNotesModalH = m.getBoundingClientRect().height; } catch (e) {}
 }
 
 function editPriceListNotes(equalH) {
@@ -6847,8 +6858,8 @@ function editPriceListNotes(equalH) {
         Toast.success('已保存其他说明');
       }
     },
-  ], 'notes-sm notes-equal');
-  if (equalH) { const m = $('#modal'); if (m) m.style.height = equalH + 'px'; }
+  ], 'notes-sm');
+  applyModalEqualHeight(equalH);
 }
 
 /* ===== Settings Page (需求2: 导航栏图标自定义) ===== */
@@ -10439,6 +10450,7 @@ function openCdImportChat() {
   openModal('聊天记录导入', html, [
     { label: '关闭', class: 'btn-ghost', action: closeModal },
   ], 'notes-sm add60');
+  applyModalEqualHeight(_lastNotesModalH);
 }
 function runCdChatParse() {
   const text = ($('#cdChatInput').value || '');
