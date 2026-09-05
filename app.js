@@ -10742,11 +10742,6 @@ function saveAsCommissionTemplate(catKey) {
     } },
   ], 'notes-sm');
 }
-// v757：文件夹图标（激活态白色，非激活态灰色），用于文件夹式分类标签
-function folderSvg(active) {
-  const c = active ? '#ffffff' : '#9aa6b2';
-  return `<svg width="15" height="15" viewBox="0 0 24 24" fill="${c}" style="flex:none;vertical-align:-2px;margin-right:4px"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6z"/></svg>`;
-}
 // v754：约稿模板库（按 土味/封面/饭圈/二次 分类列出已存模板，点模板直接生成约稿单链接）
 function openCommissionTemplateLib() {
   if (!_tplLibCat) _tplLibCat = COMM_DETAIL_CATS[0].key;
@@ -10755,7 +10750,7 @@ function openCommissionTemplateLib() {
   html += '<div class="tpl-folder-head"><div class="tpl-folder-tabs" id="tplCatTabs">';
   COMM_DETAIL_CATS.forEach(c => {
     const active = c.key === _tplLibCat;
-    html += `<div class="tpl-tab ${active ? 'active' : ''}" onclick="setTplLibCat('${c.key}')">${folderSvg(active)}${esc(c.label)}</div>`;
+    html += `<div class="tpl-tab ${active ? 'active' : ''}" onclick="setTplLibCat('${c.key}')">${esc(c.label)}</div>`;
   });
   html += '</div></div>';
   // 模板库列表（卡片）
@@ -10827,7 +10822,7 @@ function renderTxtTplCats() {
   const cats = DB.get('textTemplateCats', []);
   if (!cats.length) { tabs.innerHTML = '<span class="tpl-empty" style="padding:0">暂无分类</span>'; return; }
   if (!cats.includes(_txtTplCat)) _txtTplCat = cats[0];
-  tabs.innerHTML = cats.map(c => { const active = c === _txtTplCat; return `<div class="tpl-tab ${active ? 'active' : ''}" onclick="setTxtTplCat('${esc(c)}')">${folderSvg(active)}${esc(c)}<span class="tpl-cat-del" onclick="event.stopPropagation();delTextTemplateCat('${esc(c)}')">×</span></div>`; }).join('');
+  tabs.innerHTML = cats.map(c => { const active = c === _txtTplCat; return `<div class="tpl-tab ${active ? 'active' : ''}" onclick="setTxtTplCat('${esc(c)}')">${esc(c)}<span class="tpl-cat-del" onclick="event.stopPropagation();delTextTemplateCat('${esc(c)}')">×</span></div>`; }).join('');
 }
 function setTxtTplCat(c) { _txtTplCat = c; renderTxtTplCats(); renderTxtTplList(); }
 function addTextTemplateCat() {
