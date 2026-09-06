@@ -10770,7 +10770,7 @@ function openCommissionTemplateLib() {
   html += '</div>';
   openModal('约稿模板库', html, [
     { label: '关闭', class: 'btn-ghost', action: closeModal },
-  ], 'notes-sm');
+  ], 'notes-sm tpl-lib-modal');
   renderTplLibList();
 }
 function setTplLibCat(catKey) {
@@ -10860,7 +10860,7 @@ function openTextTemplateLib() {
   html += '<div id="txtTplCatWrap">' + textTplCatComboboxHTML(_txtTplCat) + '</div>';
   html += '<textarea class="form-textarea" id="txtTplInput" placeholder="输入固定文案..."></textarea>';
   html += '<div class="cd-import-actions"><button class="btn btn-primary" onclick="addTextTemplate()">保存文案</button></div></div>';
-  openModal('文本模板库', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'notes-sm');
+  openModal('文本模板库', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'notes-sm tpl-lib-modal');
   renderTxtTplCats();
   renderTxtTplList();
 }
