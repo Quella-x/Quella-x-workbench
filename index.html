@@ -2676,42 +2676,47 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 /* 约稿模板库标签：保持主题蓝激活（v760，本次不动） */
 /* v762 文件夹式：全程无描边，靠底色区分；tab 与主体连成一体 */
 .tpl-lib-folder{display:flex;flex-direction:column;background:transparent}
-.tpl-top-row{display:flex;align-items:flex-end;gap:10px;padding-left:2px}
+.tpl-top-row{display:flex;align-items:flex-end;gap:10px;padding-left:10px}
 .tpl-space-name{font-size:15px;font-weight:600;color:var(--c-text);padding-bottom:8px;flex:none;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tpl-folder-tabs{display:flex;gap:4px;align-items:flex-end;flex-wrap:wrap;flex:1}
-.tpl-folder-tabs .tpl-tab{flex:none;padding:7px 16px;background:var(--c-primary-bg);color:#5b6b7c;border:1px solid #dde4ec;border-bottom:none;border-radius:10px 10px 0 0;font-size:13px;font-weight:500;cursor:pointer;text-align:center;transition:background .2s,color .2s}
+.tpl-folder-tabs .tpl-tab{flex:none;padding:14px 30px;background:var(--c-primary-bg);color:#5b6b7c;border:1px solid #dde4ec;border-bottom:none;border-radius:12px 12px 0 0;font-size:16px;font-weight:600;cursor:pointer;text-align:center;transition:background .2s,color .2s}
 .tpl-folder-tabs .tpl-tab:hover{background:#cfe8fb}
 .tpl-folder-tabs .tpl-tab.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary);margin-bottom:-1px;position:relative;z-index:1}
 .tpl-folder-tabs .tpl-tab.active:hover{background:var(--c-primary-dark);border-color:var(--c-primary-dark)}
 .tpl-folder-tabs .tpl-tab:focus-visible{outline:2px solid var(--c-primary-dark);outline-offset:1px}
 .tpl-newcat-btn{padding:7px 8px;font-size:12px;flex:none;background:none;border:none;color:var(--c-primary-dark);cursor:pointer;font-family:inherit;align-self:flex-end}
-.tpl-white-card{background:#fff;border:1px solid #dde4ec;border-radius:12px;padding:4px 8px 12px}
-.tpl-folder-list{display:flex;flex-direction:column;max-height:200px;overflow:auto}
+.tpl-white-card{background:#fff;border:1px solid #dde4ec;border-radius:0 0 12px 12px;padding:0;box-shadow:0 1px 4px rgba(20,40,60,.06);overflow:hidden}
+.tpl-folder-list{display:flex;flex-direction:column;max-height:260px;overflow:auto;padding:4px 0}
 /* v762：两库底部统一操作栏（无分隔线） */
-.tpl-lib-actions{display:flex;align-items:center;gap:8px;margin-top:12px}
-.tpl-lib-actions .btn{flex:1;font-size:12px;padding:8px 0;border:1px solid #e3e8ee;border-radius:8px;background:#fff;color:#6b7280;cursor:pointer;font-family:inherit;transition:.15s}
-.tpl-lib-actions .btn:hover{background:#f3f5f8;color:#374151}
-.tpl-lib-actions .btn:disabled{opacity:.5;cursor:default;background:#f7f8fa;color:#aab2bd}
+.tpl-lib-actions{display:flex;align-items:center;gap:8px;padding:12px 14px 14px;background:#fff}
+.tpl-lib-actions .btn{flex:1;font-size:13px;font-weight:600;padding:9px 0;border-radius:8px;background:#ef4444;border:1px solid #ef4444;color:#fff;cursor:pointer;font-family:inherit;transition:.15s}
+.tpl-lib-actions .btn:hover{background:#dc2626;border-color:#dc2626;color:#fff}
+.tpl-lib-actions .btn:disabled{opacity:.45;cursor:default;background:#f87171;border-color:#f87171;color:#fff}
 .tpl-lib-actions .btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
 .tpl-lib-actions .btn-primary:hover{background:var(--c-primary-dark);border-color:var(--c-primary-dark);color:#fff}
+.tpl-lib-actions .btn-primary:disabled{background:var(--c-primary);border-color:var(--c-primary);color:#fff;opacity:.45}
 /* 约稿模板库下方：生成约稿单导入式 新建模板 区块（无边框） */
 .tpl-list{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow:auto}
-.tpl-empty{font-size:12px;color:var(--c-text-muted);padding:8px 0}
+.tpl-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;font-size:12px;color:var(--c-text-muted);padding:28px 12px}
+.tpl-empty-title{font-size:13px;font-weight:600;color:#5b6b7c}
+.tpl-empty-hint{font-size:12px;color:var(--c-text-muted)}
 /* v762：两库列表项（无描边，hover/选中靠底色） */
-.tpl-item{display:flex;align-items:center;gap:8px;padding:10px 10px;background:transparent;border:none;border-radius:0;cursor:pointer;transition:background .2s}
-.tpl-item:hover{background:var(--c-bg)}
-.tpl-item.selected{background:var(--c-primary-bg)}
+.tpl-item{display:flex;align-items:center;gap:8px;min-height:48px;padding:12px 16px;background:transparent;border:none;border-radius:0;cursor:pointer;transition:background .2s}
+.tpl-item:hover{background:#eaf4fd}
+.tpl-item.selected{background:var(--c-primary-bg);margin:0;padding:12px 16px}
 .tpl-item.selected:hover{background:#cfe8fb}
 .tpl-item:focus-visible,.tpl-snippet:focus-visible{outline:2px solid var(--c-primary);outline-offset:-2px}
-.tpl-item-name{font-size:14px;font-weight:600;color:var(--c-text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tpl-item-name{font-size:13px;font-weight:600;color:var(--c-text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tpl-new{background:transparent;border:none;border-radius:var(--radius-sm);padding:12px;display:flex;flex-direction:column;gap:8px}
 .tpl-new .form-input{background:#fff}
+.tpl-new-title{font-size:14px;font-weight:700;color:var(--c-text)}
+.tpl-new-tip-box{font-size:12px;color:var(--c-text-muted);line-height:1.6;background:var(--c-primary-bg);padding:10px 12px;border-radius:8px;margin:6px 0 2px}
 .tpl-new-hint{font-size:12px;color:var(--c-text-muted)}
-.tpl-snippet{display:flex;align-items:flex-start;gap:8px;padding:10px 10px;background:transparent;border:none;border-radius:0;cursor:pointer;transition:background .2s}
-.tpl-snippet:hover{background:var(--c-bg)}
-.tpl-snippet.selected{background:var(--c-primary-bg)}
+.tpl-snippet{display:flex;align-items:flex-start;gap:8px;min-height:48px;padding:12px 16px;background:transparent;border:none;border-radius:0;cursor:pointer;transition:background .2s}
+.tpl-snippet:hover{background:#eaf4fd}
+.tpl-snippet.selected{background:var(--c-primary-bg);margin:0;padding:12px 16px}
 .tpl-snippet.selected:hover{background:#cfe8fb}
-.tpl-snippet-text{flex:1;font-size:13px;color:#374151;white-space:pre-wrap;word-break:break-all;line-height:1.5}
+.tpl-snippet-text{flex:1;font-size:12px;color:#374151;white-space:pre-wrap;word-break:break-all;line-height:1.5}
 /* 约稿单表单内"文本模板"就地展开面板（保留兼容，v757 改用弹窗浮层） */
 .tpl-picker-panel{background:#f3f5f8;border:none;border-radius:var(--radius-sm);padding:10px;margin-bottom:8px}
 /* v755/v757：文案/小字字段标题行右侧的"文本模板"按钮（自适应宽，无边框） */
@@ -2721,8 +2726,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-grp-title{font-size:12px;font-weight:700;color:var(--c-primary-dark);margin:6px 0 2px}
 /* 约稿模板库下方：生成约稿单导入式 新建模板 区块（无边框） */
 .tpl-newtpl-zone{background:transparent;border:none;border-radius:var(--radius-sm);padding:12px}
-.tpl-newtpl-title{font-size:14px;font-weight:700;color:var(--c-primary-dark)}
+.tpl-newtpl-title{font-size:14px;font-weight:700;color:var(--c-text)}
 .tpl-newtpl-tip{font-size:12px;color:var(--c-text-muted);margin:4px 0 2px;line-height:1.5}
+.tpl-newtpl-tip-box{font-size:12px;color:var(--c-text-muted);line-height:1.6;background:var(--c-primary-bg);padding:10px 12px;border-radius:8px;margin:6px -12px 10px;width:calc(100% + 24px);box-sizing:border-box}
 /* v757：文本模板插入弹窗（独立浮层，不替换约稿单表单） */
 .txt-tpl-picker-overlay{position:fixed;inset:0;background:rgba(20,30,45,.4);display:flex;align-items:center;justify-content:center;z-index:3000;padding:16px}
 .txt-tpl-picker-card{background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-lg)}
@@ -3224,7 +3230,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=762"></script>
+  <script src="app.js?v=763"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
