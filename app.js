@@ -10748,6 +10748,7 @@ function saveAsCommissionTemplate(catKey) {
 function openCommissionTemplateLib() {
   if (!_tplLibCat) _tplLibCat = COMM_DETAIL_CATS[0].key;
   let html = '<div class="tpl-lib-folder">';
+  html += '<div class="tpl-new-title">约稿模板库</div>';
   // v762 文件夹式：顶部 tab 行（激活 tab 主色蓝）
   html += '<div class="tpl-top-row"><div class="tpl-folder-tabs" id="tplCatTabs">';
   COMM_DETAIL_CATS.forEach(c => {
@@ -10758,13 +10759,13 @@ function openCommissionTemplateLib() {
   // 白色大圆角卡片装列表 + 删除操作
   html += '<div class="tpl-white-card"><div class="tpl-folder-list" id="tplList"></div>';
   // 卡片内底部统一操作栏：生成链接 / 删除选中 / 清空分类
-  html += '<div class="tpl-lib-actions" id="tplActions"><button type="button" class="btn btn-primary" onclick="applySelectedCommissionTemplate()" disabled id="tplApplyBtn">生成链接</button><button type="button" class="btn btn-outline" onclick="delSelectedCommissionTemplate()" disabled id="tplDelBtn">删除选中</button><button type="button" class="btn btn-ghost" onclick="clearCommissionTemplateCat()" id="tplClearCatBtn">清空分类</button></div></div>';
+  html += '<div class="tpl-lib-actions" id="tplActions"><button type="button" class="btn btn-primary" onclick="applySelectedCommissionTemplate()" disabled id="tplApplyBtn">生成链接</button><button type="button" class="btn" onclick="delSelectedCommissionTemplate()" disabled id="tplDelBtn">删除选中</button><button type="button" class="btn" onclick="clearCommissionTemplateCat()" id="tplClearCatBtn">清空分类</button></div></div>';
   html += '</div>';
   // 下方：新建约稿模板区块（容器外，无底色，参考生成约稿单导入布局）
   html += '<div class="tpl-newtpl-zone">';
   html += '<div class="tpl-newtpl-title">新建约稿模板</div>';
   html += '<div class="tpl-newtpl-tip-box">选择分类后打开对应约稿单填写界面，填好固定值后点「存为模板」即可保存。</div>';
-  html += `<div><label class="form-label">选择分类</label>${cdCatComboboxHTML('tplNewCat', _tplLibCat, '')}</div>`;
+  html += `<div class="tpl-newtpl-field"><label class="form-label">选择分类</label>${cdCatComboboxHTML('tplNewCat', _tplLibCat, '')}</div>`;
   html += `<div class="cd-import-actions"><button class="btn btn-primary" onclick="cdOpenClientFormFromLink(($('#tplNewCat')||{}).value||'${_tplLibCat}',{fromLib:true})">新建模板</button></div>`;
   html += '</div>';
   openModal('约稿模板库', html, [
@@ -10845,13 +10846,13 @@ function delCommissionTemplate(id) {
 // 分类存储于 textTemplateCats（数组）；每条文案带 cat 字段
 function openTextTemplateLib() {
   let html = '<div class="tpl-lib-folder">';
-  html += '<div class="tpl-new-title" style="font-size:15px;margin-bottom:2px">文本模板库</div>';
+  html += '<div class="tpl-new-title">文本模板库</div>';
   // v762 文件夹式：顶部 tab 行（激活 tab 主色蓝，与主体用色阶区分）
   html += '<div class="tpl-top-row"><div class="tpl-folder-tabs" id="txtTplCats"></div>';
   html += '<button type="button" class="tpl-newcat-btn" onclick="addTextTemplateCat()">+ 新建分类</button></div>';
   // 白色大圆角卡片装列表 + 删除操作
   html += '<div class="tpl-white-card"><div class="tpl-folder-list" id="txtTplList"></div>';
-  html += '<div class="tpl-lib-actions" id="txtTplActions"><button type="button" class="btn btn-outline" onclick="delSelectedTextTemplate()" disabled id="txtTplDelBtn">删除选中</button><button type="button" class="btn btn-ghost" onclick="delTextTemplateCatCurrent()" id="txtTplDelCatBtn">删除分类</button></div></div>';
+  html += '<div class="tpl-lib-actions" id="txtTplActions"><button type="button" class="btn" onclick="delSelectedTextTemplate()" disabled id="txtTplDelBtn">删除选中</button><button type="button" class="btn" onclick="delTextTemplateCatCurrent()" id="txtTplDelCatBtn">删除分类</button></div></div>';
   html += '</div>';
   html += '<div class="tpl-new">';
   html += '<div class="tpl-new-title">新增文案</div>';
