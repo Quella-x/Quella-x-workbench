@@ -575,7 +575,7 @@ ul,li{list-style:none}
 .modal.tpl-lib-modal .tpl-lib-folder{flex:1;min-height:0;display:flex;flex-direction:column}
 .modal.tpl-lib-modal .tpl-white-card{flex:1;min-height:0;display:flex;flex-direction:column}
 .modal.tpl-lib-modal .tpl-folder-list{flex:1;min-height:160px;max-height:none}
-.modal.tpl-lib-modal .tpl-lib-folder>.tpl-new-title{font-size:18px;font-weight:700;margin:0 0 8px}
+.modal.tpl-lib-modal .tpl-lib-folder>.tpl-new-title{font-size:14px;font-weight:700;margin:0 0 8px}
 /* v751：编辑其他说明弹窗与「其他说明」查看弹窗等高（JS 传入查看弹窗实测高度），输入框拉满剩余空间 */
 .modal.notes-equal{display:flex;flex-direction:column}
 .modal.notes-equal .modal-body{flex:1;display:flex;flex-direction:column;min-height:0}
@@ -2686,19 +2686,28 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-lib-folder{display:flex;flex-direction:column;background:transparent;padding:0 16px}
 .tpl-top-row{display:flex;align-items:flex-end;gap:10px}
 .tpl-space-name{font-size:15px;font-weight:600;color:var(--c-text);padding-bottom:8px;flex:none;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tpl-folder-tabs{display:flex;gap:0;align-items:flex-end;flex-wrap:wrap;flex:1}
-.tpl-folder-tabs .tpl-tab{flex:none;padding:7px 30px;background:#fff;color:#5b6b7c;border:1px solid #dde4ec;border-bottom:none;border-radius:12px 12px 0 0;font-size:14px;font-weight:600;cursor:pointer;text-align:center;transition:background .2s,color .2s}
-.tpl-folder-tabs .tpl-tab:hover{background:#f3f5f8}
-.tpl-folder-tabs .tpl-tab + .tpl-tab{margin-left:-1px}
-.tpl-folder-tabs .tpl-tab.active{background:var(--c-primary-bg);color:#5b6b7c;border-color:#dde4ec;margin-bottom:-1px;position:relative;z-index:1}
-.tpl-folder-tabs .tpl-tab.active:hover{background:#cfe8fb;border-color:#cfe8fb}
+.tpl-folder-tabs{display:flex;gap:0;align-items:flex-end;flex-wrap:nowrap;flex:1;min-width:0;overflow:hidden}
+/* v767：右侧单边斜切文件夹标签（伪双层 clip-path 模拟 1px 边框，线条颜色/粗细沿用 #dde4ec） */
+.tpl-folder-tabs .tpl-tab{position:relative;z-index:0;flex:0 1 auto;min-width:0;margin-left:-1px;padding:7px 20px;background:none;border:none;color:#5b6b7c;font-size:13px;font-weight:600;cursor:pointer;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tpl-folder-tabs .tpl-tab:first-child{margin-left:0}
+.tpl-folder-tabs .tpl-tab::before,.tpl-folder-tabs .tpl-tab::after{content:'';position:absolute;z-index:-1;pointer-events:none;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 100%,0 100%)}
+.tpl-folder-tabs .tpl-tab::before{inset:0;background:#dde4ec;border-radius:6px 0 0 0}
+.tpl-folder-tabs .tpl-tab::after{inset:1px 1px 0 1px;background:#fff;border-radius:5px 0 0 0;transition:background .2s}
+.tpl-folder-tabs .tpl-tab:hover::after{background:#f3f5f8}
+.tpl-folder-tabs .tpl-tab.active{z-index:2;margin-bottom:-1px}
+.tpl-folder-tabs .tpl-tab.active::after{background:var(--c-primary-bg)}
+.tpl-folder-tabs .tpl-tab.active:hover::after{background:var(--c-primary-bg)}
 .tpl-folder-tabs .tpl-tab:focus-visible{outline:2px solid var(--c-primary-dark);outline-offset:1px}
-.tpl-newcat-btn{padding:7px 8px;font-size:12px;flex:none;background:none;border:none;color:var(--c-primary-dark);cursor:pointer;font-family:inherit;align-self:flex-end}
-.tpl-white-card{background:#fff;border:1px solid #dde4ec;border-radius:0 0 12px 12px;padding:0;box-shadow:0 1px 4px rgba(20,40,60,.06);overflow:hidden}
+.tpl-tab-nav{flex:none;align-self:flex-end;margin-left:4px;margin-bottom:-1px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;padding:0;font-size:24px;line-height:0;background:transparent;border:none;color:#5b6b7c;cursor:pointer;font-family:inherit;overflow:visible}
+.tpl-tab-nav:hover:not(:disabled){background:var(--c-primary-bg);border-radius:4px}
+.tpl-tab-nav:disabled{opacity:.4;cursor:default}
+.tpl-white-card{background:#fff;border:1px solid #dde4ec;border-radius:0 0 6px 6px;padding:0;box-shadow:0 1px 4px rgba(20,40,60,.06);overflow:hidden}
 .tpl-folder-list{display:flex;flex-direction:column;min-height:160px;overflow-y:auto;overflow-x:hidden;padding:0}
+/* v767：列表行间 1px 浅灰分隔线（首行无） */
+.tpl-folder-list>*+*{border-top:1px solid #eef1f5}
 /* v762：两库底部统一操作栏（无分隔线） */
-.tpl-lib-actions{display:flex;align-items:center;gap:8px;padding:10px 0 0;background:transparent}
-.tpl-lib-actions .btn{flex:1;font-size:13px;font-weight:600;padding:9px 0;border-radius:8px;background:var(--c-danger);border:1px solid var(--c-danger);color:#fff;cursor:pointer;font-family:inherit;transition:.15s}
+.tpl-lib-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:10px 0 0;background:transparent}
+.tpl-lib-actions .btn{font-size:13px;font-weight:500;padding:8px 16px;border-radius:6px;background:var(--c-danger);border:1px solid var(--c-danger);color:#fff;cursor:pointer;font-family:inherit;transition:.15s}
 .tpl-lib-actions .btn:hover{background:#d65a53;border-color:#d65a53;color:#fff}
 .tpl-lib-actions .btn:disabled{opacity:.45;cursor:default;background:#eeb0ab;border-color:#eeb0ab;color:#fff}
 .tpl-lib-actions .btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
@@ -2710,12 +2719,12 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-empty-title{font-size:13px;font-weight:600;color:#5b6b7c}
 .tpl-empty-hint{font-size:12px;color:var(--c-text-muted)}
 /* v762：两库列表项（无描边，hover/选中靠底色） */
-.tpl-item{display:flex;align-items:center;gap:8px;min-height:48px;padding:12px 16px;background:transparent;border:none;border-radius:0;cursor:pointer;transition:background .2s;overflow:hidden}
+.tpl-item{display:flex;align-items:center;gap:8px;min-height:33px;padding:6px 16px;background:transparent;border:none;border-radius:0;cursor:pointer;transition:background .2s;overflow:hidden}
 .tpl-item:hover{background:#eaf4fd}
-.tpl-item.selected{background:var(--c-primary-bg);margin:0 -16px;padding:12px 32px}
+.tpl-item.selected{background:var(--c-primary-bg);margin:0 -16px;padding:6px 32px}
 .tpl-item.selected:hover{background:#cfe8fb}
 .tpl-item:focus-visible,.tpl-snippet:focus-visible{outline:2px solid var(--c-primary);outline-offset:-2px}
-.tpl-item-name{font-size:13px;font-weight:600;color:var(--c-text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tpl-item-name{font-size:12px;font-weight:400;color:var(--c-text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.4}
 .tpl-new{background:transparent;border:none;border-radius:var(--radius-sm);padding:12px 16px 0;display:flex;flex-direction:column}
 .tpl-new>*{margin-bottom:8px}
 .tpl-new>*:last-child{margin-bottom:0}
@@ -2723,11 +2732,11 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-new-title{font-size:14px;font-weight:700;color:var(--c-text);margin:0 0 4px}
 .tpl-new-tip-box{font-size:12px;color:var(--c-text-muted);line-height:1.6;background:var(--c-primary-bg);padding:10px 12px;border-radius:8px;margin:0 0 8px;width:auto;box-sizing:border-box}
 .tpl-new-hint{font-size:12px;color:var(--c-text-muted)}
-.tpl-snippet{display:flex;align-items:flex-start;gap:8px;min-height:48px;padding:12px 16px;background:transparent;border:none;border-radius:0;cursor:pointer;transition:background .2s;overflow:hidden}
+.tpl-snippet{display:flex;align-items:center;gap:8px;min-height:33px;padding:6px 16px;background:transparent;border:none;border-radius:0;cursor:pointer;transition:background .2s;overflow:hidden}
 .tpl-snippet:hover{background:#eaf4fd}
-.tpl-snippet.selected{background:var(--c-primary-bg);margin:0 -16px;padding:12px 32px}
+.tpl-snippet.selected{background:var(--c-primary-bg);margin:0 -16px;padding:6px 32px}
 .tpl-snippet.selected:hover{background:#cfe8fb}
-.tpl-snippet-text{flex:1;min-width:0;font-size:12px;color:#374151;white-space:pre-wrap;word-break:break-all;line-height:1.5}
+.tpl-snippet-text{flex:1;min-width:0;font-size:12px;font-weight:400;color:#374151;white-space:pre-wrap;word-break:break-all;line-height:1.4}
 /* 约稿单表单内"文本模板"就地展开面板（保留兼容，v757 改用弹窗浮层） */
 .tpl-picker-panel{background:#f3f5f8;border:none;border-radius:var(--radius-sm);padding:10px;margin-bottom:8px}
 /* v755/v757：文案/小字字段标题行右侧的"文本模板"按钮（自适应宽，无边框） */
@@ -2740,7 +2749,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-newtpl-zone>*{margin-bottom:8px}
 .tpl-newtpl-zone>*:last-child{margin-bottom:0}
 .tpl-newtpl-title{font-size:14px;font-weight:700;color:var(--c-text);margin:0 0 4px}
-.tpl-newtpl-field{display:flex;flex-direction:column;gap:6px}
+.tpl-newtpl-field{display:flex;align-items:center;gap:8px}
+.tpl-newtpl-field .form-label{margin:0;flex:none}
+.tpl-newtpl-field .combobox-wrapper{flex:1;min-width:0}
 .tpl-newtpl-tip{font-size:12px;color:var(--c-text-muted);margin:4px 0 2px;line-height:1.5}
 .tpl-newtpl-tip-box{font-size:12px;color:var(--c-text-muted);line-height:1.6;background:var(--c-primary-bg);padding:10px 12px;border-radius:8px;margin:0 0 8px;width:auto;box-sizing:border-box}
 /* v757：文本模板插入弹窗（独立浮层，不替换约稿单表单） */
@@ -2750,9 +2761,13 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .txt-tpl-picker-close{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--c-text-light);background:transparent;border:none;cursor:pointer;line-height:1}
 .txt-tpl-picker-close:hover{background:var(--c-primary-bg);color:var(--c-primary)}
 .txt-tpl-picker-body{padding:16px 20px;overflow:auto;flex:1}
+.txt-tpl-picker-cat{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.txt-tpl-picker-cat .form-label{margin:0;flex:none}
 .txt-tpl-picker-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid var(--c-border);flex-shrink:0}
 .txt-tpl-grp{font-size:12px;font-weight:700;color:var(--c-primary-dark);margin:10px 0 4px}
-.txt-tpl-row{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:#f3f5f8;border:none;border-radius:var(--radius-sm);margin-bottom:6px}
+.txt-tpl-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:transparent;border:none;border-bottom:1px solid #eef1f5;border-radius:0;margin-bottom:0}
+.txt-tpl-row:last-child{border-bottom:none}
+.txt-tpl-row:hover{background:var(--c-primary-bg)}
 .txt-tpl-row-text{flex:1;font-size:13px;color:var(--c-text);white-space:pre-wrap;word-break:break-all;line-height:1.5}
 .txt-tpl-choose{padding:4px 12px;font-size:12px;flex:none;border:none;background:var(--c-primary);color:#fff;border-radius:999px;cursor:pointer}
 /* 品类切换按钮（四个并排均分，与首页平台按钮同款均分布局） */
@@ -2835,6 +2850,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-link-block .cd-rec-row:last-child{border-bottom:none}
 .cd-link-empty{font-size:13px;color:var(--c-text-muted);padding:8px 0}
 .cd-link-empty .btn{margin-left:8px}
+.cd-link-box textarea,#cdClientLink{user-select:text;-webkit-user-select:text}
 /* 接稿详情表单外壳：整体左移5px（离小标题更近） + 顶部/底部提示文字 */
 .cd-form{margin-left:-5px}
 .cd-form-top{margin-bottom:10px;text-align:center}
@@ -3244,7 +3260,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=766"></script>
+  <script src="app.js?v=767"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
