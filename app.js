@@ -10764,11 +10764,11 @@ function tplCatsPagerHTML(cats, activeKey, page, pickFn, navFn) {
     const key = (typeof c === 'string') ? c : c.key;
     const label = (typeof c === 'string') ? c : c.label;
     const active = key === activeKey;
-    h += `<div class="tpl-tab ${active ? 'active' : ''}" role="tab" tabindex="0" aria-selected="${active}" onclick="${pickFn}('${esc(key)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${pickFn}('${esc(key)}')}"><div class="tpl-tab-sizer">${esc(label)}</div><div class="tpl-tab-bg"></div><div class="tpl-tab-inner"><span>${esc(label)}</span></div></div>`;
+    h += `<div class="tpl-tab ${active ? 'active' : ''}" role="tab" tabindex="0" aria-selected="${active}" onclick="${pickFn}('${esc(key)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${pickFn}('${esc(key)}')}"><div class="tpl-tab-sizer">${esc(label)}</div><div class="tpl-tab-bg"></div><div class="tpl-tab-inner"><span class="tpl-tab-label">${esc(label)}</span></div></div>`;
   });
   if (pages > 1) {
-    h += `<button type="button" class="tpl-tab-nav" ${page <= 0 ? 'disabled' : ''} onclick="${navFn}(-1)" aria-label="上一排"><span class="tpl-nav-icon">‹</span></button>`;
-    h += `<button type="button" class="tpl-tab-nav" ${page >= pages - 1 ? 'disabled' : ''} onclick="${navFn}(1)" aria-label="下一排"><span class="tpl-nav-icon">›</span></button>`;
+    h += `<button type="button" class="tpl-tab-nav" ${page <= 0 ? 'disabled' : ''} onclick="${navFn}(-1)" aria-label="上一排"><svg class="tpl-nav-icon" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M9.5 2.5 5 7l4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
+    h += `<button type="button" class="tpl-tab-nav" ${page >= pages - 1 ? 'disabled' : ''} onclick="${navFn}(1)" aria-label="下一排"><svg class="tpl-nav-icon" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M4.5 2.5 9 7l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
   }
   return { html: h, page: page, pages: pages };
 }

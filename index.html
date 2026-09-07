@@ -571,7 +571,7 @@ ul,li{list-style:none}
 .modal.tpl-lib-modal .modal-header{justify-content:flex-end;border-bottom:none;padding:8px 20px}
 .modal.tpl-lib-modal .modal-title{display:none}
 .modal.tpl-lib-modal{height:min(680px,90vh)}
-.modal.tpl-lib-modal .modal-body{padding-top:8px;display:flex;flex-direction:column}
+.modal.tpl-lib-modal .modal-body{padding:8px 0 0 0;display:flex;flex-direction:column}
 .modal.tpl-lib-modal .tpl-lib-folder{flex:1;min-height:0;display:flex;flex-direction:column}
 .modal.tpl-lib-modal .tpl-white-card{flex:1;min-height:0;display:flex;flex-direction:column}
 .modal.tpl-lib-modal .tpl-folder-list{flex:1;min-height:160px;max-height:none}
@@ -2686,22 +2686,28 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-lib-folder{display:flex;flex-direction:column;background:transparent;padding:0 16px}
 .tpl-top-row{display:flex;align-items:flex-end;gap:10px}
 .tpl-space-name{font-size:15px;font-weight:600;color:var(--c-text);padding-bottom:8px;flex:none;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tpl-folder-tabs{display:flex;gap:0;align-items:flex-end;flex-wrap:nowrap;flex:1;min-width:0;overflow:hidden;margin-right:-16px}
-/* v769：右侧单边斜切文件夹标签（浅斜切 4px，紧凑 padding，让两字/三字完整显示） */
-.tpl-folder-tabs .tpl-tab{position:relative;z-index:0;flex:1 1 0%;min-width:0;margin-left:-2px;padding:0;background:none;border:none;color:#5b6b7c;font-size:13px;font-weight:600;cursor:pointer;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tpl-folder-tabs{display:flex;gap:0;align-items:flex-end;flex-wrap:nowrap;flex:1;min-width:0;overflow:visible;position:relative;z-index:1}
+/* v773：对照参考图 1:1 —— 白底描边斜切文件夹标签（平行四边形相互咬合，seam 一条斜线），底边压住白卡顶边融合 */
+.tpl-folder-tabs .tpl-tab{position:relative;z-index:0;flex:0 0 auto;min-width:0;padding:0;background:none;border:none;cursor:pointer;margin:0 0 -1px -10px}
 .tpl-folder-tabs .tpl-tab:first-child{margin-left:0}
-.tpl-folder-tabs .tpl-tab-sizer{visibility:hidden;padding:8px 12px 8px 14px;white-space:nowrap}
-.tpl-folder-tabs .tpl-tab-bg,.tpl-folder-tabs .tpl-tab-inner{position:absolute;inset:0;pointer-events:none;clip-path:polygon(0 0,calc(100% - 4px) 0,100% 100%,0 100%);-webkit-clip-path:polygon(0 0,calc(100% - 4px) 0,100% 100%,0 100%)}
-.tpl-folder-tabs .tpl-tab-bg{background:#dde4ec;border-radius:6px 0 0 0}
-.tpl-folder-tabs .tpl-tab-inner{inset:1px 1px 0 1px;background:#fff;border-radius:5px 0 0 0;display:flex;align-items:center;justify-content:center;transition:background .2s}
-.tpl-folder-tabs .tpl-tab-inner span{display:block;padding:0 12px 0 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tpl-folder-tabs .tpl-tab:hover .tpl-tab-inner{background:#f3f5f8}
-.tpl-folder-tabs .tpl-tab.active{z-index:2;margin-bottom:-1px}
+.tpl-folder-tabs .tpl-tab-sizer{visibility:hidden;padding:8px 32px 8px 32px;white-space:nowrap;font-size:13px;font-weight:600}
+.tpl-folder-tabs .tpl-tab:first-child .tpl-tab-sizer{padding-left:22px}
+.tpl-folder-tabs .tpl-tab-bg,.tpl-folder-tabs .tpl-tab-inner{position:absolute;inset:0;pointer-events:none;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 100%,10px 100%);-webkit-clip-path:polygon(0 0,calc(100% - 10px) 0,100% 100%,10px 100%)}
+.tpl-folder-tabs .tpl-tab:first-child .tpl-tab-bg,.tpl-folder-tabs .tpl-tab:first-child .tpl-tab-inner{clip-path:polygon(0 0,calc(100% - 10px) 0,100% 100%,0 100%);-webkit-clip-path:polygon(0 0,calc(100% - 10px) 0,100% 100%,0 100%)}
+.tpl-folder-tabs .tpl-tab-bg{background:#cdd8e3}
+.tpl-folder-tabs .tpl-tab:first-child .tpl-tab-bg{border-radius:8px 0 0 0}
+.tpl-folder-tabs .tpl-tab-inner{inset:1px 1px 0 1px;background:#fff;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.tpl-folder-tabs .tpl-tab:first-child .tpl-tab-inner{border-radius:7px 0 0 0}
+.tpl-folder-tabs .tpl-tab-label{display:block;padding:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;font-weight:600;color:#5b6b7c}
+.tpl-folder-tabs .tpl-tab:hover{z-index:1}
+.tpl-folder-tabs .tpl-tab:hover .tpl-tab-inner{background:#f3f6fa}
+.tpl-folder-tabs .tpl-tab.active{z-index:2}
 .tpl-folder-tabs .tpl-tab.active .tpl-tab-inner{background:var(--c-primary-bg)}
-.tpl-folder-tabs .tpl-tab.active:hover .tpl-tab-inner{background:var(--c-primary-bg)}
+.tpl-folder-tabs .tpl-tab.active .tpl-tab-label{color:#5b6b7c}
 .tpl-folder-tabs .tpl-tab:focus-visible{outline:2px solid var(--c-primary-dark);outline-offset:1px}
-.tpl-tab-nav{flex:none;align-self:center;margin-left:2px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;padding:0;background:transparent;border:none;color:#3a4a5a;cursor:pointer;font-family:inherit;overflow:visible;vertical-align:middle}
-.tpl-tab-nav .tpl-nav-icon{display:block;font-size:18px;line-height:1;font-weight:700;transform:translateY(-1px)}
+.tpl-tab-nav{flex:none;align-self:center;margin-left:auto;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;padding:0;background:transparent;border:none;color:#3a4a5a;cursor:pointer;font-family:inherit}
+.tpl-tab-nav + .tpl-tab-nav{margin-left:2px}
+.tpl-tab-nav .tpl-nav-icon{display:block}
 .tpl-tab-nav:hover:not(:disabled){background:var(--c-primary-bg);border-radius:4px}
 .tpl-tab-nav:disabled{opacity:.4;cursor:default}
 .tpl-white-card{background:#fff;border:1px solid #dde4ec;border-radius:0 0 6px 6px;padding:0;box-shadow:0 1px 4px rgba(20,40,60,.06);overflow:hidden}
@@ -3263,7 +3269,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=769"></script>
+  <script src="app.js?v=770"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
