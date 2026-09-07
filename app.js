@@ -10764,11 +10764,11 @@ function tplCatsPagerHTML(cats, activeKey, page, pickFn, navFn) {
     const key = (typeof c === 'string') ? c : c.key;
     const label = (typeof c === 'string') ? c : c.label;
     const active = key === activeKey;
-    h += `<div class="tpl-tab ${active ? 'active' : ''}" role="tab" tabindex="0" aria-selected="${active}" onclick="${pickFn}('${esc(key)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${pickFn}('${esc(key)}')}">${esc(label)}</div>`;
+    h += `<div class="tpl-tab ${active ? 'active' : ''}" role="tab" tabindex="0" aria-selected="${active}" onclick="${pickFn}('${esc(key)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${pickFn}('${esc(key)}')}"><div class="tpl-tab-sizer">${esc(label)}</div><div class="tpl-tab-bg"></div><div class="tpl-tab-inner"><span>${esc(label)}</span></div></div>`;
   });
   if (pages > 1) {
-    h += `<button type="button" class="tpl-tab-nav" ${page <= 0 ? 'disabled' : ''} onclick="${navFn}(-1)" aria-label="上一排">‹</button>`;
-    h += `<button type="button" class="tpl-tab-nav" ${page >= pages - 1 ? 'disabled' : ''} onclick="${navFn}(1)" aria-label="下一排">›</button>`;
+    h += `<button type="button" class="tpl-tab-nav" ${page <= 0 ? 'disabled' : ''} onclick="${navFn}(-1)" aria-label="上一排"><span class="tpl-nav-icon">‹</span></button>`;
+    h += `<button type="button" class="tpl-tab-nav" ${page >= pages - 1 ? 'disabled' : ''} onclick="${navFn}(1)" aria-label="下一排"><span class="tpl-nav-icon">›</span></button>`;
   }
   return { html: h, page: page, pages: pages };
 }
