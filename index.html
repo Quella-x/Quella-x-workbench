@@ -570,7 +570,12 @@ ul,li{list-style:none}
 /* v765：模板库弹窗隐藏标题栏标题，把标题放进内容区 */
 .modal.tpl-lib-modal .modal-header{justify-content:flex-end;border-bottom:none;padding:8px 20px}
 .modal.tpl-lib-modal .modal-title{display:none}
-.modal.tpl-lib-modal .modal-body{padding-top:8px}
+.modal.tpl-lib-modal{height:min(680px,90vh)}
+.modal.tpl-lib-modal .modal-body{padding-top:8px;display:flex;flex-direction:column}
+.modal.tpl-lib-modal .tpl-lib-folder{flex:1;min-height:0;display:flex;flex-direction:column}
+.modal.tpl-lib-modal .tpl-white-card{flex:1;min-height:0;display:flex;flex-direction:column}
+.modal.tpl-lib-modal .tpl-folder-list{flex:1;min-height:160px;max-height:none}
+.modal.tpl-lib-modal .tpl-lib-folder>.tpl-new-title{font-size:18px;font-weight:700;margin:0 0 8px}
 /* v751：编辑其他说明弹窗与「其他说明」查看弹窗等高（JS 传入查看弹窗实测高度），输入框拉满剩余空间 */
 .modal.notes-equal{display:flex;flex-direction:column}
 .modal.notes-equal .modal-body{flex:1;display:flex;flex-direction:column;min-height:0}
@@ -2681,17 +2686,18 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-lib-folder{display:flex;flex-direction:column;background:transparent;padding:0 16px}
 .tpl-top-row{display:flex;align-items:flex-end;gap:10px}
 .tpl-space-name{font-size:15px;font-weight:600;color:var(--c-text);padding-bottom:8px;flex:none;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tpl-folder-tabs{display:flex;gap:4px;align-items:flex-end;flex-wrap:wrap;flex:1}
-.tpl-folder-tabs .tpl-tab{flex:none;padding:7px 30px;background:var(--c-primary-bg);color:#5b6b7c;border:1px solid #dde4ec;border-bottom:none;border-radius:12px 12px 0 0;font-size:16px;font-weight:600;cursor:pointer;text-align:center;transition:background .2s,color .2s}
-.tpl-folder-tabs .tpl-tab:hover{background:#cfe8fb}
-.tpl-folder-tabs .tpl-tab.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary);margin-bottom:-1px;position:relative;z-index:1}
-.tpl-folder-tabs .tpl-tab.active:hover{background:var(--c-primary-dark);border-color:var(--c-primary-dark)}
+.tpl-folder-tabs{display:flex;gap:0;align-items:flex-end;flex-wrap:wrap;flex:1}
+.tpl-folder-tabs .tpl-tab{flex:none;padding:7px 30px;background:#fff;color:#5b6b7c;border:1px solid #dde4ec;border-bottom:none;border-radius:12px 12px 0 0;font-size:14px;font-weight:600;cursor:pointer;text-align:center;transition:background .2s,color .2s}
+.tpl-folder-tabs .tpl-tab:hover{background:#f3f5f8}
+.tpl-folder-tabs .tpl-tab + .tpl-tab{margin-left:-1px}
+.tpl-folder-tabs .tpl-tab.active{background:var(--c-primary-bg);color:#5b6b7c;border-color:#dde4ec;margin-bottom:-1px;position:relative;z-index:1}
+.tpl-folder-tabs .tpl-tab.active:hover{background:#cfe8fb;border-color:#cfe8fb}
 .tpl-folder-tabs .tpl-tab:focus-visible{outline:2px solid var(--c-primary-dark);outline-offset:1px}
 .tpl-newcat-btn{padding:7px 8px;font-size:12px;flex:none;background:none;border:none;color:var(--c-primary-dark);cursor:pointer;font-family:inherit;align-self:flex-end}
 .tpl-white-card{background:#fff;border:1px solid #dde4ec;border-radius:0 0 12px 12px;padding:0;box-shadow:0 1px 4px rgba(20,40,60,.06);overflow:hidden}
-.tpl-folder-list{display:flex;flex-direction:column;max-height:260px;overflow:auto;padding:0}
+.tpl-folder-list{display:flex;flex-direction:column;min-height:160px;overflow-y:auto;overflow-x:hidden;padding:0}
 /* v762：两库底部统一操作栏（无分隔线） */
-.tpl-lib-actions{display:flex;align-items:center;gap:8px;padding:12px 16px;background:#fff}
+.tpl-lib-actions{display:flex;align-items:center;gap:8px;padding:10px 0 0;background:transparent}
 .tpl-lib-actions .btn{flex:1;font-size:13px;font-weight:600;padding:9px 0;border-radius:8px;background:var(--c-danger);border:1px solid var(--c-danger);color:#fff;cursor:pointer;font-family:inherit;transition:.15s}
 .tpl-lib-actions .btn:hover{background:#d65a53;border-color:#d65a53;color:#fff}
 .tpl-lib-actions .btn:disabled{opacity:.45;cursor:default;background:#eeb0ab;border-color:#eeb0ab;color:#fff}
@@ -2704,24 +2710,24 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-empty-title{font-size:13px;font-weight:600;color:#5b6b7c}
 .tpl-empty-hint{font-size:12px;color:var(--c-text-muted)}
 /* v762：两库列表项（无描边，hover/选中靠底色） */
-.tpl-item{display:flex;align-items:center;gap:8px;min-height:48px;padding:12px 16px;background:transparent;border:none;border-radius:0;cursor:pointer;transition:background .2s}
+.tpl-item{display:flex;align-items:center;gap:8px;min-height:48px;padding:12px 16px;background:transparent;border:none;border-radius:0;cursor:pointer;transition:background .2s;overflow:hidden}
 .tpl-item:hover{background:#eaf4fd}
 .tpl-item.selected{background:var(--c-primary-bg);margin:0 -16px;padding:12px 32px}
 .tpl-item.selected:hover{background:#cfe8fb}
 .tpl-item:focus-visible,.tpl-snippet:focus-visible{outline:2px solid var(--c-primary);outline-offset:-2px}
-.tpl-item-name{font-size:13px;font-weight:600;color:var(--c-text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tpl-item-name{font-size:13px;font-weight:600;color:var(--c-text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tpl-new{background:transparent;border:none;border-radius:var(--radius-sm);padding:12px 16px 0;display:flex;flex-direction:column}
 .tpl-new>*{margin-bottom:8px}
 .tpl-new>*:last-child{margin-bottom:0}
 .tpl-new .form-input{background:#fff}
 .tpl-new-title{font-size:14px;font-weight:700;color:var(--c-text);margin:0 0 4px}
-.tpl-new-tip-box{font-size:12px;color:var(--c-text-muted);line-height:1.6;background:var(--c-primary-bg);padding:10px 12px;border-radius:8px;margin:0 -16px 8px;width:calc(100% + 32px);box-sizing:border-box}
+.tpl-new-tip-box{font-size:12px;color:var(--c-text-muted);line-height:1.6;background:var(--c-primary-bg);padding:10px 12px;border-radius:8px;margin:0 0 8px;width:auto;box-sizing:border-box}
 .tpl-new-hint{font-size:12px;color:var(--c-text-muted)}
-.tpl-snippet{display:flex;align-items:flex-start;gap:8px;min-height:48px;padding:12px 16px;background:transparent;border:none;border-radius:0;cursor:pointer;transition:background .2s}
+.tpl-snippet{display:flex;align-items:flex-start;gap:8px;min-height:48px;padding:12px 16px;background:transparent;border:none;border-radius:0;cursor:pointer;transition:background .2s;overflow:hidden}
 .tpl-snippet:hover{background:#eaf4fd}
 .tpl-snippet.selected{background:var(--c-primary-bg);margin:0 -16px;padding:12px 32px}
 .tpl-snippet.selected:hover{background:#cfe8fb}
-.tpl-snippet-text{flex:1;font-size:12px;color:#374151;white-space:pre-wrap;word-break:break-all;line-height:1.5}
+.tpl-snippet-text{flex:1;min-width:0;font-size:12px;color:#374151;white-space:pre-wrap;word-break:break-all;line-height:1.5}
 /* 约稿单表单内"文本模板"就地展开面板（保留兼容，v757 改用弹窗浮层） */
 .tpl-picker-panel{background:#f3f5f8;border:none;border-radius:var(--radius-sm);padding:10px;margin-bottom:8px}
 /* v755/v757：文案/小字字段标题行右侧的"文本模板"按钮（自适应宽，无边框） */
@@ -2736,7 +2742,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-newtpl-title{font-size:14px;font-weight:700;color:var(--c-text);margin:0 0 4px}
 .tpl-newtpl-field{display:flex;flex-direction:column;gap:6px}
 .tpl-newtpl-tip{font-size:12px;color:var(--c-text-muted);margin:4px 0 2px;line-height:1.5}
-.tpl-newtpl-tip-box{font-size:12px;color:var(--c-text-muted);line-height:1.6;background:var(--c-primary-bg);padding:10px 12px;border-radius:8px;margin:0 -16px 8px;width:calc(100% + 32px);box-sizing:border-box}
+.tpl-newtpl-tip-box{font-size:12px;color:var(--c-text-muted);line-height:1.6;background:var(--c-primary-bg);padding:10px 12px;border-radius:8px;margin:0 0 8px;width:auto;box-sizing:border-box}
 /* v757：文本模板插入弹窗（独立浮层，不替换约稿单表单） */
 .txt-tpl-picker-overlay{position:fixed;inset:0;background:rgba(20,30,45,.4);display:flex;align-items:center;justify-content:center;z-index:3000;padding:16px}
 .txt-tpl-picker-card{background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-lg)}
@@ -3238,7 +3244,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=765"></script>
+  <script src="app.js?v=766"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

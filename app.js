@@ -10756,10 +10756,10 @@ function openCommissionTemplateLib() {
     html += `<div class="tpl-tab ${active ? 'active' : ''}" role="tab" tabindex="0" aria-selected="${active}" onclick="setTplLibCat('${c.key}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setTplLibCat('${c.key}')}">${esc(c.label)}</div>`;
   });
   html += '</div></div>';
-  // 白色大圆角卡片装列表 + 删除操作
-  html += '<div class="tpl-white-card"><div class="tpl-folder-list" id="tplList"></div>';
-  // 卡片内底部统一操作栏：生成链接 / 删除选中 / 清空分类
-  html += '<div class="tpl-lib-actions" id="tplActions"><button type="button" class="btn btn-primary" onclick="applySelectedCommissionTemplate()" disabled id="tplApplyBtn">生成链接</button><button type="button" class="btn" onclick="delSelectedCommissionTemplate()" disabled id="tplDelBtn">删除选中</button><button type="button" class="btn" onclick="clearCommissionTemplateCat()" id="tplClearCatBtn">清空分类</button></div></div>';
+  // 白色大圆角卡片装列表
+  html += '<div class="tpl-white-card"><div class="tpl-folder-list" id="tplList"></div></div>';
+  // 卡片外统一操作栏：生成链接 / 删除选中 / 清空分类
+  html += '<div class="tpl-lib-actions" id="tplActions"><button type="button" class="btn btn-primary" onclick="applySelectedCommissionTemplate()" disabled id="tplApplyBtn">生成链接</button><button type="button" class="btn" onclick="delSelectedCommissionTemplate()" disabled id="tplDelBtn">删除选中</button><button type="button" class="btn" onclick="clearCommissionTemplateCat()" id="tplClearCatBtn">清空分类</button></div>';
   html += '</div>';
   // 下方：新建约稿模板区块（容器外，无底色，参考生成约稿单导入布局）
   html += '<div class="tpl-newtpl-zone">';
@@ -10850,9 +10850,10 @@ function openTextTemplateLib() {
   // v762 文件夹式：顶部 tab 行（激活 tab 主色蓝，与主体用色阶区分）
   html += '<div class="tpl-top-row"><div class="tpl-folder-tabs" id="txtTplCats"></div>';
   html += '<button type="button" class="tpl-newcat-btn" onclick="addTextTemplateCat()">+ 新建分类</button></div>';
-  // 白色大圆角卡片装列表 + 删除操作
-  html += '<div class="tpl-white-card"><div class="tpl-folder-list" id="txtTplList"></div>';
-  html += '<div class="tpl-lib-actions" id="txtTplActions"><button type="button" class="btn" onclick="delSelectedTextTemplate()" disabled id="txtTplDelBtn">删除选中</button><button type="button" class="btn" onclick="delTextTemplateCatCurrent()" id="txtTplDelCatBtn">删除分类</button></div></div>';
+  // 白色大圆角卡片装列表
+  html += '<div class="tpl-white-card"><div class="tpl-folder-list" id="txtTplList"></div></div>';
+  // 卡片外操作栏：删除选中 / 删除分类
+  html += '<div class="tpl-lib-actions" id="txtTplActions"><button type="button" class="btn" onclick="delSelectedTextTemplate()" disabled id="txtTplDelBtn">删除选中</button><button type="button" class="btn" onclick="delTextTemplateCatCurrent()" id="txtTplDelCatBtn">删除分类</button></div>';
   html += '</div>';
   html += '<div class="tpl-new">';
   html += '<div class="tpl-new-title">新增文案</div>';
