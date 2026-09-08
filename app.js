@@ -41,7 +41,7 @@ const DB = {
 
 /* ===== Cloud Sync (Supabase REST) ===== */
 /* 同步集合：这些 store 会参与云端同步；其余（ui_state、customOpts_*、syncCfg 等）仅本地 */
-const SYNC_STORES = ['publishRecords','groupbuys','factories','samples','calcTemplates','calcRecords','inspirations','commissions','authorizations','priceList','ocCharacters','ocRelations','ocStories','ocTimeline','ocCommissions','appSettings','customCategories','lifeCheckins','lifeRecords','lifeCheckinDefs','commissionDetails','textTemplates'];
+const SYNC_STORES = ['publishRecords','groupbuys','factories','samples','calcTemplates','calcRecords','inspirations','commissions','authorizations','priceList','ocCharacters','ocRelations','ocStories','ocTimeline','ocCommissions','appSettings','customCategories','lifeCheckins','lifeRecords','lifeCheckinDefs','commissionDetails','textTemplates','textTemplateCats'];
 
 function hashStr(str) {
   let h = 0;
@@ -445,8 +445,13 @@ function initSwipeBack() {
     if (isModalOpen()) return;
     const t = e.touches[0];
     const dx = t.clientX - sx, dy = t.clientY - sy;
-    if (!horiz && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) horiz = true;
-    if (horiz) e.preventDefault(); // 抢占横向滑动，阻止页面纵向滚动与系统误判
+    if (!horiz) {
+      // v778: 纵向意图明确——立即结束跟踪放行滚动（修复手指稍斜时整个手势被掐住划不动）
+      if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { tracking = false; return; }
+      // 横向抢占需要更强的横向比例，避免普通滚动被误判
+      if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.5) horiz = true;
+    }
+    if (horiz) e.preventDefault(); // 已锁定横向手势，抢占滑动返回
   }, { passive: false });
   body.addEventListener('touchend', (e) => {
     if (!tracking || window.innerWidth > 768) { tracking = false; return; }
@@ -1663,11 +1668,15 @@ function showComboboxDropdown(id) {
   }
 }
 // v777: 下拉框空间判定——默认向下弹；若下边放不下而上边放得下，则改向上（dropup）
+// v778: 方案A——所有下拉一律往下弹；底部空间不足时压缩列表高度（内部滚动），
+// 不再上翻、不再撑出父容器滚动条（桌面端贴底弹窗与手机端行为统一）
 function flipComboboxDropdown(dd, wrapper) {
   dd.classList.remove('dropup');
   if (!wrapper) return;
-  const ddH = dd.offsetHeight || 0;
-  if (!ddH) return;
+  const opts = $$('.combobox-option', dd).filter(o => o.style.display !== 'none');
+  const oh = (opts[0] || {}).offsetHeight;
+  if (!oh) return;
+  const cssFit = parseInt(dd.style.maxHeight, 10) || (opts.length * oh); // fitComboboxDropdown 先按 CSS max-height 算出的高度
   const wr = wrapper.getBoundingClientRect();
   // 找最近的可滚动祖先（modal-body 等），下拉不能超出它，否则会撑出滚动条
   let limitBottom = window.innerHeight - 8;
@@ -1676,7 +1685,9 @@ function flipComboboxDropdown(dd, wrapper) {
     if (host.scrollHeight > host.clientHeight + 1) { limitBottom = Math.min(limitBottom, host.getBoundingClientRect().bottom - 4); break; }
     host = host.parentElement;
   }
-  if (wr.bottom + ddH + 8 > limitBottom && wr.top - ddH - 8 > 8) dd.classList.add('dropup');
+  const avail = limitBottom - wr.bottom - 8;
+  const fit = Math.max(1, Math.min(opts.length, Math.round(cssFit / oh), Math.floor(avail / oh)));
+  dd.style.maxHeight = (fit * oh) + 'px';
 }
 // v778：把下拉 max-height 归一化为选项高的整数倍，保证最后一项完整显示不被裁半
 function fitComboboxDropdown(dd) {
@@ -1718,16 +1729,32 @@ function selectComboboxOption(id, el) {
   }
   document.getElementById(id).classList.remove('show');
   // v777: 键盘保持——选项选中后焦点仍留在原输入框，键盘不收起
-  try { if (input && document.activeElement !== input) input.focus({ preventScroll: true }); } catch (e) {}
+  // v778: 仅在键盘确实弹出时才回焦，键盘已收起则不再唤起
+  try { if (_kbOpen && input && document.activeElement !== input) input.focus({ preventScroll: true }); } catch (e) {}
 };
 // v777: 键盘保持——弹窗内点击非输入元素（下拉选项/按钮/标签等）不抢焦点，键盘保持弹出；
 // 仅当焦点本来就在本弹窗的输入框/文本域上时生效。收起键盘仍由系统返回键/弹窗关闭/提交完成。
+// v778: 键盘可见性检测——visualViewport / APK adjustResize 后视口变矮即视为键盘弹出；
+// 键盘已收起时点按钮主动释放焦点，绝不把键盘再顶起来
+let _kbOpen = false, _kbBaseH = window.innerHeight;
+function kbUpdateState() {
+  const vv = window.visualViewport;
+  const h = vv ? vv.height : window.innerHeight;
+  if (h > _kbBaseH) _kbBaseH = h; // 视口变大（转屏/键盘收起）时抬升基线
+  _kbOpen = _kbBaseH - h > 120;
+  // v778: 键盘状态同步为根类，供 CSS 兜底（媒体查询未触发的浏览器同样压缩文案库输入区）
+  try { document.documentElement.classList.toggle('kb-open', _kbOpen); } catch (e) {}
+}
+if (window.visualViewport) window.visualViewport.addEventListener('resize', kbUpdateState);
+else window.addEventListener('resize', kbUpdateState);
+kbUpdateState();
 document.addEventListener('mousedown', e => {
   const zone = e.target.closest && e.target.closest('.modal, .tpl-sub-overlay, .txt-tpl-picker-overlay');
   if (!zone) return;
   const ae = document.activeElement;
   if (!ae || !zone.contains(ae) || !/^(INPUT|TEXTAREA)$/.test(ae.tagName)) return;
   if (e.target.closest('input:not([readonly]), textarea')) return; // 换输入框：焦点正常转移
+  if (!_kbOpen) { try { ae.blur(); } catch (err) {} return; } // v778: 键盘已收——释放焦点，防误唤起
   e.preventDefault();
 }, true);
 document.addEventListener('click', (e) => {
@@ -7708,6 +7735,12 @@ function migrateStringToArray(store, fields, valueMap) {
   if (changed) DB.set(store, records);
 }
 function migrateData() {
+  // v778: 文案分类从字符串数组迁移为带 id 记录（参与云端记录级合并）——必须在任何同步启动前完成
+  const rawCats = DB.get('textTemplateCats', null);
+  if (Array.isArray(rawCats) && rawCats.length && typeof rawCats[0] === 'string') {
+    const now = Date.now();
+    DB.set('textTemplateCats', rawCats.map(n => ({ id: uid(), name: n, _ct: now, _mt: now })));
+  }
   // Group buy records: participantCount -> purchaseCount, totalRevenue -> productTotal
   const groupbuys = DB.list('groupbuys');
   let changed = false;
@@ -11122,7 +11155,26 @@ function delCommissionTemplate(id) {
   Toast.success('已删除模板');
 }
 // ===== v755：文本模板（全局零散文案库，支持自由分类） =====
-// 分类存储于 textTemplateCats（数组）；每条文案带 cat 字段
+// v778: 分类以带 id/_ct/_mt 记录存储于 textTemplateCats（参与云端记录级合并）；
+// 「通用」为虚拟分类不落库，每条文案带 cat 字段
+function txtTplCatsNames() {
+  const raw = DB.get('textTemplateCats', []);
+  // 兜底：migrateData 未跑到时（如旧缓存直接打开）就地迁移
+  if (raw.length && typeof raw[0] === 'string') {
+    const now = Date.now();
+    DB.set('textTemplateCats', raw.map(n => ({ id: uid(), name: n, _ct: now, _mt: now })));
+    return raw.slice();
+  }
+  return raw.map(r => (r && r.name) || '').filter(Boolean);
+}
+function txtTplCatEnsure(name) {
+  if (!name || name === '通用') return;
+  if (txtTplCatsNames().includes(name)) return;
+  DB.add('textTemplateCats', { name });
+}
+function txtTplCatRemove(name) {
+  DB.list('textTemplateCats').filter(r => r.name === name).forEach(r => DB.remove('textTemplateCats', r.id));
+}
 function openTextTemplateLib() {
   let html = '<div class="tpl-lib-folder">';
   // v780：顶部大标题回归 modal-header（openModal 首参）；内容区小标题保留（v781 改名）
@@ -11155,7 +11207,7 @@ function txtTplCatsSorted(cats) {
 function renderTxtTplCats() {
   const tabs = $('#txtTplCats');
   if (!tabs) return;
-  const cats = txtTplCatsSorted(DB.get('textTemplateCats', []));
+  const cats = txtTplCatsSorted(txtTplCatsNames());
   if (!cats.includes(_txtTplCat)) _txtTplCat = cats[0];
   const r = tplCatsPagerHTML(cats, _txtTplCat, _txtTplCatPage, 'setTxtTplCat', 'navTxtTplCatPage', tplComputePerPage(tabs, cats));
   _txtTplCatPage = r.page;
@@ -11186,14 +11238,14 @@ function closeTplNewCatSub() { const ov = $('#tplNewCatSubOverlay'); if (ov) ov.
 function refreshTextTplCatCombobox() {
   const dd = $('#txtTplCatCb-dropdown');
   if (!dd) return;
-  const cats = txtTplCatsSorted(DB.get('textTemplateCats', []));
+  const cats = txtTplCatsSorted(txtTplCatsNames());
   dd.innerHTML = cats.map(c => `<div class="combobox-option" data-value="${esc(c)}" onclick="selectComboboxOption('txtTplCatCb-dropdown',this)">${esc(c)}</div>`).join('');
 }
 function submitTplNewCatSub() {
   const n = (($('#newCatInput') || {}).value || '').trim();
   if (!n) { Toast.warning('请输入分类名称'); return; }
-  let cats = DB.get('textTemplateCats', []);
-  if (!cats.includes(n)) { cats.push(n); DB.set('textTemplateCats', cats); }
+  txtTplCatEnsure(n);
+  const cats = txtTplCatsNames();
   _txtTplCat = n;
   // 翻到新分类所在的标签页，让选中新 tab 直接可见
   const tabs = $('#txtTplCats');
@@ -11209,9 +11261,8 @@ function submitTplNewCatSub() {
 async function delTextTemplateCat(cat) {
   const ok = await confirmDialog('删除分类「' + cat + '」及其下所有文案？', '删除分类');
   if (!ok) return;
-  let cats = DB.get('textTemplateCats', []);
-  cats = cats.filter(x => x !== cat);
-  DB.set('textTemplateCats', cats);
+  txtTplCatRemove(cat);
+  const cats = txtTplCatsNames();
   DB.list('textTemplates').filter(t => (t.cat || '通用') === cat).forEach(t => DB.remove('textTemplates', t.id));
   if (_txtTplCat === cat) _txtTplCat = cats[0] || '通用';
   _txtTplCatPage = 0;
@@ -11219,7 +11270,7 @@ async function delTextTemplateCat(cat) {
 }
 // 新增文案用到的分类下拉框（可输入新分类名）
 function textTplCatComboboxHTML(sel) {
-  const cats = txtTplCatsSorted(DB.get('textTemplateCats', []));
+  const cats = txtTplCatsSorted(txtTplCatsNames());
   const cbId = 'txtTplCatCb';
   const ddId = cbId + '-dropdown';
   const opts = cats.map(c => `<div class="combobox-option" data-value="${esc(c)}" onclick="selectComboboxOption('${ddId}',this)">${esc(c)}</div>`).join('');
@@ -11228,7 +11279,6 @@ function textTplCatComboboxHTML(sel) {
 function renderTxtTplList() {
   const list = $('#txtTplList');
   if (!list) return;
-  const cats = DB.get('textTemplateCats', []);
   const items = DB.list('textTemplates').filter(t => (t.cat || '通用') === _txtTplCat);
   if (!items.length) {
     _txtTplSelId = null; updateTxtTplActions();
@@ -11268,8 +11318,7 @@ function addTextTemplate() {
   const v = ($('#txtTplInput').value || '').trim();
   if (!v) { Toast.warning('请输入文案内容'); return; }
   let cat = (($('#txtTplCatCb') || {}).value || '').trim() || _txtTplCat || '通用';
-  const cats = DB.get('textTemplateCats', []);
-  if (!cats.includes(cat)) { cats.push(cat); DB.set('textTemplateCats', cats); }
+  txtTplCatEnsure(cat);
   DB.add('textTemplates', { text: v, cat });
   _txtTplCat = cat;
   $('#txtTplInput').value = '';
@@ -11307,7 +11356,7 @@ function openTextTemplatePicker(fieldKey) {
   if (!all.length) {
     bodyHTML = '<div class="tpl-empty">暂无文案模板，可前往「文案模板库」添加。</div>';
   } else {
-    const cats = DB.get('textTemplateCats', []).slice();
+    const cats = txtTplCatsNames().slice();
     all.forEach(t => { const c = t.cat || '通用'; if (!cats.includes(c)) cats.push(c); });
     if (!cats.length) cats.push('通用');
     const ordered = txtTplCatsSorted(cats); // v783：「通用」固定排第一

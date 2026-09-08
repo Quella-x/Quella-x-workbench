@@ -1661,8 +1661,6 @@ ul,li{list-style:none}
   box-shadow:var(--shadow);z-index:9999;min-width:140px;
 }
 .combobox-dropdown.show{display:block}
-/* v777: 底部空间不足时向上弹（flipComboboxDropdown 控制），避免撑出弹窗滚动条 */
-.combobox-dropdown.dropup{top:auto;bottom:100%}
 .combobox-option{
   padding:8px 12px;font-size:13px;cursor:pointer;transition:background .15s;
   color:var(--c-text);
@@ -2537,6 +2535,10 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-record-row:first-child{padding-top:0}
 .lr-record-info{flex:1;min-width:0}
 .lr-record-info-2col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 40px}
+/* v778: 记录行压行距——两行格式不变，纵向 gap 6→2px、行高收紧，有记录行总高贴近空占位行 */
+.lr-record-info-2col{gap:2px 40px}
+.lr-record-info-2col .lr-info-line{line-height:1.2}
+.lr-record-info-2col .lr-info-line-head{line-height:1.4}
 .lr-record-info-2col .lr-info-val{overflow:visible;text-overflow:clip}
 .lr-info-line{display:flex;align-items:baseline;gap:4px;min-width:0}
 .lr-info-line-head{grid-column:1 / -1;display:flex;align-items:center;gap:6px}
@@ -3035,7 +3037,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-client-done-title{font-size:18px;font-weight:700;color:var(--c-primary-dark)}
 .cd-client-done-sub{font-size:13px;color:var(--c-text-muted);margin-top:8px}
 .cd-client-fail{background:#FFF4F0}
-/* v777: 键盘弹出（视口变矮）时压缩文案库弹窗的输入区，保证文件夹标签与空状态提示完整可见 */
+/* v778: 键盘弹出（视口变矮）时压缩文案库弹窗的输入区，保证文件夹标签与空状态提示完整可见 */
 @media (max-height:600px){
   .modal.tpl-lib-modal{height:min(680px,94vh)}
   .modal.tpl-lib-modal .tpl-new .form-textarea{min-height:44px;flex:0 0 auto;margin-bottom:8px}
@@ -3043,6 +3045,12 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .modal.tpl-lib-modal .tpl-new-title{margin:0 0 6px}
   .tpl-newtip,.tpl-new-tip-box{margin:4px 0 6px}
 }
+/* v778: JS 键盘检测兜底（kb-open 类，媒体查询未触发的环境同样生效） */
+.kb-open .modal.tpl-lib-modal{height:min(680px,94vh)}
+.kb-open .modal.tpl-lib-modal .tpl-new .form-textarea{min-height:44px;flex:0 0 auto;margin-bottom:8px}
+.kb-open .modal.tpl-lib-modal .tpl-folder-list{min-height:110px}
+.kb-open .modal.tpl-lib-modal .tpl-new-title{margin:0 0 6px}
+.kb-open .tpl-newtip,.kb-open .tpl-new-tip-box{margin:4px 0 6px}
 </style>
 <script>
   (function(){
@@ -3324,7 +3332,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=777"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=778"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
