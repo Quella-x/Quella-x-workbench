@@ -1670,7 +1670,7 @@ function buildDynamicListHTML(field, data, moduleKey) {
   });
   html += `</div>`;
   // v777：开团记录制品列表/售后记录、接稿排期制品列表/加价项目/修改项目的「+ 添加」按钮改蓝色主按钮（合作记录等其他列表保持原样）
-  const _blueAddKeys = ['products', 'afterSales', 'extraItems', 'modifications'];
+  const _blueAddKeys = ['products', 'afterSales', 'extraItems', 'modifications', 'cooperationRecords'];
   html += `<button type="button" class="btn ${_blueAddKeys.indexOf(field.key) > -1 ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="addDynamicRow('${field.key}')">+ 添加</button>`;
   html += `</div></div>`;
   return html;
