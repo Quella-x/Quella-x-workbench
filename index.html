@@ -808,12 +808,8 @@ ul,li{list-style:none}
 .dynamic-list-rows{display:flex;flex-direction:column;gap:4px;padding:0;margin-bottom:6px}
 .dynamic-list-row{display:flex;gap:4px;align-items:center}
 .dynamic-list-row .form-input{padding:6px 8px;font-size:12px;flex:1;min-width:0;box-sizing:border-box;text-align:left}
-.dynamic-list-container > .btn{display:flex;width:100%;vertical-align:bottom;margin:0 !important;align-self:stretch}
-/* v784: 制品/售后/加价/修改四类「+ 添加」改为小按钮靠右（不再通栏大蓝条） */
-.dynamic-list-container[data-key="products"] > .btn,
-.dynamic-list-container[data-key="afterSales"] > .btn,
-.dynamic-list-container[data-key="extraItems"] > .btn,
-.dynamic-list-container[data-key="modifications"] > .btn{width:fit-content;margin-left:auto !important;padding:2px 10px;font-size:12px;align-self:flex-end}
+/* v785: 所有动态列表「+ 添加」（含合作记录）改小号靠右，垂直 padding 与行内输入框(6px)一致使高度相同 */
+.dynamic-list-container > .btn{display:flex;width:fit-content;margin-left:auto !important;padding:6px 10px;font-size:12px;align-self:flex-end}
 /* === 内容列宽与 header 完全一致 === */
 .dynamic-list-row .form-input[data-subkey="name"]{flex:1.5 1 0;min-width:90px}
 .dynamic-list-row .form-input[data-subkey="project"]{flex:1.5 1 0;min-width:90px}
@@ -2524,8 +2520,11 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-empty-row{color:var(--c-text-muted);font-size:13px;padding:11.5px 0;cursor:pointer}
 .lr-empty-row:hover{color:var(--c-primary)}
 /* v784: 分割线改用蓝调可见色——原 var(--c-border-light)=#eef2f5 与卡片底色 #eef7ff 几乎同色，实测看到的线像素就是底色的深浅差（不可见） */
-.lr-record-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px dashed #cfe1f4;transform:translateY(-2px)}
-.lr-record-row:last-child{border-bottom:none;padding-bottom:0}
+/* v785: 分割线改实线+两端缩进10px（用户定稿；v784 曾用通栏虚线）。用 ::after 画线以便左右缩进 */
+.lr-record-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;position:relative;transform:translateY(-2px)}
+.lr-record-row::after{content:'';position:absolute;left:10px;right:10px;bottom:0;height:1px;background:#cfe1f4}
+.lr-record-row:last-child::after{display:none}
+.lr-record-row:last-child{padding-bottom:0}
 .lr-record-row:first-child{padding-top:0}
 .lr-record-info{flex:1;min-width:0}
 .lr-record-info-2col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 40px}
@@ -3325,7 +3324,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=784"></script>
+  <script src="app.js?v=785"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
