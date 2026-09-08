@@ -238,8 +238,24 @@ function openModal(title, bodyHTML, footerBtns, size = '') {
   } else { fc.style.display = 'none'; }
   $('#modal').style.height = ''; $('#modal').className = 'modal' + (size ? ' ' + size : '');
   const ov = $('#modalOverlay'); ov.classList.add('show');
+  // v776：弹窗打开期间冻结背景滚动，隐藏透出来的背景滚动条，关闭后恢复
+  _modalScrollLockN++; _applyModalScrollLock();
   initModalSwipe();
   if (!ov._pushed) { try { history.pushState({ wbModal: 1 }, ''); ov._pushed = true; } catch (e) {} }
+}
+// v776：背景滚动冻结（引用计数，支持弹窗叠弹窗）
+let _modalScrollLockN = 0;
+function _applyModalScrollLock() {
+  try {
+    const b = document.body, mb = document.getElementById('mainBody');
+    if (_modalScrollLockN > 0) {
+      if (b && b.style.overflow !== 'hidden') { b.dataset.prevOverflow = b.style.overflow || ''; b.style.overflow = 'hidden'; }
+      if (mb && mb.style.overflow !== 'hidden') { mb.dataset.prevOverflow = mb.style.overflow || ''; mb.style.overflow = 'hidden'; }
+    } else {
+      if (b) b.style.overflow = b.dataset.prevOverflow || '';
+      if (mb) mb.style.overflow = mb.dataset.prevOverflow || '';
+    }
+  } catch (e) {}
 }
 // v752：最近一次「其他说明」查看弹窗的实际高度，供无参照物的弹窗对齐
 let _lastNotesModalH = 0;
@@ -251,7 +267,7 @@ let _txtTplCatPage = 0; // v767：文本模板库分类翻页（每排 4 个）
 // v754：约稿模板库当前选中的品类 tab（延迟到首次打开时按 COMM_DETAIL_CATS 初始化，避免顶层 TDZ）
 let _tplLibCat = null;
 let _tplLibCatPage = 0; // v767：约稿模板库分类翻页（每排 4 个）
-let _txtTplPickerCat = ''; // v767：约稿单内文本模板插入弹窗的分类筛选（空=全部）
+let _txtTplPickerCat = ''; // v776：约稿单内文本模板插入弹窗的分类筛选（固定选中一个分类，不再有「全部」）
 let _commTplSelId = null; // v762：约稿模板库当前选中项
 let _txtTplSelId = null;  // v762：文本模板库当前选中项
 // v752：弹窗等高统一出口——h 为参照高度(px)，缺省回退到弹窗最大高度 90vh
@@ -264,6 +280,8 @@ function applyModalEqualHeight(h) {
 function closeModal() {
   const ov = $('#modalOverlay');
   ov.classList.remove('show'); $('#modalBody').innerHTML = ''; $('#modalFooter').innerHTML = '';
+  // v776：解除背景滚动冻结（有内层弹窗时等最后一层关闭才恢复）
+  _modalScrollLockN = Math.max(0, _modalScrollLockN - 1); _applyModalScrollLock();
   // v756：把当前 history 条目的 modal 标记替换为中性对象，不触发导航，也不让之后的系统返回再去关闭已不存在的弹窗
   if (ov._pushed) {
     ov._pushed = false;
@@ -276,6 +294,7 @@ window.addEventListener('popstate', function (e) {
   if (e.state && e.state.wbModal && ov && ov.classList.contains('show')) {
     ov._pushed = false;
     ov.classList.remove('show'); $('#modalBody').innerHTML = ''; $('#modalFooter').innerHTML = '';
+    _modalScrollLockN = Math.max(0, _modalScrollLockN - 1); _applyModalScrollLock();
   }
 });
 
@@ -1533,7 +1552,17 @@ function showComboboxDropdown(id) {
       const isSelected = o.dataset.value ? (o.dataset.value === currentVal) : (o.textContent === currentVal);
       o.classList.toggle('selected', isSelected);
     });
+    fitComboboxDropdown(dd);
   }
+}
+// v778：把下拉 max-height 归一化为选项高的整数倍，保证最后一项完整显示不被裁半
+function fitComboboxDropdown(dd) {
+  const opts = $$('.combobox-option', dd).filter(o => o.style.display !== 'none');
+  if (!opts.length) return;
+  const oh = opts[0].offsetHeight;
+  if (!oh) return;
+  const maxH = parseFloat(getComputedStyle(dd).maxHeight) || 200;
+  dd.style.maxHeight = Math.max(oh, Math.floor(maxH / oh) * oh) + 'px';
 }
 function toggleComboboxDropdown(id) {
   const dd = document.getElementById(id);
@@ -1548,6 +1577,7 @@ function filterComboboxDropdown(id, val) {
   $$('.combobox-option', dd).forEach(o => {
     o.style.display = (!v || o.textContent.toLowerCase().includes(v)) ? '' : 'none';
   });
+  fitComboboxDropdown(dd);
 }
 function selectComboboxOption(id, el) {
   const wrapper = el.closest('.combobox-wrapper');
@@ -9742,11 +9772,11 @@ function renderCommissionDetailPage() {
     </div>
     <div class="cd-import-btn" onclick="openTextTemplateLib()">
       <div class="cd-import-btn-icon">${lucide('file-text',22)}</div>
-      <div class="cd-import-btn-name">文本模板</div>
+      <div class="cd-import-btn-name">文案模板库</div>
     </div>
     <div class="cd-import-btn" onclick="openCommissionTemplateLib()">
       <div class="cd-import-btn-icon">${lucide('clipboard-list',22)}</div>
-      <div class="cd-import-btn-name">约稿模板</div>
+      <div class="cd-import-btn-name">约稿模板库</div>
     </div>
   </div>`;
 
@@ -10705,7 +10735,7 @@ function cdOpenClientFormFromLink(catKey, opts) {
   let bodyHTML = cdFormShell(buildCdClientForm(catKey, data));
   bodyHTML = bodyHTML.replace(
     /(<label class="form-label">)([^<]*)(<\/label>)(\s*<textarea class="form-textarea" data-key="copyText")/,
-    (m, a, lbl, c, ta) => `<div class="form-label-row">${a}${lbl}${c}<button type="button" class="tpl-inline-btn" onclick="openTextTemplatePicker('copyText')">${lucide('file-text',15)} 文本模板</button></div>${ta}`
+    (m, a, lbl, c, ta) => `<div class="form-label-row">${a}${lbl}${c}<button type="button" class="tpl-inline-btn" onclick="openTextTemplatePicker('copyText')">${lucide('file-text',15)} 文案库</button></div>${ta}`
   );
   // v755：从约稿模板库（新建模板/点模板）进入表单时，取消要回到库，避免"直接消失"
   const cancelAction = opts.fromLib ? (() => { closeModal(); openCommissionTemplateLib(); }) : closeModal;
@@ -10736,8 +10766,8 @@ function saveAsCommissionTemplate(catKey) {
   const data = collectCdFormData(catKey);
   const mod = MODULES[catKey];
   let html = '<div class="cd-import-modal">';
-  html += `<div class="tpl-new-hint">将当前填写的约稿单存为「${esc(mod.category)}」类模板，之后可在接稿详情页「约稿模板」一键生成。</div>`;
-  html += `<div style="margin-top:10px"><label class="form-label">模板名称</label><input class="form-input" id="tplNameInput" placeholder="例如：饭圈头像标准单"></div>`;
+  html += `<div class="tpl-new-hint">此模板将存放至「${esc(mod.category)}」分类，后续可根据命名直接选择并给单主使用此模板</div>`;
+  html += `<div style="margin-top:10px"><label class="form-label" style="display:block;margin-bottom:6px">模板名称</label><input class="form-input" id="tplNameInput"></div>`;
   html += '</div>';
   openModal('存为约稿模板', html, [
     { label: '取消', class: 'btn-ghost', action: closeModal },
@@ -10753,9 +10783,59 @@ function saveAsCommissionTemplate(catKey) {
     } },
   ], 'notes-sm');
 }
-// v767：分类标签分页（每排 4 个自适应宽标签 + ‹ › 翻页）
-function tplCatsPagerHTML(cats, activeKey, page, pickFn, navFn) {
-  const PER = 4;
+// v767：分类标签分页（自适应宽标签 + ‹ › 翻页）；v772：每页数量按容器实际宽度动态计算（能放几个放几个，放不下翻页）
+let _tplTabMeasureSpan = null;
+function tplTabTextWidth(label) {
+  if (!_tplTabMeasureSpan) {
+    _tplTabMeasureSpan = document.createElement('span');
+    _tplTabMeasureSpan.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font-size:13px;font-weight:600;left:-9999px;top:-9999px';
+    document.body.appendChild(_tplTabMeasureSpan);
+  }
+  _tplTabMeasureSpan.textContent = label;
+  return _tplTabMeasureSpan.offsetWidth;
+}
+function tplComputePerPage(box, cats) {
+  const avail = (box && box.clientWidth) || 0;
+  if (!avail || !cats.length) return 4;
+  // 三档标签内边距（宽→窄）：24/20/16px，首标签再减 6px，相邻 margin-left:-10px 拼合
+  const STEPS = [[24, 18], [20, 15], [16, 14]];
+  const tabW = (label, pos, pad, padFirst) => {
+    const t = tplTabTextWidth(label);
+    return pos === 0 ? t + padFirst + pad : t + pad * 2 - 10;
+  };
+  const fit = (reserveNav, pad, padFirst) => {
+    let total = 0, n = 0;
+    for (let i = 0; i < cats.length; i++) {
+      const c = cats[i];
+      const label = (typeof c === 'string') ? c : c.label;
+      const w = tabW(label, n, pad, padFirst); // n = 本页内位置（每页首个标签都带 :first-child 样式）
+      if (total + w > avail - (reserveNav ? 62 : 0)) break;
+      total += w; n++;
+    }
+    return Math.max(1, n);
+  };
+  // v778：从宽到窄选第一个能一排放完的档；都要翻页时选每页放得最多的档（并列取更宽），
+  // 避免右侧还有大空余却用到最窄档
+  const setMode = (pad) => {
+    if (!box) return;
+    box.classList.toggle('mode-wide', pad === 24);
+    box.classList.toggle('mode-mid', pad === 20);
+  };
+  let best = null;
+  for (const [pad, padFirst] of STEPS) {
+    const full = fit(true, pad, padFirst);
+    if (full >= cats.length) {
+      setMode(pad);
+      return fit(false, pad, padFirst);
+    }
+    const per = fit(true, pad, padFirst);
+    if (!best || per > best.per) best = { pad, padFirst, per };
+  }
+  setMode(best.pad);
+  return best.per;
+}
+function tplCatsPagerHTML(cats, activeKey, page, pickFn, navFn, per) {
+  const PER = Math.max(1, per || 4);
   const pages = Math.max(1, Math.ceil(cats.length / PER));
   if (!(page >= 0)) page = 0;
   if (page > pages - 1) page = pages - 1;
@@ -10776,7 +10856,7 @@ function renderCommCatTabs() {
   const box = $('#tplCatTabs');
   if (!box) return;
   const cats = COMM_DETAIL_CATS.map(c => ({ key: c.key, label: c.label }));
-  const r = tplCatsPagerHTML(cats, _tplLibCat, _tplLibCatPage, 'setTplLibCat', 'navTplLibCatPage');
+  const r = tplCatsPagerHTML(cats, _tplLibCat, _tplLibCatPage, 'setTplLibCat', 'navTplLibCatPage', tplComputePerPage(box, cats));
   _tplLibCatPage = r.page;
   box.innerHTML = r.html;
 }
@@ -10785,6 +10865,7 @@ function navTplLibCatPage(d) { _tplLibCatPage += d; renderCommCatTabs(); }
 function openCommissionTemplateLib() {
   if (!_tplLibCat) _tplLibCat = COMM_DETAIL_CATS[0].key;
   let html = '<div class="tpl-lib-folder">';
+  // v780：顶部大标题回归 modal-header（openModal 首参）；内容区小标题保留（v781 改名）
   html += '<div class="tpl-new-title">约稿模板库</div>';
   // v767：顶部 tab 行（每排 4 个 + ‹ › 翻页），由 renderCommCatTabs 填充
   html += '<div class="tpl-top-row"><div class="tpl-folder-tabs" id="tplCatTabs"></div></div>';
@@ -10875,7 +10956,8 @@ function delCommissionTemplate(id) {
 // 分类存储于 textTemplateCats（数组）；每条文案带 cat 字段
 function openTextTemplateLib() {
   let html = '<div class="tpl-lib-folder">';
-  html += '<div class="tpl-new-title">文本模板库</div>';
+  // v780：顶部大标题回归 modal-header（openModal 首参）；内容区小标题保留（v781 改名）
+  html += '<div class="tpl-new-title">文案库</div>';
   // v762 文件夹式：顶部 tab 行（激活 tab 主色蓝，与主体用色阶区分）
   html += '<div class="tpl-top-row"><div class="tpl-folder-tabs" id="txtTplCats"></div></div>';
   // 白色大圆角卡片装列表
@@ -10887,9 +10969,9 @@ function openTextTemplateLib() {
   html += '<div class="tpl-new-title">新增文案</div>';
   html += '<div class="tpl-new-tip-box">输入一段固定文案，保存后可在约稿单中一键插入。</div>';
   html += '<div id="txtTplCatWrap">' + textTplCatComboboxHTML(_txtTplCat) + '</div>';
-  html += '<textarea class="form-textarea" id="txtTplInput" placeholder="输入固定文案..."></textarea>';
+  html += '<textarea class="form-textarea" id="txtTplInput"></textarea>';
   html += '<div class="cd-import-actions"><button class="btn btn-primary" onclick="addTextTemplate()">保存文案</button></div></div>';
-  openModal('文本模板库', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'notes-sm tpl-lib-modal');
+  openModal('文案模板库', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'notes-sm tpl-lib-modal');
   // v767：与「新增记录/约稿单直接填写」弹窗等高（复用站内统一等高出口，无参照时保持默认高度）
   if (_lastRefModalH || _lastNotesModalH) applyModalEqualHeight(_lastRefModalH || _lastNotesModalH);
   renderTxtTplCats();
@@ -10904,7 +10986,7 @@ function renderTxtTplCats() {
   if (!cats.length) { tabs.innerHTML = '<span class="tpl-empty" style="padding:0">暂无分类</span>'; }
   else {
     if (!cats.includes(_txtTplCat)) _txtTplCat = cats[0];
-    const r = tplCatsPagerHTML(cats, _txtTplCat, _txtTplCatPage, 'setTxtTplCat', 'navTxtTplCatPage');
+    const r = tplCatsPagerHTML(cats, _txtTplCat, _txtTplCatPage, 'setTxtTplCat', 'navTxtTplCatPage', tplComputePerPage(tabs, cats));
     _txtTplCatPage = r.page;
     tabs.innerHTML = r.html;
   }
@@ -10914,8 +10996,8 @@ function renderTxtTplCats() {
 function setTxtTplCat(c) { _txtTplCat = c; renderTxtTplCats(); renderTxtTplList(); }
 function navTxtTplCatPage(d) { _txtTplCatPage += d; renderTxtTplCats(); }
 function addTextTemplateCat() {
-  let html = '<div class="cd-import-modal"><div class="tpl-new-hint">输入一个新分类名称，用于归类零散文案。</div>';
-  html += '<div style="margin-top:10px"><input class="form-input" id="newCatInput" placeholder="例如：封面宣传语" maxlength="20"></div></div>';
+  let html = '<div class="cd-import-modal"><div class="tpl-new-hint">输入一个新分类名称，用于归类零散文案</div>';
+  html += '<div style="margin-top:10px"><input class="form-input" id="newCatInput" maxlength="20"></div></div>';
   openModal('新建分类', html, [
     { label: '取消', class: 'btn-ghost', action: closeModal },
     { label: '确定', class: 'btn-primary', action: () => {
@@ -11006,20 +11088,18 @@ function delTextTemplate(id) {
 // 约稿单表单内的「文本模板」按钮：就地展开片段列表（不替换表单，按分类分组，插入到相邻的文案/小字文本框）
 // v757：约稿单表单内的「文本模板」按钮 -> 弹窗显示文本模板库（按分类分组），每条带「选择」按钮，点选填入并关闭弹窗
 // v767：插入弹窗按「选择分类」下拉筛选，选中分类后只列该分类文案
+// v776：去掉「全部」，固定按选中分类筛选
 function txtTplPickerListInner(all, fieldKey) {
   const items = _txtTplPickerCat ? all.filter(t => (t.cat || '通用') === _txtTplPickerCat) : all;
   if (!items.length) return '<div class="tpl-empty">该分类下暂无文案。</div>';
   const rowHTML = t => `<div class="txt-tpl-row"><div class="txt-tpl-row-text">${esc(t.text)}</div><button type="button" class="txt-tpl-choose" onclick="insertTextTemplateById('${t.id}','${fieldKey}');closeTextTemplatePicker();">选择</button></div>`;
-  if (_txtTplPickerCat) return items.map(rowHTML).join('');
-  const cats = [];
-  items.forEach(t => { const c = t.cat || '通用'; if (!cats.includes(c)) cats.push(c); });
-  return cats.map(cat => `<div class="txt-tpl-grp">${esc(cat)}</div>` + items.filter(t => (t.cat || '通用') === cat).map(rowHTML).join('')).join('');
+  return items.map(rowHTML).join('');
 }
 function setTxtTplPickerCat(fieldKey) {
   const el = $('#txtTplPickerCatCb');
   const raw = el ? (el.value || '').trim() : '';
-  _txtTplPickerCat = (raw === '全部' || raw === '') ? '' : raw;
-  if (el) el.value = _txtTplPickerCat || '全部';
+  if (raw) _txtTplPickerCat = raw;
+  if (el) el.value = _txtTplPickerCat;
   const box = $('#txtTplPickerList');
   if (box) box.innerHTML = txtTplPickerListInner(DB.list('textTemplates'), fieldKey);
 }
@@ -11029,23 +11109,23 @@ function openTextTemplatePicker(fieldKey) {
   const all = DB.list('textTemplates');
   let bodyHTML;
   if (!all.length) {
-    bodyHTML = '<div class="tpl-empty">暂无文案模板，可前往「文本模板库」添加。</div>';
+    bodyHTML = '<div class="tpl-empty">暂无文案模板，可前往「文案模板库」添加。</div>';
   } else {
     const cats = DB.get('textTemplateCats', []).slice();
     all.forEach(t => { const c = t.cat || '通用'; if (!cats.includes(c)) cats.push(c); });
     if (!cats.length) cats.push('通用');
-    if (_txtTplPickerCat && !cats.includes(_txtTplPickerCat)) _txtTplPickerCat = '';
+    // v776：固定选中一个分类（默认第一个），不再有「全部」全显
+    if (!cats.includes(_txtTplPickerCat)) _txtTplPickerCat = cats[0];
     const cbId = 'txtTplPickerCatCb';
     const ddId = cbId + '-dropdown';
-    const head = `<div class="combobox-option" data-value="全部" onclick="selectComboboxOption('${ddId}',this);setTxtTplPickerCat('${fieldKey}')">全部</div>`;
     const opts = cats.map(c => `<div class="combobox-option" data-value="${esc(c)}" onclick="selectComboboxOption('${ddId}',this);setTxtTplPickerCat('${fieldKey}')">${esc(c)}</div>`).join('');
-    const combo = `<div class="txt-tpl-picker-cat"><label class="form-label">选择分类</label><div class="combobox-wrapper" style="flex:1;max-width:none"><input type="text" class="form-input combobox-input" id="${cbId}" value="${esc(_txtTplPickerCat || '全部')}" placeholder="选择分类" readonly onfocus="showComboboxDropdown('${ddId}')" onclick="showComboboxDropdown('${ddId}')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${ddId}')">▼</button><div class="combobox-dropdown" id="${ddId}">${head}${opts}</div></div></div>`;
+    const combo = `<div class="txt-tpl-picker-cat"><label class="form-label">选择分类</label><div class="combobox-wrapper" style="flex:1;max-width:none"><input type="text" class="form-input combobox-input" id="${cbId}" value="${esc(_txtTplPickerCat)}" placeholder="选择分类" readonly onfocus="showComboboxDropdown('${ddId}')" onclick="showComboboxDropdown('${ddId}')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${ddId}')">▼</button><div class="combobox-dropdown" id="${ddId}">${opts}</div></div></div>`;
     bodyHTML = combo + `<div id="txtTplPickerList">${txtTplPickerListInner(all, fieldKey)}</div>`;
   }
   const ov = document.createElement('div');
   ov.id = 'txtTplPickerOverlay';
   ov.className = 'txt-tpl-picker-overlay';
-  ov.innerHTML = `<div class="txt-tpl-picker-card"><div class="txt-tpl-picker-head">文本模板<button type="button" class="txt-tpl-picker-close" onclick="closeTextTemplatePicker()">✕</button></div><div class="txt-tpl-picker-body">${bodyHTML}</div><div class="txt-tpl-picker-foot"><button type="button" class="btn btn-ghost" onclick="closeTextTemplatePicker()">关闭</button></div></div>`;
+  ov.innerHTML = `<div class="txt-tpl-picker-card"><div class="txt-tpl-picker-head">文案库<button type="button" class="txt-tpl-picker-close" onclick="closeTextTemplatePicker()">✕</button></div><div class="txt-tpl-picker-body">${bodyHTML}</div><div class="txt-tpl-picker-foot"><button type="button" class="btn btn-ghost" onclick="closeTextTemplatePicker()">关闭</button></div></div>`;
   document.body.appendChild(ov);
   ov.addEventListener('click', e => { if (e.target === ov) closeTextTemplatePicker(); });
 }
@@ -11067,7 +11147,7 @@ function insertTextTemplate(text, fieldKey) {
   el.focus();
   el.dispatchEvent(new Event('input', { bubbles: true }));
   const panel = $('#tplPickerPanel'); if (panel) panel.remove();
-  Toast.success('已插入文本模板');
+  Toast.success('已插入文案');
 }
 // 从 URL 参数自动打开单主填写表单
 function cdCheckClientFormFromUrl() {
