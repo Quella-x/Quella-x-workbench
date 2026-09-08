@@ -28,7 +28,14 @@ const DB = {
   save(key, arr) { return this.set(key, arr); },
   add(key, obj) { const a = this.list(key); obj.id = obj.id || uid(); obj._ct = Date.now(); obj._mt = Date.now(); a.push(obj); this.save(key, a); return obj; },
   update(key, id, patch) { const a = this.list(key); const i = a.findIndex(r => r.id === id); if (i >= 0) { a[i] = { ...a[i], ...patch, _mt: Date.now() }; this.save(key, a); return a[i]; } return null; },
-  remove(key, id) { this.save(key, this.list(key).filter(r => r.id !== id)); },
+  remove(key, id) {
+    // v776: 删除改为「墓碑」标记（带 _mt 时间戳，存独立 __del__ 键），随同步参与合并——
+    // 多端同步时已删记录不会复活，删除动作本身也能同步到所有端。UI 数据数组保持干净。
+    const dels = this.list(key + '__del__');
+    dels.push({ id, _del: true, _mt: Date.now() });
+    this.set(key + '__del__', dels);
+    this.set(key, this.list(key).filter(r => r.id !== id));
+  },
   getById(key, id) { return this.list(key).find(r => r.id === id); },
 };
 
@@ -98,51 +105,145 @@ const Sync = {
     if (this._pushTimer) clearTimeout(this._pushTimer);
     this._pushTimer = setTimeout(() => this.pushAll(), 800);
   },
-  async pushStore(store) {
-    const data = DB.list(store);
-    const updated_at = new Date().toISOString();
-    const body = { group_key: this.gkey(), store, data, updated_at };
-    const r = await fetch(this.table(), {
-      method: 'POST',
-      headers: Object.assign(this.headers(), { 'Prefer': 'resolution=merge-duplicates' }),
-      body: JSON.stringify(body)
-    });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    this.versions[store] = updated_at;
-    this.lastSync = Date.now();
+  _delKey(store) { return store + '__del__'; },
+  async syncStore(store) {
+    // v776 记录级合并引擎：拉取云端 → 按 id+_mt 逐条合并（新者胜、墓碑参与）→ 与云端不一致才推回 → 推后复查收敛。
+    // 取代旧「整行覆盖」模型——任何一端（包括空设备/旧缓存设备）都不可能再把另一端的数据清掉。
+    const dk = this._delKey(store);
+    const getUrl = this.table() + '?group_key=eq.' + encodeURIComponent(this.gkey()) + '&store=in.(' + encodeURIComponent(store) + ',' + encodeURIComponent(dk) + ')&select=store,data,updated_at';
+    const getRows = async () => {
+      const r = await fetch(getUrl, { headers: this.headers() });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    };
+    const rows = await getRows();
+    const row = rows.find(x => x.store === store);
+    const local = DB.get(store, null);
+    const localDels = DB.list(dk);
+    if (!row) {
+      // 云端尚无该 store：本地有内容则首推建行，否则无事可做
+      const hasData = Array.isArray(local) ? local.length > 0 : local != null;
+      if (!hasData) return false;
+      const updated_at = new Date().toISOString();
+      const body = Array.isArray(local)
+        ? [{ group_key: this.gkey(), store, data: local, updated_at }].concat(localDels.length ? [{ group_key: this.gkey(), store: dk, data: localDels, updated_at }] : [])
+        : { group_key: this.gkey(), store, data: local, updated_at };
+      const pr = await fetch(this.table(), { method: 'POST', headers: Object.assign(this.headers(), { 'Prefer': 'resolution=merge-duplicates' }), body: JSON.stringify(body) });
+      if (!pr.ok) throw new Error('HTTP ' + pr.status);
+      this._applying = true;
+      if (!Array.isArray(local)) DB.set('__mirror_' + store, local);
+      this._applying = false;
+      this.versions[store] = updated_at;
+      this.lastSync = Date.now();
+      DB.set('syncVersions', this.versions);
+      DB.set('syncLast', this.lastSync);
+      return false;
+    }
+    const drow = rows.find(x => x.store === dk);
+    const cloudRaw = row.data;
+    const cloudDels = (drow && Array.isArray(drow.data)) ? drow.data : [];
+
+    if (!Array.isArray(local) && !(local === null && Array.isArray(cloudRaw))) {
+      // 非列表数据（appSettings 配置对象等）：以上次同步镜像为基准三方判定——
+      // 本地改了云端没改 → 推本地；云端变了 → 拉云端；两边都改 → 云端优先。
+      const mirror = DB.get('__mirror_' + store, null);
+      const localDiff = JSON.stringify(local) !== JSON.stringify(mirror);
+      const cloudDiff = JSON.stringify(cloudRaw) !== JSON.stringify(mirror);
+      this.versions[store] = row.updated_at;
+      DB.set('syncVersions', this.versions);
+      if (localDiff && !cloudDiff) {
+        const updated_at = new Date().toISOString();
+        const pr = await fetch(this.table(), { method: 'POST', headers: Object.assign(this.headers(), { 'Prefer': 'resolution=merge-duplicates' }), body: JSON.stringify({ group_key: this.gkey(), store, data: local, updated_at }) });
+        if (!pr.ok) throw new Error('HTTP ' + pr.status);
+        this._applying = true;
+        DB.set('__mirror_' + store, local);
+        this._applying = false;
+        this.lastSync = Date.now();
+        DB.set('syncLast', this.lastSync);
+        return false;
+      }
+      if (cloudDiff) {
+        this._applying = true;
+        DB.set(store, cloudRaw || {});
+        DB.set('__mirror_' + store, cloudRaw || {});
+        this._applying = false;
+        return true;
+      }
+      return false;
+    }
+
+    const cloud = Array.isArray(cloudRaw) ? cloudRaw : [];
+    const localArr = Array.isArray(local) ? local : [];
+
+    const mergeOnce = (lc, ld, cc, cd) => {
+      const delMap = {};
+      ld.concat(cd).forEach(t => { if (t && t.id) { const p = delMap[t.id]; if (!p || (t._mt || 0) >= (p._mt || 0)) delMap[t.id] = t; } });
+      const map = {};
+      lc.forEach(rc => { if (rc && rc.id) map[rc.id] = rc; });
+      cc.forEach(rc => { if (rc && rc.id) { const l = map[rc.id]; if (!l || (rc._mt || 0) >= (l._mt || 0)) map[rc.id] = rc; } });
+      // 按 id 排序得到确定性顺序（id=时间戳+随机，天然按创建时间排列），两端合并结果必然一致，不会来回打架
+      return {
+        items: Object.keys(map).map(k => map[k]).filter(rc => { const t = delMap[rc.id]; return !(t && (t._mt || 0) >= (rc._mt || 0)); }).sort((a, b) => a.id < b.id ? -1 : 1),
+        dels: Object.keys(delMap).map(k => delMap[k]).sort((a, b) => a.id < b.id ? -1 : 1)
+      };
+    };
+
+    const m = mergeOnce(localArr, localDels, cloud, cloudDels);
+    const localChanged = JSON.stringify(m.items) !== JSON.stringify(localArr) || JSON.stringify(m.dels) !== JSON.stringify(localDels);
+    if (localChanged) {
+      this._applying = true;
+      DB.set(store, m.items);
+      DB.set(dk, m.dels);
+      this._applying = false;
+    }
+    this.versions[store] = row.updated_at;
     DB.set('syncVersions', this.versions);
-    DB.set('syncLast', this.lastSync);
+
+    if (JSON.stringify(m.items) === JSON.stringify(cloud) && JSON.stringify(m.dels) === JSON.stringify(cloudDels)) return localChanged;
+
+    // 云端缺合并结果 → 推回；推完复查，若刚被并发写入则重新合并再推（最多 3 轮）
+    for (let i = 0; i < 3; i++) {
+      const updated_at = new Date().toISOString();
+      const body = [{ group_key: this.gkey(), store, data: m.items, updated_at }];
+      if (m.dels.length) body.push({ group_key: this.gkey(), store: dk, data: m.dels, updated_at });
+      const pr = await fetch(this.table(), {
+        method: 'POST',
+        headers: Object.assign(this.headers(), { 'Prefer': 'resolution=merge-duplicates' }),
+        body: JSON.stringify(body)
+      });
+      if (!pr.ok) throw new Error('HTTP ' + pr.status);
+      this.versions[store] = updated_at;
+      this.lastSync = Date.now();
+      DB.set('syncVersions', this.versions);
+      DB.set('syncLast', this.lastSync);
+      const re = await getRows();
+      const nrow = re.find(x => x.store === store);
+      const ndrow = re.find(x => x.store === dk);
+      const ncloud = (nrow && Array.isArray(nrow.data)) ? nrow.data : [];
+      const ncloudDels = (ndrow && Array.isArray(ndrow.data)) ? ndrow.data : [];
+      if (JSON.stringify(ncloud) === JSON.stringify(m.items) && JSON.stringify(ncloudDels) === JSON.stringify(m.dels)) break;
+      const m2 = mergeOnce(m.items, m.dels, ncloud, ncloudDels);
+      m.items = m2.items; m.dels = m2.dels;
+      this._applying = true;
+      DB.set(store, m.items);
+      DB.set(dk, m.dels);
+      this._applying = false;
+    }
+    return localChanged;
   },
   async pushAll() {
     if (!this.enabled()) return;
     this.setStatus('syncing');
     try {
-      for (const store of SYNC_STORES) { await this.pushStore(store); }
+      for (const store of SYNC_STORES) { await this.syncStore(store); }
       this.setStatus('connected');
     } catch (e) { this.setStatus('disconnected'); }
-  },
-  async pullStore(store) {
-    const r = await fetch(this.table() + '?group_key=eq.' + encodeURIComponent(this.gkey()) + '&store=eq.' + encodeURIComponent(store) + '&select=store,data,updated_at', { headers: this.headers() });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const rows = await r.json();
-    if (!rows.length) return false;
-    const row = rows[0];
-    const localV = this.versions[store];
-    if (!localV || (row.updated_at && Date.parse(row.updated_at) > Date.parse(localV || 0))) {
-      this._applying = true;
-      DB.set(store, row.data || []);
-      this._applying = false;
-      this.versions[store] = row.updated_at;
-      DB.set('syncVersions', this.versions);
-      return true;
-    }
-    return false;
   },
   async pullAll() {
     if (!this.enabled()) return;
     let changed = false;
     try {
-      for (const store of SYNC_STORES) { if (await this.pullStore(store)) changed = true; }
+      for (const store of SYNC_STORES) { if (await this.syncStore(store)) changed = true; }
       this.lastSync = Date.now();
       DB.set('syncLast', this.lastSync);
       this.setStatus('connected');
@@ -157,9 +258,7 @@ const Sync = {
     if (!this.enabled()) { Toast.warning('请先在设置中填写 Supabase 配置'); return; }
     this.setStatus('syncing');
     try {
-      // v773: 先拉后推——先把云端他人的更新合并进本地，再全量推上去。
-      // 旧逻辑先推后拉会导致推完云端全是自己的时间戳、拉取永远空转（只能上传不能下载）。
-      await this.pullAll();
+      // v776: 拉取→合并→按需推回已在 syncStore 内统一完成，fullSync 即全量收敛，无覆盖风险。
       await this.pushAll();
       if (this.status !== 'disconnected') this.setStatus('connected');
       Toast.success('同步完成');
