@@ -10834,7 +10834,14 @@ function cdShowClientLinkInline(catKey) {
 }
 // v777: 约稿单统一用公网独立填写页（order-form.html）——单主改地址栏也只能看到表单本身，看不到工作台；
 // 链接内携带 Supabase 地址 / anon key / 分组键，单主提交的数据直接进云端，接稿详情自动拉取汇入。
-function CD_PUBLIC_BASE() { return 'https://0b9f822813e042afaed3792e9df14ff8.app.workbuddy.link'; }
+// 域名自适应：网页端（电脑/手机浏览器/预览）用当前访问域名；APK WebView 内为虚拟域名，兜底用发布域名。
+function CD_PUBLIC_BASE() {
+  try {
+    const o = window.location.origin || '';
+    if (/^https?:\/\//.test(o) && o.indexOf('appassets.androidplatform.net') === -1) return o.replace(/\/+$/, '');
+  } catch (e) {}
+  return 'https://0b9f822813e042afaed3792e9df14ff8.app.workbuddy.link';
+}
 function buildCdClientUrl(catKey, preset) {
   let link = CD_PUBLIC_BASE() + '/order-form.html?cd_client=1&standalone=1&cat=' + encodeURIComponent(catKey);
   if (Sync.enabled()) {
