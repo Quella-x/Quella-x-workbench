@@ -2508,27 +2508,22 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-card-body{padding:10px 12px}
 .lr-subtype-box{display:flex;align-items:center;gap:10px;border:1px solid var(--c-border-light);border-radius:var(--radius-sm);background:#eef7ff;margin-bottom:10px;padding:10px 12px;position:relative}
 .lr-subtype-box:last-child{margin-bottom:0}
-/* v780: 标签居中基准随行距微撑再 +1px（v779 为 8px；对照 .lr-record-info-2col gap 4px） */
-.lr-subtype-label{flex-shrink:0;align-self:flex-start;width:44px;font-size:18px;font-weight:700;color:var(--c-text);line-height:1.2;text-align:center;margin-top:9px}
-.lr-subtype-box:has(.lr-empty-row) .lr-subtype-label{align-self:flex-start;margin-top:8px}
+/* v781: 标签居中基准回归 v776（有记录/空记录统一 11px，空行与记录行等高后无需分态） */
+.lr-subtype-label{flex-shrink:0;align-self:flex-start;width:44px;font-size:18px;font-weight:700;color:var(--c-text);line-height:1.2;text-align:center;margin-top:11px}
 .lr-subtype-content{flex:1;min-width:0}
 .lr-subtype-add{flex-shrink:0;width:28px;height:28px;border-radius:var(--radius-sm);border:1px solid var(--c-primary);background:var(--c-primary);color:#fff;font-size:18px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-top:2px;align-self:flex-start}
 .lr-subtype-add:hover{background:var(--c-primary-dark)}
 .lr-head-add{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);border:1px solid var(--c-primary);background:var(--c-primary);color:#fff;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;line-height:1}
 .lr-head-add:hover{background:var(--c-primary-dark)}
 .lr-head-add::before{content:'+';font-size:13px;font-weight:500;line-height:1;display:inline-flex;align-items:center;justify-content:center}
-.lr-empty-row{color:var(--c-text-muted);font-size:13px;padding:10px 0;cursor:pointer}
+.lr-empty-row{color:var(--c-text-muted);font-size:13px;padding:13.5px 0;cursor:pointer}
 .lr-empty-row:hover{color:var(--c-primary)}
 .lr-record-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px dashed var(--c-border-light)}
 .lr-record-row:last-child{border-bottom:none;padding-bottom:0}
 .lr-record-row:first-child{padding-top:0}
 .lr-record-info{flex:1;min-width:0}
 .lr-record-info-2col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 40px}
-/* v778: 记录行压行距——两行格式不变，纵向 gap 6→2px、行高收紧，有记录行总高贴近空占位行 */
-/* v780: 有记录行再放松——用户实测观感记录行比空占位行略矮，纵向 gap 2→4px（移动 4→6px）微撑高；标签居中基准同步 +1px（桌面/移动均 9px） */
-.lr-record-info-2col{gap:4px 40px}
-.lr-record-info-2col .lr-info-line{line-height:1.2}
-.lr-record-info-2col .lr-info-line-head{line-height:1.4}
+/* v781: 方向反转（用户定稿）——记录行恢复 v776 原始行距（gap 6px、无行高压缩，实测66px），改为把空白占位行撑高到与记录行一致（padding 10→13.5px，实测66px）；移动端空行 padding 11px（55→57px） */
 .lr-record-info-2col .lr-info-val{overflow:visible;text-overflow:clip}
 .lr-info-line{display:flex;align-items:baseline;gap:4px;min-width:0}
 .lr-info-line-head{grid-column:1 / -1;display:flex;align-items:center;gap:6px}
@@ -2655,10 +2650,10 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-card-title{font-size:14px}
   .lr-card-body{padding:8px 10px}
   .lr-subtype-box{align-items:center;gap:8px;padding:8px 10px}
-  .lr-subtype-label{width:36px;font-size:16px;margin-top:9px}
-  .lr-subtype-box:has(.lr-empty-row) .lr-subtype-label{align-self:flex-start;margin-top:8px}
+  .lr-subtype-label{width:36px;font-size:16px;margin-top:10px}
   .lr-subtype-add{width:24px;height:24px;font-size:16px}
-  .lr-record-info-2col{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 22px}
+  .lr-empty-row{padding:11px 0}
+  .lr-record-info-2col{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 22px}
   .lr-info-label{font-size:11px}
   .lr-info-val{font-size:14px}
   .lr-info-full .lr-info-val{font-size:12px}
@@ -3322,7 +3317,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=780"></script>
+  <script src="app.js?v=781"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
