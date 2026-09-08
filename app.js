@@ -328,6 +328,38 @@ function initModalSwipe() {
   }, { passive: true });
 }
 
+/* ===== v784: 禁用浏览器表单自动填充历史 =====
+   现象：弹窗输入框聚焦时，Chrome 按「输入框标识」弹出此前手输过的值（零食名、
+   分类名等），用户以为应用在偷偷记录。这里统一关掉：autocomplete=off + 一次性随机
+   name（让浏览器已有的历史条目匹配不上）。密码/文件/勾选框不处理。 */
+function killAutofill(root) {
+  if (!root) return;
+  const list = [];
+  if (root.tagName === 'INPUT') list.push(root);
+  if (root.querySelectorAll) root.querySelectorAll('input').forEach(i => list.push(i));
+  list.forEach(inp => {
+    if (!inp || inp._acOff) return;
+    const t = (inp.type || 'text').toLowerCase();
+    if (['password', 'file', 'checkbox', 'radio', 'hidden'].indexOf(t) > -1) return;
+    inp._acOff = 1;
+    inp.setAttribute('autocomplete', 'off');
+    if (!inp.getAttribute('name')) inp.setAttribute('name', 'nf' + Math.random().toString(36).slice(2, 10));
+  });
+}
+if (window.MutationObserver) {
+  try {
+    new MutationObserver(muts => {
+      for (const m of muts) {
+        for (const n of m.addedNodes) {
+          if (!n || n.nodeType !== 1) continue;
+          if (!n.closest) continue;
+          if (n.closest('#modalOverlay, .tpl-sub-overlay, .txt-tpl-picker-overlay, .modal')) killAutofill(n);
+        }
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  } catch (e) {}
+}
+
 // v-DY/v756: 模态打开时压入一条 history 状态，使手机系统「侧滑返回」手势优先关闭模态而非直接退出 APP
 // 用 #modalOverlay._pushed 记录该条目是否已压栈；closeModal 用 replaceState 把标记置为中性，
 // 不再调用 history.back()，避免在 iframe/file 等场景下把页面回退到 about:blank。
@@ -338,6 +370,7 @@ function openModal(title, bodyHTML, footerBtns, size = '') {
     footerBtns.forEach(b => { const btn = document.createElement('button'); btn.className = 'btn ' + (b.class || 'btn-primary'); btn.textContent = b.label; btn.onclick = () => b.action && b.action(); fc.appendChild(btn); });
   } else { fc.style.display = 'none'; }
   $('#modal').style.height = ''; $('#modal').className = 'modal' + (size ? ' ' + size : '');
+  killAutofill($('#modalBody')); // v784: 禁掉浏览器表单历史联想
   const ov = $('#modalOverlay'); ov.classList.add('show');
   // v776：弹窗打开期间冻结背景滚动，隐藏透出来的背景滚动条，关闭后恢复
   _modalScrollLockN++; _applyModalScrollLock();
@@ -476,10 +509,139 @@ function initImageUpload(containerSelector) {
   window.removeImg = (i) => { images.splice(i, 1); renderPreview(); };
   renderPreview();
   area.onclick = () => input.click();
-  input.onchange = () => { Array.from(input.files).forEach(file => { if (file.size > 3 * 1024 * 1024) { Toast.warning(`图片 ${file.name} 超过3MB，已跳过`); return; } const reader = new FileReader(); reader.onload = (e) => { images.push(e.target.result); renderPreview(); }; reader.readAsDataURL(file); }); input.value = ''; };
+  // v784: 压缩 → 上云（记录只存 https 链接）；上云失败才回退本地压缩图，绝不塞原图
+  input.onchange = () => {
+    Array.from(input.files).forEach(async file => {
+      if (file.size > ImgCloud.MAX_SRC) { Toast.warning(`图片 ${file.name} 超过12MB，已跳过`); return; }
+      if (ImgCloud.enabled()) {
+        const url = await ImgCloud.upload(file);
+        if (url) { images.push(url); renderPreview(); return; }
+      }
+      const blob = await ImgCloud.compress(file);
+      if (!blob) { Toast.warning(`图片 ${file.name} 读取失败`); return; }
+      const reader = new FileReader();
+      reader.onload = (e) => { images.push(e.target.result); renderPreview(); };
+      reader.readAsDataURL(blob);
+    });
+    input.value = '';
+  };
 }
 function makeImageUploadHTML() {
-  return `<div class="img-upload-container" id="imgUpload"><div class="img-upload-area"><span style="font-size:24px;display:block;margin-bottom:4px">${lucide('camera',24)}</span><span style="font-size:12px;color:var(--c-text-muted)">点击上传图片（单张不超过3MB）</span></div><input type="file" class="img-upload-input" accept="image/*" multiple style="display:none"><div class="img-preview-grid"></div></div>`;
+  return `<div class="img-upload-container" id="imgUpload"><div class="img-upload-area"><span style="font-size:24px;display:block;margin-bottom:4px">${lucide('camera',24)}</span><span style="font-size:12px;color:var(--c-text-muted)">点击上传图片（自动压缩后上传云端）</span></div><input type="file" class="img-upload-input" accept="image/*" multiple style="display:none"><div class="img-preview-grid"></div></div>`;
+}
+
+/* ===== 图片云存储（v784）=====
+   接口：ImgCloud.enabled() / upload(file)->Promise<url|null> / remove(url)->Promise<bool>
+         / compress(file)->Promise<Blob|null>
+   旧做法把原图 dataURL 直接塞进记录 → 既进 localStorage（5MB 上限，撑爆后连删除都保存不上）
+   又跟着同步把整张 base64 推上云。现改为：压缩（最长边 1200、JPEG 0.8）→ 上传 Supabase
+   Storage bucket「oc-images」→ 记录里只存 https 链接。 */
+const ImgCloud = {
+  BUCKET: 'oc-images',
+  MAX_SIDE: 1200,
+  QUALITY: 0.8,
+  MAX_SRC: 12 * 1024 * 1024,
+  enabled() { return Sync.enabled(); },
+  base() { return Sync.base(); },
+  _headers(ct) {
+    const h = Object.assign({}, Sync.headers());
+    if (ct) h['Content-Type'] = ct;
+    return h;
+  },
+  _newPath() {
+    const id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2, 10));
+    return Sync.gkey() + '/' + id + '.jpg';
+  },
+  compress(file, maxSide, quality) {
+    const MS = maxSide || this.MAX_SIDE, Q = quality || this.QUALITY;
+    return new Promise((resolve) => {
+      try {
+        const fr = new FileReader();
+        fr.onerror = () => resolve(null);
+        fr.onload = () => {
+          const img = new Image();
+          img.onerror = () => resolve(null);
+          img.onload = () => {
+            try {
+              const scale = Math.min(1, MS / Math.max(img.width, img.height));
+              const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
+              const c = document.createElement('canvas'); c.width = w; c.height = h;
+              const ctx = c.getContext('2d');
+              ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+              ctx.drawImage(img, 0, 0, w, h);
+              c.toBlob(b => resolve(b || null), 'image/jpeg', Q);
+            } catch (e) { resolve(null); }
+          };
+          img.src = fr.result;
+        };
+        fr.readAsDataURL(file);
+      } catch (e) { resolve(null); }
+    });
+  },
+  async upload(file) {
+    if (!this.enabled()) return null;
+    if (file.size > this.MAX_SRC) { Toast.warning('图片超过 12MB，已跳过'); return null; }
+    const blob = await this.compress(file);
+    if (!blob) return null;
+    const path = this._newPath();
+    const upUrl = this.base() + '/storage/v1/object/' + this.BUCKET + '/' + path;
+    try {
+      const r = await fetch(upUrl, {
+        method: 'POST',
+        headers: this._headers('image/jpeg'),
+        body: blob
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return this.base() + '/storage/v1/object/public/' + this.BUCKET + '/' + path;
+    } catch (e) {
+      Toast.warning('图片上传云端失败（' + e.message + '），已存本地');
+      return null;
+    }
+  },
+  async remove(url) {
+    if (!this.enabled() || typeof url !== 'string') return false;
+    const key = '/object/public/' + this.BUCKET + '/';
+    const i = url.indexOf(key);
+    if (i < 0) return false;
+    const path = url.slice(i + key.length);
+    if (!path) return false;
+    try {
+      const r = await fetch(this.base() + '/storage/v1/object/' + this.BUCKET + '/' + path, {
+        method: 'DELETE', headers: this._headers(null)
+      });
+      return r.ok;
+    } catch (e) { return false; }
+  }
+};
+// v784：一次性清理历史遗留的本地 base64 图片（用户确认删除 localStorage 里的旧照片），
+// 目的：释放被占满的配额，让「删除照片」「保存记录」重新可用。http(s) 链接是云端图，保留。
+function purgeLocalImageData() {
+  if (DB.get('imgPurged_v784', false)) return 0;
+  const stores = new Set();
+  Object.keys(MODULES || {}).forEach(k => {
+    const m = MODULES[k];
+    if (!m || !m.store || !Array.isArray(m.fields)) return;
+    if (m.fields.some(f => f && f.type === 'image')) stores.add(m.store);
+  });
+  let n = 0;
+  stores.forEach(store => {
+    const list = DB.list(store);
+    if (!list || !list.length) return;
+    let changed = false;
+    list.forEach(r => {
+      if (!r) return;
+      Object.keys(r).forEach(fk => {
+        const v = r[fk];
+        if (!Array.isArray(v) || !v.length) return;
+        if (!v.some(x => typeof x === 'string' && x.indexOf('data:image') === 0)) return;
+        const kept = v.filter(x => !(typeof x === 'string' && x.indexOf('data:image') === 0));
+        r[fk] = kept; r._mt = Date.now(); changed = true; n++;
+      });
+    });
+    if (changed) DB.set(store, list);
+  });
+  DB.set('imgPurged_v784', true);
+  return n;
 }
 
 /* ===== App Logo（v686：固定尺寸图片模块，用户可自行上传） =====
@@ -1650,7 +1812,7 @@ function readFormImages(container) {
 
 /* ===== Combobox Dropdown Helpers ===== */
 function showComboboxDropdown(id) {
-  $$('.combobox-dropdown.show').forEach(d => { if (d.id !== id) d.classList.remove('show'); });
+  $$('.combobox-dropdown.show').forEach(d => { if (d.id !== id) cbClose(d); });
   const dd = document.getElementById(id);
   if (dd) {
     dd.classList.add('show');
@@ -1663,45 +1825,77 @@ function showComboboxDropdown(id) {
       const isSelected = o.dataset.value ? (o.dataset.value === currentVal) : (o.textContent === currentVal);
       o.classList.toggle('selected', isSelected);
     });
-    fitComboboxDropdown(dd);
-    flipComboboxDropdown(dd, wrapper); // v777: 底部空间不足时向上弹，避免撑出滚动条把弹窗布局往左挤
+    layoutComboboxDropdown(dd, wrapper); // v784: portal 到 body 的 fixed 浮层，不再受弹窗滚动区挤压
   }
 }
-// v777: 下拉框空间判定——默认向下弹；若下边放不下而上边放得下，则改向上（dropup）
-// v778: 方案A——所有下拉一律往下弹；底部空间不足时压缩列表高度（内部滚动），
-// 不再上翻、不再撑出父容器滚动条（桌面端贴底弹窗与手机端行为统一）
-function flipComboboxDropdown(dd, wrapper) {
-  dd.classList.remove('dropup');
+/* ===== v784: 下拉浮层定位 =====
+   旧实现（v778 fit-to-space）按「最近可滚动祖先的剩余高度」限高，贴底弹窗里常算出
+   负值 → 下拉只剩 1 条可见。现改为：下拉 portal 到 body + position:fixed，只按视口
+   空间限高，完全不参与弹窗滚动区的高度计算（因此不会再撑出滚动条、不会把弹窗内容
+   往左挤），并保证至少可见 CB_MIN_ROWS 行。 */
+const CB_MIN_ROWS = 4, CB_MAX_H = 200;
+function cbPortal(dd) {
+  if (dd._cbHost) return;
+  dd._cbHost = dd.parentNode; dd._cbNext = dd.nextSibling;
+  document.body.appendChild(dd);
+}
+function cbUnportal(dd) {
+  if (!dd._cbHost) return;
+  const host = dd._cbHost, next = dd._cbNext;
+  dd._cbHost = null; dd._cbNext = null;
+  ['position', 'left', 'top', 'width', 'minWidth', 'maxWidth', 'maxHeight', 'whiteSpace'].forEach(p => { dd.style[p] = ''; });
+  try { if (next && next.parentNode === host) host.insertBefore(dd, next); else host.appendChild(dd); } catch (e) { host.appendChild(dd); }
+}
+function cbClose(dd) { if (!dd) return; dd.classList.remove('show'); cbUnportal(dd); }
+function cbCloseAll() { $$('.combobox-dropdown.show').forEach(cbClose); }
+function cbPlace(dd, wrapper) {
   if (!wrapper) return;
   const opts = $$('.combobox-option', dd).filter(o => o.style.display !== 'none');
-  const oh = (opts[0] || {}).offsetHeight;
-  if (!oh) return;
-  const cssFit = parseInt(dd.style.maxHeight, 10) || (opts.length * oh); // fitComboboxDropdown 先按 CSS max-height 算出的高度
-  const wr = wrapper.getBoundingClientRect();
-  // 找最近的可滚动祖先（modal-body 等），下拉不能超出它，否则会撑出滚动条
-  let limitBottom = window.innerHeight - 8;
-  let host = wrapper.parentElement;
-  while (host && host !== document.body) {
-    if (host.scrollHeight > host.clientHeight + 1) { limitBottom = Math.min(limitBottom, host.getBoundingClientRect().bottom - 4); break; }
-    host = host.parentElement;
-  }
-  const avail = limitBottom - wr.bottom - 8;
-  const fit = Math.max(1, Math.min(opts.length, Math.round(cssFit / oh), Math.floor(avail / oh)));
-  dd.style.maxHeight = (fit * oh) + 'px';
-}
-// v778：把下拉 max-height 归一化为选项高的整数倍，保证最后一项完整显示不被裁半
-function fitComboboxDropdown(dd) {
-  const opts = $$('.combobox-option', dd).filter(o => o.style.display !== 'none');
-  if (!opts.length) return;
-  const oh = opts[0].offsetHeight;
-  if (!oh) return;
-  const maxH = parseFloat(getComputedStyle(dd).maxHeight) || 200;
+  const oh = (opts[0] || {}).offsetHeight || 32;
+  const rect = wrapper.getBoundingClientRect();
+  const spaceBelow = window.innerHeight - rect.bottom - 8;
+  const need = opts.length * oh;
+  let maxH = Math.min(need, CB_MAX_H, spaceBelow);
+  if (maxH < oh * 2) maxH = Math.min(need, Math.max(spaceBelow, oh * 2)); // 兜底：至少两行
+  dd.style.position = 'fixed';
+  dd.style.top = (rect.bottom + 2) + 'px';
+  dd.style.left = rect.left + 'px';
   dd.style.maxHeight = Math.max(oh, Math.floor(maxH / oh) * oh) + 'px';
+  if (wrapper.closest('.dc-extra-row,.dc-product-row,.dc-mod-row')) {
+    dd.style.width = 'max-content';
+    dd.style.minWidth = Math.max(rect.width, 140) + 'px';
+    dd.style.maxWidth = '90vw';
+    dd.style.whiteSpace = 'nowrap';
+  } else {
+    dd.style.width = Math.max(rect.width, 140) + 'px';
+  }
 }
+function layoutComboboxDropdown(dd, wrapper) {
+  if (!dd || !wrapper) return;
+  cbPortal(dd);
+  dd._cbWrapper = wrapper;
+  const opts = $$('.combobox-option', dd).filter(o => o.style.display !== 'none');
+  const oh = (opts[0] || {}).offsetHeight || 32;
+  const minRows = Math.min(opts.length || 1, CB_MIN_ROWS);
+  // 底部空间不足时先把输入框滚到视口中部，保证下拉有足够空间展开（而不是被压成一条）
+  if (window.innerHeight - wrapper.getBoundingClientRect().bottom < minRows * oh + 16) {
+    try { wrapper.scrollIntoView({ block: 'center' }); } catch (e) {}
+  }
+  cbPlace(dd, wrapper);
+}
+// 滚动/窗口变化时跟随重定位（portal 后不跟随就会脱离输入框）
+function cbSyncPositions() {
+  $$('.combobox-dropdown.show').forEach(dd => {
+    const w = dd._cbWrapper;
+    if (w && document.body.contains(w)) cbPlace(dd, w); else cbClose(dd);
+  });
+}
+window.addEventListener('scroll', cbSyncPositions, true);
+window.addEventListener('resize', cbSyncPositions);
 function toggleComboboxDropdown(id) {
   const dd = document.getElementById(id);
   if (!dd) return;
-  if (dd.classList.contains('show')) { dd.classList.remove('show'); }
+  if (dd.classList.contains('show')) { cbClose(dd); }
   else { showComboboxDropdown(id); }
 }
 function filterComboboxDropdown(id, val) {
@@ -1711,7 +1905,7 @@ function filterComboboxDropdown(id, val) {
   $$('.combobox-option', dd).forEach(o => {
     o.style.display = (!v || o.textContent.toLowerCase().includes(v)) ? '' : 'none';
   });
-  fitComboboxDropdown(dd);
+  layoutComboboxDropdown(dd, dd._cbWrapper || (dd.closest('.combobox-wrapper')));
 }
 function selectComboboxOption(id, el) {
   const wrapper = el.closest('.combobox-wrapper');
@@ -1727,7 +1921,7 @@ function selectComboboxOption(id, el) {
     hidden.value = el.dataset.value || '';
     hidden.dispatchEvent(new Event('change', { bubbles: true }));
   }
-  document.getElementById(id).classList.remove('show');
+  cbClose(document.getElementById(id));
   // v777: 键盘保持——选项选中后焦点仍留在原输入框，键盘不收起
   // v778: 仅在键盘确实弹出时才回焦，键盘已收起则不再唤起
   try { if (_kbOpen && input && document.activeElement !== input) input.focus({ preventScroll: true }); } catch (e) {}
@@ -1758,9 +1952,7 @@ document.addEventListener('mousedown', e => {
   e.preventDefault();
 }, true);
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('.combobox-wrapper')) {
-    $$('.combobox-dropdown.show').forEach(d => d.classList.remove('show'));
-  }
+  if (!e.target.closest('.combobox-wrapper')) { cbCloseAll(); }
 });
 
 /* ===== Custom Multiselect Option Adder ===== */
@@ -4207,6 +4399,7 @@ function saveForm(pageKey, mod, id) {
     data.charB = pureOcName(data.charB);
   }
   const imgs = readFormImages($('#modalBody'));
+  const _prevImgs = (id && DB.getById(mod.store, id) && Array.isArray(DB.getById(mod.store, id).images)) ? DB.getById(mod.store, id).images.slice() : [];
   if (imgs.length) data.images = imgs;
   else if (id) delete data.images;
   if (pageKey === 'design-commission') {
@@ -4225,6 +4418,10 @@ function saveForm(pageKey, mod, id) {
   let saved;
   if (id) { DB.update(mod.store, id, data); saved = DB.getById(mod.store, id); Toast.success('记录已更新'); }
   else { saved = DB.add(mod.store, data); Toast.success('记录已添加'); }
+  // v784: 记录保存后，把本次被移除的云端图片从 bucket 删掉（不阻塞保存流程）
+  if (id && _prevImgs && _prevImgs.length) {
+    _prevImgs.forEach(u => { if (imgs.indexOf(u) < 0) ImgCloud.remove(u); });
+  }
   if (pageKey === 'oc-relations' && saved) syncOcRelationToChars(saved);
   if (pageKey === 'oc-profiles' && saved) syncProfileSocialToRelations(saved.name, saved);
   closeModal();
@@ -11531,6 +11728,8 @@ function init() {
   applyTheme(s.theme);
   if (DB.get('ui_sidebar_collapsed', false)) $('#sidebar').classList.add('collapsed');
   migrateData();
+  // v784: 先清理历史本地图片释放 localStorage 配额（配额满时删除/保存都会静默失败）
+  try { const _purged = purgeLocalImageData(); if (_purged > 0) Toast.info('已清理 ' + _purged + ' 张本地缓存图片，存储空间已释放'); } catch (e) {}
   normalizeOcRelationsAlias();
   normalizeOcRelationSocial();
   normalizeOcProfileSocial();
