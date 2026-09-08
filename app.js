@@ -10840,7 +10840,8 @@ function CD_PUBLIC_BASE() {
     const o = window.location.origin || '';
     if (/^https?:\/\//.test(o) && o.indexOf('appassets.androidplatform.net') === -1) return o.replace(/\/+$/, '');
   } catch (e) {}
-  return 'https://0b9f822813e042afaed3792e9df14ff8.app.workbuddy.link';
+  // v777b: wb.link 域名绑定平台侧失效期间，APK 兜底改用沙盒直链；wb.link 恢复后换回
+  return 'https://3000-0b9f822813e042afaed3792e9df14ff8.e2b.sh7.sandbox.cloudstudio.club';
 }
 function buildCdClientUrl(catKey, preset) {
   let link = CD_PUBLIC_BASE() + '/order-form.html?cd_client=1&standalone=1&cat=' + encodeURIComponent(catKey);
