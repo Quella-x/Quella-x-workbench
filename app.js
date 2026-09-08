@@ -41,7 +41,7 @@ const DB = {
 
 /* ===== Cloud Sync (Supabase REST) ===== */
 /* 同步集合：这些 store 会参与云端同步；其余（ui_state、customOpts_*、syncCfg 等）仅本地 */
-const SYNC_STORES = ['publishRecords','groupbuys','factories','samples','calcTemplates','calcRecords','inspirations','commissions','authorizations','priceList','ocCharacters','ocRelations','ocStories','ocTimeline','ocCommissions','appSettings','customCategories','lifeCheckins','lifeRecords','lifeCheckinDefs','commissionDetails'];
+const SYNC_STORES = ['publishRecords','groupbuys','factories','samples','calcTemplates','calcRecords','inspirations','commissions','authorizations','priceList','ocCharacters','ocRelations','ocStories','ocTimeline','ocCommissions','appSettings','customCategories','lifeCheckins','lifeRecords','lifeCheckinDefs','commissionDetails','textTemplates'];
 
 function hashStr(str) {
   let h = 0;
@@ -1502,7 +1502,9 @@ function buildDynamicListHTML(field, data, moduleKey) {
     html += `</div>`;
   });
   html += `</div>`;
-  html += `<button type="button" class="btn btn-outline btn-sm" onclick="addDynamicRow('${field.key}')">+ 添加</button>`;
+  // v777：开团记录制品列表/售后记录、接稿排期制品列表/加价项目/修改项目的「+ 添加」按钮改蓝色主按钮（合作记录等其他列表保持原样）
+  const _blueAddKeys = ['products', 'afterSales', 'extraItems', 'modifications'];
+  html += `<button type="button" class="btn ${_blueAddKeys.indexOf(field.key) > -1 ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="addDynamicRow('${field.key}')">+ 添加</button>`;
   html += `</div></div>`;
   return html;
 }
@@ -1657,7 +1659,24 @@ function showComboboxDropdown(id) {
       o.classList.toggle('selected', isSelected);
     });
     fitComboboxDropdown(dd);
+    flipComboboxDropdown(dd, wrapper); // v777: 底部空间不足时向上弹，避免撑出滚动条把弹窗布局往左挤
   }
+}
+// v777: 下拉框空间判定——默认向下弹；若下边放不下而上边放得下，则改向上（dropup）
+function flipComboboxDropdown(dd, wrapper) {
+  dd.classList.remove('dropup');
+  if (!wrapper) return;
+  const ddH = dd.offsetHeight || 0;
+  if (!ddH) return;
+  const wr = wrapper.getBoundingClientRect();
+  // 找最近的可滚动祖先（modal-body 等），下拉不能超出它，否则会撑出滚动条
+  let limitBottom = window.innerHeight - 8;
+  let host = wrapper.parentElement;
+  while (host && host !== document.body) {
+    if (host.scrollHeight > host.clientHeight + 1) { limitBottom = Math.min(limitBottom, host.getBoundingClientRect().bottom - 4); break; }
+    host = host.parentElement;
+  }
+  if (wr.bottom + ddH + 8 > limitBottom && wr.top - ddH - 8 > 8) dd.classList.add('dropup');
 }
 // v778：把下拉 max-height 归一化为选项高的整数倍，保证最后一项完整显示不被裁半
 function fitComboboxDropdown(dd) {
@@ -1698,7 +1717,19 @@ function selectComboboxOption(id, el) {
     hidden.dispatchEvent(new Event('change', { bubbles: true }));
   }
   document.getElementById(id).classList.remove('show');
-}
+  // v777: 键盘保持——选项选中后焦点仍留在原输入框，键盘不收起
+  try { if (input && document.activeElement !== input) input.focus({ preventScroll: true }); } catch (e) {}
+};
+// v777: 键盘保持——弹窗内点击非输入元素（下拉选项/按钮/标签等）不抢焦点，键盘保持弹出；
+// 仅当焦点本来就在本弹窗的输入框/文本域上时生效。收起键盘仍由系统返回键/弹窗关闭/提交完成。
+document.addEventListener('mousedown', e => {
+  const zone = e.target.closest && e.target.closest('.modal, .tpl-sub-overlay, .txt-tpl-picker-overlay');
+  if (!zone) return;
+  const ae = document.activeElement;
+  if (!ae || !zone.contains(ae) || !/^(INPUT|TEXTAREA)$/.test(ae.tagName)) return;
+  if (e.target.closest('input:not([readonly]), textarea')) return; // 换输入框：焦点正常转移
+  e.preventDefault();
+}, true);
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.combobox-wrapper')) {
     $$('.combobox-dropdown.show').forEach(d => d.classList.remove('show'));
@@ -2912,7 +2943,8 @@ const CAL_VIEW_STYLE_MODULES = COMM_LIST_STYLE_MODULES.filter(k => k !== 'design
 /* ===== Router ===== */
 function navigate(page) {
   currentPage = page;
-  DB.set('ui_state', { sidebarCollapsed: $('#sidebar').classList.contains('collapsed'), lastPage: page });
+  // v777: 记录退出时的页面与日期——同一天再开恢复到上次页面，跨天回首页（与是否清后台无关）
+  DB.set('ui_state', { sidebarCollapsed: $('#sidebar').classList.contains('collapsed'), lastPage: page, lastDate: new Date().toDateString() });
   $('#pageTitle').textContent = PAGE_TITLES[page] || page;
   renderSidebar();
   $('#sidebar').classList.remove('show');
@@ -6823,10 +6855,10 @@ function renderPriceList() {
     if (!groups[cat]) groups[cat] = [];
     groups[cat].push(r);
   });
-  // v29: 类目内置 sort 字段，支持手动排序
+  // v29: 类目内置 sort 字段，支持手动排序；v777: 分类内默认按价格低→高排，同价再按手动 sort 稳定次序
   Object.keys(groups).forEach(cat => {
     groups[cat].forEach((r, i) => { if (typeof r.sort !== 'number') r.sort = i; });
-    groups[cat].sort((a, b) => (a.sort) - (b.sort));
+    groups[cat].sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0) || (a.sort - b.sort));
   });
   DB.save('priceList', records);
   const sortedCats = Object.keys(groups).sort((a, b) => {
@@ -10786,7 +10818,7 @@ function runCdJsonImport() {
 function openCdClientForm() {
   const defKey = COMM_DETAIL_CATS[0].key;
   let html = '<div class="cd-import-modal">';
-  html += '<div class="cd-import-tip">选择分类后自动生成对应的约稿单填写链接，可直接复制发给单主，或点「直接填写」在本页打开。链接长期有效，单主提交的数据将归入对应分类的接稿详情。</div>';
+  html += '<div class="cd-import-tip">选择分类后自动生成约稿单公网填写链接，微信、QQ、浏览器均可直接打开；单主只能看到填写表单本身，改网址也看不到您的工作台。链接长期有效，单主提交的数据将自动归入对应分类的接稿详情。</div>';
   html += `<div style="margin-top:10px"><label class="form-label">选择分类</label>${cdCatComboboxHTML('cdClientCat', defKey, 'cdClientCatChange()')}</div>`;
   html += `<div id="cdClientLinkWrap" style="margin-top:8px">${cdClientLinkInner(defKey)}</div>`;
   html += '</div>';
@@ -10800,11 +10832,23 @@ function cdShowClientLinkInline(catKey) {
     wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 }
+// v777: 约稿单统一用公网独立填写页（order-form.html）——单主改地址栏也只能看到表单本身，看不到工作台；
+// 链接内携带 Supabase 地址 / anon key / 分组键，单主提交的数据直接进云端，接稿详情自动拉取汇入。
+function CD_PUBLIC_BASE() { return 'https://0b9f822813e042afaed3792e9df14ff8.app.workbuddy.link'; }
+function buildCdClientUrl(catKey, preset) {
+  let link = CD_PUBLIC_BASE() + '/order-form.html?cd_client=1&standalone=1&cat=' + encodeURIComponent(catKey);
+  if (Sync.enabled()) {
+    link += '&su=' + encodeURIComponent(Sync.cfg.url) + '&sk=' + encodeURIComponent(Sync.cfg.anonKey) + '&g=' + encodeURIComponent(Sync.gkey());
+  }
+  if (preset) { try { link += '&preset=' + encodeURIComponent(JSON.stringify(preset)); } catch (e) {} }
+  link += '&_t=' + Date.now();
+  return link;
+}
 function cdClientLinkInner(catKey) {
   const mod = MODULES[catKey];
-  const base = (window.location.origin || '') + (window.location.pathname || '/index.html');
-  const link = base.replace(/\/$/, '') + '?cd_client=1&cat=' + encodeURIComponent(catKey) + '&standalone=1&_t=' + Date.now();
+  const link = buildCdClientUrl(catKey);
   let h = `<div class="cd-link-box"><textarea class="form-input" id="cdClientLink" readonly>${esc(link)}</textarea></div>`;
+  if (!Sync.enabled()) h += '<div class="cd-import-tip" style="color:var(--c-orange);margin-top:8px">尚未配置同步：单主提交的数据暂时无法自动传回，请先到「设置-数据管理」配置同步后再发链接。</div>';
   h += `<div class="cd-import-actions"><button class="btn btn-primary" onclick="copyCdClientLink()">复制链接</button><button class="btn btn-primary" onclick="cdOpenClientFormFromLink('${catKey}')">直接填写</button></div>`;
   return h;
 }
@@ -10820,11 +10864,10 @@ function runCdClientForm() {
 // v757：可选 preset（约稿模板的固定值）编入链接，单主打开即看到预填内容
 function cdShowClientLink(catKey, preset) {
   const mod = MODULES[catKey];
-  const base = (window.location.origin || '') + (window.location.pathname || '/index.html');
-  let link = base.replace(/\/$/, '') + '?cd_client=1&cat=' + encodeURIComponent(catKey) + '&standalone=1&_t=' + Date.now();
-  if (preset) { try { link += '&preset=' + encodeURIComponent(JSON.stringify(preset)); } catch (e) {} }
+  const link = buildCdClientUrl(catKey, preset);
   let html = '<div class="cd-import-modal">';
   html += `<div class="cd-link-box"><textarea class="form-input" id="cdClientLink" readonly>${esc(link)}</textarea></div>`;
+  if (!Sync.enabled()) html += '<div class="cd-import-tip" style="color:var(--c-orange);margin-top:8px">尚未配置同步：单主提交的数据暂时无法自动传回，请先到「设置-数据管理」配置同步后再发链接。</div>';
   html += `<div class="cd-import-actions"><button class="btn btn-outline" onclick="closeModal()">关闭</button><button class="btn btn-primary" onclick="copyCdClientLink()">复制链接</button></div>`;
   html += '</div>';
   openModal('单主填写链接', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'link-narrow');
@@ -11131,6 +11174,13 @@ function addTextTemplateCat() {
   document.body.appendChild(ov);
 }
 function closeTplNewCatSub() { const ov = $('#tplNewCatSubOverlay'); if (ov) ov.remove(); }
+// v777: 新建/新增分类后同步刷新「新增文案」的分类下拉框，无需关弹窗重开
+function refreshTextTplCatCombobox() {
+  const dd = $('#txtTplCatCb-dropdown');
+  if (!dd) return;
+  const cats = txtTplCatsSorted(DB.get('textTemplateCats', []));
+  dd.innerHTML = cats.map(c => `<div class="combobox-option" data-value="${esc(c)}" onclick="selectComboboxOption('txtTplCatCb-dropdown',this)">${esc(c)}</div>`).join('');
+}
 function submitTplNewCatSub() {
   const n = (($('#newCatInput') || {}).value || '').trim();
   if (!n) { Toast.warning('请输入分类名称'); return; }
@@ -11145,7 +11195,7 @@ function submitTplNewCatSub() {
     if (per > 0) _txtTplCatPage = Math.floor(all.indexOf(n) / per);
   }
   closeTplNewCatSub();
-  renderTxtTplCats(); renderTxtTplList();
+  renderTxtTplCats(); renderTxtTplList(); refreshTextTplCatCombobox();
   Toast.success('已创建分类「' + n + '」');
 }
 async function delTextTemplateCat(cat) {
@@ -11215,7 +11265,7 @@ function addTextTemplate() {
   DB.add('textTemplates', { text: v, cat });
   _txtTplCat = cat;
   $('#txtTplInput').value = '';
-  renderTxtTplCats(); renderTxtTplList();
+  renderTxtTplCats(); renderTxtTplList(); refreshTextTplCatCombobox();
   Toast.success('已添加文案');
 }
 function delTextTemplate(id) {
@@ -11298,16 +11348,23 @@ function cdCheckClientFormFromUrl() {
     let preset = null;
     const p = params.get('preset');
     if (p) { try { preset = JSON.parse(decodeURIComponent(p)); } catch (e) { preset = null; } }
-    history.replaceState({}, '', window.location.pathname || window.location.href.split('?')[0]);
+    // v777: 独立页提交/数据联动所需配置（提交前先捕获，replaceState 之后 search 就没了）
+    window.__cdClientCfg = { su: params.get('su') || '', sk: params.get('sk') || '', g: params.get('g') || '' };
+    // order-form.html 独立页保留参数（单主刷新不丢表单）；工作台内打开时清理地址栏
+    if (!/order-form\.html$/.test(window.location.pathname)) {
+      history.replaceState({}, '', window.location.pathname || window.location.href.split('?')[0]);
+    }
     // 单主专用：打开干净独立填写页（不暴露用户工作台），模板预设值带入预填
     if (params.get('standalone') === '1') { cdRenderClientStandalone(catKey, preset); return; }
     cdOpenClientFormFromLink(catKey, preset ? { preset } : undefined);
   } catch (e) {}
 }
 // 单主专用独立填写页：仅渲染表单，隐藏侧边栏/顶栏，提交后显示致谢
-function cdRenderClientStandalone(catKey, preset) {
+// v777: 渲染前先从云端预取价目表/文案库（带 5 秒超时兜底），保证表单选项联动与文案库可用
+async function cdRenderClientStandalone(catKey, preset) {
   const mod = MODULES[catKey];
   if (!mod) return;
+  try { await Promise.race([cdClientSeedCloudData(), new Promise(res => setTimeout(res, 5000))]); } catch (e) {}
   document.documentElement.classList.add('cd-standalone');
   document.body.classList.add('cd-standalone');
   const data = { category: mod.category };
@@ -11325,6 +11382,20 @@ function cdRenderClientStandalone(catKey, preset) {
   html += '</div>';
   body.innerHTML = html;
   setTimeout(() => { setupFormInteractions(catKey); }, 50);
+}
+// v777: 独立填写页从云端预取价目表/文案库，注入本地 DB 供表单选项与文案库弹窗使用
+async function cdClientSeedCloudData() {
+  const cfg = window.__cdClientCfg || {};
+  if (!cfg.su || !cfg.sk || !cfg.g) return;
+  const H = { 'apikey': cfg.sk, 'Authorization': 'Bearer ' + cfg.sk };
+  const base = cfg.su.replace(/\/+$/, '');
+  const r = await fetch(base + '/rest/v1/sync_store?group_key=eq.' + encodeURIComponent(cfg.g) + '&store=in.(priceList,textTemplates)&select=store,data', { headers: H });
+  if (!r.ok) return;
+  const rows = await r.json();
+  rows.forEach(row => {
+    if (row.store === 'priceList' && Array.isArray(row.data)) DB.set('priceList', row.data);
+    if (row.store === 'textTemplates' && Array.isArray(row.data)) DB.set('textTemplates', row.data);
+  });
 }
 function buildCdClientForm(pageKey, data) {
   const mod = MODULES[pageKey];
@@ -11351,17 +11422,50 @@ function saveCdClientForm(pageKey, standalone) {
   }
   data.category = mod.category;
   cdSyncPlatformNick(data);
+  if (standalone) { cdSubmitClientOrder(data); return; } // v777: 独立页提交直上云端
   DB.add('commissionDetails', data);
-  if (standalone) {
-    const body = $('#mainBody');
-    body.innerHTML = `<div class="cd-client-done"><div class="cd-client-done-icon">${lucide('circle-check-big',32)}</div><div class="cd-client-done-title">提交成功，感谢填写！</div><div class="cd-client-done-sub">您可关闭本页面，画手将收到您的信息。</div></div>`;
-    return;
-  }
   Toast.success('单主填写内容已保存到本地，请编辑补填「单主」等内部信息');
   closeModal();
   const ps = pageState['design-commission-detail'];
   ps.tab = pageKey; ps.cdPage = 1;
   renderCommissionDetailPage();
+}
+// v777: 单主独立页提交——直接写入云端 sync_store.commissionDetails（记录级合并模型），接稿详情下次拉取即汇入
+async function cdSubmitClientOrder(data) {
+  const cfg = window.__cdClientCfg || {};
+  const showErr = (msg) => {
+    const body = $('#mainBody');
+    if (body) {
+      body.innerHTML = `<div class="cd-client-done cd-client-fail"><div class="cd-client-done-title">提交失败</div><div class="cd-client-done-sub">${esc(msg)}</div><div class="cd-client-submit" style="justify-content:center"><button class="btn btn-primary" onclick="history.back()">返回重试</button></div></div>`;
+      window.scrollTo(0, 0);
+    }
+  };
+  if (!cfg.su || !cfg.sk || !cfg.g) { showErr('链接缺少数据配置，请联系卖家重新发送链接。'); return; }
+  const H = { 'Content-Type': 'application/json', 'apikey': cfg.sk, 'Authorization': 'Bearer ' + cfg.sk };
+  const now = Date.now();
+  const rec = Object.assign({ id: uid(), _ct: now, _mt: now }, data);
+  try {
+    const getUrl = cfg.su.replace(/\/+$/, '') + '/rest/v1/sync_store?group_key=eq.' + encodeURIComponent(cfg.g) + '&store=eq.commissionDetails&select=store,data';
+    const r = await fetch(getUrl, { headers: { 'apikey': cfg.sk, 'Authorization': 'Bearer ' + cfg.sk } });
+    if (!r.ok) throw new Error('读取失败 HTTP ' + r.status);
+    const rows = await r.json();
+    const cloud = (rows[0] && Array.isArray(rows[0].data)) ? rows[0].data : [];
+    const merged = cloud.concat([rec]);
+    const pr = await fetch(cfg.su.replace(/\/+$/, '') + '/rest/v1/sync_store', {
+      method: 'POST',
+      headers: Object.assign(H, { 'Prefer': 'resolution=merge-duplicates' }),
+      body: JSON.stringify({ group_key: cfg.g, store: 'commissionDetails', data: merged, updated_at: new Date().toISOString() })
+    });
+    if (!pr.ok) throw new Error('提交失败 HTTP ' + pr.status);
+    const body = $('#mainBody');
+    if (body) {
+      // v777: 提交成功页——置顶显示、浅蓝底色填满、文案按需求更新
+      body.innerHTML = `<div class="cd-client-done"><div class="cd-client-done-icon">${lucide('circle-check-big',36)}</div><div class="cd-client-done-title">提交成功，需求已传送至美工</div><div class="cd-client-done-sub">您可关闭本页面，等待美工核对后联系。</div></div>`;
+      window.scrollTo(0, 0);
+    }
+  } catch (e) {
+    showErr('网络异常：' + e.message + '。请检查网络后重新提交。');
+  }
 }
 
 /* ===== Init ===== */
@@ -11382,8 +11486,10 @@ function init() {
     cdCheckClientFormFromUrl();
     return;
   }
+  // v777: 同一天打开恢复上次退出页面，跨天回首页（0 点刷新）
   const lastState = DB.get('ui_state', {});
-  navigate(lastState.lastPage || 'home');
+  const sameDay = lastState.lastDate === new Date().toDateString();
+  navigate(sameDay ? (lastState.lastPage || 'home') : 'home');
   initSwipeBack();
   Sync.startAuto();
 }
