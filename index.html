@@ -189,6 +189,11 @@ ul,li{list-style:none}
 .sync-label{display:block;font-size:12px;color:var(--c-text-light)}
 .sync-field{width:100%;padding:8px 10px;margin-top:3px;border:1px solid var(--c-border);border-radius:var(--radius-sm);font-size:13px;background:var(--c-card)}
 .sync-field:focus{border-color:var(--c-primary-light);outline:none}
+.sync-pw-wrap{position:relative;display:block;margin-top:3px}
+.sync-pw-wrap .sync-field{margin-top:0;padding-right:38px}
+.settings-section .sync-pw-wrap .sync-field,.modal:not(:has(.cd-form)) .sync-pw-wrap .sync-field{padding-right:38px}
+.sync-eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--c-text-light);padding:2px;display:flex;align-items:center}
+.sync-eye:hover{color:var(--c-primary)}
 .main-header .mobile-toggle{
   display:none;width:36px;height:36px;border-radius:6px;
   background:var(--c-primary-bg);color:var(--c-primary);
@@ -3295,7 +3300,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=773"></script>
+  <script src="app.js?v=774"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

@@ -7212,24 +7212,37 @@ function addOptionItem(fieldKey) {
   else container.appendChild(item);
 }
 
+function toggleSyncPw(inputId, btn) { // v774: 密码框明文/密文切换
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.innerHTML = lucide(show ? 'eye-off' : 'eye', 16);
+  btn.title = show ? '隐藏' : '显示';
+}
+
 function renderDataSettings(html) {
   html += '<div class="settings-section active">';
   // ---- 云端同步 ----
   html += `<h4 style="font-size:14px;margin:4px 0 8px;color:var(--c-primary)">${lucide('globe',16)} 云端同步（Supabase）</h4>`;
-  html += '<p style="font-size:13px;color:var(--c-text-light);margin-bottom:12px">配置后数据自动同步到云端，手机与电脑实时互通。两端请填写<strong>相同的同步码</strong>。未配置时 App 完全按本地模式运行。</p>';
+  html += '<p style="font-size:13px;color:var(--c-text-light);margin-bottom:12px">配置后数据自动同步到云端：改动约 1 秒内自动上传，另一端约半分钟内自动更新。两端请填写<strong>相同的同步码</strong>。未配置时完全按本地模式运行。</p>';
   const sc = DB.get('syncCfg', {}) || {};
+  const pwField = (id, val, ph) =>
+    '<span class="sync-pw-wrap"><input type="password" class="sync-field" id="' + id + '" value="' + esc(val || '') + '" placeholder="' + ph + '"><button type="button" class="sync-eye" title="显示/隐藏" onclick="toggleSyncPw(\'' + id + '\', this)">' + lucide('eye',16) + '</button></span>';
   html += '<div style="display:flex;flex-direction:column;gap:10px;max-width:440px">';
   html += '<label class="sync-label">Supabase 项目 URL<input type="text" class="sync-field" id="sync_url" value="' + esc(sc.url || '') + '" placeholder="https://xxxx.supabase.co"></label>';
-  html += '<label class="sync-label">Anon Key（公开键，非 secret）<input type="password" class="sync-field" id="sync_key" value="' + esc(sc.anonKey || '') + '" placeholder="eyJ... 公开 anon key"></label>';
-  html += '<label class="sync-label">同步码（两端一致）<input type="password" class="sync-field" id="sync_code" value="' + esc(sc.syncCode || '') + '" placeholder="自定义，例如 xiaoxiao2026"></label>';
+  html += '<div class="sync-label">Anon Key（公开键，非 secret）' + pwField('sync_key', sc.anonKey, 'sb_publishable_... 开头的公开键') + '</div>';
+  html += '<div class="sync-label">同步码（两端一致）' + pwField('sync_code', sc.syncCode, '自定义，例如 xiaoxiao2026') + '</div>';
   html += '</div>';
   html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">';
   html += `<button class="btn btn-outline" onclick="syncTest()">${lucide('plug',16)} 连接测试</button>`;
   html += `<button class="btn btn-primary" onclick="syncNow()">${lucide('refresh-cw',16)} 立即同步</button>`;
   html += '</div>';
-  const st = Sync.enabled() ? ('当前状态：' + (Sync.status === 'connected' ? lucide('circle-check',14) + ' 已连接' : Sync.status === 'syncing' ? lucide('refresh-cw',14) + ' 同步中' : lucide('circle-x',14) + ' 未连接')) : '当前：未配置';
+  const st = Sync.enabled()
+    ? ('当前状态：' + (Sync.status === 'connected' ? lucide('circle-check',14) + ' 已连接' : Sync.status === 'syncing' ? lucide('refresh-cw',14) + ' 同步中' : lucide('circle-x',14) + ' 未连接') + (Sync.lastSync ? '（上次同步：' + Sync.fmtAgo(Sync.lastSync) + '）' : ''))
+    : '当前：未配置';
   html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:10px">' + st + '</p>';
-  html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:6px;line-height:1.6">需在 Supabase 新建表 <code>sync_store</code>（字段：group_key text、store text、data jsonb、updated_at timestamptz，主键 group_key+store），并开启 anon 访问策略（见同步说明）。</p>';
+  html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:6px;line-height:1.6">换新 Supabase 项目时：建表 <code>sync_store</code>（字段：group_key text、store text、data jsonb、updated_at timestamptz，主键 group_key+store），并开启 anon 访问策略。</p>';
   // ---- 数据备份与导入 ----
   html += '<h4 style="font-size:14px;margin:24px 0 16px;color:var(--c-primary)">数据备份与导入</h4>';
   html += '<p style="font-size:13px;color:var(--c-text-light);margin-bottom:16px">导出所有数据为JSON文件，或从备份文件恢复数据。</p>';
