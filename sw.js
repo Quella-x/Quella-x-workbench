@@ -1,5 +1,5 @@
 /* Service Worker — 小筱工作台 PWA 离线壳 */
-const CACHE = 'xiao-workbench-v774';
+const CACHE = 'xiao-workbench-v775';
 const ASSETS = [
   './',
   'index.html',
@@ -31,6 +31,8 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
+  // v775: 跳过非 http(s) 请求（chrome-extension/blob/data 等），避免 Cache.put 报 TypeError
+  if (!/^https?:$/.test(url.protocol)) return;
 
   // 跨域资源（如未来可能的 CDN）：尽力缓存
   if (url.origin !== self.location.origin) {

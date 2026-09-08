@@ -192,7 +192,7 @@ ul,li{list-style:none}
 .sync-pw-wrap{position:relative;display:block;margin-top:3px}
 .sync-pw-wrap .sync-field{margin-top:0;padding-right:38px}
 .settings-section .sync-pw-wrap .sync-field,.modal:not(:has(.cd-form)) .sync-pw-wrap .sync-field{padding-right:38px}
-.sync-eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--c-text-light);padding:2px;display:flex;align-items:center}
+.sync-eye{position:absolute;right:8px;top:calc(50% + 2px);transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--c-text-light);padding:2px;display:flex;align-items:center}
 .sync-eye:hover{color:var(--c-primary)}
 .main-header .mobile-toggle{
   display:none;width:36px;height:36px;border-radius:6px;
@@ -3300,7 +3300,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=774"></script>
+  <script src="app.js?v=775"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
