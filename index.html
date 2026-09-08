@@ -2776,6 +2776,13 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-newtpl-tip{font-size:12px;color:var(--c-text-muted);margin:4px 0 2px;line-height:1.5}
 .tpl-newtpl-tip-box{font-size:12px;color:var(--c-text-muted);line-height:1.6;background:var(--c-primary-bg);padding:10px 12px;border-radius:8px;margin:0 0 10px;width:auto;box-sizing:border-box}
 /* v757：文本模板插入弹窗（独立浮层，不替换约稿单表单） */
+/* v783：新建分类叠加弹窗——浮在文案模板库 modal 之上，取消只关自己、库原地保留 */
+.tpl-sub-overlay{position:fixed;inset:0;background:rgba(20,30,45,.4);display:flex;align-items:center;justify-content:center;z-index:1200;padding:16px}
+.tpl-sub-card{background:#fff;border-radius:16px;width:100%;max-width:400px;padding:16px 18px 14px;box-shadow:var(--shadow-lg)}
+.tpl-sub-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+.tpl-sub-title{font-size:16px;font-weight:600;color:var(--c-text)}
+.tpl-sub-close{background:none;border:none;font-size:18px;line-height:1;color:#8a99a8;cursor:pointer;padding:4px}
+.tpl-sub-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
 .txt-tpl-picker-overlay{position:fixed;inset:0;background:rgba(20,30,45,.4);display:flex;align-items:center;justify-content:center;z-index:3000;padding:16px}
 .txt-tpl-picker-card{background:#fff;border-radius:16px;width:100%;max-width:520px;height:515px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-lg)}
 @media (max-width:640px){
@@ -3288,7 +3295,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=771"></script>
+  <script src="app.js?v=772"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

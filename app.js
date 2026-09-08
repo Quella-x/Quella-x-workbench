@@ -290,6 +290,9 @@ function closeModal() {
 }
 // 系统返回手势（Android 侧滑返回 / 浏览器后退）触发 popstate -> 关闭当前模态并回到上一级
 window.addEventListener('popstate', function (e) {
+  // v783：叠加小弹窗（新建分类）开着时，返回手势先只关它，库弹窗原地保留
+  const sub = document.getElementById('tplNewCatSubOverlay');
+  if (sub) { sub.remove(); return; }
   const ov = $('#modalOverlay');
   if (e.state && e.state.wbModal && ov && ov.classList.contains('show')) {
     ov._pushed = false;
@@ -10978,37 +10981,57 @@ function openTextTemplateLib() {
   renderTxtTplList();
 }
 function delTextTemplateCatCurrent() { delTextTemplateCat(_txtTplCat); }
+// v783：文本模板分类列表——「通用」固定存在且排第一，其余保持原有顺序
+function txtTplCatsSorted(cats) {
+  return ['通用', ...cats.filter(c => c !== '通用')];
+}
 // 分类 tab 渲染（含删除 ×）
 function renderTxtTplCats() {
   const tabs = $('#txtTplCats');
   if (!tabs) return;
-  const cats = DB.get('textTemplateCats', []);
-  if (!cats.length) { tabs.innerHTML = '<span class="tpl-empty" style="padding:0">暂无分类</span>'; }
-  else {
-    if (!cats.includes(_txtTplCat)) _txtTplCat = cats[0];
-    const r = tplCatsPagerHTML(cats, _txtTplCat, _txtTplCatPage, 'setTxtTplCat', 'navTxtTplCatPage', tplComputePerPage(tabs, cats));
-    _txtTplCatPage = r.page;
-    tabs.innerHTML = r.html;
-  }
+  const cats = txtTplCatsSorted(DB.get('textTemplateCats', []));
+  if (!cats.includes(_txtTplCat)) _txtTplCat = cats[0];
+  const r = tplCatsPagerHTML(cats, _txtTplCat, _txtTplCatPage, 'setTxtTplCat', 'navTxtTplCatPage', tplComputePerPage(tabs, cats));
+  _txtTplCatPage = r.page;
+  tabs.innerHTML = r.html;
   const nameEl = $('#txtTplSpaceName');
   if (nameEl) nameEl.textContent = _txtTplCat;
 }
 function setTxtTplCat(c) { _txtTplCat = c; renderTxtTplCats(); renderTxtTplList(); }
 function navTxtTplCatPage(d) { _txtTplCatPage += d; renderTxtTplCats(); }
 function addTextTemplateCat() {
-  let html = '<div class="cd-import-modal"><div class="tpl-new-hint">输入一个新分类名称，用于归类零散文案</div>';
-  html += '<div style="margin-top:10px"><input class="form-input" id="newCatInput" maxlength="20"></div></div>';
-  openModal('新建分类', html, [
-    { label: '取消', class: 'btn-ghost', action: closeModal },
-    { label: '确定', class: 'btn-primary', action: () => {
-      const n = ($('#newCatInput').value || '').trim();
-      if (!n) { Toast.warning('请输入分类名称'); return; }
-      const cats = DB.get('textTemplateCats', []);
-      if (!cats.includes(n)) { cats.push(n); DB.set('textTemplateCats', cats); }
-      _txtTplCat = n;
-      closeModal(); openTextTemplateLib();
-    } },
-  ], 'notes-sm');
+  // v783：改为叠加弹窗（同「约稿单内文案库选择」模式）——浮在库弹窗之上，
+  // 取消只关自己，文案模板库原地保留（不再整窗重开）
+  closeTplNewCatSub();
+  const ov = document.createElement('div');
+  ov.id = 'tplNewCatSubOverlay';
+  ov.className = 'tpl-sub-overlay';
+  ov.innerHTML = `<div class="tpl-sub-card" onclick="event.stopPropagation()">` +
+    `<div class="tpl-sub-head"><div class="tpl-sub-title">新建分类</div><button type="button" class="tpl-sub-close" onclick="closeTplNewCatSub()">✕</button></div>` +
+    `<div class="tpl-new-hint" style="margin:6px 0 10px">输入一个新分类名称，用于归类零散文案</div>` +
+    `<input class="form-input" id="newCatInput" maxlength="20">` +
+    `<div class="tpl-sub-foot"><button type="button" class="btn btn-ghost" onclick="closeTplNewCatSub()">取消</button><button type="button" class="btn btn-primary" onclick="submitTplNewCatSub()">确定</button></div>` +
+    `</div>`;
+  ov.addEventListener('click', e => { if (e.target === ov) closeTplNewCatSub(); });
+  document.body.appendChild(ov);
+}
+function closeTplNewCatSub() { const ov = $('#tplNewCatSubOverlay'); if (ov) ov.remove(); }
+function submitTplNewCatSub() {
+  const n = (($('#newCatInput') || {}).value || '').trim();
+  if (!n) { Toast.warning('请输入分类名称'); return; }
+  let cats = DB.get('textTemplateCats', []);
+  if (!cats.includes(n)) { cats.push(n); DB.set('textTemplateCats', cats); }
+  _txtTplCat = n;
+  // 翻到新分类所在的标签页，让选中新 tab 直接可见
+  const tabs = $('#txtTplCats');
+  if (tabs) {
+    const all = txtTplCatsSorted(cats);
+    const per = tplComputePerPage(tabs, all);
+    if (per > 0) _txtTplCatPage = Math.floor(all.indexOf(n) / per);
+  }
+  closeTplNewCatSub();
+  renderTxtTplCats(); renderTxtTplList();
+  Toast.success('已创建分类「' + n + '」');
 }
 async function delTextTemplateCat(cat) {
   const ok = await confirmDialog('删除分类「' + cat + '」及其下所有文案？', '删除分类');
@@ -11023,7 +11046,7 @@ async function delTextTemplateCat(cat) {
 }
 // 新增文案用到的分类下拉框（可输入新分类名）
 function textTplCatComboboxHTML(sel) {
-  const cats = DB.get('textTemplateCats', []);
+  const cats = txtTplCatsSorted(DB.get('textTemplateCats', []));
   const cbId = 'txtTplCatCb';
   const ddId = cbId + '-dropdown';
   const opts = cats.map(c => `<div class="combobox-option" data-value="${esc(c)}" onclick="selectComboboxOption('${ddId}',this)">${esc(c)}</div>`).join('');
@@ -11114,11 +11137,12 @@ function openTextTemplatePicker(fieldKey) {
     const cats = DB.get('textTemplateCats', []).slice();
     all.forEach(t => { const c = t.cat || '通用'; if (!cats.includes(c)) cats.push(c); });
     if (!cats.length) cats.push('通用');
+    const ordered = txtTplCatsSorted(cats); // v783：「通用」固定排第一
     // v776：固定选中一个分类（默认第一个），不再有「全部」全显
-    if (!cats.includes(_txtTplPickerCat)) _txtTplPickerCat = cats[0];
+    if (!ordered.includes(_txtTplPickerCat)) _txtTplPickerCat = ordered[0];
     const cbId = 'txtTplPickerCatCb';
     const ddId = cbId + '-dropdown';
-    const opts = cats.map(c => `<div class="combobox-option" data-value="${esc(c)}" onclick="selectComboboxOption('${ddId}',this);setTxtTplPickerCat('${fieldKey}')">${esc(c)}</div>`).join('');
+    const opts = ordered.map(c => `<div class="combobox-option" data-value="${esc(c)}" onclick="selectComboboxOption('${ddId}',this);setTxtTplPickerCat('${fieldKey}')">${esc(c)}</div>`).join('');
     const combo = `<div class="txt-tpl-picker-cat"><label class="form-label">选择分类</label><div class="combobox-wrapper" style="flex:1;max-width:none"><input type="text" class="form-input combobox-input" id="${cbId}" value="${esc(_txtTplPickerCat)}" placeholder="选择分类" readonly onfocus="showComboboxDropdown('${ddId}')" onclick="showComboboxDropdown('${ddId}')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${ddId}')">▼</button><div class="combobox-dropdown" id="${ddId}">${opts}</div></div></div>`;
     bodyHTML = combo + `<div id="txtTplPickerList">${txtTplPickerListInner(all, fieldKey)}</div>`;
   }
