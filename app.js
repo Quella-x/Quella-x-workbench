@@ -157,8 +157,10 @@ const Sync = {
     if (!this.enabled()) { Toast.warning('请先在设置中填写 Supabase 配置'); return; }
     this.setStatus('syncing');
     try {
-      await this.pushAll();
+      // v773: 先拉后推——先把云端他人的更新合并进本地，再全量推上去。
+      // 旧逻辑先推后拉会导致推完云端全是自己的时间戳、拉取永远空转（只能上传不能下载）。
       await this.pullAll();
+      await this.pushAll();
       if (this.status !== 'disconnected') this.setStatus('connected');
       Toast.success('同步完成');
     } catch (e) { this.setStatus('disconnected'); Toast.error('同步失败：' + e.message); }
@@ -6940,6 +6942,7 @@ function syncReadInputs() {
   if (!Sync.cfg || Sync.cfg.url !== url || Sync.cfg.anonKey !== anonKey || Sync.cfg.syncCode !== syncCode) {
     DB.set('syncCfg', { url, anonKey, syncCode });
     Sync.load();
+    Sync.startAuto(); // v773: 配置保存即启动/重建 30 秒自动拉取（旧逻辑只在页面首次加载时检查，后填配置的页面永远没有自动拉取）
   }
   return true;
 }
