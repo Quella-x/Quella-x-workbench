@@ -801,15 +801,20 @@ ul,li{list-style:none}
 .dynamic-list-header span[data-subkey="note"]{flex:1 1 0;min-width:80px}
 .dynamic-list-header span:last-child{flex:0 0 40px;text-align:center;padding-left:0}
 /* v22: 厂家记录合作记录——日期缩、备注 flex，操作/删除贴左对齐 */
-.dynamic-list-container[data-key="cooperationRecords"] .form-input[data-subkey="date"]{flex:0 0 120px}
-.dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-header span[data-subkey="date"]{flex:0 0 120px}
+/* v786: 合作记录列宽对齐——日期格固定168px(内含日历按钮+右侧8px呼吸)，表头同步168px；日期与备注间距=8px内边距+4px行间距 */
+.dynamic-list-container[data-key="cooperationRecords"] .date-field-wrap{flex:0 0 168px;padding-right:8px}
+.dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-header span[data-subkey="date"]{flex:0 0 168px}
+/* v786: 合作类型列固定120px（表头与下拉格一致；覆盖 879 行的 1.5fr !important） */
+.dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-header span[data-subkey="coopType"]{flex:0 0 120px}
+.dynamic-list-container[data-key="cooperationRecords"] .combobox-wrapper[data-subkey="coopType"]{flex:0 0 120px !important;min-width:120px !important}
 .dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-header span[data-subkey="note"]{flex:1.5 1 0;min-width:330px}
 .dynamic-list-container[data-key="cooperationRecords"] .form-input[data-subkey="note"]{flex:1.5 1 0;min-width:330px}
 .dynamic-list-rows{display:flex;flex-direction:column;gap:4px;padding:0;margin-bottom:6px}
 .dynamic-list-row{display:flex;gap:4px;align-items:center}
 .dynamic-list-row .form-input{padding:6px 8px;font-size:12px;flex:1;min-width:0;box-sizing:border-box;text-align:left}
 /* v785: 所有动态列表「+ 添加」（含合作记录）改小号靠右，垂直 padding 与行内输入框(6px)一致使高度相同 */
-.dynamic-list-container > .btn{display:flex;width:fit-content;margin-left:auto !important;padding:6px 10px;font-size:12px;align-self:flex-end}
+/* v786: 电脑端「+ 添加」加宽（6px 22px），手机端保持 6px 10px（媒体查询内覆盖） */
+.dynamic-list-container > .btn{display:flex;width:fit-content;margin-left:auto !important;padding:6px 22px;font-size:12px;align-self:flex-end}
 /* === 内容列宽与 header 完全一致 === */
 .dynamic-list-row .form-input[data-subkey="name"]{flex:1.5 1 0;min-width:90px}
 .dynamic-list-row .form-input[data-subkey="project"]{flex:1.5 1 0;min-width:90px}
@@ -835,7 +840,9 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="extraItems"] .dynamic-list-header span[data-subkey="productRef"]{flex:0 0 140px}
 .dynamic-list-container[data-key="extraItems"] .dynamic-list-header span[data-subkey="quantity"]{flex:0 0 65px}
 .dynamic-list-container[data-key="extraItems"] .dynamic-list-header span[data-subkey="price"]{flex:0 0 70px}
-.dynamic-list-container[data-key="extraItems"] .dynamic-list-row .form-input[data-subkey="productRef"]{flex:0 0 110px}
+/* v786: 加价「绑定制品」下拉格固定140px与表头一致（覆盖 879 行 1.5fr !important）；格内输入框填满 */
+.dynamic-list-container[data-key="extraItems"] .combobox-wrapper[data-subkey="productRef"]{flex:0 0 140px !important;min-width:140px !important}
+.dynamic-list-container[data-key="extraItems"] .dynamic-list-row .combobox-wrapper[data-subkey="productRef"] .combobox-input{flex:1 1 auto;min-width:0;width:auto}
 /* DO轮：接稿排期制品「加急」复选列 + 加价「绑定制品」列 */
 .dynamic-list-header span[data-subkey="urgent"]{flex:0 0 50px;text-align:center;padding-left:0}
 .dynamic-list-row .dl-urgent-cell{flex:0 0 50px;display:flex;align-items:center;justify-content:center}
@@ -1131,6 +1138,7 @@ ul,li{list-style:none}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
   .dynamic-list-row{flex-wrap:wrap;gap:4px}
   .dynamic-list-row .form-input{min-width:60px}
+  .dynamic-list-container > .btn{padding:6px 10px}
   /* v22 mobile 列宽（与 header 保持一致） */
   .dynamic-list-row .form-input[data-subkey="name"]{flex:1.5 1 90px}
   .dynamic-list-row .form-input[data-subkey="project"]{flex:1.5 1 90px}
@@ -2520,9 +2528,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-empty-row{color:var(--c-text-muted);font-size:13px;padding:11.5px 0;cursor:pointer}
 .lr-empty-row:hover{color:var(--c-primary)}
 /* v784: 分割线改用蓝调可见色——原 var(--c-border-light)=#eef2f5 与卡片底色 #eef7ff 几乎同色，实测看到的线像素就是底色的深浅差（不可见） */
-/* v785: 分割线改实线+两端缩进10px（用户定稿；v784 曾用通栏虚线）。用 ::after 画线以便左右缩进 */
+/* v786: 分割线定稿——浅灰实线撑满（左端延伸到小标题下方 label 44+gap 10），bottom -2px 抵消整行 translateY(-2px) 使其在两条记录间垂直居中 */
 .lr-record-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;position:relative;transform:translateY(-2px)}
-.lr-record-row::after{content:'';position:absolute;left:10px;right:10px;bottom:0;height:1px;background:#cfe1f4}
+.lr-record-row::after{content:'';position:absolute;left:-54px;right:0;bottom:-2px;height:1px;background:#d9dfe7}
 .lr-record-row:last-child::after{display:none}
 .lr-record-row:last-child{padding-bottom:0}
 .lr-record-row:first-child{padding-top:0}
@@ -2658,6 +2666,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-card-body{padding:8px 10px}
   .lr-subtype-box{align-items:center;gap:8px;padding:8px 10px}
   .lr-subtype-label{width:36px;font-size:16px;margin-top:8px}
+  .lr-record-row::after{left:-44px}
   .lr-subtype-add{width:24px;height:24px;font-size:16px}
   .lr-empty-row{padding:9.5px 0}
   .lr-record-info-2col{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3px 22px}
@@ -3324,7 +3333,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=785"></script>
+  <script src="app.js?v=786"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
