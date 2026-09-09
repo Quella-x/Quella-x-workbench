@@ -105,6 +105,8 @@ ul,li{list-style:none}
 html.apk{overflow-y:auto;overscroll-behavior-y:none;background:var(--c-bg)}
 /* v799: 禁 WebView 果冻回弹（APK 兜底文档滚动后的过滚动效果），底色铺满避免内容不满一屏时下方发白 */
 html.apk body{overscroll-behavior-y:none;background:var(--c-bg)}
+/* v804: 文档滚动后全局 6px 实体滚动条常驻右缘（旧版 .main-body 内滚时手机端是浮动指示条，静止不可见）——apk 模式隐藏，恢复旧观感 */
+html.apk::-webkit-scrollbar{width:0;height:0}
 html.apk body{overflow:visible!important}
 html.apk #app{height:auto!important;overflow:visible!important}
 html.apk .main-body{overflow:visible!important}
@@ -3461,7 +3463,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=803"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=804"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
