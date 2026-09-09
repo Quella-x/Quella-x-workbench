@@ -779,7 +779,7 @@ ul,li{list-style:none}
   display:flex;gap:4px;align-items:center;
   margin:-8px -8px 6px;padding:4px 8px;
   min-height:36px;box-sizing:border-box;
-  font-size:13px;font-weight:600;color:var(--c-text-muted);
+  font-size:12px;font-weight:550;color:var(--c-text-muted);
   background:var(--c-primary-bg);
   border-bottom:1px dashed var(--c-border);
 }
@@ -896,7 +896,9 @@ ul,li{list-style:none}
    factory header=1 1 0(min80)、isDisbanded header=0 0 90px(含下拉箭头 26px 后仍能显示"是否流团") */
 .dynamic-list-container[data-key="products"] .combobox-wrapper[data-subkey="factory"]{flex:1 1 0!important;min-width:80px!important}
 .dynamic-list-container[data-key="products"] .combobox-wrapper[data-subkey="isDisbanded"]{flex:0 0 90px!important;min-width:0!important}
-.dynamic-list-row .combobox-input{padding:8px 26px 8px 8px!important;font-size:12px}
+/* v792: 下拉框内边距还原——仅合作记录作用域 8px 等高（你上轮截图的就是这里），制品/其他保留 v789 的 6px（30px 短于字段 4px 是你确认过的「上一版好好的」状态）*/
+.dynamic-list-row .combobox-input{padding:6px 26px 6px 8px!important;font-size:12px}
+.dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-row .combobox-input{padding:8px 26px 8px 8px!important}
 .dynamic-list-row .combobox-toggle{right:2px;width:18px;font-size:10px}
 .dynamic-list-row button{
   flex:0 0 40px;padding:0;font-size:14px;
@@ -3348,7 +3350,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=791"></script>
+  <script src="app.js?v=792"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
