@@ -90,7 +90,9 @@ ul,li{list-style:none}
    MainActivity UA 追加 WorkbenchWebView 标记 → app.js 给 html 加 .apk 类 → 改走文档滚动
    （WebView 文档滚动最可靠）；模态打开时由 _applyModalScrollLock 同步 html.modal-lock 锁滚动。
    网页端（无 .apk 类）零影响。 */
-html.apk{overflow-y:auto}
+html.apk{overflow-y:auto;overscroll-behavior-y:none;background:var(--c-bg)}
+/* v799: 禁 WebView 果冻回弹（APK 兜底文档滚动后的过滚动效果），底色铺满避免内容不满一屏时下方发白 */
+html.apk body{overscroll-behavior-y:none}
 html.apk body{overflow:visible!important}
 html.apk #app{height:auto!important;overflow:visible!important}
 html.apk .main-body{overflow:visible!important}
@@ -702,6 +704,8 @@ html.apk.modal-lock{overflow:hidden!important}
 .form-hint{font-size:11px;color:var(--c-text-muted)}
 /* v450-5：展示/录入模块分组标题（含九大模块详情分组），底部分割线与接稿详情右侧 .cdc-header 一致 */
 .form-section{font-size:13px;font-weight:600;color:var(--c-primary);margin:16px 0 10px;padding-bottom:6px;border-bottom:1.5px solid var(--c-border)}
+/* v799: 小节标题右侧提示词（与 form-label-hint 同款式） */
+.form-section-hint{display:inline;font-size:11px;color:var(--c-text-muted);font-weight:400;margin-left:8px}
 .form-section:first-child{margin-top:0}
 /* v32: 同行字段（row 属性）——一行多列 */
 .form-row-inline{margin-bottom:14px}
@@ -718,6 +722,13 @@ html.apk.modal-lock{overflow:hidden!important}
 .style-color-box{display:flex;gap:12px;border:1px solid var(--c-border-light);border-radius:10px;padding:12px;background:#fff}
 .style-color-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
 .style-color-col-label{font-size:13px;color:var(--c-text);font-weight:500}
+/* v799: 饭圈/二次重要信息——单人/CP 独立小按钮（周/月/年 .lbt-btn 同款），置于小节标题右侧与大框右缘对齐 */
+.cd-cp-switch{float:right;display:inline-flex;gap:6px}
+.cd-imp-box{flex-direction:column;align-items:stretch;gap:8px}
+.cd-imp-single{display:flex;gap:12px}
+.cd-imp-cp{display:flex;flex-direction:column;gap:10px}
+.cd-imp-cp-row{display:flex;gap:12px}
+.cd-imp-cp-row .style-color-col{flex:1;min-width:0}
 /* 元素三列 / 重要信息 2×2 大框 */
 .style-color-box.elements-box{flex-wrap:nowrap}
 .style-color-box.info-box{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -2867,8 +2878,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-picker-panel{background:#f3f5f8;border:none;border-radius:var(--radius-sm);padding:10px;margin-bottom:8px}
 /* v755/v757：文案/小字字段标题行右侧的"文本模板"按钮（自适应宽，无边框） */
 .form-label-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
-.tpl-inline-btn{display:inline-flex;align-items:center;gap:4px;width:auto;padding:3px 10px;font-size:12px;line-height:1.4;border:none;background:#f3f5f8;color:var(--c-primary-dark);border-radius:999px;cursor:pointer}
-.tpl-inline-btn:hover{background:#e9edf2}
+/* v799: 方案A——照每日打卡周/月/年按钮(.lbt-btn)造型：白底+浅蓝描边+小圆角；尺寸沿用 3px 10px / 12px 不变 */
+.tpl-inline-btn{display:inline-flex;align-items:center;gap:4px;width:auto;padding:3px 10px;font-size:12px;line-height:1.4;border:1px solid var(--c-primary-light);background:var(--c-card);color:var(--c-primary-dark);border-radius:var(--radius-sm);cursor:pointer;transition:all .15s}
+.tpl-inline-btn:hover{border-color:var(--c-primary)}
 .tpl-grp-title{font-size:12px;font-weight:700;color:var(--c-primary-dark);margin:6px 0 2px}
 /* 约稿模板库下方：生成约稿单导入式 新建模板 区块（无边框） */
 .tpl-newtpl-zone{background:transparent;border:none;border-radius:var(--radius-sm);padding:12px 16px 14px}
@@ -3116,7 +3128,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-client-submit{text-align:center;margin-top:16px}
 .cd-client-submit .btn{padding:10px 40px;font-size:14px}
 /* v777: 提交成功页——浅蓝底色铺满全屏（全出血）、内容居中 */
-.cd-client-done{text-align:center;padding:60px 20px;width:100vw;max-width:100vw;margin:0 auto 0 calc(50% - 50vw);min-height:100vh;background:var(--c-primary-bg);display:flex;flex-direction:column;justify-content:center;align-items:center;box-sizing:border-box}
+/* v799: 改 fixed 全屏铺满（原 100vw/负边距方案在滚动容器变化后只铺一半、内容偏下），浅蓝沿用 --c-primary-bg 不加新色 */
+.cd-client-done{position:fixed;inset:0;z-index:1200;text-align:center;padding:60px 20px;background:var(--c-primary-bg);display:flex;flex-direction:column;justify-content:center;align-items:center;box-sizing:border-box}
 .cd-client-done-icon{font-size:56px;margin-bottom:12px;color:var(--c-primary-dark)}
 .cd-client-done-title{font-size:18px;font-weight:700;color:var(--c-primary-dark)}
 .cd-client-done-sub{font-size:13px;color:var(--c-text-muted);margin-top:8px}
@@ -3416,7 +3429,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=798"></script>
+  <script src="app.js?v=799"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

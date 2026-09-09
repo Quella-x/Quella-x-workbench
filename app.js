@@ -238,6 +238,7 @@ const Sync = {
       for (const store of SYNC_STORES) { await this.syncStore(store); }
       this.setStatus('connected');
     } catch (e) { this.setStatus('disconnected'); }
+    healScrollLock(); // v799
   },
   async pullAll() {
     if (!this.enabled()) return;
@@ -248,6 +249,7 @@ const Sync = {
       DB.set('syncLast', this.lastSync);
       this.setStatus('connected');
     } catch (e) { this.setStatus('disconnected'); }
+    healScrollLock(); // v799
     if (changed) {
       Toast.info('已从云端同步最新数据');
       const modalOpen = document.getElementById('modalOverlay') && document.getElementById('modalOverlay').classList.contains('show');
@@ -263,6 +265,7 @@ const Sync = {
       if (this.status !== 'disconnected') this.setStatus('connected');
       Toast.success('同步完成');
     } catch (e) { this.setStatus('disconnected'); Toast.error('同步失败：' + e.message); }
+    healScrollLock(); // v799: 同步结束后强制自愈滚动锁
   },
   startAuto() {
     if (!this.enabled()) { this.updateBadge(); return; }
@@ -396,6 +399,23 @@ function _applyModalScrollLock() {
       if (b) b.style.overflow = b.dataset.prevOverflow || '';
       if (mb) mb.style.overflow = mb.dataset.prevOverflow || '';
     }
+  } catch (e) {}
+}
+// v799: 滚动锁自愈——弹窗全部关闭时若锁未归零（同步/异步时序卡住），强制解锁，避免全页面划不动
+function healScrollLock() {
+  try {
+    const ov = document.getElementById('modalOverlay');
+    if (ov && ov.classList.contains('show')) return;
+    const de = document.documentElement, b = document.body, mb = document.getElementById('mainBody');
+    const stuck = _modalScrollLockN !== 0
+      || (de && de.classList.contains('modal-lock'))
+      || (b && b.style.overflow === 'hidden')
+      || (mb && mb.style.overflow === 'hidden');
+    _modalScrollLockN = 0;
+    if (!stuck) return;
+    if (de) de.classList.remove('modal-lock');
+    if (b) { b.style.overflow = ''; try { delete b.dataset.prevOverflow; } catch (e) {} }
+    if (mb) { mb.style.overflow = ''; try { delete mb.dataset.prevOverflow; } catch (e) {} }
   } catch (e) {}
 }
 // v752：最近一次「其他说明」查看弹窗的实际高度，供无参照物的弹窗对齐
@@ -1125,7 +1145,8 @@ const _dynamicConfigs = {};
 
 /* ===== Form Builder ===== */
 function buildFormField(f, data, moduleKey, wrap) {
-  if (f.section) return `<div class="form-section">${esc(f.section)}</div>`;
+  // v799: 小节标题支持右侧提示词小字（与 form-label-hint 同款式）
+  if (f.section) return `<div class="form-section">${esc(f.section)}${f.hint ? `<span class="form-section-hint">${esc(f.hint)}</span>` : ''}</div>`;
   if (f.type === 'custom') {
     let html = f.html || '';
     // 饭圈/二次：制品框从价目表导入，将普通输入替换为 combobox；工艺下拉框替换为可配置选项
@@ -2735,16 +2756,93 @@ function cdTwyBindProductAutoFill(container) {
   cb.addEventListener('change', onPick);
 }
 
+// ===== v799: 饭圈/二次「重要信息」单人/CP 切换（切换保留内容；最终取值以最后停留页为准） =====
+function cdSetCpMode(btn, mode) {
+  // v799b: 按钮位于小节标题内（不在 .cd-imp-box 里），必须先找 .form-row 再向下查框
+  const rowEl = btn.closest('.form-row');
+  const box = rowEl && rowEl.querySelector('.cd-imp-box');
+  if (!box) return;
+  if (rowEl) rowEl.dataset.cpMode = mode;
+  btn.parentElement.querySelectorAll('.lbt-btn').forEach(b => b.classList.toggle('active', b === btn));
+  const single = box.querySelector('.cd-imp-single'), cp = box.querySelector('.cd-imp-cp');
+  const KEYS = ['charName', 'nickName', 'englishName', 'birthday'];
+  if (mode === 'cp') {
+    // 切到 CP：把单人已填内容带入第一列（不覆盖 CP 页已填内容）
+    KEYS.forEach(k => {
+      const s = single && single.querySelector('[data-key="' + k + '"]');
+      const p1 = cp && cp.querySelector('[data-key="' + k + '"]');
+      if (s && p1 && !p1.value.trim() && s.value.trim()) p1.value = s.value;
+    });
+  } else {
+    // 切回单人：把 CP 页第一列内容带回单人框
+    KEYS.forEach(k => {
+      const s = single && single.querySelector('[data-key="' + k + '"]');
+      const p1 = cp && cp.querySelector('[data-key="' + k + '"]');
+      if (s && p1 && p1.value.trim()) s.value = p1.value;
+    });
+  }
+  if (single) single.style.display = mode === 'cp' ? 'none' : '';
+  if (cp) cp.style.display = mode === 'cp' ? '' : 'none';
+}
+// 编辑/回填场景：已有第二人或 CP名 数据时自动切到 CP 页
+function cdInitCpModeUI(container) {
+  try {
+    if (!container) return;
+    const box = container.querySelector('.cd-imp-box');
+    if (!box) return;
+    const CP_KEYS = ['charName2', 'nickName2', 'englishName2', 'birthday2', 'cpName'];
+    const has = CP_KEYS.some(k => { const el = box.querySelector('[data-key="' + k + '"]'); return el && String(el.value || '').trim() !== ''; });
+    if (has) { const btn = box.closest('.form-row') && box.closest('.form-row').querySelector('[data-cpmode="cp"]'); if (btn) cdSetCpMode(btn, 'cp'); }
+  } catch (e) {}
+}
+// 保存时按最后停留页收敛数据：单人页丢弃第二人/CP名；CP 页保留全部
+function cdApplyCpModeToData(container, data) {
+  try {
+    if (!container) return data;
+    const box = container.querySelector('.cd-imp-box');
+    const rowEl = box ? box.closest('.form-row') : null;
+    const cpOn = rowEl && rowEl.dataset.cpMode === 'cp';
+    const CP_KEYS = ['charName2', 'nickName2', 'englishName2', 'birthday2', 'cpName'];
+    // 关键：单人/CP 两块存在同名 data-key（第一人四项），隐藏块在 readForm 时会覆盖可见块——
+    // 必须按最后停留页显式重取第一人四项，再丢弃/保留第二人与 CP名
+    const NAMES = ['charName', 'nickName', 'englishName', 'birthday'];
+    const src = cpOn ? '.cd-imp-cp' : '.cd-imp-single';
+    NAMES.forEach(k => {
+      const el = box.querySelector(src + ' [data-key="' + k + '"]');
+      if (el) data[k] = el.value;
+    });
+    if (cpOn) { data.cpMode = 'cp'; }
+    else { data.cpMode = 'single'; CP_KEYS.forEach(k => { delete data[k]; }); }
+  } catch (e) {}
+  return data;
+}
+// v799: CP 记录展示行（单人四项并列带第二人 + CP名）
+function cdCpDisplayRows(r) {
+  const isFq = r.category === '饭圈';
+  const nm = isFq ? '姓名' : '角色名';
+  const j = (a, b) => [a, b].filter(x => x != null && String(x).trim() !== '').map(x => String(x).trim()).join(' / ');
+  return [
+    [nm, j(r.charName, r.charName2)],
+    ['昵称', j(r.nickName, r.nickName2)],
+    ['英文名', j(r.englishName, r.englishName2)],
+    ['生日', j(r.birthday, r.birthday2)],
+    ['CP名', String(r.cpName == null ? '' : r.cpName).trim()],
+  ].filter(row => row[1]);
+}
+function cdIsCpRecord(r) {
+  return r.cpMode === 'cp' || ['charName2', 'nickName2', 'englishName2', 'birthday2', 'cpName'].some(k => r[k] != null && String(r[k]).trim() !== '');
+}
+
 // 板块1：土味约稿单
 MODULES['design-commission-detail-twy'] = {
   store: 'commissionDetails',
   category: '土味',
   fields: [
-    { section: '单主信息' },
-    { key: 'clientInfo', label: '单主', type: 'text', placeholder: '单主姓名（用于与接稿排期联动）', localOnly: true },
+    { section: '单主信息', hint: '用于与接稿排期联动，可自行修改' },
+    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true },
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
-    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">（特殊尺寸出血请修改 可直接给模板）</span></label><div class="style-color-box info-box cd-product-box cd-twy-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input combobox-input cd-twy-product-combobox" data-key="product" placeholder="请输入或选择制品"></div><div class="style-color-col"><span class="style-color-col-label">排版</span><input type="text" class="form-input" data-key="layout" placeholder="排版"></div><div class="style-color-col"><span class="style-color-col-label">尺寸</span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">（特殊尺寸出血请修改 可直接给模板）</span></label><div class="style-color-box info-box cd-product-box cd-twy-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input combobox-input cd-twy-product-combobox" data-key="product" placeholder="请输入或选择制品"></div><div class="style-color-col"><span class="style-color-col-label">排版</span><input type="text" class="form-input" data-key="layout" placeholder="排版"></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">（初始为默认尺寸）</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">（初始为默认出血）</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
     { key: 'bookName', label: '书名/文字', type: 'text' },
     { key: 'authorName', label: '作者名', type: 'text' },
     { key: 'copyText', label: '文案/小字', type: 'textarea' },
@@ -2770,8 +2868,8 @@ MODULES['design-commission-detail-fm'] = {
   store: 'commissionDetails',
   category: '封面',
   fields: [
-    { section: '单主信息' },
-    { key: 'clientInfo', label: '单主', type: 'text', placeholder: '单主姓名（用于与接稿排期联动）', localOnly: true },
+    { section: '单主信息', hint: '用于与接稿排期联动，可自行修改' },
+    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true },
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
     { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">尺寸信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">网站/书城</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="type" placeholder="网站/书城" onfocus="showComboboxDropdown(\'cdFmPlatformCb\')" onclick="showComboboxDropdown(\'cdFmPlatformCb\')" oninput="filterComboboxDropdown(\'cdFmPlatformCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdFmPlatformCb\')">▼</button><div class="combobox-dropdown" id="cdFmPlatformCb"><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPlatformCb\',this)" data-value="网站">网站</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPlatformCb\',this)" data-value="书城">书城</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPlatformCb\',this)" data-value="其他">其他</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸</span><input type="text" class="form-input" data-key="size" placeholder="平台尺寸"></div><div class="style-color-col"><span class="style-color-col-label">是否加logo</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="addLogo" placeholder="是否加logo" onfocus="showComboboxDropdown(\'cdFmLogoCb\')" onclick="showComboboxDropdown(\'cdFmLogoCb\')" oninput="filterComboboxDropdown(\'cdFmLogoCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdFmLogoCb\')">▼</button><div class="combobox-dropdown" id="cdFmLogoCb"><div class="combobox-option" onclick="selectComboboxOption(\'cdFmLogoCb\',this)" data-value="不加">不加</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmLogoCb\',this)" data-value="加">加</div></div></div></div></div></div>' },
@@ -2803,14 +2901,14 @@ MODULES['design-commission-detail-fq'] = {
   store: 'commissionDetails',
   category: '饭圈',
   fields: [
-    { section: '单主信息' },
-    { key: 'clientInfo', label: '单主', type: 'text', placeholder: '单主姓名（用于与接稿排期联动）', localOnly: true },
+    { section: '单主信息', hint: '用于与接稿排期联动，可自行修改' },
+    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true },
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
     { key: 'usageType', cls: 'cd-title-gap14', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'theme', label: '企划/主题名称', type: 'text' },
-    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">（特殊尺寸出血请修改 可直接给模板）</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="请输入或选择制品"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" placeholder="工艺" onfocus="showComboboxDropdown(\'cdCraftCb\')" onclick="showComboboxDropdown(\'cdCraftCb\')" oninput="filterComboboxDropdown(\'cdCraftCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdCraftCb\')">▼</button><div class="combobox-dropdown" id="cdCraftCb"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption(\'cdCraftCb\',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption(\'cdCraftCb\',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption(\'cdCraftCb\',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption(\'cdCraftCb\',this)">烫色</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸</span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
-    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">（特殊尺寸出血请修改 可直接给模板）</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="请输入或选择制品"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" placeholder="工艺" onfocus="showComboboxDropdown(\'cdCraftCb\')" onclick="showComboboxDropdown(\'cdCraftCb\')" oninput="filterComboboxDropdown(\'cdCraftCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdCraftCb\')">▼</button><div class="combobox-dropdown" id="cdCraftCb"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption(\'cdCraftCb\',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption(\'cdCraftCb\',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption(\'cdCraftCb\',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption(\'cdCraftCb\',this)">烫色</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">（初始为默认尺寸）</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">（初始为默认出血）</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息<span class="cd-cp-switch"><button type="button" class="lbt-btn active" data-cpmode="single" onclick="cdSetCpMode(this,\'single\')">单人</button><button type="button" class="lbt-btn" data-cpmode="cp" onclick="cdSetCpMode(this,\'cp\')">CP</button></span></label><div class="style-color-box info-box cd-imp-box"><div class="cd-imp-single"><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div><div class="cd-imp-cp" style="display:none"><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">CP名</span><input type="text" class="form-input" data-key="cpName"></div></div></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">（可以给参考图/色卡 请把主色写最前面）</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">元素</label><div class="style-color-box elements-box"><div class="style-color-col"><span class="style-color-col-label">必用</span><input type="text" class="form-input" data-key="elementsRequired"></div><div class="style-color-col"><span class="style-color-col-label">可选</span><input type="text" class="form-input" data-key="elementsOptional"></div><div class="style-color-col"><span class="style-color-col-label">避雷</span><input type="text" class="form-input" data-key="elementsAvoid"></div></div></div>' },
     { key: 'copyText', label: '文案', type: 'textarea' },
@@ -2835,15 +2933,15 @@ MODULES['design-commission-detail-ec'] = {
   store: 'commissionDetails',
   category: '二次',
   fields: [
-    { section: '单主信息' },
-    { key: 'clientInfo', label: '单主', type: 'text', placeholder: '单主姓名（用于与接稿排期联动）', localOnly: true },
+    { section: '单主信息', hint: '用于与接稿排期联动，可自行修改' },
+    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true },
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
     { key: 'usageType', cls: 'cd-title-gap14', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'theme', label: '企划/主题名称', type: 'text' },
-    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">（特殊尺寸出血请修改 可直接给模板）</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="请输入或选择制品"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" placeholder="工艺" onfocus="showComboboxDropdown(\'cdCraftCb\')" onclick="showComboboxDropdown(\'cdCraftCb\')" oninput="filterComboboxDropdown(\'cdCraftCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdCraftCb\')">▼</button><div class="combobox-dropdown" id="cdCraftCb"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption(\'cdCraftCb\',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption(\'cdCraftCb\',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption(\'cdCraftCb\',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption(\'cdCraftCb\',this)">烫色</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸</span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">（特殊尺寸出血请修改 可直接给模板）</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="请输入或选择制品"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" placeholder="工艺" onfocus="showComboboxDropdown(\'cdCraftCb\')" onclick="showComboboxDropdown(\'cdCraftCb\')" oninput="filterComboboxDropdown(\'cdCraftCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdCraftCb\')">▼</button><div class="combobox-dropdown" id="cdCraftCb"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption(\'cdCraftCb\',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption(\'cdCraftCb\',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption(\'cdCraftCb\',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption(\'cdCraftCb\',this)">烫色</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">（初始为默认尺寸）</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">（初始为默认出血）</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
     { key: 'ipName', label: 'IP', type: 'text' },
-    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息<span class="cd-cp-switch"><button type="button" class="lbt-btn active" data-cpmode="single" onclick="cdSetCpMode(this,\'single\')">单人</button><button type="button" class="lbt-btn" data-cpmode="cp" onclick="cdSetCpMode(this,\'cp\')">CP</button></span></label><div class="style-color-box info-box cd-imp-box"><div class="cd-imp-single"><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div><div class="cd-imp-cp" style="display:none"><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">CP名</span><input type="text" class="form-input" data-key="cpName"></div></div></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">（可以给参考图/色卡 请把主色写最前面）</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">元素</label><div class="style-color-box elements-box"><div class="style-color-col"><span class="style-color-col-label">必用</span><input type="text" class="form-input" data-key="elementsRequired"></div><div class="style-color-col"><span class="style-color-col-label">可选</span><input type="text" class="form-input" data-key="elementsOptional"></div><div class="style-color-col"><span class="style-color-col-label">避雷</span><input type="text" class="form-input" data-key="elementsAvoid"></div></div></div>' },
     { key: 'copyText', label: '文案', type: 'textarea' },
@@ -3195,6 +3293,7 @@ const CAL_VIEW_STYLE_MODULES = COMM_LIST_STYLE_MODULES.filter(k => k !== 'design
 /* ===== Router ===== */
 function navigate(page) {
   currentPage = page;
+  healScrollLock(); // v799: 页面切换前自愈滚动锁（同步后 navigate 重渲染场景）
   // v777: 记录退出时的页面与日期——同一天再开恢复到上次页面，跨天回首页（与是否清后台无关）
   DB.set('ui_state', { sidebarCollapsed: $('#sidebar').classList.contains('collapsed'), lastPage: page, lastDate: new Date().toDateString() });
   $('#pageTitle').textContent = PAGE_TITLES[page] || page;
@@ -3993,9 +4092,10 @@ function cdDetailRowsFor(data, cat, isExtra, base) {
   if (cat === '土味' || cat === '封面') {
     add('书名/文字', data.bookName); add('类型', data.type); add('尺寸', data.size); add('颜色', color);
   } else if (cat === '饭圈') {
-    add('姓名', charName); add('制品', data.product); add('尺寸', data.size); add('风格', style); add('颜色', color);
+    // v799: CP 模式卡片显示 CP名
+    add('姓名', (data.cpMode === 'cp' && data.cpName) ? data.cpName : charName); add('制品', data.product); add('尺寸', data.size); add('风格', style); add('颜色', color);
   } else if (cat === '二次') {
-    add('角色名', charName); add('制品', data.product); add('尺寸', data.size); add('风格', style); add('颜色', color);
+    add('角色名', (data.cpMode === 'cp' && data.cpName) ? data.cpName : charName); add('制品', data.product); add('尺寸', data.size); add('风格', style); add('颜色', color);
   } else {
     add('类型', data.type); add('制品', data.product); add('尺寸', data.size); add('颜色', color);
   }
@@ -4086,7 +4186,8 @@ function renderCommDetailPreview(selectedId) {
     ];
   } else if (cat === '饭圈') {
     thumbRows = [
-      ['姓名', d.charName || ''],
+      // v799: CP 模式展示 CP名
+      ['姓名', (d.cpMode === 'cp' && d.cpName) ? d.cpName : (d.charName || '')],
       ['制品', d.product || ''],
       ['尺寸', d.size || ''],
       ['风格', d.style || ''],
@@ -4094,7 +4195,7 @@ function renderCommDetailPreview(selectedId) {
     ];
   } else if (cat === '二次') {
     thumbRows = [
-      ['角色名', d.charName || ''],
+      ['角色名', (d.cpMode === 'cp' && d.cpName) ? d.cpName : (d.charName || '')],
       ['制品', d.product || ''],
       ['尺寸', d.size || ''],
       ['风格', d.style || ''],
@@ -4403,6 +4504,8 @@ function setupFormInteractions(pageKey) {
     cdBindProductAutoFill(container);
     // 土味约稿单：选择制品后联动价目表自动回填尺寸/出血
     if (pageKey === 'design-commission-detail-twy') cdTwyBindProductAutoFill(container);
+    // v799: 饭圈/二次——已有第二人/CP名数据时自动切到 CP 页
+    if (pageKey === 'design-commission-detail-fq' || pageKey === 'design-commission-detail-ec') cdInitCpModeUI(container);
   }
   // 价目表：分类为纸片类/其他材质类时，默认出血空值自动填 3mm（仅默认值，不影响手动输入）
   if (pageKey === 'design-pricelist') {
@@ -10332,8 +10435,14 @@ function renderCdFullRecord(r) {
     // 自定义 HTML 块（饭圈/二次：重要信息 / 风格颜色 / 元素）按 data-key 渲染非空子字段
     if (f.type === 'custom') {
       const doc = new DOMParser().parseFromString(f.html || '', 'text/html');
+      // v799: 饭圈/二次重要信息——CP 记录按「四项并列带第二人 + CP名」展示
+      if (doc.querySelector('.cd-imp-box') && cdIsCpRecord(r)) {
+        cdCpDisplayRows(r).forEach(([k, v]) => { h += `<div class="cd-rec-row"><span class="cd-rec-k">${esc(k)}</span><span class="cd-rec-v">${esc(v)}</span></div>`; });
+        return;
+      }
       let rendered = '';
       doc.querySelectorAll('.style-color-col').forEach(col => {
+        if (col.closest('.cd-imp-cp')) return; // v799: 单人态跳过 CP 备用列
         const inp = col.querySelector('[data-key]');
         const key = inp && inp.getAttribute('data-key');
         const lbl = col.querySelector('.style-color-col-label');
@@ -10403,11 +10512,17 @@ function cdRenderCustomFieldRows(f, r, mode) {
   const boxLabelEl = doc.querySelector('.form-label');
   const boxLabel = boxLabelEl ? (boxLabelEl.childNodes[0] ? boxLabelEl.childNodes[0].textContent.trim() : '') : '';
   const cols = doc.querySelectorAll('.style-color-col');
-  const rows = [];
-  cols.forEach(col => {
-    const lblEl = col.querySelector('.style-color-col-label');
-    const inp = col.querySelector('[data-key]');
-    if (!lblEl || !inp) return;
+  let rows = [];
+  if (doc.querySelector('.cd-imp-box') && cdIsCpRecord(r)) {
+    // v799: CP 记录按并列展示
+    rows = cdCpDisplayRows(r);
+  } else rows = (() => {
+    const arr = [];
+    cols.forEach(col => {
+      if (col.closest('.cd-imp-cp')) return; // v799: 跳过 CP 备用列
+      const lblEl = col.querySelector('.style-color-col-label');
+      const inp = col.querySelector('[data-key]');
+      if (!lblEl || !inp) return;
     const key = inp.getAttribute('data-key');
     const v = r[key];
     if (v == null || String(v).trim() === '') return;
@@ -10415,8 +10530,10 @@ function cdRenderCustomFieldRows(f, r, mode) {
     if (key === 'elementsRequired') outLabel = '元素·必用';
     else if (key === 'elementsOptional') outLabel = '元素·可用';
     else if (key === 'elementsAvoid') outLabel = '元素·避雷';
-    rows.push([outLabel, String(v)]);
-  });
+      arr.push([outLabel, String(v)]);
+    });
+    return arr;
+  })();
   if (!rows.length) return '';
   let h = '';
   if (boxLabel) h += mode === 'rec' ? `<div class="cd-rec-section">${esc(boxLabel)}</div>` : `<div class="form-section-title">${esc(boxLabel)}</div>`;
@@ -10659,8 +10776,8 @@ function cdExtraProductRowHTML(idx, it, isFq, items) {
         <div class="style-color-box info-box cd-product-box cd-ep-product-box">
           <div class="style-color-col"><span class="style-color-col-label">制品</span>${cdProductComboboxHTMLForEp('cdEpProduct_' + idx, it.product)}</div>
           <div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-ep="craft" value="${esc(it.craft || '')}" placeholder="工艺" onfocus="showComboboxDropdown('cdEpCraftCb_${idx}')" onclick="showComboboxDropdown('cdEpCraftCb_${idx}')" oninput="filterComboboxDropdown('cdEpCraftCb_${idx}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('cdEpCraftCb_${idx}')">▼</button><div class="combobox-dropdown" id="cdEpCraftCb_${idx}"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption('cdEpCraftCb_${idx}',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption('cdEpCraftCb_${idx}',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption('cdEpCraftCb_${idx}',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption('cdEpCraftCb_${idx}',this)">烫色</div></div></div></div>
-          <div class="style-color-col"><span class="style-color-col-label">尺寸</span><input type="text" class="form-input" data-ep="size" value="${esc(it.size || '')}"></div>
-          <div class="style-color-col"><span class="style-color-col-label">出血</span><input type="text" class="form-input" data-ep="bleed" value="${esc(it.bleed || '')}"></div>
+          <div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">（初始为默认尺寸）</span></span><input type="text" class="form-input" data-ep="size" value="${esc(it.size || '')}"></div>
+          <div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">（初始为默认出血）</span></span><input type="text" class="form-input" data-ep="bleed" value="${esc(it.bleed || '')}"></div>
         </div>
       </div>
       <div class="${fullClass}">${fullFields}</div>
@@ -11157,6 +11274,13 @@ function copyCdClientLink() {
     legacyCopy() ? okTip() : failTip();
   }
 }
+// v799: 「文案库」按钮注入（弹窗/独立填写页共用）；v799b 按钮改周/月/年同款小按钮（.tpl-inline-btn 已换肤）
+function cdInjectTplBtn(html) {
+  return html.replace(
+    /(<label class="form-label">)([^<]*)(<\/label>)(\s*<textarea class="form-textarea" data-key="copyText")/,
+    (m, a, lbl, c, ta) => `<div class="form-label-row">${a}${lbl}${c}<button type="button" class="tpl-inline-btn" onclick="openTextTemplatePicker('copyText')">${lucide('file-text',15)} 文案库</button></div>${ta}`
+  );
+}
 function cdOpenClientFormFromLink(catKey, opts) {
   opts = opts || {};
   const mod = MODULES[catKey];
@@ -11165,11 +11289,7 @@ function cdOpenClientFormFromLink(catKey, opts) {
   // v754：约稿模板点选后，用模板固定值覆盖默认空值
   if (opts.preset) Object.assign(data, opts.preset);
   // v755：把「文本模板」按钮从表单顶部整行，移到「文案/小字」字段标题行右侧（自适应宽），点开片段只插该字段
-  let bodyHTML = cdFormShell(buildCdClientForm(catKey, data));
-  bodyHTML = bodyHTML.replace(
-    /(<label class="form-label">)([^<]*)(<\/label>)(\s*<textarea class="form-textarea" data-key="copyText")/,
-    (m, a, lbl, c, ta) => `<div class="form-label-row">${a}${lbl}${c}<button type="button" class="tpl-inline-btn" onclick="openTextTemplatePicker('copyText')">${lucide('file-text',15)} 文案库</button></div>${ta}`
-  );
+  let bodyHTML = cdInjectTplBtn(cdFormShell(buildCdClientForm(catKey, data)));
   // v755：从约稿模板库（新建模板/点模板）进入表单时，取消要回到库，避免"直接消失"
   const cancelAction = opts.fromLib ? (() => { closeModal(); openCommissionTemplateLib(); }) : closeModal;
   // v767：从模板库进入（fromLib）时只留「存为模板」并改蓝色主按钮；其它入口保持 取消/存为模板/提交 不变
@@ -11187,10 +11307,13 @@ function cdOpenClientFormFromLink(catKey, opts) {
 }
 // v754：收集当前约稿单表单数据（含饭圈/二次的附加制品）
 function collectCdFormData(catKey) {
-  const container = $('#modalBody');
+  // v799: 弹窗未打开时回退 #mainBody（独立页/兜底），并按最后停留页收敛 CP 数据
+  const _ov = document.getElementById('modalOverlay');
+  const container = (_ov && _ov.classList.contains('show')) ? $('#modalBody') : ($('#mainBody') || $('#modalBody'));
   const data = readForm(container);
   if (catKey === 'design-commission-detail-fq' || catKey === 'design-commission-detail-ec') {
     data.extraProducts = readCdExtraProducts(container, catKey);
+    cdApplyCpModeToData(container, data);
   }
   return data;
 }
@@ -11663,8 +11786,9 @@ async function cdRenderClientStandalone(catKey, preset) {
   if (!body) return;
   let html = '<div class="cd-client-standalone">';
   html += `<div class="cd-client-head">${esc(mod.category)}约稿单</div>`;
+  // v799: 独立填写页同样注入「文案库」按钮（与弹窗内路径一致）
   html += '<div class="cd-client-form">';
-  html += cdFormShell(buildCdClientForm(catKey, data));
+  html += cdInjectTplBtn(cdFormShell(buildCdClientForm(catKey, data)));
   html += '</div>';
   html += `<div class="cd-client-submit"><button class="btn btn-primary" onclick="saveCdClientForm('${catKey}', true)">提交</button></div>`;
   html += '</div>';
@@ -11703,10 +11827,13 @@ function buildCdClientForm(pageKey, data) {
 }
 function saveCdClientForm(pageKey, standalone) {
   const mod = MODULES[pageKey];
-  const container = $('#modalBody') || $('#mainBody');
+  // v799: 弹窗未打开（独立填写页）时严禁读静态 #modalBody 空容器——v777 起单主提交「空表」的根因
+  const _ov = document.getElementById('modalOverlay');
+  const container = (_ov && _ov.classList.contains('show')) ? $('#modalBody') : $('#mainBody');
   const data = readForm(container);
   if (pageKey === 'design-commission-detail-fq' || pageKey === 'design-commission-detail-ec') {
     data.extraProducts = readCdExtraProducts(container, pageKey);
+    cdApplyCpModeToData(container, data);
   }
   data.category = mod.category;
   cdSyncPlatformNick(data);
@@ -11760,6 +11887,7 @@ async function cdSubmitClientOrder(data) {
 function init() {
   const s = getSettings();
   applyTheme(s.theme);
+  setInterval(healScrollLock, 3000); // v799: 滚动锁兜底自愈（弹窗全关时每 3 秒检查一次，防同步/异步时序卡锁）
   if (DB.get('ui_sidebar_collapsed', false)) $('#sidebar').classList.add('collapsed');
   migrateData();
   // v784: 先清理历史本地图片释放 localStorage 配额（配额满时删除/保存都会静默失败）
