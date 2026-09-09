@@ -788,9 +788,10 @@ ul,li{list-style:none}
 /* v28: hdr 标题行 — 背景色延伸至容器顶部 border 内边缘（margin-top:-8px 抵消 container 的 padding-top:8px），
    左右仍然 margin-left/right:-8px。padding-top:4px 保留作为文字顶部呼吸空间。 */
 .dynamic-list-header{
-  display:flex;gap:4px;
-  margin:-8px -8px 6px;padding:4px 8px 4px 8px;
-  font-size:11px;font-weight:600;color:var(--c-text-muted);
+  display:flex;gap:4px;align-items:center;
+  margin:-8px -8px 6px;padding:4px 8px;
+  min-height:30px;box-sizing:border-box;
+  font-size:11px;font-weight:400;color:var(--c-text-muted);
   background:var(--c-primary-bg);
   border-bottom:1px dashed var(--c-border);
 }
@@ -819,8 +820,8 @@ ul,li{list-style:none}
 /* v786: 合作类型列固定120px（表头与下拉格一致；覆盖 879 行的 1.5fr !important） */
 .dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-header span[data-subkey="coopType"]{flex:0 0 120px}
 .dynamic-list-container[data-key="cooperationRecords"] .combobox-wrapper[data-subkey="coopType"]{flex:0 0 120px !important;min-width:120px !important}
-.dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-header span[data-subkey="note"]{flex:1.5 1 0;min-width:330px}
-.dynamic-list-container[data-key="cooperationRecords"] .form-input[data-subkey="note"]{flex:1.5 1 0;min-width:330px}
+.dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-header span[data-subkey="note"]{flex:1.5 1 0;min-width:240px}
+.dynamic-list-container[data-key="cooperationRecords"] .form-input[data-subkey="note"]{flex:1.5 1 0;min-width:240px}
 .dynamic-list-rows{display:flex;flex-direction:column;gap:4px;padding:0;margin-bottom:6px}
 .dynamic-list-row{display:flex;gap:4px;align-items:center}
 .dynamic-list-row .form-input{padding:6px 8px;font-size:12px;flex:1;min-width:0;box-sizing:border-box;text-align:left}
@@ -1148,30 +1149,13 @@ ul,li{list-style:none}
   .modal{width:100%;max-height:95vh;border-radius:0}
   .modal-overlay{padding:0}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
-  .dynamic-list-row{flex-wrap:wrap;gap:4px}
-  .dynamic-list-row .form-input{min-width:60px}
   .dynamic-list-container > .btn{width:100%;margin-left:0 !important;align-self:stretch;padding:6px 10px}
-  /* v787: 手机端合作记录——日期+备注同行（日期占位词完整显示），备注缩短不再独占整行 */
-  .dynamic-list-container[data-key="cooperationRecords"] .date-field-wrap{flex:1 1 170px;min-width:170px;padding-right:8px}
-  .dynamic-list-container[data-key="cooperationRecords"] .date-field-wrap .form-input{min-width:0;width:auto;flex:1 1 auto}
-  .dynamic-list-container[data-key="cooperationRecords"] .form-input[data-subkey="note"]{flex:1 1 100px;min-width:0}
-  /* v22 mobile 列宽（与 header 保持一致） */
-  .dynamic-list-row .form-input[data-subkey="name"]{flex:1.5 1 90px}
-  .dynamic-list-row .form-input[data-subkey="project"]{flex:1.5 1 90px}
-  .dynamic-list-row .form-input[data-subkey="patternId"]{flex:0 0 72px}
-  .dynamic-list-row .form-input[data-subkey="price"]{flex:0 0 55px}
-  .dynamic-list-row .form-input[data-subkey="size"]{flex:0 0 70px}
-  .dynamic-list-row .form-input[data-subkey="quantity"]{flex:0 0 60px}
-  .dynamic-list-row .form-input[data-subkey="salesCount"]{flex:0 0 80px}
-  .dynamic-list-row .form-input[data-subkey="isDisbanded"]{flex:0 0 70px}
-  .dynamic-list-row .form-input[data-subkey="factory"]{flex:1 1 0;min-width:80px}
-  .dynamic-list-row .form-input[data-subkey="type"]{flex:0 0 70px}
-  .dynamic-list-row .form-input[data-subkey="amount"]{flex:0 0 60px}
-  .dynamic-list-row .form-input[data-subkey="sameModel"]{flex:0 0 110px}
-  .dynamic-list-row .form-input[data-subkey="date"]{flex:0 0 100px}
-  .dynamic-list-row .form-input[data-subkey="note"]{flex:1 1 0;min-width:60px}
-  .dynamic-list-row .combobox-wrapper{min-width:80px;flex:1 1 80px}
-  .dynamic-list-row > button{flex-shrink:0;min-width:40px}
+  /* v788: 手机端动态列表重排——固定两列网格，不再随机换行；删除固定右下角不悬空 */
+  .dynamic-list-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+  .dynamic-list-row > *{min-width:0}
+  .dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-header span[data-subkey="note"],
+  .dynamic-list-container[data-key="cooperationRecords"] .form-input[data-subkey="note"]{min-width:0}
+  .dynamic-list-row > button{grid-column:2;justify-self:end}
   /* v22 mobile 标题与内容列对齐 */
   .dynamic-list-header{font-size:10px;padding:6px 0;display:flex!important;gap:4px;background:transparent}
   .dynamic-list-header span{padding-left:8px;box-sizing:border-box;text-align:left}
@@ -3348,7 +3332,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=787"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=788"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
