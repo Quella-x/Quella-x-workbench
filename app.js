@@ -1834,7 +1834,7 @@ function showComboboxDropdown(id) {
   const dd = document.getElementById(id);
   if (dd) {
     dd.classList.add('show');
-    const wrapper = dd.closest('.combobox-wrapper');
+    const wrapper = cbOptionWrapper(null, id);
     const input = wrapper ? wrapper.querySelector('.combobox-input') : null;
     const hidden = wrapper ? wrapper.querySelector('.combobox-value') : null;
     const currentVal = hidden ? hidden.value : (input ? input.value : '');
@@ -1923,10 +1923,18 @@ function filterComboboxDropdown(id, val) {
   $$('.combobox-option', dd).forEach(o => {
     o.style.display = (!v || o.textContent.toLowerCase().includes(v)) ? '' : 'none';
   });
-  layoutComboboxDropdown(dd, dd._cbWrapper || (dd.closest('.combobox-wrapper')));
+  layoutComboboxDropdown(dd, dd._cbWrapper || cbOptionWrapper(null, id));
+}
+/* v795: portal 期间的选项解析——下拉被 cbPortal 移到 body 后，option.closest('.combobox-wrapper')
+   拿到 null → selectComboboxOption 等所有选项回调静默 return，「下拉框选不了」。
+   统一改为：优先用 dd._cbHost（portal 前的原父节点 = wrapper），兜底 closest。 */
+function cbOptionWrapper(el, cbId) {
+  const dd = (el && el.closest('.combobox-dropdown')) || (cbId ? document.getElementById(cbId) : null);
+  if (dd) return (dd._cbHost && dd._cbHost.classList && dd._cbHost.classList.contains('combobox-wrapper')) ? dd._cbHost : (dd.closest('.combobox-wrapper') || dd._cbHost || null);
+  return el ? el.closest('.combobox-wrapper') : null;
 }
 function selectComboboxOption(id, el) {
-  const wrapper = el.closest('.combobox-wrapper');
+  const wrapper = cbOptionWrapper(el, id);
   if (!wrapper) return;
   const input = wrapper.querySelector('.combobox-input');
   const hidden = wrapper.querySelector('.combobox-value');
@@ -6209,7 +6217,7 @@ function dcRenderProducts() {
 }
 
 function dcSelectProduct(idx, el, cbId) {
-  const wrapper = el.closest('.combobox-wrapper');
+  const wrapper = cbOptionWrapper(el, cbId);
   if (!wrapper) return;
   const input = wrapper.querySelector('.combobox-input');
   if (input) {
@@ -6238,7 +6246,7 @@ function dcMakeSet() {
 
 // AS轮：同模类型 combobox 选择回调
 function dcSelectModelType(idx, el, modelCbId) {
-  const wrapper = el.closest('.combobox-wrapper');
+  const wrapper = cbOptionWrapper(el, modelCbId);
   if (!wrapper) return;
   const input = wrapper.querySelector('.combobox-input');
   const val = el.dataset.value || el.textContent;
@@ -6360,7 +6368,7 @@ function dcRenderExtras() {
 }
 
 function dcSelectExtra(idx, el, cbId) {
-  const wrapper = el.closest('.combobox-wrapper');
+  const wrapper = cbOptionWrapper(el, cbId);
   if (!wrapper) return;
   const input = wrapper.querySelector('.combobox-input');
   if (input) {
@@ -6380,7 +6388,7 @@ function dcExtraBindDisplay(seq) {
   return seq;
 }
 function dcSelectExtraBind(idx, el, cbId) {
-  const wrapper = el.closest('.combobox-wrapper');
+  const wrapper = cbOptionWrapper(el, cbId);
   if (!wrapper) return;
   const input = wrapper.querySelector('.combobox-input');
   if (input) {
@@ -6423,7 +6431,7 @@ function dcRenderModifications() {
 }
 
 function dcSelectModification(idx, el, cbId) {
-  const wrapper = el.closest('.combobox-wrapper');
+  const wrapper = cbOptionWrapper(el, cbId);
   if (!wrapper) return;
   const input = wrapper.querySelector('.combobox-input');
   if (input) {
