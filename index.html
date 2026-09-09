@@ -828,14 +828,14 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="size"]{flex:0 0 95px}
 .dynamic-list-container[data-key="products"][data-module="design-commission"] .form-input[data-subkey="size"]{flex:0 0 95px}
 }
-/* v796: 接稿排期制品「制品」列定宽 147px（=716 行宽 − 其余列和 − gap），表头 span / 下拉 wrapper / 普通输入框三方同值——
-   此前靠 flex-grow 伸展吸收富余宽度，用户环境出现过「字段行制品列不伸展(121px)且富余堆积在删除前」的整列左移 26px 漂移
-   （表头却与代码逐像素吻合，机制无法复现）。定宽后不再依赖 grow 分配，任何环境/缓存组合都逐列严格对齐；
-   147 与此前正确渲染完全等值（桌面容器恒 734、行恒 716），宽屏零视觉变化 */
+/* v797: 接稿排期制品「制品」列改为「弹性伸展、最小 147px」（表头 span / 下拉 wrapper / 普通输入框三方同值同步 grow）——
+   v796 纯钉死 147 后行内无 grower，容器 >734 时富余宽度悬空、删除按钮与「操作」表头错位（用户 v796 截图实测删除在容器右缘 719-759、表头操作在 685-725）。
+   flex:1 1 147px + min-width:147px：容器 ≥734 时制品列吸收全部富余、删除恒贴行右缘（=v795 正确形态）；
+   容器 734 时制品列恰为 147（与 v796 等值）；即便 grow 失效（用户环境曾现 121px 漂移）也有 min-width:147 下限，列仍对齐不漂 */
 @media (min-width:769px){
-.dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="name"],
+.dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="name"]{flex:1 1 147px;min-width:147px}
 .dynamic-list-container[data-key="products"][data-module="design-commission"] .combobox-wrapper[data-subkey="name"],
-.dynamic-list-container[data-key="products"][data-module="design-commission"] .form-input[data-subkey="name"]{flex:0 0 147px!important;width:147px;min-width:0!important}
+.dynamic-list-container[data-key="products"][data-module="design-commission"] .form-input[data-subkey="name"]{flex:1 1 147px!important;min-width:147px!important}
 }
 .dynamic-list-row .form-input[data-subkey="quantity"]{flex:0 0 60px}
 .dynamic-list-row .form-input[data-subkey="salesCount"]{flex:0 0 80px}
@@ -3401,7 +3401,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=796"></script>
+  <script src="app.js?v=797"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
