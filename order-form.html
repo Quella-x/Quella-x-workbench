@@ -910,6 +910,33 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="products"] .combobox-wrapper[data-subkey="isDisbanded"]{flex:0 0 90px!important;min-width:0!important}
 /* v792: 下拉框内边距还原——仅合作记录作用域 8px 等高（你上轮截图的就是这里），制品/其他保留 v789 的 6px（30px 短于字段 4px 是你确认过的「上一版好好的」状态）*/
 .dynamic-list-row .combobox-input{padding:6px 26px 6px 8px!important;font-size:12px}
+/* v793: 开团记录列宽重定义——单价/售卖数量/是否流团/单号/售后数量/价格 统一80px；制品名称+对应厂家 均分剩余；售后 制品名称+补偿方式 均分剩余（表头/字段写同一组值，整列严格对齐） */
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="name"],
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="factory"]{flex:0 0 208px}
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="name"],
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .combobox-wrapper[data-subkey="name"],
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .form-input[data-subkey="name"]{flex:0 0 208px!important;width:208px!important;min-width:0!important}
+/* 开团 name/factory 是普通 input 或 wrapper 混合——表头 min-width 统一 0、factory 去 30px padding hack，保证 1:1 均分对称 */
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="factory"]{min-width:0;padding-left:8px}
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .combobox-wrapper[data-subkey="factory"]{flex:0 0 208px!important;width:208px!important;min-width:0!important}
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="price"],
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .form-input[data-subkey="price"]{flex:0 0 80px}
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="isDisbanded"],
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .combobox-wrapper[data-subkey="isDisbanded"]{flex:0 0 80px!important;min-width:0!important}
+.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="orderNo"],
+.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="orderNo"]{flex:0 0 80px}
+.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="name"],
+.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="type"]{flex:0 0 208px}
+.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="name"]{flex:0 0 208px!important;width:208px!important;min-width:0!important}
+.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="type"],
+.dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="type"]{flex:0 0 208px!important;width:208px!important;min-width:0!important}
+/* v793: 手机端接稿排期制品行2收窄——尺寸60/数量40/同模90/加急40，与删除(40)同挤一行（可用294 = 60+40+(90+4+40)+40+4×4gap = 290） */
+@media (max-width:768px){
+  .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-row .form-input[data-subkey="size"]{flex:0 0 60px!important}
+  .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-row .form-input[data-subkey="quantity"]{flex:0 0 40px!important;min-width:0!important}
+  .dynamic-list-container[data-key="products"] .combobox-wrapper[data-subkey="sameModel"]{flex:0 0 90px!important;min-width:0!important}
+  .dynamic-list-row .dl-urgent-cell{flex:0 0 40px}
+}
 .dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-row .combobox-input{padding:8px 26px 8px 8px!important}
 .dynamic-list-row .combobox-toggle{right:2px;width:18px;font-size:10px}
 .dynamic-list-row button{
@@ -3362,7 +3389,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=792"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=793"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
