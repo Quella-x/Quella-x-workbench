@@ -2816,18 +2816,31 @@ function cdApplyCpModeToData(container, data) {
   } catch (e) {}
   return data;
 }
-// v799: CP 记录展示行（单人四项并列带第二人 + CP名）
+// v800: CP 记录展示行（每行 标签｜第一人值｜第二人值 两列并列）；CP名 由调用方单独整行输出
 function cdCpDisplayRows(r) {
   const isFq = r.category === '饭圈';
   const nm = isFq ? '姓名' : '角色名';
-  const j = (a, b) => [a, b].filter(x => x != null && String(x).trim() !== '').map(x => String(x).trim()).join(' / ');
+  const t = (x) => (x == null ? '' : String(x)).trim();
   return [
-    [nm, j(r.charName, r.charName2)],
-    ['昵称', j(r.nickName, r.nickName2)],
-    ['英文名', j(r.englishName, r.englishName2)],
-    ['生日', j(r.birthday, r.birthday2)],
-    ['CP名', String(r.cpName == null ? '' : r.cpName).trim()],
-  ].filter(row => row[1]);
+    [nm, t(r.charName), t(r.charName2)],
+    ['昵称', t(r.nickName), t(r.nickName2)],
+    ['英文名', t(r.englishName), t(r.englishName2)],
+    ['生日', t(r.birthday), t(r.birthday2)],
+  ].filter(row => row[1] || row[2]);
+}
+// v800: CP 记录 HTML（rec=cd-rec 行视图 / detail=detail 行视图）；第一人/第二人值中间加分隔线
+function cdCpRowsHtml(r, mode) {
+  let h = '';
+  cdCpDisplayRows(r).forEach(([k, v1, v2]) => {
+    if (mode === 'rec') h += `<div class="cd-rec-row cd-rec-cp-row"><span class="cd-rec-k">${esc(k)}</span><span class="cd-rec-v cd-rec-v1">${esc(v1)}</span><span class="cd-rec-v cd-rec-v2">${esc(v2)}</span></div>`;
+    else h += `<div class="detail-row cd-det-cp-row"><span class="detail-label">${esc(k)}</span><span class="detail-value">${esc(v1)}</span><span class="detail-value">${esc(v2)}</span></div>`;
+  });
+  const cpn = String(r.cpName == null ? '' : r.cpName).trim();
+  if (cpn) {
+    if (mode === 'rec') h += cdRecRow('CP名', cpn);
+    else h += `<div class="detail-row"><span class="detail-label">CP名</span><span class="detail-value">${esc(cpn)}</span></div>`;
+  }
+  return h;
 }
 function cdIsCpRecord(r) {
   return r.cpMode === 'cp' || ['charName2', 'nickName2', 'englishName2', 'birthday2', 'cpName'].some(k => r[k] != null && String(r[k]).trim() !== '');
@@ -2838,8 +2851,8 @@ MODULES['design-commission-detail-twy'] = {
   store: 'commissionDetails',
   category: '土味',
   fields: [
-    { section: '单主信息', hint: '用于与接稿排期联动，可自行修改' },
-    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true },
+    { section: '单主信息' },
+    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true, hintInline: true, hint: '用于与接稿排期联动，可自行修改' },
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
     { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">（特殊尺寸出血请修改 可直接给模板）</span></label><div class="style-color-box info-box cd-product-box cd-twy-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input combobox-input cd-twy-product-combobox" data-key="product" placeholder="请输入或选择制品"></div><div class="style-color-col"><span class="style-color-col-label">排版</span><input type="text" class="form-input" data-key="layout" placeholder="排版"></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">（初始为默认尺寸）</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">（初始为默认出血）</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
@@ -2868,8 +2881,8 @@ MODULES['design-commission-detail-fm'] = {
   store: 'commissionDetails',
   category: '封面',
   fields: [
-    { section: '单主信息', hint: '用于与接稿排期联动，可自行修改' },
-    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true },
+    { section: '单主信息' },
+    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true, hintInline: true, hint: '用于与接稿排期联动，可自行修改' },
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
     { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">尺寸信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">网站/书城</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="type" placeholder="网站/书城" onfocus="showComboboxDropdown(\'cdFmPlatformCb\')" onclick="showComboboxDropdown(\'cdFmPlatformCb\')" oninput="filterComboboxDropdown(\'cdFmPlatformCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdFmPlatformCb\')">▼</button><div class="combobox-dropdown" id="cdFmPlatformCb"><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPlatformCb\',this)" data-value="网站">网站</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPlatformCb\',this)" data-value="书城">书城</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPlatformCb\',this)" data-value="其他">其他</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸</span><input type="text" class="form-input" data-key="size" placeholder="平台尺寸"></div><div class="style-color-col"><span class="style-color-col-label">是否加logo</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="addLogo" placeholder="是否加logo" onfocus="showComboboxDropdown(\'cdFmLogoCb\')" onclick="showComboboxDropdown(\'cdFmLogoCb\')" oninput="filterComboboxDropdown(\'cdFmLogoCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdFmLogoCb\')">▼</button><div class="combobox-dropdown" id="cdFmLogoCb"><div class="combobox-option" onclick="selectComboboxOption(\'cdFmLogoCb\',this)" data-value="不加">不加</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmLogoCb\',this)" data-value="加">加</div></div></div></div></div></div>' },
@@ -2901,14 +2914,14 @@ MODULES['design-commission-detail-fq'] = {
   store: 'commissionDetails',
   category: '饭圈',
   fields: [
-    { section: '单主信息', hint: '用于与接稿排期联动，可自行修改' },
-    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true },
+    { section: '单主信息' },
+    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true, hintInline: true, hint: '用于与接稿排期联动，可自行修改' },
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
     { key: 'usageType', cls: 'cd-title-gap14', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'theme', label: '企划/主题名称', type: 'text' },
     { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">（特殊尺寸出血请修改 可直接给模板）</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="请输入或选择制品"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" placeholder="工艺" onfocus="showComboboxDropdown(\'cdCraftCb\')" onclick="showComboboxDropdown(\'cdCraftCb\')" oninput="filterComboboxDropdown(\'cdCraftCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdCraftCb\')">▼</button><div class="combobox-dropdown" id="cdCraftCb"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption(\'cdCraftCb\',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption(\'cdCraftCb\',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption(\'cdCraftCb\',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption(\'cdCraftCb\',this)">烫色</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">（初始为默认尺寸）</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">（初始为默认出血）</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
-    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息<span class="cd-cp-switch"><button type="button" class="lbt-btn active" data-cpmode="single" onclick="cdSetCpMode(this,\'single\')">单人</button><button type="button" class="lbt-btn" data-cpmode="cp" onclick="cdSetCpMode(this,\'cp\')">CP</button></span></label><div class="style-color-box info-box cd-imp-box"><div class="cd-imp-single"><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div><div class="cd-imp-cp" style="display:none"><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">CP名</span><input type="text" class="form-input" data-key="cpName"></div></div></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息<span class="cd-cp-switch"><button type="button" class="lbt-btn active" data-cpmode="single" onclick="cdSetCpMode(this,\'single\')">单人</button><button type="button" class="lbt-btn" data-cpmode="cp" onclick="cdSetCpMode(this,\'cp\')">CP向</button></span></label><div class="style-color-box info-box cd-imp-box"><div class="cd-imp-single"><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div><div class="cd-imp-cp" style="display:none"><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">CP名</span><input type="text" class="form-input" data-key="cpName"></div></div></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">（可以给参考图/色卡 请把主色写最前面）</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">元素</label><div class="style-color-box elements-box"><div class="style-color-col"><span class="style-color-col-label">必用</span><input type="text" class="form-input" data-key="elementsRequired"></div><div class="style-color-col"><span class="style-color-col-label">可选</span><input type="text" class="form-input" data-key="elementsOptional"></div><div class="style-color-col"><span class="style-color-col-label">避雷</span><input type="text" class="form-input" data-key="elementsAvoid"></div></div></div>' },
     { key: 'copyText', label: '文案', type: 'textarea' },
@@ -2933,15 +2946,15 @@ MODULES['design-commission-detail-ec'] = {
   store: 'commissionDetails',
   category: '二次',
   fields: [
-    { section: '单主信息', hint: '用于与接稿排期联动，可自行修改' },
-    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true },
+    { section: '单主信息' },
+    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true, hintInline: true, hint: '用于与接稿排期联动，可自行修改' },
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
     { key: 'usageType', cls: 'cd-title-gap14', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'theme', label: '企划/主题名称', type: 'text' },
     { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">（特殊尺寸出血请修改 可直接给模板）</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="请输入或选择制品"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" placeholder="工艺" onfocus="showComboboxDropdown(\'cdCraftCb\')" onclick="showComboboxDropdown(\'cdCraftCb\')" oninput="filterComboboxDropdown(\'cdCraftCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdCraftCb\')">▼</button><div class="combobox-dropdown" id="cdCraftCb"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption(\'cdCraftCb\',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption(\'cdCraftCb\',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption(\'cdCraftCb\',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption(\'cdCraftCb\',this)">烫色</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">（初始为默认尺寸）</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">（初始为默认出血）</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
     { key: 'ipName', label: 'IP', type: 'text' },
-    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息<span class="cd-cp-switch"><button type="button" class="lbt-btn active" data-cpmode="single" onclick="cdSetCpMode(this,\'single\')">单人</button><button type="button" class="lbt-btn" data-cpmode="cp" onclick="cdSetCpMode(this,\'cp\')">CP</button></span></label><div class="style-color-box info-box cd-imp-box"><div class="cd-imp-single"><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div><div class="cd-imp-cp" style="display:none"><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">CP名</span><input type="text" class="form-input" data-key="cpName"></div></div></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息<span class="cd-cp-switch"><button type="button" class="lbt-btn active" data-cpmode="single" onclick="cdSetCpMode(this,\'single\')">单人</button><button type="button" class="lbt-btn" data-cpmode="cp" onclick="cdSetCpMode(this,\'cp\')">CP向</button></span></label><div class="style-color-box info-box cd-imp-box"><div class="cd-imp-single"><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div><div class="cd-imp-cp" style="display:none"><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">CP名</span><input type="text" class="form-input" data-key="cpName"></div></div></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">（可以给参考图/色卡 请把主色写最前面）</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">元素</label><div class="style-color-box elements-box"><div class="style-color-col"><span class="style-color-col-label">必用</span><input type="text" class="form-input" data-key="elementsRequired"></div><div class="style-color-col"><span class="style-color-col-label">可选</span><input type="text" class="form-input" data-key="elementsOptional"></div><div class="style-color-col"><span class="style-color-col-label">避雷</span><input type="text" class="form-input" data-key="elementsAvoid"></div></div></div>' },
     { key: 'copyText', label: '文案', type: 'textarea' },
@@ -4092,10 +4105,10 @@ function cdDetailRowsFor(data, cat, isExtra, base) {
   if (cat === '土味' || cat === '封面') {
     add('书名/文字', data.bookName); add('类型', data.type); add('尺寸', data.size); add('颜色', color);
   } else if (cat === '饭圈') {
-    // v799: CP 模式卡片显示 CP名
-    add('姓名', (data.cpMode === 'cp' && data.cpName) ? data.cpName : charName); add('制品', data.product); add('尺寸', data.size); add('风格', style); add('颜色', color);
+    // v800: CP 记录卡片标签改「CP名」（值仍优先 CP名，回退姓名）
+    add((base && cdIsCpRecord(base)) ? 'CP名' : '姓名', (data.cpMode === 'cp' && data.cpName) ? data.cpName : charName); add('制品', data.product); add('尺寸', data.size); add('风格', style); add('颜色', color);
   } else if (cat === '二次') {
-    add('角色名', (data.cpMode === 'cp' && data.cpName) ? data.cpName : charName); add('制品', data.product); add('尺寸', data.size); add('风格', style); add('颜色', color);
+    add((base && cdIsCpRecord(base)) ? 'CP名' : '角色名', (data.cpMode === 'cp' && data.cpName) ? data.cpName : charName); add('制品', data.product); add('尺寸', data.size); add('风格', style); add('颜色', color);
   } else {
     add('类型', data.type); add('制品', data.product); add('尺寸', data.size); add('颜色', color);
   }
@@ -10435,9 +10448,9 @@ function renderCdFullRecord(r) {
     // 自定义 HTML 块（饭圈/二次：重要信息 / 风格颜色 / 元素）按 data-key 渲染非空子字段
     if (f.type === 'custom') {
       const doc = new DOMParser().parseFromString(f.html || '', 'text/html');
-      // v799: 饭圈/二次重要信息——CP 记录按「四项并列带第二人 + CP名」展示
+      // v800: 饭圈/二次重要信息——CP 记录按「标签｜第一人｜第二人」两列展示 + CP名 整行
       if (doc.querySelector('.cd-imp-box') && cdIsCpRecord(r)) {
-        cdCpDisplayRows(r).forEach(([k, v]) => { h += `<div class="cd-rec-row"><span class="cd-rec-k">${esc(k)}</span><span class="cd-rec-v">${esc(v)}</span></div>`; });
+        h += cdCpRowsHtml(r, 'rec');
         return;
       }
       let rendered = '';
@@ -10514,8 +10527,10 @@ function cdRenderCustomFieldRows(f, r, mode) {
   const cols = doc.querySelectorAll('.style-color-col');
   let rows = [];
   if (doc.querySelector('.cd-imp-box') && cdIsCpRecord(r)) {
-    // v799: CP 记录按并列展示
-    rows = cdCpDisplayRows(r);
+    // v800: CP 记录按「标签｜第一人｜第二人」两列展示 + CP名 整行
+    let cpH = cdCpRowsHtml(r, mode === 'rec' ? 'rec' : 'detail');
+    if (cpH && boxLabel) cpH = (mode === 'rec' ? `<div class="cd-rec-section">${esc(boxLabel)}</div>` : `<div class="form-section-title">${esc(boxLabel)}</div>`) + cpH;
+    return cpH;
   } else rows = (() => {
     const arr = [];
     cols.forEach(col => {

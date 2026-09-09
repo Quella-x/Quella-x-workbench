@@ -705,7 +705,7 @@ html.apk.modal-lock{overflow:hidden!important}
 /* v450-5：展示/录入模块分组标题（含九大模块详情分组），底部分割线与接稿详情右侧 .cdc-header 一致 */
 .form-section{font-size:13px;font-weight:600;color:var(--c-primary);margin:16px 0 10px;padding-bottom:6px;border-bottom:1.5px solid var(--c-border)}
 /* v799: 小节标题右侧提示词（与 form-label-hint 同款式） */
-.form-section-hint{display:inline;font-size:11px;color:var(--c-text-muted);font-weight:400;margin-left:8px}
+.form-section-hint{display:inline;font-size:11px;color:var(--c-text-muted);font-weight:400;margin-left:3px}
 .form-section:first-child{margin-top:0}
 /* v32: 同行字段（row 属性）——一行多列 */
 .form-row-inline{margin-bottom:14px}
@@ -718,17 +718,23 @@ html.apk.modal-lock{overflow:hidden!important}
 .style-color-row{margin-bottom:14px}
 .cd-title-gap14{margin-top:14px}
 .style-color-row>.form-label{display:block;margin-bottom:0}
-.form-label-hint{display:inline;font-size:11px;color:var(--c-text-muted);font-weight:400;margin-left:8px}
+.form-label-hint{display:inline;font-size:11px;color:var(--c-text-muted);font-weight:400;margin-left:3px}
 .style-color-box{display:flex;gap:12px;border:1px solid var(--c-border-light);border-radius:10px;padding:12px;background:#fff}
 .style-color-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
 .style-color-col-label{font-size:13px;color:var(--c-text);font-weight:500}
-/* v799: 饭圈/二次重要信息——单人/CP 独立小按钮（周/月/年 .lbt-btn 同款），置于小节标题右侧与大框右缘对齐 */
+/* v800: 饭圈/二次重要信息——单人/CP 独立小按钮（周/月/年 .lbt-btn 同款），置于小节标题右侧与大框右缘对齐；两按钮等宽同尺寸 */
 .cd-cp-switch{float:right;display:inline-flex;gap:6px}
-.cd-imp-box{flex-direction:column;align-items:stretch;gap:8px}
-.cd-imp-single{display:flex;gap:12px}
-.cd-imp-cp{display:flex;flex-direction:column;gap:10px}
-.cd-imp-cp-row{display:flex;gap:12px}
-.cd-imp-cp-row .style-color-col{flex:1;min-width:0}
+.cd-cp-switch .lbt-btn{min-width:54px;text-align:center}
+/* v800: 修复 v799 回归——.cd-imp-box 自带 info-box 两列网格，v799 的包裹层各占一格被挤成半宽（单人/CP 都挤成左边一坨）。
+   三类连写压过 .style-color-box.info-box（1.5 类选择器不够，实测被覆盖）；单人/CP 恢复未改之前大框样式：
+   两列均分、标签在上输入框在下、12px 间距（与制品信息大框一致）；CP名 整行 */
+.style-color-box.info-box.cd-imp-box{display:block}
+.cd-imp-single{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cd-imp-single .style-color-col{min-width:0}
+.cd-imp-cp{display:flex;flex-direction:column;gap:12px}
+.cd-imp-cp-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cd-imp-cp-row .style-color-col{min-width:0}
+.cd-imp-cp-row:last-child{grid-template-columns:1fr}
 /* 元素三列 / 重要信息 2×2 大框 */
 .style-color-box.elements-box{flex-wrap:nowrap}
 .style-color-box.info-box{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -1872,7 +1878,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .calc-page-grid{display:grid;grid-template-columns:1fr 340px;gap:10px;align-items:stretch;height:100%}
 .calc-input-col{display:flex;flex-direction:column;gap:10px;height:100%;overflow-y:auto;container-type:inline-size}
 .calc-card{background:var(--c-card);border-radius:10px;padding:14px;box-shadow:var(--shadow-sm)}
-.calc-card-title{font-size:14px;font-weight:600;color:var(--c-text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.calc-card-title{font-size:14px;font-weight:600;color:var(--c-text);margin-bottom:10px;display:flex;align-items:center;gap:3px}
 .price-calc-title{margin-bottom:16px}
 .calc-card-hint{font-size:11px;font-weight:400;color:var(--c-text-muted)}
 .calc-mode-tabs{display:flex;gap:0;margin-bottom:8px}
@@ -2984,6 +2990,16 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-rec-row{display:flex;gap:10px;padding:5px 0 5px 11px;font-size:13px;line-height:1.6;border-bottom:1px dashed var(--c-border-light)}
 .cd-rec-k{flex:0 0 96px;color:var(--c-text-muted);font-weight:400}
 .cd-rec-v{flex:1;color:var(--c-text);word-break:break-all}
+/* v800: 接稿详情 CP 记录——每行「标签｜第一人｜第二人」，两人值之间加分隔线；CP名 照常单值行不后移 */
+.cd-rec-row.cd-rec-cp-row{gap:0}
+.cd-rec-row.cd-rec-cp-row .cd-rec-v1{flex:1;padding-right:10px;border-right:1px solid var(--c-border-light)}
+.cd-rec-row.cd-rec-cp-row .cd-rec-v2{flex:1;padding-left:10px}
+/* v800: detail 视图同款 CP 两列（标签｜第一人｜第二人，中间分隔线） */
+.detail-row.cd-det-cp-row{flex-wrap:nowrap;gap:0}
+.detail-row.cd-det-cp-row .detail-label{flex:0 0 96px}
+.detail-row.cd-det-cp-row .detail-value{flex:1;font-size:13px}
+.detail-row.cd-det-cp-row .detail-value:first-of-type{padding-right:10px;border-right:1px solid var(--c-border-light)}
+.detail-row.cd-det-cp-row .detail-value + .detail-value{padding-left:10px}
 .cd-rec-pre{white-space:pre-wrap}
 .cd-pager{display:flex;gap:6px;justify-content:center;margin-top:14px;flex-wrap:wrap}
 .cd-page-btn{padding:5px 12px;border:1px solid var(--c-border-light);border-radius:8px;background:#fff;font-size:13px;cursor:pointer;color:var(--c-text)}
@@ -3429,7 +3445,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=799"></script>
+  <script src="app.js?v=800"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
