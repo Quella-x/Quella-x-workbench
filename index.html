@@ -823,8 +823,11 @@ ul,li{list-style:none}
 .dynamic-list-row .form-input[data-subkey="patternId"]{flex:0 0 80px}
 .dynamic-list-row .form-input[data-subkey="price"]{flex:0 0 60px}
 .dynamic-list-row .form-input[data-subkey="size"]{flex:0 0 75px}
+/* v794: 尺寸列 95px 仅电脑端——手机端回落 v1.1.30 的 70px（95px 会把「无同模+加急」挤出第二行，破坏 v1.1.30 三行布局） */
+@media (min-width:769px){
 .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="size"]{flex:0 0 95px}
 .dynamic-list-container[data-key="products"][data-module="design-commission"] .form-input[data-subkey="size"]{flex:0 0 95px}
+}
 .dynamic-list-row .form-input[data-subkey="quantity"]{flex:0 0 60px}
 .dynamic-list-row .form-input[data-subkey="salesCount"]{flex:0 0 80px}
 .dynamic-list-row .form-input[data-subkey="isDisbanded"]{flex:0 0 70px}
@@ -875,14 +878,11 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyCount"]{flex:0 0 70px;padding-left:8px;margin-left:0}
 .dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="modifyPrice"]{flex:0 0 100px;padding-left:8px;margin-left:0}
 .dynamic-list-container[data-key="modifications"] .dynamic-list-header span[data-subkey="note"]{flex:1 1 0;min-width:80px;padding-left:8px;margin-left:0}
-/* P轮修正：开团记录制品列表「单价/对应厂家」标题 padding-left 30px；
-   「售卖数量/是否流团」标题在目前 8px 基础上减 2 -> 6px；
-   接稿排期制品列表「价格」标题保持默认 8px（按 data-module 区分，避免互相影响） */
-.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="price"]{padding-left:30px}
-.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="factory"]{padding-left:30px}
-.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="quantity"]{padding-left:6px}
-.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="isDisbanded"]{padding-left:6px}
-.dynamic-list-container[data-key="products"][data-module="schedule"] .dynamic-list-header span[data-subkey="price"]{padding-left:8px}
+/* v794: 开团记录表头 padding hack 全部统一为 8px（P轮残留的 30px/6px 使「单价」等表头文字比字段文字右移 22px——你红框圈的就是它）；
+   表头 span 有 1px 透明边框 + padding-left:8px = 文字起点 col+9，与输入框 1px 边框 + 8px 内边距 = col+9 严格一致 */
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="price"]{padding-left:8px}
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="quantity"]{padding-left:8px}
+.dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="isDisbanded"]{padding-left:8px}
 .dynamic-list-row .combobox-wrapper{flex:1.5 1 0!important;min-width:90px!important;position:relative}
 /* AE轮：接稿修改项目「修改类型」下拉框改为 130px */
 .dynamic-list-container[data-key="modifications"] .dynamic-list-row .combobox-wrapper[data-subkey="modifyType"]{flex:0 0 130px!important;min-width:130px!important}
@@ -898,13 +898,15 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="products"] .combobox-wrapper[data-subkey="isDisbanded"]{flex:0 0 90px!important;min-width:0!important}
 /* v792: 下拉框内边距还原——仅合作记录作用域 8px 等高（你上轮截图的就是这里），制品/其他保留 v789 的 6px（30px 短于字段 4px 是你确认过的「上一版好好的」状态）*/
 .dynamic-list-row .combobox-input{padding:6px 26px 6px 8px!important;font-size:12px}
-/* v793: 开团记录列宽重定义——单价/售卖数量/是否流团/单号/售后数量/价格 统一80px；制品名称+对应厂家 均分剩余；售后 制品名称+补偿方式 均分剩余（表头/字段写同一组值，整列严格对齐） */
+/* v793/v794: 开团记录列宽重定义（仅电脑端 ≥769px）——单价/售卖数量/是否流团/单号/售后数量/价格 统一80px；制品名称+对应厂家 均分剩余；售后 制品名称+补偿方式 均分剩余（表头/字段写同一组值，整列严格对齐）
+   v794: 包进 min-width:769px——手机端不能沿用电脑端 208/80 定宽（值要适配手机端），回落到 v1.1.30 的移动端自适应宽度 */
+@media (min-width:769px){
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="name"],
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="factory"]{flex:0 0 208px}
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="name"],
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .combobox-wrapper[data-subkey="name"],
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .form-input[data-subkey="name"]{flex:0 0 208px!important;width:208px!important;min-width:0!important}
-/* 开团 name/factory 是普通 input 或 wrapper 混合——表头 min-width 统一 0、factory 去 30px padding hack，保证 1:1 均分对称 */
+/* 开团 name/factory 是普通 input 或 wrapper 混合——表头 min-width 统一 0、factory padding 与输入框文字起点对齐，保证 1:1 均分对称 */
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="factory"]{min-width:0;padding-left:8px}
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .combobox-wrapper[data-subkey="factory"]{flex:0 0 208px!important;width:208px!important;min-width:0!important}
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="price"],
@@ -918,12 +920,13 @@ ul,li{list-style:none}
 .dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="name"]{flex:0 0 208px!important;width:208px!important;min-width:0!important}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="type"],
 .dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="type"]{flex:0 0 208px!important;width:208px!important;min-width:0!important}
-/* v793: 手机端接稿排期制品行2收窄——尺寸60/数量40/同模90/加急40，与删除(40)同挤一行（可用294 = 60+40+(90+4+40)+40+4×4gap = 290） */
+}
+/* v794: 手机端接稿排期制品列表完全还原 v1.1.30（wk_130 APK 实测提取）——撤销 v793 的「一行连排」收窄：
+   尺寸70/数量60/同模110/加急50（v22 移动基准，即 v1.1.30 原值），删除按钮 flex-shrink:0 min-width:40px 自然换行到第三行——
+   v1.1.30 的「删除独行」是 flex-wrap 自然换行的结果，不是强制 basis:100% */
+/* v794: 手机端下拉框高度与字段等高（你明确要求的）——弹窗内字段垂直内边距 8px=34px 高，下拉框此前 6px=30px 矮 4px；电脑端保持 6px（你确认过的「上一版好好的」）不动 */
 @media (max-width:768px){
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-row .form-input[data-subkey="size"]{flex:0 0 60px!important}
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-row .form-input[data-subkey="quantity"]{flex:0 0 40px!important;min-width:0!important}
-  .dynamic-list-container[data-key="products"] .combobox-wrapper[data-subkey="sameModel"]{flex:0 0 90px!important;min-width:0!important}
-  .dynamic-list-row .dl-urgent-cell{flex:0 0 40px}
+  .dynamic-list-row .combobox-input{padding-top:8px!important;padding-bottom:8px!important}
 }
 .dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-row .combobox-input{padding:8px 26px 8px 8px!important}
 .dynamic-list-row .combobox-toggle{right:2px;width:18px;font-size:10px}
@@ -3377,7 +3380,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=793"></script>
+  <script src="app.js?v=794"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
