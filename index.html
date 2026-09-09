@@ -85,6 +85,16 @@ ul,li{list-style:none}
 /* ===== Layout ===== */
 /* v1.1.7: 撤掉 #app padding-top —— 白带就是系统状态栏本身 32dp（最薄） */
 #app{display:flex;height:100vh;height:100dvh;overflow:hidden}
+/* v798: APK WebView 兜底——内部滚动链(#app 100dvh/flex + .main-body overflow-y:auto)在部分
+   Android WebView 上失效，全部页面完全划不动（同一资产网页端正常，v1.1.31 起 APK 均复现）。
+   MainActivity UA 追加 WorkbenchWebView 标记 → app.js 给 html 加 .apk 类 → 改走文档滚动
+   （WebView 文档滚动最可靠）；模态打开时由 _applyModalScrollLock 同步 html.modal-lock 锁滚动。
+   网页端（无 .apk 类）零影响。 */
+html.apk{overflow-y:auto}
+html.apk body{overflow:visible!important}
+html.apk #app{height:auto!important;overflow:visible!important}
+html.apk .main-body{overflow:visible!important}
+html.apk.modal-lock{overflow:hidden!important}
 
 /* ===== Sidebar ===== */
 .sidebar{
@@ -2733,10 +2743,15 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-card-head{padding:8px 10px}
   .lr-card-title{font-size:14px}
   .lr-card-body{padding:8px 10px}
-  .lr-subtype-box{align-items:center;gap:8px;padding:8px 10px}
+  .lr-subtype-box{align-items:center;gap:8px;padding:10px 10px}
   .lr-subtype-label{width:36px;font-size:16px;margin-top:8px}
   .lr-subtype-add{width:24px;height:24px;font-size:16px}
   .lr-empty-row{padding:9.5px 0}
+  /* v798: 手机端记录条加高一档（54→58px，盒 padding 8→10px，记录/空行同步等高）+ 内容下移居中：
+     全局 translateY(-2px) 是按桌面墨迹校准的，手机端实测 11/12.75（偏上 1.75px），改 -1px 后 12/11.75；
+     分割线 bottom 同步 -1px 抵消平移，保持居中。桌面端（62px/-2px）不动 */
+  .lr-record-row{transform:translateY(-1px)}
+  .lr-record-row::after{bottom:-1px}
   .lr-record-info-2col{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3px 22px}
   .lr-info-label{font-size:11px}
   .lr-info-val{font-size:14px}
@@ -3401,7 +3416,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=797"></script>
+  <script src="app.js?v=798"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

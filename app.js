@@ -363,6 +363,9 @@ if (window.MutationObserver) {
 // v-DY/v756: 模态打开时压入一条 history 状态，使手机系统「侧滑返回」手势优先关闭模态而非直接退出 APP
 // 用 #modalOverlay._pushed 记录该条目是否已压栈；closeModal 用 replaceState 把标记置为中性，
 // 不再调用 history.back()，避免在 iframe/file 等场景下把页面回退到 about:blank。
+// v798: APK WebView 兜底开关——MainActivity 的 UA 追加了 WorkbenchWebView 标记，
+// 检测到即给 html 加 .apk 类（配合 index.html 的 html.apk 规则改走文档滚动，修复 APK 全页面划不动）
+try { if (navigator.userAgent.indexOf('WorkbenchWebView') !== -1) document.documentElement.classList.add('apk'); } catch (e) {}
 function openModal(title, bodyHTML, footerBtns, size = '') {
   $('#modalTitle').textContent = title; $('#modalBody').innerHTML = bodyHTML;
   const fc = $('#modalFooter'); fc.innerHTML = ''; fc.style.display = '';
@@ -382,10 +385,14 @@ let _modalScrollLockN = 0;
 function _applyModalScrollLock() {
   try {
     const b = document.body, mb = document.getElementById('mainBody');
+    // v798: APK 模式（html.apk）下滚动走文档，需同步锁 html（body 已被 html.apk 规则 !important 放开）
+    const de = document.documentElement;
     if (_modalScrollLockN > 0) {
+      if (de) de.classList.add('modal-lock');
       if (b && b.style.overflow !== 'hidden') { b.dataset.prevOverflow = b.style.overflow || ''; b.style.overflow = 'hidden'; }
       if (mb && mb.style.overflow !== 'hidden') { mb.dataset.prevOverflow = mb.style.overflow || ''; mb.style.overflow = 'hidden'; }
     } else {
+      if (de) de.classList.remove('modal-lock');
       if (b) b.style.overflow = b.dataset.prevOverflow || '';
       if (mb) mb.style.overflow = mb.dataset.prevOverflow || '';
     }
@@ -11097,8 +11104,8 @@ function CD_PUBLIC_BASE() {
     const o = window.location.origin || '';
     if (/^https?:\/\//.test(o) && o.indexOf('appassets.androidplatform.net') === -1) return o.replace(/\/+$/, '');
   } catch (e) {}
-  // v777b: wb.link 域名绑定平台侧失效期间，APK 兜底改用沙盒直链；wb.link 恢复后换回
-  return 'https://3000-0b9f822813e042afaed3792e9df14ff8.e2b.sh7.sandbox.cloudstudio.club';
+  // v798: 沙盒反复停机（错误 12809）且不再救——APK 兜底永久改用 GitHub Pages（用户确认，旧沙盒链接作废）
+  return 'https://quella-x.github.io/Quella-x-workbench';
 }
 function buildCdClientUrl(catKey, preset) {
   let link = CD_PUBLIC_BASE() + '/order-form.html?cd_client=1&standalone=1&cat=' + encodeURIComponent(catKey);
