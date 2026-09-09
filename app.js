@@ -2816,7 +2816,7 @@ function cdApplyCpModeToData(container, data) {
   } catch (e) {}
   return data;
 }
-// v800: CP 记录展示行（每行 标签｜第一人值｜第二人值 两列并列）；CP名 由调用方单独整行输出
+// v801: CP 记录展示行（每行 标签｜第一人值｜第二人值 两列并列）；四字段没填也照常整行显示（空值占行）
 function cdCpDisplayRows(r) {
   const isFq = r.category === '饭圈';
   const nm = isFq ? '姓名' : '角色名';
@@ -2826,20 +2826,20 @@ function cdCpDisplayRows(r) {
     ['昵称', t(r.nickName), t(r.nickName2)],
     ['英文名', t(r.englishName), t(r.englishName2)],
     ['生日', t(r.birthday), t(r.birthday2)],
-  ].filter(row => row[1] || row[2]);
+  ];
 }
-// v800: CP 记录 HTML（rec=cd-rec 行视图 / detail=detail 行视图）；第一人/第二人值中间加分隔线
+// v800: CP 记录 HTML（rec=cd-rec 行视图 / detail=detail 行视图）。
+// v801: 两列值包进 .cd-rec-cp-vals/.cd-det-cp-vals 容器，分隔线由容器伪元素画在两人文字起点正中；
+//       CP名 空着也整行显示（与四字段一致）
 function cdCpRowsHtml(r, mode) {
   let h = '';
   cdCpDisplayRows(r).forEach(([k, v1, v2]) => {
-    if (mode === 'rec') h += `<div class="cd-rec-row cd-rec-cp-row"><span class="cd-rec-k">${esc(k)}</span><span class="cd-rec-v cd-rec-v1">${esc(v1)}</span><span class="cd-rec-v cd-rec-v2">${esc(v2)}</span></div>`;
-    else h += `<div class="detail-row cd-det-cp-row"><span class="detail-label">${esc(k)}</span><span class="detail-value">${esc(v1)}</span><span class="detail-value">${esc(v2)}</span></div>`;
+    if (mode === 'rec') h += `<div class="cd-rec-row cd-rec-cp-row"><span class="cd-rec-k">${esc(k)}</span><span class="cd-rec-v cd-rec-cp-vals"><span class="cd-rec-v1">${esc(v1)}</span><span class="cd-rec-v2">${esc(v2)}</span></span></div>`;
+    else h += `<div class="detail-row cd-det-cp-row"><span class="detail-label">${esc(k)}</span><span class="detail-value cd-det-cp-vals"><span class="cd-det-v1">${esc(v1)}</span><span class="cd-det-v2">${esc(v2)}</span></span></div>`;
   });
   const cpn = String(r.cpName == null ? '' : r.cpName).trim();
-  if (cpn) {
-    if (mode === 'rec') h += cdRecRow('CP名', cpn);
-    else h += `<div class="detail-row"><span class="detail-label">CP名</span><span class="detail-value">${esc(cpn)}</span></div>`;
-  }
+  if (mode === 'rec') h += cdRecRow('CP名', cpn);
+  else h += `<div class="detail-row"><span class="detail-label">CP名</span><span class="detail-value">${esc(cpn)}</span></div>`;
   return h;
 }
 function cdIsCpRecord(r) {
@@ -10428,6 +10428,12 @@ function renderCommissionDetailPage() {
   body.innerHTML = html;
 }
 
+// v801: 展示视图取大框列标签的基础文字（去掉括号提示词——提示词只在填写表单显示）
+function cdColLabelBase(lblEl) {
+  if (!lblEl) return '';
+  const n = lblEl.childNodes[0];
+  return (n ? n.textContent : lblEl.textContent).trim();
+}
 // 渲染单条约稿单的完整信息（按分组展示）
 function renderCdFullRecord(r) {
   const pageKey = (COMM_DETAIL_CATS.find(c => c.cat === r.category) || COMM_DETAIL_CATS[0]).key;
@@ -10459,7 +10465,7 @@ function renderCdFullRecord(r) {
         const inp = col.querySelector('[data-key]');
         const key = inp && inp.getAttribute('data-key');
         const lbl = col.querySelector('.style-color-col-label');
-        const label = lbl ? lbl.textContent.trim() : '';
+        const label = cdColLabelBase(lbl);
         if (!key || !label) return;
         const v = r[key];
         const val = Array.isArray(v) ? v.join('、') : String(v == null ? '' : v);
@@ -10541,7 +10547,7 @@ function cdRenderCustomFieldRows(f, r, mode) {
     const key = inp.getAttribute('data-key');
     const v = r[key];
     if (v == null || String(v).trim() === '') return;
-    let outLabel = lblEl.textContent.trim();
+    let outLabel = cdColLabelBase(lblEl);
     if (key === 'elementsRequired') outLabel = '元素·必用';
     else if (key === 'elementsOptional') outLabel = '元素·可用';
     else if (key === 'elementsAvoid') outLabel = '元素·避雷';

@@ -2991,15 +2991,18 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-rec-k{flex:0 0 96px;color:var(--c-text-muted);font-weight:400}
 .cd-rec-v{flex:1;color:var(--c-text);word-break:break-all}
 /* v800: 接稿详情 CP 记录——每行「标签｜第一人｜第二人」，两人值之间加分隔线；CP名 照常单值行不后移 */
-.cd-rec-row.cd-rec-cp-row{gap:0}
-.cd-rec-row.cd-rec-cp-row .cd-rec-v1{flex:1;padding-right:10px;border-right:1px solid var(--c-border-light)}
-.cd-rec-row.cd-rec-cp-row .cd-rec-v2{flex:1;padding-left:10px}
+.cd-rec-row.cd-rec-cp-row .cd-rec-cp-vals{flex:1;display:flex;position:relative;min-width:0}
+.cd-rec-row.cd-rec-cp-row .cd-rec-v1{flex:1;padding-right:10px;min-width:0}
+.cd-rec-row.cd-rec-cp-row .cd-rec-v2{flex:1;padding-left:10px;min-width:0}
+/* v801: 分隔线画在两人文字起点正中（值区 25%+5px，两人文字到线留白对称）；行保留 gap:10px 使第一列文字与其它行值左对齐（修 v800 gap:0 偏左 8px） */
+.cd-rec-row.cd-rec-cp-row .cd-rec-cp-vals::before{content:'';position:absolute;left:calc(25% + 5px);top:0;bottom:0;width:1px;background:var(--c-border-light)}
 /* v800: detail 视图同款 CP 两列（标签｜第一人｜第二人，中间分隔线） */
-.detail-row.cd-det-cp-row{flex-wrap:nowrap;gap:0}
+.detail-row.cd-det-cp-row{flex-wrap:nowrap}
 .detail-row.cd-det-cp-row .detail-label{flex:0 0 96px}
-.detail-row.cd-det-cp-row .detail-value{flex:1;font-size:13px}
-.detail-row.cd-det-cp-row .detail-value:first-of-type{padding-right:10px;border-right:1px solid var(--c-border-light)}
-.detail-row.cd-det-cp-row .detail-value + .detail-value{padding-left:10px}
+.detail-row.cd-det-cp-row .cd-det-cp-vals{display:flex;position:relative;min-width:0}
+.detail-row.cd-det-cp-row .cd-det-v1{flex:1;padding-right:10px;font-size:13px;min-width:0}
+.detail-row.cd-det-cp-row .cd-det-v2{flex:1;padding-left:10px;font-size:13px;min-width:0}
+.detail-row.cd-det-cp-row .cd-det-cp-vals::before{content:'';position:absolute;left:calc(25% + 5px);top:2px;bottom:2px;width:1px;background:var(--c-border-light)}
 .cd-rec-pre{white-space:pre-wrap}
 .cd-pager{display:flex;gap:6px;justify-content:center;margin-top:14px;flex-wrap:wrap}
 .cd-page-btn{padding:5px 12px;border:1px solid var(--c-border-light);border-radius:8px;background:#fff;font-size:13px;cursor:pointer;color:var(--c-text)}
@@ -3445,7 +3448,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=800"></script>
+  <script src="app.js?v=801"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
