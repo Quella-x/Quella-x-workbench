@@ -1572,7 +1572,7 @@ function buildCommissionBindCombobox(col, value, products) {
   let items = products;
   if (!items) {
     items = $$('#products_rows .dynamic-list-row').map((row, idx) => {
-      const ni = row.querySelector('[data-subkey="name"]');
+      const ni = row.querySelector('input[data-subkey="name"]'); // v789: 取 input 而非 wrapper div（div.value undefined 会抛 trim 错）
       return { name: ni ? ni.value.trim() : '', idx: idx };
     });
   }
@@ -1583,7 +1583,8 @@ function buildCommissionBindCombobox(col, value, products) {
 function refreshCommissionBindOptions() {
   const prodRows = $$('#products_rows .dynamic-list-row');
   const labels = prodRows.map((row, idx) => {
-    const ni = row.querySelector('[data-subkey="name"]');
+    // v789: 必须 querySelector input——wrapper div 也有 data-subkey="name"，取到 div 会因 .value undefined 抛 trim 错误（v784 遗留）
+    const ni = row.querySelector('input[data-subkey="name"]');
     const name = ni ? ni.value.trim() : '';
     const seq = String(idx + 1).padStart(2, '0');
     return { seq: seq, label: name ? (seq + ' ' + name) : seq };
@@ -1594,6 +1595,22 @@ function refreshCommissionBindOptions() {
     labels.forEach(l => { html += `<div class="combobox-option" data-value="${esc(l.label)}" onclick="selectComboboxOption('${cbId}',this)">${esc(l.label)}</div>`; });
     dd.innerHTML = html;
   });
+}
+/* v789：「无同模 + 加急」绑成不可拆行组合——勾选框任何宽度下都与无同模同一行 */
+function groupSameModelUrgentRow(row) {
+  if (!row) return;
+  const sm = row.querySelector('.combobox-wrapper[data-subkey="sameModel"]');
+  if (!sm || sm.closest('.dl-model-urgent-pair')) return;
+  const next = sm.nextElementSibling;
+  if (!next || !next.classList.contains('dl-urgent-cell')) return;
+  const pair = document.createElement('span');
+  pair.className = 'dl-model-urgent-pair';
+  sm.parentNode.insertBefore(pair, sm);
+  pair.appendChild(sm);
+  pair.appendChild(next);
+}
+function groupSameModelUrgentAll() {
+  $$('.dynamic-list-row').forEach(groupSameModelUrgentRow);
 }
 /* 删除动态列表行并重排序号（序号列仅制品列表有） */
 function removeDynamicRow(btn) {
@@ -1733,6 +1750,7 @@ function addDynamicRow(key) {
   html += `<button type="button" class="btn btn-ghost btn-sm" onclick="removeDynamicRow(this)">删除</button>`;
   row.innerHTML = html;
   container.appendChild(row);
+  groupSameModelUrgentRow(row); // v789：新增行同样绑「无同模+加急」组合
 }
 
 /* v17: 多选 checkbox 同步到隐藏 input，便于 readForm 读取 */
@@ -4288,7 +4306,7 @@ function openAddForm(pageKey) {
   ]);
   // v753：记录新增记录弹窗高度，供聊天记录导入弹窗对齐
   try { const m = $('#modal'); if (m) _lastRefModalH = m.getBoundingClientRect().height; } catch (e) {}
-  setTimeout(() => { setupFormInteractions(pageKey); refreshCommissionBindOptions(); }, 50);
+  setTimeout(() => { setupFormInteractions(pageKey); refreshCommissionBindOptions(); groupSameModelUrgentAll(); }, 50);
 }
 
 function openEditForm(pageKey, id) {
@@ -4308,6 +4326,7 @@ function openEditForm(pageKey, id) {
   setTimeout(() => {
     setupFormInteractions(pageKey);
     refreshCommissionBindOptions();
+    groupSameModelUrgentAll();
     if ($('#imgUpload')) {
       initImageUpload('#imgUpload');
       if (record.images) $('#imgUpload')._setImages(record.images);
