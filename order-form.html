@@ -215,6 +215,7 @@ html.apk.modal-lock{overflow:hidden!important}
 .sync-label{display:block;font-size:12px;color:var(--c-text-light)}
 .sync-field{width:100%;padding:8px 10px;margin-top:3px;border:1px solid var(--c-border);border-radius:var(--radius-sm);font-size:13px;background:var(--c-card)}
 .sync-field:focus{border-color:var(--c-primary-light);outline:none}
+.sync-field.pw-mask{-webkit-text-security:disc;text-security:disc} /* v811: 用CSS遮罩代替type=password,避免安卓/ColorOS在自签名未验证App里屏蔽密码框粘贴 */
 .sync-pw-wrap{position:relative;display:block;margin-top:3px}
 .sync-pw-wrap .sync-field{margin-top:0;padding-right:38px}
 .settings-section .sync-pw-wrap .sync-field,.modal:not(:has(.cd-form)) .sync-pw-wrap .sync-field{padding-right:38px}
@@ -2248,7 +2249,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .nav-item{font-size:14px!important;padding:12px 16px!important}
   .nav-item .nav-icon{font-size:18px!important}
   .nav-group-title{font-size:12px!important}
-  .sidebar-logo .logo-text{font-size:16px!important}
+  /* v812：手机端侧栏标题「小筱工作台」在全局 -2px 基础上再下移 2px → translateY(0) */
+  .sidebar-logo .logo-text{font-size:16px!important;transform:translateY(0)}
 }
 
 /* ===== v15: Combobox structure preserved on all devices ===== */
@@ -2657,7 +2659,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-head-add{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);border:1px solid var(--c-primary);background:var(--c-primary);color:#fff;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;line-height:1}
 .lr-head-add:hover{background:var(--c-primary-dark)}
 .lr-head-add::before{content:'+';font-size:13px;font-weight:500;line-height:1;display:inline-flex;align-items:center;justify-content:center}
-.lr-empty-row{color:var(--c-text-muted);font-size:13px;padding:11.5px 0;cursor:pointer}
+.lr-empty-row{color:var(--c-text-muted);font-size:13px;padding:12.5px 0;line-height:17px;cursor:pointer}
 .lr-empty-row:hover{color:var(--c-primary)}
 /* v784: 分割线改用蓝调可见色——原 var(--c-border-light)=#eef2f5 与卡片底色 #eef7ff 几乎同色，实测看到的线像素就是底色的深浅差（不可见） */
 /* v786: 分割线定稿——浅灰实线撑满（左端延伸到小标题下方 label 44+gap 10），bottom -2px 抵消整行 translateY(-2px) 使其在两条记录间垂直居中 */
@@ -2684,14 +2686,17 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-record-ops .btn{padding:2px 7px;font-size:12px;line-height:1.1;border-radius:var(--radius-sm)}
 .lr-size-note{font-size:11px;color:var(--c-text-light);white-space:normal;word-break:break-word;overflow-wrap:anywhere}
 .lr-info-val .lr-size-note{font-weight:500}
-/* v810：电脑端每日记录——记录条严格等高（盒高统一 62px = 内容 40px + 盒 padding 10×2 + 边框 1×2）
-   实测：空行 40px ✓；饮食带按钮首行 21.2+16.3+4=41.5 → 盒 63.4px；睡眠 2×2 两行 16px 值 20+20+4=44 → 盒 66px。
-   修法：2×2 行高钉死 18px、全文行高 18px、编辑/删除按钮高收到 18px 内（margin-top 2→0、line-height 1.1→1）
-   ⇒ 所有记录条内容 = 18+18+gap4 = 40px，与空行严格等高。
+/* v810：电脑端每日记录——记录条严格等高
+   实测（1440px）：空行 40 → 盒 62；饮食带按钮首行 41.5 → 盒 63.4；睡眠 2×2 两行值 44 → 盒 66。三条都不一样。
+   扫描 line-height 14~21 发现：16px 值的行盒恒为 13px 值行盒 +1px，且都按 2px 阶梯跳（16→17/16、18→19/18、20→21/20），
+   所以「2 行 16px 值」与「1 行 16px + 1 行 13px」永远差 1px，只能显式钉死：
+   不可换行的行（值均 nowrap）钉 height:19px；全文行（可换行）用 min-height:19px，长文本照旧撑高。
+   ⇒ 所有记录条内容 = 19 + 19 + gap4 = 42px；空行 padding 12.5×2 + line-height 17 = 42px；盒高一律 64px。
+   配套：编辑/删除按钮高收到 19px 内（margin-top 2→0、line-height 1.1→1），否则首行被按钮撑高。
    手机端（≤640px）另有 37px 一套（v805/v806 定稿），本块不影响。 */
 @media (min-width:641px){
-  .lr-record-info-2col .lr-info-line{line-height:18px}
-  .lr-info-full{line-height:18px}
+  .lr-record-info-2col .lr-info-line:not(.lr-info-full){line-height:19px;height:19px}
+  .lr-info-full{line-height:19px;min-height:19px}
   .lr-record-ops{margin-top:0}
   .lr-record-ops .btn{line-height:1}
 }
@@ -3514,7 +3519,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=811"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=812"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

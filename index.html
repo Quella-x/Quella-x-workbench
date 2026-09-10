@@ -2237,7 +2237,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .nav-item{font-size:14px!important;padding:12px 16px!important}
   .nav-item .nav-icon{font-size:18px!important}
   .nav-group-title{font-size:12px!important}
-  .sidebar-logo .logo-text{font-size:16px!important}
+  /* v812：手机端侧栏标题「小筱工作台」在全局 -2px 基础上再下移 2px → translateY(0) */
+  .sidebar-logo .logo-text{font-size:16px!important;transform:translateY(0)}
 }
 
 /* ===== v15: Combobox structure preserved on all devices ===== */
@@ -3506,7 +3507,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=811"></script>
+  <script src="app.js?v=812"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
