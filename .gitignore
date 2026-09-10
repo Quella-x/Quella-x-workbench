@@ -8,3 +8,7 @@ Thumbs.db
 
 # 说明：APK 等构建产物不放进此源码仓库（体积大且每次重建）
 # 最新 APK 备份位置：D:\小筱工作台\ 或 GitHub Releases
+
+# 凭据保险箱内置云端入口：只随 APK 打包，不发布到 GitHub Pages
+# （里面是 Supabase 公开值，但配合 4 位密码会大幅降低暴力破解成本，故不公开托管）
+assets/vault-cfg.js

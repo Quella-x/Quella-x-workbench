@@ -68,5 +68,8 @@ const version = appTag[0].match(/v=(\d+)/)[1];
 html = html.replace(appTag[0],
   `<script>if (window.__OF_VALID) document.write('<script src="app.js?v=${version}"><\\/script>');</script>`);
 
+// 4.5) 去掉「凭据保险箱内置云端入口」脚本：仅 APK 需要，order-form 是公开页不引用
+html = html.replace(/[ \t]*<script src="assets\/vault-cfg\.js"><\/script>\r?\n/, '');
+
 fs.writeFileSync('order-form.html', html);
 console.log('OK: order-form.html generated (app.js?v=' + version + ', ' + html.length + ' chars)');
