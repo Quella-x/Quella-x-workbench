@@ -7935,7 +7935,7 @@ function renderDataSettings(html) {
   html += '<label class="sync-label">4 位密码<span class="sync-pw-wrap"><input type="text" class="sync-field pw-mask" id="vault_pin" value="" placeholder="4 位数字，例如 1234" autocomplete="off" inputmode="numeric" maxlength="4"><button type="button" class="sync-eye" title="显示" onclick="toggleSyncPw(\'vault_pin\', this)">' + lucide('eye-off',16) + '</button></span></label>';
   html += '<div style="display:flex;gap:12px;flex-wrap:wrap">';
   html += `<button class="btn btn-primary" onclick="wbVaultSave()">${lucide('save',16)} 存入保险箱</button>`;
-  html += `<button class="btn btn-outline" onclick="wbVaultRestore()">${lucide('key',16)} 取回填回</button>`;
+  html += `<button class="btn btn-outline" onclick="wbVaultRestore()">${lucide('download',16)} 取回填回</button>`;
   html += '</div>';
   html += '<p id="vault_status" style="font-size:12px;color:var(--c-text-muted);margin-top:4px">未设置</p>';
   html += '</div>';
