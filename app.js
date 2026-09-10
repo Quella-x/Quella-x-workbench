@@ -7782,13 +7782,12 @@ function addOptionItem(fieldKey) {
   else container.appendChild(item);
 }
 
-function toggleSyncPw(inputId, btn) { // v775: 密码框明文/密文切换（斜杠眼=遮住，睁眼=可见）
+function toggleSyncPw(inputId, btn) { // v775/v811: 用CSS pw-mask遮罩切换显隐(不再改type=password)——保持type=text,安卓/ColorOS自签名App下密码框也能正常粘贴
   const inp = document.getElementById(inputId);
   if (!inp) return;
-  const show = inp.type === 'password';
-  inp.type = show ? 'text' : 'password';
-  btn.innerHTML = lucide(show ? 'eye' : 'eye-off', 16);
-  btn.title = show ? '隐藏' : '显示';
+  const masked = inp.classList.toggle('pw-mask'); // 切换后仍有pw-mask=遮罩中
+  btn.innerHTML = lucide(masked ? 'eye-off' : 'eye', 16);
+  btn.title = masked ? '显示' : '隐藏';
 }
 
 function renderDataSettings(html) {
@@ -7798,7 +7797,7 @@ function renderDataSettings(html) {
   html += '<p style="font-size:13px;color:var(--c-text-light);margin-bottom:12px">配置后数据自动同步到云端：改动约 1 秒内自动上传，另一端约半分钟内自动更新。两端请填写<strong>相同的同步码</strong>。未配置时完全按本地模式运行。</p>';
   const sc = DB.get('syncCfg', {}) || {};
   const pwField = (id, val, ph) =>
-    '<span class="sync-pw-wrap"><input type="password" class="sync-field" id="' + id + '" value="' + esc(val || '') + '" placeholder="' + ph + '"><button type="button" class="sync-eye" title="显示" onclick="toggleSyncPw(\'' + id + '\', this)">' + lucide('eye-off',16) + '</button></span>';
+    '<span class="sync-pw-wrap"><input type="text" class="sync-field pw-mask" id="' + id + '" value="' + esc(val || '') + '" placeholder="' + ph + '" autocomplete="off" inputmode="text"><button type="button" class="sync-eye" title="显示" onclick="toggleSyncPw(\'' + id + '\', this)">' + lucide('eye-off',16) + '</button></span>';
   html += '<div style="display:flex;flex-direction:column;gap:10px;max-width:440px">';
   html += '<label class="sync-label">Supabase 项目 URL<input type="text" class="sync-field" id="sync_url" value="' + esc(sc.url || '') + '" placeholder="https://xxxx.supabase.co"></label>';
   html += '<div class="sync-label">Anon Key（公开键，非 secret）' + pwField('sync_key', sc.anonKey, 'sb_publishable_... 开头的公开键') + '</div>';

@@ -203,6 +203,7 @@ html.apk.modal-lock{overflow:hidden!important}
 .sync-label{display:block;font-size:12px;color:var(--c-text-light)}
 .sync-field{width:100%;padding:8px 10px;margin-top:3px;border:1px solid var(--c-border);border-radius:var(--radius-sm);font-size:13px;background:var(--c-card)}
 .sync-field:focus{border-color:var(--c-primary-light);outline:none}
+.sync-field.pw-mask{-webkit-text-security:disc;text-security:disc} /* v811: 用CSS遮罩代替type=password,避免安卓/ColorOS在自签名未验证App里屏蔽密码框粘贴 */
 .sync-pw-wrap{position:relative;display:block;margin-top:3px}
 .sync-pw-wrap .sync-field{margin-top:0;padding-right:38px}
 .settings-section .sync-pw-wrap .sync-field,.modal:not(:has(.cd-form)) .sync-pw-wrap .sync-field{padding-right:38px}
@@ -3505,7 +3506,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script src="app.js?v=810"></script>
+  <script src="app.js?v=811"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
