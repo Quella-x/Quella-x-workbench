@@ -2799,8 +2799,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-info-line{line-height:18px}
   .lr-info-full{line-height:16px}
   /* 单记录内容高：普通（头行18+全文16+gap3）=37px；睡眠（2×2 网格 18+18+gap3）=39px */
+  /* v806: 手机端空行统一高度（电脑端实测空条统一62/空行统一40，故手机端不再区分普通/睡眠），普通条有记录=37px 看齐 */
   .lr-empty-row{padding:0;height:37px;display:flex;align-items:center}
-  .lr-empty-sleep{height:39px}
   .lr-record-ops .btn{padding:1px 6px;font-size:11px}
   .lr-size-note{font-size:10px}
   .lr-history-stat-card{padding:8px}
@@ -2975,6 +2975,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 @media (max-width:640px){
   .cd-month-nav{padding:0;flex-wrap:wrap;justify-content:center}
   .cd-unlinked-btn{position:static;transform:none;margin:8px 0 0;margin-left:auto}
+  /* v806: 年份导航「全部」按钮手机端保持贴右定位（ life-monthbar 本就 relative，右侧留白充足） */
+  .gy-all-btn{position:absolute;right:0;top:50%;transform:translateY(-50%);margin:0}
 }
 .cd-month-btn{border:none;background:transparent;color:var(--c-text-light);font-size:14px;padding:4px 10px;box-shadow:none;cursor:pointer}
 .cd-month-btn:hover{color:var(--c-primary);background:transparent}
@@ -3486,7 +3488,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=805"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=806"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

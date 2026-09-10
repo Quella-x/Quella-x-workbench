@@ -1023,7 +1023,8 @@ const FIELD_TAG_MAP = {
     status: { '筹备中':'tag-yellow', '进行中':'tag-info', '已截团':'tag-orange', '流团':'tag-danger', '已结算':'tag-success' }
   },
   'groupbuy-factories': {
-    cooperationStatus: { '长期合作':'tag-orange', '临时合作':'tag-yellow', '暂停合作':'tag-gray' },
+    cooperationStatus: { '长期合作':'tag-orange', '临时合作':'tag-yellow', '暂停合作':'tag-gray', '暂无合作':'tag-info' },
+    platforms: { '微信':'tag-success', '1688':'tag-orange', '小红书':'tag-danger', '淘宝':'tag-orange', '拼多多':'tag-danger' },
     factoryEvaluation: { '非常满意':'tag-orange', '满意':'tag-success', '一般':'tag-info', '不满意':'tag-danger' }
   },
   'groupbuy-samples': {
@@ -2420,10 +2421,11 @@ MODULES['groupbuy-factories'] = {
   fields: [
     { key: 'name', label: '厂家名称', type: 'text' },
     { key: 'phone', label: '联系方式', type: 'text' },
+    { key: 'firstContactTime', label: '首次联系时间', type: 'date', default: todayStr() },
     { key: 'category', label: '主营品类', type: 'text' },
     { key: 'platforms', label: '所在平台', type: 'multiselect', options: [{ value: '微信', label: '微信' }, { value: '1688', label: '1688' }, { value: '小红书', label: '小红书' }, { value: '淘宝', label: '淘宝' }, { value: '拼多多', label: '拼多多' }] },
-    { key: 'cooperationStatus', label: '合作状态', type: 'multiselect', single: true, default: '临时合作', options: [{ value: '长期合作', label: '长期合作' }, { value: '临时合作', label: '临时合作' }, { value: '暂停合作', label: '暂停合作' }] },
-    { key: 'quote', label: '报价', type: 'textarea' },
+    { key: 'cooperationStatus', label: '合作状态', type: 'multiselect', single: true, default: '临时合作', options: [{ value: '长期合作', label: '长期合作' }, { value: '临时合作', label: '临时合作' }, { value: '暂停合作', label: '暂停合作' }, { value: '暂无合作', label: '暂无合作' }] },
+    { key: 'quote', label: '报价', type: 'textarea', default: '打样：\n\n\n大货：\n\n\n附加项：\n\n\n材质：' },
     { key: 'cooperationRecords', label: '合作记录', type: 'dynamic-list', columns: [
       { subkey: 'coopType', label: '合作类型', type: 'combobox', options: [{ value: '打样', label: '打样' }, { value: '开团', label: '开团' }, { value: '售卖', label: '售卖' }, { value: '无料', label: '无料' }, { value: '自印', label: '自印' }] },
       { subkey: 'project', label: '项目名称', type: 'text' },
@@ -2434,12 +2436,13 @@ MODULES['groupbuy-factories'] = {
     { key: 'notes', label: '备注', type: 'textarea' },
     { key: 'images', label: '存档图片', type: 'image' },
   ],
-  filters: [{ key: 'cooperationStatus', label: '全部状态', options: [{ value: '', label: '全部状态' }, { value: '长期合作', label: '长期合作' }, { value: '临时合作', label: '临时合作' }, { value: '暂停合作', label: '暂停合作' }] }],
+  filters: [{ key: 'cooperationStatus', label: '全部状态', options: [{ value: '', label: '全部状态' }, { value: '长期合作', label: '长期合作' }, { value: '临时合作', label: '临时合作' }, { value: '暂停合作', label: '暂停合作' }, { value: '暂无合作', label: '暂无合作' }] }],
   listFields: [
     { label: '合作次数', key: '_coopCount' },
     { label: '主营品类', key: 'category' },
-    { label: '所在平台', key: 'platforms' },
+    { label: '所在平台', key: 'platforms', tag: true },
     { label: '联系方式', key: 'phone' },
+    { label: '首次联系时间', key: 'firstContactTime', date: true },
     { label: '合作状态', key: 'cooperationStatus', tag: true },
     { label: '厂家评价', key: 'factoryEvaluation', tag: true },
   ],
@@ -3261,6 +3264,16 @@ function isModuleTwoCol(pageKey) {
   return dual.includes(pageKey);
 }
 function getRecordYearStr(r, mod) {
+  // v806: 接稿详情四大分类约稿单——优先按关联接稿排期的开稿时间归年（同单主多排期取最早开稿），未关联按创建时间兜底
+  if (mod && mod.store === 'commissionDetails') {
+    const starts = (DB.list('commissions') || []).filter(c => (c.clientInfo || '') === (r.clientInfo || '') && c.startTime).map(c => String(c.startTime)).sort();
+    if (starts.length) return starts[0];
+  }
+  // v806: 归年字段修复——date:true 标记在 listFields 上（展示字段），此前 find(fields) 永远落空导致全部按创建时间归年
+  if (mod && mod.listFields) {
+    const df = mod.listFields.find(f => f.date);
+    if (df && r[df.key]) return String(r[df.key]);
+  }
   if (mod && mod.fields) {
     const df = mod.fields.find(f => f.date);
     if (df && r[df.key]) return String(r[df.key]);
@@ -3276,7 +3289,12 @@ function renderYearNavHTML(pageKey, ps) {
   h += `<button class="btn btn-ghost btn-sm" onclick="modYearShift('${pageKey}',-1)">‹ 上一年</button>`;
   h += `<span class="life-monthbar-txt" onclick="modYearTogglePicker('${pageKey}')">${yf}年 ▾</span>`;
   h += `<button class="btn btn-ghost btn-sm" onclick="modYearShift('${pageKey}',1)">下一年 ›</button>`;
-  h += '</div></div>';
+  h += '</div>';
+  // v806: 厂家记录年份导航右侧「全部」按钮（参考接稿详情未关联按钮样式），点击展示所有年份的厂家
+  if (pageKey === 'groupbuy-factories') {
+    h += `<button class="cd-unlinked-btn gy-all-btn${ps.showAllYears ? ' active' : ''}" onclick="modToggleAllYears('${pageKey}')">全部</button>`;
+  }
+  h += '</div>';
   const py = ps.yearPickerY != null ? ps.yearPickerY : yf;
   h += `<div class="life-year-picker ${open}">`;
   h += `<div class="lmp-yearbar"><button class="btn btn-ghost btn-xs" onclick="modYearPickerShift('${pageKey}',-1)">‹</button><span>${py}年</span><button class="btn btn-ghost btn-xs" onclick="modYearPickerShift('${pageKey}',1)">›</button></div>`;
@@ -3288,10 +3306,17 @@ function renderYearNavHTML(pageKey, ps) {
   h += '</div></div>';
   return `<div style="position:relative">${h}</div>`;
 }
+// v806: 厂家记录「全部」年份切换——显示所有年份的厂家记录
+function modToggleAllYears(pageKey) {
+  const ps = pageState[pageKey];
+  ps.showAllYears = !ps.showAllYears;
+  ps.pageNo = 1;
+  renderListPage(pageKey, MODULES[pageKey]);
+}
 function modYearShift(pageKey, d) {
   const ps = pageState[pageKey]; if (!ps) return;
   if (ps.yearFilter == null) ps.yearFilter = new Date().getFullYear();
-  ps.yearFilter += d; ps.chartYear = ps.yearFilter; ps.statsScope = String(ps.yearFilter);
+  ps.yearFilter += d; ps.showAllYears = false; ps.chartYear = ps.yearFilter; ps.statsScope = String(ps.yearFilter);
   ps.yearPickerY = ps.yearFilter; ps.pageNo = 1;
   renderListPage(pageKey, MODULES[pageKey]);
 }
@@ -3308,7 +3333,7 @@ function modYearPickerShift(pageKey, d) {
 }
 function modYearPick(pageKey, y) {
   const ps = pageState[pageKey]; if (!ps) return;
-  ps.yearFilter = y; ps.chartYear = y; ps.statsScope = String(y);
+  ps.yearFilter = y; ps.showAllYears = false; ps.chartYear = y; ps.statsScope = String(y);
   ps.yearPickerY = y; ps.yearPickerOpen = false; ps.pageNo = 1;
   renderListPage(pageKey, MODULES[pageKey]);
 }
@@ -3438,8 +3463,10 @@ function renderListPage(pageKey, mod) {
   // 年份筛选（默认当年，按模块首个 date 字段或创建时间筛选）
   if (YEAR_FILTER_MODULES.includes(pageKey)) {
     if (ps.yearFilter == null) ps.yearFilter = new Date().getFullYear();
-    const yf = String(ps.yearFilter);
-    records = records.filter(r => getRecordYearStr(r, mod).startsWith(yf));
+    if (!ps.showAllYears) {
+      const yf = String(ps.yearFilter);
+      records = records.filter(r => getRecordYearStr(r, mod).startsWith(yf));
+    }
     if (pageKey === 'design-commission') ps.calYear = ps.yearFilter;
   }
 
@@ -3610,7 +3637,11 @@ function renderListPage(pageKey, mod) {
       (visibleListFields).forEach(f => {
         const dispLabel = fieldLabelMap[f.key] || f.label;
         let v = r[f.key];
-        if (f.key === '_productCount') v = calcProductQty(r) + '件';
+        if (f.key === '_productCount') {
+          // v806: 48件=含流团的全部总量，流团20件=其中标记流团的部分
+          const dq = (r.products || []).filter(p => p.isDisbanded === '是').reduce((s2, p) => s2 + (parseInt(p.quantity) || 1), 0);
+          v = calcProductQty(r) + '件' + (dq > 0 ? ' | 流团' + dq + '件' : '');
+        }
         if (f.key === '_productNames') {
           const names = (r.products || []).map(p => p.name).filter(Boolean);
           if (!names.length) {
@@ -4451,7 +4482,13 @@ function openAddForm(pageKey) {
   ]);
   // v753：记录新增记录弹窗高度，供聊天记录导入弹窗对齐
   try { const m = $('#modal'); if (m) _lastRefModalH = m.getBoundingClientRect().height; } catch (e) {}
-  setTimeout(() => { setupFormInteractions(pageKey); refreshCommissionBindOptions(); groupSameModelUrgentAll(); }, 50);
+  setTimeout(() => { setupFormInteractions(pageKey); refreshCommissionBindOptions(); groupSameModelUrgentAll();
+    // v806: 厂家报价 textarea 默认带出四段模板时，光标定位到「打样：」下一行，直接往里填
+    if (pageKey === 'groupbuy-factories') {
+      const ta = document.querySelector('#modalBody textarea[data-key="quote"]');
+      if (ta && ta.value === '打样：\n\n\n大货：\n\n\n附加项：\n\n\n材质：') { ta.focus(); try { ta.setSelectionRange(4, 4); } catch (e) {} }
+    }
+  }, 50);
 }
 
 function openEditForm(pageKey, id) {
@@ -9622,7 +9659,7 @@ function renderSleepRecordCard(date) {
     html += `<div class="lr-subtype-box">
       <div class="lr-subtype-label">${st.label}</div>
       <div class="lr-subtype-content">
-        ${recs.length ? renderSleepRecordRows(recs) : `<div class="lr-empty-row lr-empty-sleep" onclick="lifeRecOpenForm('sleep','${st.key}')">点击添加${st.label}睡眠记录</div>`}
+        ${recs.length ? renderSleepRecordRows(recs) : `<div class="lr-empty-row" onclick="lifeRecOpenForm('sleep','${st.key}')">点击添加${st.label}睡眠记录</div>`}
       </div>
     </div>`;
   });
@@ -9746,7 +9783,7 @@ function renderLifeRecordHistoryDayCard(typeKey, dateStr, wdLabel) {
       <div class="lr-subtype-content">
         ${recs.length
           ? (typeKey === 'sleep' ? renderSleepRecordRows(recs) : renderDietRecordRows(recs, st))
-          : `<div class="lr-empty-row${typeKey === 'sleep' ? ' lr-empty-sleep' : ''}" onclick="lifeRecordHistoryCellClick('${typeKey}','${sk}','${dateStr}')">点击添加${st.label}记录</div>`}
+          : `<div class="lr-empty-row" onclick="lifeRecordHistoryCellClick('${typeKey}','${sk}','${dateStr}')">点击添加${st.label}记录</div>`}
       </div>
     </div>`;
   });
