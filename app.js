@@ -1023,7 +1023,7 @@ const FIELD_TAG_MAP = {
     status: { '筹备中':'tag-yellow', '进行中':'tag-info', '已截团':'tag-orange', '流团':'tag-danger', '已结算':'tag-success' }
   },
   'groupbuy-factories': {
-    cooperationStatus: { '长期合作':'tag-orange', '临时合作':'tag-yellow', '暂停合作':'tag-gray', '暂无合作':'tag-info' },
+    cooperationStatus: { '长期合作':'tag-orange', '临时合作':'tag-yellow', '暂停合作':'tag-danger', '暂无合作':'tag-gray' },
     platforms: { '微信':'tag-success', '1688':'tag-orange', '小红书':'tag-danger', '淘宝':'tag-orange', '拼多多':'tag-danger' },
     factoryEvaluation: { '非常满意':'tag-orange', '满意':'tag-success', '一般':'tag-info', '不满意':'tag-danger' }
   },
@@ -2425,7 +2425,7 @@ MODULES['groupbuy-factories'] = {
     { key: 'category', label: '主营品类', type: 'text' },
     { key: 'platforms', label: '所在平台', type: 'multiselect', options: [{ value: '微信', label: '微信' }, { value: '1688', label: '1688' }, { value: '小红书', label: '小红书' }, { value: '淘宝', label: '淘宝' }, { value: '拼多多', label: '拼多多' }] },
     { key: 'cooperationStatus', label: '合作状态', type: 'multiselect', single: true, default: '临时合作', options: [{ value: '长期合作', label: '长期合作' }, { value: '临时合作', label: '临时合作' }, { value: '暂停合作', label: '暂停合作' }, { value: '暂无合作', label: '暂无合作' }] },
-    { key: 'quote', label: '报价', type: 'textarea', default: '打样：\n\n\n大货：\n\n\n附加项：\n\n\n材质：' },
+    { key: 'quote', label: '报价', type: 'textarea', default: '打样：\n\n\n大货：\n\n\n附加项：\n\n\n材质：\n\n\n' },
     { key: 'cooperationRecords', label: '合作记录', type: 'dynamic-list', columns: [
       { subkey: 'coopType', label: '合作类型', type: 'combobox', options: [{ value: '打样', label: '打样' }, { value: '开团', label: '开团' }, { value: '售卖', label: '售卖' }, { value: '无料', label: '无料' }, { value: '自印', label: '自印' }] },
       { subkey: 'project', label: '项目名称', type: 'text' },
@@ -2446,6 +2446,12 @@ MODULES['groupbuy-factories'] = {
     { label: '合作状态', key: 'cooperationStatus', tag: true },
     { label: '厂家评价', key: 'factoryEvaluation', tag: true },
   ],
+  // v807：厂家年度柱状图——合作次数按月计数，月份取自每条合作记录里的「日期」，日期为空的合作记录跳过不计
+  chart: (records) => {
+    const coopRows = [];
+    (records || []).forEach(r => (r.cooperationRecords || []).forEach(c => { if (c && c.date) coopRows.push({ date: c.date }); }));
+    return renderAnnualChart(coopRows, 'date', { title: '合作次数', isCount: true, color: '#f6ad5c', year: getChartYear('groupbuy-factories') }, 'groupbuy-factories');
+  },
   stats: (records) => {
     const totalCoop = records.reduce((s, r) => s + (r.cooperationRecords || []).length, 0);
     const scoreMap = { '非常满意': 100, '满意': 80, '一般': 60, '不满意': 40 };
@@ -3355,7 +3361,7 @@ function navigate(page) {
   $('#sidebar').classList.remove('show');
   $('#sidebarOverlay').classList.remove('show');
   const body = $('#mainBody');
-  body.innerHTML = ''; body.classList.add('fade-in');
+  body.innerHTML = ''; body.classList.remove('two-col-fixed'); body.classList.add('fade-in');
   setTimeout(() => body.classList.remove('fade-in'), 300);
   if (page === 'home') return renderHome();
   if (page === 'groupbuy-calc') return renderPriceCalc();
@@ -3522,7 +3528,7 @@ function renderListPage(pageKey, mod) {
       const optHTML = displayOpts.map(o => `<div class="combobox-option${cv === o.value ? ' selected' : ''}" onclick="onFilterCombobox('${pageKey}','${f.key}',this.dataset.value,'${cbId}')" data-value="${esc(o.value)}">${esc(o.label)}</div>`).join('');
       const selectedOpt = displayOpts.find(o => o.value === cv);
       const displayVal = selectedOpt ? selectedOpt.label : (displayOpts[0] ? displayOpts[0].label : '');
-      html += `<div class="combobox-wrapper filter-combobox"><input type="text" class="form-input combobox-input filter-combobox-input" value="${esc(displayVal)}" placeholder="${esc(f.label || '筛选')}" readonly oninput="filterComboboxDropdown(''${cbId}'',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
+      html += `<div class="combobox-wrapper filter-combobox"><input type="text" class="form-input combobox-input filter-combobox-input" value="${esc(displayVal)}" placeholder="${esc(f.label || '筛选')}" readonly oninput="filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
     });
   }
   html += '<div class="spacer"></div>';
@@ -3755,6 +3761,8 @@ function renderListPage(pageKey, mod) {
   if (gbWrapped) { html += '</div>'; } // close .gb-records-2col
   html += '</div>';
   body.innerHTML = html;
+  // v807：五模块两列 + 接稿排期日历视图 → mainBody 加独立滚动标记（CSS 仅电脑端生效；navigate 切页时清除）
+  body.classList.toggle('two-col-fixed', isGbTwoCol || !!commissionAllRecords);
 }
 
 function _restoreSearchFocus(sel) {
@@ -4486,7 +4494,7 @@ function openAddForm(pageKey) {
     // v806: 厂家报价 textarea 默认带出四段模板时，光标定位到「打样：」下一行，直接往里填
     if (pageKey === 'groupbuy-factories') {
       const ta = document.querySelector('#modalBody textarea[data-key="quote"]');
-      if (ta && ta.value === '打样：\n\n\n大货：\n\n\n附加项：\n\n\n材质：') { ta.focus(); try { ta.setSelectionRange(4, 4); } catch (e) {} }
+      if (ta && ta.value === '打样：\n\n\n大货：\n\n\n附加项：\n\n\n材质：\n\n\n') { ta.focus(); try { ta.setSelectionRange(4, 4); } catch (e) {} }
     }
   }, 50);
 }
@@ -4855,7 +4863,7 @@ function renderHome() {
     const ctId = 'homeContentType';
     html += '<div class="toolbar home-toolbar">';
     html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="homeSearch(this.value)"><span class="search-icon">${lucide('search',16)}</span></div>`;
-    html += `<div class="combobox-wrapper filter-combobox home-content-type"><input type="text" class="form-input combobox-input filter-combobox-input" value="${esc(ctDisplay)}" placeholder="内容类型" readonly oninput="filterComboboxDropdown(''${ctId}'',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${ctId}')">▼</button><div class="combobox-dropdown" id="${ctId}">${ctOpts}</div></div>`;
+    html += `<div class="combobox-wrapper filter-combobox home-content-type"><input type="text" class="form-input combobox-input filter-combobox-input" value="${esc(ctDisplay)}" placeholder="内容类型" readonly oninput="filterComboboxDropdown('${ctId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${ctId}')">▼</button><div class="combobox-dropdown" id="${ctId}">${ctOpts}</div></div>`;
     html += '<div class="spacer"></div>';
     html += '<button class="btn btn-primary" onclick="openAddForm(\'home\')">+ 新增记录</button>';
     html += '</div>';
@@ -5398,7 +5406,7 @@ function importStoriesToTimeline() {
   html += `<div style="margin-top:12px"><div style="font-size:13px;margin-bottom:6px">重要性</div>`;
   html += '<div class="combobox-wrapper import-importance-combo">';
   html += `<input type="hidden" id="importImportanceValue" class="combobox-value" value="${esc(impDef)}">`;
-  html += `<input type="text" class="form-input combobox-input" id="importImportanceInput" value="${esc(TIMELINE_COLORS[impDef].label)}" readonly oninput="filterComboboxDropdown(''importImportanceList'',this.value)">`;
+  html += `<input type="text" class="form-input combobox-input" id="importImportanceInput" value="${esc(TIMELINE_COLORS[impDef].label)}" readonly oninput="filterComboboxDropdown('importImportanceList',this.value)">`;
   html += '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'importImportanceList\')">▼</button>';
   html += `<div class="combobox-dropdown" id="importImportanceList">${impOpts}</div>`;
   html += '</div></div>';
@@ -6383,7 +6391,7 @@ function dcRenderProducts() {
     html += `<label class="dc-prod-check dc-prod-urgent"><input type="checkbox" ${urgChk ? 'checked' : ''} ${_dcWholeOrderUrgent ? 'disabled' : ''} onchange="dcUpdateProduct(${i},'urgent',this.checked)">加急</label>`;
     html += `<label class="dc-prod-check dc-prod-same"><input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模</label>`;
     if (p.sameModel) {
-      html += `<div class="combobox-wrapper dc-prod-model-type-wrapper"><input type="text" class="form-input combobox-input dc-prod-model-type" value="${esc(modelTypeLabel)}" placeholder="请选择同模类型" readonly oninput="filterComboboxDropdown(''${modelCbId}'',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${modelCbId}')">▼</button><div class="combobox-dropdown" id="${modelCbId}">${modelOptsHTML}</div></div>`;
+      html += `<div class="combobox-wrapper dc-prod-model-type-wrapper"><input type="text" class="form-input combobox-input dc-prod-model-type" value="${esc(modelTypeLabel)}" placeholder="请选择同模类型" readonly oninput="filterComboboxDropdown('${modelCbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${modelCbId}')">▼</button><div class="combobox-dropdown" id="${modelCbId}">${modelOptsHTML}</div></div>`;
     }
     html += `<button type="button" class="btn btn-ghost btn-sm dc-prod-del" onclick="dcRemoveProduct(${i})">${lucide('x',16)}</button>`;
     html += `</div>`;
@@ -7666,7 +7674,7 @@ function renderFieldSettings(html) {
   }
   if (!_settingsModule || !modules.includes(_settingsModule)) _settingsModule = modules[0];
   const selLabel = _settingsModule ? (PAGE_TITLES[_settingsModule] || _settingsModule) : '请选择模块';
-  html += `<div class="combobox-wrapper" style="min-width:160px"><input type="text" class="form-input combobox-input" value="${esc(selLabel)}" placeholder="请选择模块" readonly oninput="filterComboboxDropdown(''settingsModuleCb'',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('settingsModuleCb')">▼</button><div class="combobox-dropdown" id="settingsModuleCb">`;
+  html += `<div class="combobox-wrapper" style="min-width:160px"><input type="text" class="form-input combobox-input" value="${esc(selLabel)}" placeholder="请选择模块" readonly oninput="filterComboboxDropdown('settingsModuleCb',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('settingsModuleCb')">▼</button><div class="combobox-dropdown" id="settingsModuleCb">`;
   modules.forEach(k => {
     html += `<div class="combobox-option ${_settingsModule === k ? 'selected' : ''}" data-value="${k}" onclick="_settingsModule='${k}';renderSettingsModal()">${esc(PAGE_TITLES[k] || k)}</div>`;
   });
@@ -7853,7 +7861,7 @@ function renderDisplayFieldsSettings(html) {
   }
   if (!_settingsModule || !modules.includes(_settingsModule)) _settingsModule = modules[0];
   const selLabel = _settingsModule ? (PAGE_TITLES[_settingsModule] || _settingsModule) : '请选择模块';
-  html += `<div class="combobox-wrapper" style="min-width:160px"><input type="text" class="form-input combobox-input" value="${esc(selLabel)}" placeholder="请选择模块" readonly oninput="filterComboboxDropdown(''settingsModuleCb'',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('settingsModuleCb')">▼</button><div class="combobox-dropdown" id="settingsModuleCb">`;
+  html += `<div class="combobox-wrapper" style="min-width:160px"><input type="text" class="form-input combobox-input" value="${esc(selLabel)}" placeholder="请选择模块" readonly oninput="filterComboboxDropdown('settingsModuleCb',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('settingsModuleCb')">▼</button><div class="combobox-dropdown" id="settingsModuleCb">`;
   modules.forEach(k => {
     html += `<div class="combobox-option ${_settingsModule === k ? 'selected' : ''}" data-value="${k}" onclick="_settingsModule='${k}';renderSettingsModal()">${esc(PAGE_TITLES[k] || k)}</div>`;
   });
@@ -8154,6 +8162,19 @@ function migrateData() {
   migrateStringToArray('publishRecords', ['platform', 'contentType']);
   migrateStringToArray('groupbuys', ['status'], { '已结束': '已截团' });
   migrateStringToArray('factories', ['cooperationStatus']);
+
+  // v807: 厂家报价模板「材质：」尾部补两空行——旧记录仅当报价为空/纯空白或恰等于旧模板时替换为新模板，含手填内容的不动
+  {
+    const OLD_QUOTE_TPL = '打样：\n\n\n大货：\n\n\n附加项：\n\n\n材质：';
+    const NEW_QUOTE_TPL = '打样：\n\n\n大货：\n\n\n附加项：\n\n\n材质：\n\n\n';
+    const factoriesList = DB.list('factories');
+    let fqChanged = false;
+    factoriesList.forEach(r => {
+      const q = (r.quote == null) ? '' : String(r.quote);
+      if (q.trim() === '' || q === OLD_QUOTE_TPL) { r.quote = NEW_QUOTE_TPL; fqChanged = true; }
+    });
+    if (fqChanged) DB.set('factories', factoriesList);
+  }
   migrateStringToArray('samples', ['evaluation']);
   migrateStringToArray('inspirations', ['tags']);
   migrateStringToArray('authorizations', ['authType']);
@@ -8971,7 +8992,7 @@ function lifeCheckinAdd() {
     <div class="form-row">
       <label class="form-label">类型</label>
       <div class="combobox-wrapper">
-        <input type="text" class="form-input combobox-input" id="lc-add-period" value="每日打卡" readonly placeholder="请选择" oninput="filterComboboxDropdown(''lc-add-period-cb'',this.value)">
+        <input type="text" class="form-input combobox-input" id="lc-add-period" value="每日打卡" readonly placeholder="请选择" oninput="filterComboboxDropdown('lc-add-period-cb',this.value)">
         <button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('lc-add-period-cb')">▼</button>
         <div class="combobox-dropdown" id="lc-add-period-cb">
           <div class="combobox-option" data-value="day" onclick="lifeCheckinSelPeriod('day',this)">每日打卡</div>
@@ -9431,7 +9452,7 @@ function milkteaFlavorsList(arr) {
 function renderComboboxHTML(id, value, options) {
   const selected = options.find(o => o.value === value) || options[0];
   let html = `<div class="combobox-wrapper lf-combobox">`;
-  html += `<input type="text" class="form-input combobox-input" value="${esc(selected.label)}" placeholder="请选择" readonly oninput="filterComboboxDropdown(''${id}-dropdown'',this.value)">`;
+  html += `<input type="text" class="form-input combobox-input" value="${esc(selected.label)}" placeholder="请选择" readonly oninput="filterComboboxDropdown('${id}-dropdown',this.value)">`;
   html += `<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}-dropdown')">▼</button>`;
   html += `<input type="hidden" class="combobox-value" id="${id}" value="${esc(selected.value)}">`;
   html += `<div class="combobox-dropdown" id="${id}-dropdown">`;
@@ -11091,7 +11112,7 @@ function cdCatComboboxHTML(hiddenId, selectedKey, onchange) {
     return `<div class="combobox-option${on}" data-value="${esc(c.key)}" onclick="selectComboboxOption('${hiddenId}cb',this)${oc}">${esc(c.label)}</div>`;
   }).join('');
   return `<div class="combobox-wrapper cd-cat-combo" style="max-width:220px;margin-left:6px;vertical-align:middle">` +
-    `<input type="text" class="form-input combobox-input" value="${esc(sel.label)}" readonly placeholder="请选择分类" oninput="filterComboboxDropdown(''${hiddenId}cb'',this.value)">` +
+    `<input type="text" class="form-input combobox-input" value="${esc(sel.label)}" readonly placeholder="请选择分类" oninput="filterComboboxDropdown('${hiddenId}cb',this.value)">` +
     `<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${hiddenId}cb')">▼</button>` +
     `<div class="combobox-dropdown" id="${hiddenId}cb">${opts}</div>` +
     `<input type="hidden" class="combobox-value" id="${hiddenId}" value="${esc(sel.key)}">` +
@@ -11793,7 +11814,7 @@ function openTextTemplatePicker(fieldKey) {
     const cbId = 'txtTplPickerCatCb';
     const ddId = cbId + '-dropdown';
     const opts = ordered.map(c => `<div class="combobox-option" data-value="${esc(c)}" onclick="selectComboboxOption('${ddId}',this);setTxtTplPickerCat('${fieldKey}')">${esc(c)}</div>`).join('');
-    const combo = `<div class="txt-tpl-picker-cat"><label class="form-label">选择分类</label><div class="combobox-wrapper" style="flex:1;max-width:none"><input type="text" class="form-input combobox-input" id="${cbId}" value="${esc(_txtTplPickerCat)}" placeholder="选择分类" readonly oninput="filterComboboxDropdown(''${ddId}'',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${ddId}')">▼</button><div class="combobox-dropdown" id="${ddId}">${opts}</div></div></div>`;
+    const combo = `<div class="txt-tpl-picker-cat"><label class="form-label">选择分类</label><div class="combobox-wrapper" style="flex:1;max-width:none"><input type="text" class="form-input combobox-input" id="${cbId}" value="${esc(_txtTplPickerCat)}" placeholder="选择分类" readonly oninput="filterComboboxDropdown('${ddId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${ddId}')">▼</button><div class="combobox-dropdown" id="${ddId}">${opts}</div></div></div>`;
     bodyHTML = combo + `<div id="txtTplPickerList">${txtTplPickerListInner(all, fieldKey)}</div>`;
   }
   const ov = document.createElement('div');
