@@ -7790,6 +7790,122 @@ function toggleSyncPw(inputId, btn) { // v775/v811: 用CSS pw-mask遮罩切换�
   btn.title = masked ? '显示' : '隐藏';
 }
 
+/* ===== v813：凭据保险箱（4 位密码）=====
+   解决：卸载重装后不用再去找 Supabase 的 URL / Anon Key / 同步码，输一次 4 位密码就填回来。
+   做法：三个值用 4 位密码派生密钥（PBKDF2-SHA256 12 万次 → AES-GCM）加密后
+        ① 存本机 DB('syncVault')；② 存云端 sync_store（group_key = 'vault:' + hash(pin)，
+        与业务数据的 gkey 属不同命名空间，同步引擎不会碰这条）。
+   恢复：本机有 → 直接解密；本机没有（全新安装）→ 用打包时内置的 WB_VAULT_CFG
+        （URL + Anon Key，都是公开值，写在 assets/vault-cfg.js，仅 APK、不进 GitHub Pages）
+        去云端按 4 位密码取回。
+   安全边界：4 位密码只有 1 万种组合，仅防「随手翻看」，不是强加密——请勿把同步码当高价值口令。 */
+const WB_VAULT_STORE = '__vault';
+function wbVaultPinOk(pin) { return /^\d{4}$/.test(pin || ''); }
+function wbVaultGkey(pin) { return 'vault:' + hashStr('wbvault|' + pin); }
+function wbVaultBoot() {
+  try { if (typeof WB_VAULT_CFG !== 'undefined' && WB_VAULT_CFG && WB_VAULT_CFG.url && WB_VAULT_CFG.anonKey) return WB_VAULT_CFG; } catch (e) { }
+  // 网页版回退：用当前已填的同步配置（URL + Anon Key 都是公开值，与保险箱写入同源），
+  // 这样即使本机没有保险箱、GitHub Pages 也没内置 WB_VAULT_CFG，也能凭同步配置去云端取回。
+  try { if (typeof Sync !== 'undefined' && Sync.cfg && Sync.cfg.url && Sync.cfg.anonKey) return { url: Sync.cfg.url, anonKey: Sync.cfg.anonKey }; } catch (e) { }
+  return null;
+}
+function wbVaultSubtle() { return (typeof crypto !== 'undefined' && crypto.subtle) ? crypto.subtle : null; }
+function wbVaultB64(buf) { const b = new Uint8Array(buf); let s = ''; for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); }
+function wbVaultUnB64(str) { const s = atob(str); const b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }
+async function wbVaultDeriveKey(pin, salt) {
+  const sub = wbVaultSubtle();
+  const base = await sub.importKey('raw', new TextEncoder().encode('wbvault|' + pin), 'PBKDF2', false, ['deriveKey']);
+  return sub.deriveKey({ name: 'PBKDF2', salt: salt, iterations: 120000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+async function wbVaultEncrypt(pin, obj) {
+  const sub = wbVaultSubtle();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await wbVaultDeriveKey(pin, salt);
+  const ct = await sub.encrypt({ name: 'AES-GCM', iv: iv }, key, new TextEncoder().encode(JSON.stringify(obj)));
+  return { v: 1, salt: wbVaultB64(salt), iv: wbVaultB64(iv), ct: wbVaultB64(ct) };
+}
+async function wbVaultDecrypt(pin, blob) {
+  const sub = wbVaultSubtle();
+  const key = await wbVaultDeriveKey(pin, wbVaultUnB64(blob.salt));
+  const pt = await sub.decrypt({ name: 'AES-GCM', iv: wbVaultUnB64(blob.iv) }, key, wbVaultUnB64(blob.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+function wbVaultTable(url) { return (url || '').replace(/\/+$/, '') + '/rest/v1/sync_store'; }
+function wbVaultHeaders(anonKey) { return { 'Content-Type': 'application/json', 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey }; }
+async function wbVaultCloudPut(url, anonKey, pin, blob) {
+  const body = { group_key: wbVaultGkey(pin), store: WB_VAULT_STORE, data: blob, updated_at: new Date().toISOString() };
+  const r = await fetch(wbVaultTable(url), { method: 'POST', headers: Object.assign(wbVaultHeaders(anonKey), { 'Prefer': 'resolution=merge-duplicates' }), body: JSON.stringify(body) });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+}
+async function wbVaultCloudGet(url, anonKey, pin) {
+  const u = wbVaultTable(url) + '?group_key=eq.' + encodeURIComponent(wbVaultGkey(pin)) + '&store=eq.' + WB_VAULT_STORE + '&select=data';
+  const r = await fetch(u, { headers: wbVaultHeaders(anonKey) });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const rows = await r.json();
+  return (rows && rows.length) ? rows[0].data : null;
+}
+function wbVaultStatusText() {
+  const v = DB.get('syncVault', null);
+  if (!v || !v.ct) return '未设置';
+  let t = '已存入本机' + (v.cloud ? ' + 云端' : '');
+  if (v.ts) {
+    const d = new Date(v.ts), p2 = (n) => String(n).padStart(2, '0');
+    t += '（' + d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes()) + '）';
+  }
+  return t;
+}
+function wbVaultRefreshStatus() { const el = document.getElementById('vault_status'); if (el) el.textContent = wbVaultStatusText(); }
+function wbVaultReadPin() { const el = document.getElementById('vault_pin'); return el ? el.value.trim() : ''; }
+async function wbVaultSave() {
+  const pin = wbVaultReadPin();
+  if (!wbVaultPinOk(pin)) { Toast.warning('请先输入 4 位数字密码'); return; }
+  if (!wbVaultSubtle()) { Toast.error('当前环境不支持加密，保险箱不可用'); return; }
+  const su = $('#sync_url'), sk = $('#sync_key'), sc = $('#sync_code');
+  const url = su ? su.value.trim() : '', anonKey = sk ? sk.value.trim() : '', syncCode = sc ? sc.value.trim() : '';
+  if (!url || !anonKey || !syncCode) { Toast.warning('请先把上面的 URL / Anon Key / 同步码 填完整'); return; }
+  try {
+    const blob = await wbVaultEncrypt(pin, { url: url, anonKey: anonKey, syncCode: syncCode });
+    DB.set('syncVault', Object.assign({}, blob, { ts: Date.now(), cloud: false }));
+    let cloudErr = '';
+    try {
+      await wbVaultCloudPut(url, anonKey, pin, blob);
+      const v = DB.get('syncVault', {}) || {}; v.cloud = true; DB.set('syncVault', v);
+    } catch (e) { cloudErr = e.message; }
+    wbVaultRefreshStatus();
+    if (cloudErr) Toast.warning('已存入本机，但云端上传失败（' + cloudErr + '）：本机可用，卸载重装后无法从云端取回');
+    else Toast.success('已存入保险箱（本机 + 云端）：卸载重装后输入这 4 位密码即可填回');
+  } catch (e) { Toast.error('存入失败：' + e.message); }
+}
+async function wbVaultRestore() {
+  const pin = wbVaultReadPin();
+  if (!wbVaultPinOk(pin)) { Toast.warning('请先输入 4 位数字密码'); return; }
+  if (!wbVaultSubtle()) { Toast.error('当前环境不支持解密，保险箱不可用'); return; }
+  let data = null, from = '';
+  const local = DB.get('syncVault', null);
+  if (local && local.ct) {
+    try { data = await wbVaultDecrypt(pin, local); from = '本机'; }
+    catch (e) { Toast.error('4 位密码不正确'); return; }
+  }
+  if (!data) {
+    const boot = wbVaultBoot();
+    if (!boot) { Toast.warning('本机没有保险箱，且此版本未内置云端入口，无法取回'); return; }
+    try {
+      const blob = await wbVaultCloudGet(boot.url, boot.anonKey, pin);
+      if (!blob) { Toast.error('云端没有这条保险箱记录，或 4 位密码不正确'); return; }
+      data = await wbVaultDecrypt(pin, blob); from = '云端';
+    } catch (e) { Toast.error('取回失败：' + e.message); return; }
+  }
+  if (!data || !data.url) { Toast.error('保险箱内容异常，未填回'); return; }
+  if ($('#sync_url')) $('#sync_url').value = data.url;
+  if ($('#sync_key')) $('#sync_key').value = data.anonKey || '';
+  if ($('#sync_code')) $('#sync_code').value = data.syncCode || '';
+  DB.set('syncCfg', { url: data.url, anonKey: data.anonKey || '', syncCode: data.syncCode || '' });
+  Sync.load();
+  if (Sync.enabled()) Sync.fullSync();
+  Toast.success('已从' + from + '保险箱填回并生效');
+}
+
 function renderDataSettings(html) {
   html += '<div class="settings-section active">';
   // ---- 云端同步 ----
@@ -7812,6 +7928,17 @@ function renderDataSettings(html) {
     : '当前：未配置';
   html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:10px">' + st + '</p>';
   html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:6px;line-height:1.6">换新 Supabase 项目时：建表 <code>sync_store</code>（字段：group_key text、store text、data jsonb、updated_at timestamptz，主键 group_key+store），并开启 anon 访问策略。</p>';
+  // ---- 凭据保险箱 ----
+  html += '<h4 style="font-size:14px;margin:24px 0 8px;color:var(--c-primary)">' + lucide('lock',16) + ' 凭据保险箱（4 位密码）</h4>';
+  html += '<p style="font-size:13px;color:var(--c-text-light);margin-bottom:12px">把上面的 Supabase URL / Anon Key / 同步码 用 4 位密码锁进保险箱：存入后<strong>本机 + 云端各留一份</strong>，<strong>卸载重装后输一次密码即可自动填回</strong>，不用再翻聊天记录找。4 位密码只挡「随手翻看」，请勿当高强度口令。</p>';
+  html += '<div style="display:flex;flex-direction:column;gap:10px;max-width:440px">';
+  html += '<label class="sync-label">4 位密码<span class="sync-pw-wrap"><input type="text" class="sync-field pw-mask" id="vault_pin" value="" placeholder="4 位数字，例如 1234" autocomplete="off" inputmode="numeric" maxlength="4"><button type="button" class="sync-eye" title="显示" onclick="toggleSyncPw(\'vault_pin\', this)">' + lucide('eye-off',16) + '</button></span></label>';
+  html += '<div style="display:flex;gap:12px;flex-wrap:wrap">';
+  html += `<button class="btn btn-primary" onclick="wbVaultSave()">${lucide('save',16)} 存入保险箱</button>`;
+  html += `<button class="btn btn-outline" onclick="wbVaultRestore()">${lucide('key',16)} 取回填回</button>`;
+  html += '</div>';
+  html += '<p id="vault_status" style="font-size:12px;color:var(--c-text-muted);margin-top:4px">未设置</p>';
+  html += '</div>';
   // ---- 数据备份与导入 ----
   html += '<h4 style="font-size:14px;margin:24px 0 16px;color:var(--c-primary)">数据备份与导入</h4>';
   html += '<p style="font-size:13px;color:var(--c-text-light);margin-bottom:16px">导出所有数据为JSON文件，或从备份文件恢复数据。</p>';
@@ -9168,10 +9295,11 @@ function lifeCheckinRenderModal(typeKey) {
   html += `<div class="life-modal-heatmap ${t.period === 'week' ? 'week' : ''}">${renderCheckinHeatmap(typeKey, v.y, v.m, true)}</div>`;
   html += `<div class="life-modal-right">`;
   html += `<div class="life-modal-prog"><div class="lmp-num ${t.period === 'week' ? 'week' : ''}">${mpDone}/${mpTotal}</div></div>`;
+  html += `</div></div>`;
   html += `<div class="life-modal-btns">`;
   html += `<button class="btn btn-primary" onclick="lifeCheckinModalMakeup('${typeKey}')">补卡</button>`;
   html += `<button class="btn life-modal-undo" onclick="lifeCheckinModalUndo('${typeKey}')">撤销</button>`;
-  html += `</div></div></div>`;
+  html += `</div>`;
   html += `<div class="life-modal-sel">已选日期：${lifeCheckinSelDate}</div>`;
   // selected-date records (with precise check-in time)
   html += `<div class="life-modal-list">`;

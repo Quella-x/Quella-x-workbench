@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 小筱工作台 图标生成器（v810 起，取代旧的 gen_icons.js；v812 起补齐 Android 自适应图标）
-源图：D:/图/logo小筱/logo2 8.png（3085×3085，蓝底 #5B9BE8 + 白色海豚）
+源图：D:/图/logo小筱/logo2 9.png（3085×3085，蓝底 #7AB5F5 + 白色海豚）
       生成品牌基准 brand/logo.png（1024×1024）后统一派生所有尺寸。
 
 产出：
@@ -26,11 +26,11 @@ import os
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SRC_RAW = r'D:\图\logo小筱\logo2 8.png'          # 用户提供的高清源图
+SRC_RAW = r'D:\图\logo小筱\logo2 9.png'          # 用户提供的高清源图（v813 起改用 logo2 9，蓝底更浅）
 BRAND = os.path.join(HERE, 'brand', 'logo.png')   # 品牌基准（1024）
 APK_RES = r'D:\wbkey\webview-app\app\src\main\res'
 
-BG = (91, 155, 232)          # #5B9BE8，与源图底蓝一致
+BG = (122, 181, 245)         # #7AB5F5，与源图底蓝一致（v813 由 #5B9BE8 换成更浅的这版）
 MASKABLE_SCALE = 0.914       # 内容最大半径 41.55% → 缩到 40% 安全圆内并留余量
 # 自适应图标前景：108dp 网格里安全可视圆仅 66dp（61.1%），
 # 内容原占 83.1% → 缩放 61.1%*0.93/83.1% ≈ 0.684，取 0.69 居中
