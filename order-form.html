@@ -1000,6 +1000,9 @@ html.apk.modal-lock{overflow:hidden!important}
   transition:background .15s;
 }
 .dynamic-list-row button:hover{background:#fff0f0;color:var(--c-danger)}
+/* v805: 拔掉下拉箭头红色按压态根源——触屏点击后 :hover 粘滞，行内 button:hover 的粉底红箭头(#fff0f0/--c-danger)
+   会一直留在 combobox-toggle 上（日历小按钮同类问题）；箭头改由下方专用 active/open 蓝色态接管 */
+.dynamic-list-row button.combobox-toggle:hover,.dynamic-list-row button.combobox-toggle:active{background:transparent;color:var(--c-text-muted)}
 /* v25: 旧规则 .dynamic-list-container > .btn{margin:8px;width:calc(100% - 16px)} 已合并到 line 436 统一规则 */
 /* v19: 开团记录售后记录——隐藏标题与外框，视觉更轻 */
 .form-label-hide{display:none!important}
@@ -1760,7 +1763,11 @@ html.apk.modal-lock{overflow:hidden!important}
   width:20px;height:20px;border:none;background:transparent;
   color:var(--c-text-muted);font-size:10px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
+  transition:transform .2s,background .15s,color .15s;border-radius:6px;
 }
+/* v805: 下拉新交互——点击直接变蓝（按压即蓝），展开期间保持蓝色+箭头旋转 ▼/▲，收起恢复灰 */
+.combobox-toggle:active{background:var(--c-primary-bg);color:var(--c-primary-dark)}
+.combobox-toggle.open{background:var(--c-primary-bg);color:var(--c-primary-dark);transform:translateY(-50%) rotate(180deg)}
 .combobox-dropdown{
   display:none;position:absolute;top:100%;left:0;right:0;
   max-height:200px;overflow-y:auto;background:#fff;
@@ -2786,7 +2793,14 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-record-info-2col{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3px 22px}
   .lr-info-label{font-size:11px}
   .lr-info-val{font-size:14px}
-  .lr-info-full .lr-info-val{font-size:12px}
+  /* v805: 记录文字加大一号（12→13px，时间数字/标签不动）；行高钉死 px——空行与有记录行严格等高，
+     不再依赖设备字体度量（Windows 实测 58.1 vs 58 已几乎相等，但手机端字体行高差导致有记录行偏高） */
+  .lr-info-full .lr-info-val{font-size:13px}
+  .lr-info-line{line-height:18px}
+  .lr-info-full{line-height:16px}
+  /* 单记录内容高：普通（头行18+全文16+gap3）=37px；睡眠（2×2 网格 18+18+gap3）=39px */
+  .lr-empty-row{padding:0;height:37px;display:flex;align-items:center}
+  .lr-empty-sleep{height:39px}
   .lr-record-ops .btn{padding:1px 6px;font-size:11px}
   .lr-size-note{font-size:10px}
   .lr-history-stat-card{padding:8px}
@@ -3129,6 +3143,11 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .comm-dual .comm-detail-actions{padding:0 14px 14px;margin-top:auto}
 /* v454：右侧轮播圆点上边距 -4px、下边距 +4px（在 v453 +2px 基础上再 +2px） */
 .comm-dual .cdc-dots{margin-top:-4px;margin-bottom:4px}
+/* v805: 手机端列表视图左卡（展示模块）——分割线上挪1px（header padding-bottom 6→5）与内容区整体上挪1px（body padding-top 8→7）分开调整，桌面端不动 */
+@media (max-width:768px){
+  .comm-dual .record-card-header{padding-bottom:5px}
+  .comm-dual .record-card-body{padding-top:7px}
+}
 .comm-dual .comm-detail-actions .btn{width:100%;pointer-events:auto}
 .record-card.selected{border-color:var(--c-primary);box-shadow:0 0 0 2px var(--c-primary-bg)}
 
@@ -3378,6 +3397,10 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .life-goal-grid.compact{gap:8px !important;}
   .life-year-grid{gap:8px !important;}
   .lwm-summary{margin-bottom:8px !important;}
+  /* v805: 周视图汇总条一行三项不换行——左两项（打卡次数/完成率）允许压缩 min-width:0，时间段列固定不缩+nowrap 一行放满 */
+  .lwm-sum-item{min-width:0}
+  .lwm-sum-item:last-child{flex:0 0 auto}
+  .lwm-sum-item:last-child .lwm-sum-val{white-space:nowrap}
   .cd-rec-list{gap:8px !important;}
   .calc-input-col{gap:8px !important;}
   .chart-stats-2col{display:block !important;gap:0 !important;margin:0 !important;}
@@ -3463,7 +3486,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=804"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=805"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

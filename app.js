@@ -1218,7 +1218,7 @@ function buildFormField(f, data, moduleKey, wrap) {
     }) : opts;
     const listId = 'cb_' + f.key + '_' + Math.random().toString(36).slice(2, 7);
     const optHTML = displayOpts.map(o => { const v = typeof o === 'string' ? o : o.value; const l = typeof o === 'string' ? o : o.label; return `<div class="combobox-option" onclick="selectComboboxOption('${listId}',this)" data-value="${esc(v)}">${esc(l)}</div>`; }).join('');
-    inner = `${labelHTML}<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(f.placeholder || '选择或输入...')}" onfocus="showComboboxDropdown('${listId}')" onclick="showComboboxDropdown('${listId}')" oninput="filterComboboxDropdown('${listId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${listId}')">▼</button><div class="combobox-dropdown" id="${listId}">${optHTML}</div></div>${belowHint}`;
+    inner = `${labelHTML}<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="${f.key}" value="${esc(valStr)}" placeholder="${esc(f.placeholder || '选择或输入...')}" oninput="filterComboboxDropdown('${listId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${listId}')">▼</button><div class="combobox-dropdown" id="${listId}">${optHTML}</div></div>${belowHint}`;
   } else if (f.type === 'multiselect') {
     const opts = moduleKey ? getFieldOpts(moduleKey, f.key, f.options) : (f.options || []);
     const selected = Array.isArray(val) ? val : (val ? String(val).split(',') : []);
@@ -1460,7 +1460,7 @@ function renderCustomTimePicker() {
     hoursHTML += `<div class="time-picker-cell${i === hh ? ' selected' : ''}" data-h="${i}">${s}</div>`;
   }
   let minsHTML = '';
-  for (let i = 0; i < 60; i += 5) {
+  for (let i = 0; i < 60; i++) {
     const s = String(i).padStart(2, '0');
     minsHTML += `<div class="time-picker-cell${i === mm ? ' selected' : ''}" data-m="${i}">${s}</div>`;
   }
@@ -1577,7 +1577,7 @@ function buildDynamicCombobox(col, value) {
   }).join('');
   const priceLookupAttr = col.priceLookup ? `fillDynamicPrice(this,'${col.priceLookup}')` : '';
   const oninputStr = `filterComboboxDropdown('${cbId}',this.value);${priceLookupAttr}`;
-  return `<div class="combobox-wrapper" data-subkey="${col.subkey}" style="min-width:0;flex:1"><input type="text" class="form-input combobox-input" data-subkey="${col.subkey}" value="${esc(value)}" placeholder="${esc(col.label)}" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="${oninputStr}"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
+  return `<div class="combobox-wrapper" data-subkey="${col.subkey}" style="min-width:0;flex:1"><input type="text" class="form-input combobox-input" data-subkey="${col.subkey}" value="${esc(value)}" placeholder="${esc(col.label)}" oninput="${oninputStr}"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
 }
 // 动态列表日期子列：与表单级日期字段统一——文本框可自由手输 + 📅 打开原生日历，选完/失焦统一规范为 YYYY-MM-DD
 function buildDynamicDateCell(col, v) {
@@ -1605,7 +1605,7 @@ function buildCommissionBindCombobox(col, value, products) {
     });
   }
   const optHTML = commissionBindOptions(items, cbId);
-  return `<div class="combobox-wrapper" data-subkey="${col.subkey}" style="min-width:0;flex:0 0 140px"><input type="text" class="form-input combobox-input" data-subkey="${col.subkey}" value="${esc(value)}" placeholder="${esc(col.label)}" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}" data-bind="productRef">${optHTML}</div></div>`;
+  return `<div class="combobox-wrapper" data-subkey="${col.subkey}" style="min-width:0;flex:0 0 140px"><input type="text" class="form-input combobox-input" data-subkey="${col.subkey}" value="${esc(value)}" placeholder="${esc(col.label)}" oninput="filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}" data-bind="productRef">${optHTML}</div></div>`;
 }
 /* 表单注入后刷新绑定下拉（读取最新制品列表） */
 function refreshCommissionBindOptions() {
@@ -1871,6 +1871,8 @@ function showComboboxDropdown(id) {
       const isSelected = o.dataset.value ? (o.dataset.value === currentVal) : (o.textContent === currentVal);
       o.classList.toggle('selected', isSelected);
     });
+    const cbTgl = wrapper ? wrapper.querySelector('.combobox-toggle') : null;
+    if (cbTgl) cbTgl.classList.add('open');
     layoutComboboxDropdown(dd, wrapper); // v784: portal 到 body 的 fixed 浮层，不再受弹窗滚动区挤压
   }
 }
@@ -1892,7 +1894,7 @@ function cbUnportal(dd) {
   ['position', 'left', 'top', 'width', 'minWidth', 'maxWidth', 'maxHeight', 'whiteSpace'].forEach(p => { dd.style[p] = ''; });
   try { if (next && next.parentNode === host) host.insertBefore(dd, next); else host.appendChild(dd); } catch (e) { host.appendChild(dd); }
 }
-function cbClose(dd) { if (!dd) return; dd.classList.remove('show'); cbUnportal(dd); }
+function cbClose(dd) { if (!dd) return; dd.classList.remove('show'); try { const w = dd._cbHost; const t = w && w.querySelector ? w.querySelector('.combobox-toggle') : null; if (t) t.classList.remove('open'); } catch (e) {} cbUnportal(dd); }
 function cbCloseAll() { $$('.combobox-dropdown.show').forEach(cbClose); }
 function cbPlace(dd, wrapper) {
   if (!wrapper) return;
@@ -1904,7 +1906,7 @@ function cbPlace(dd, wrapper) {
   let maxH = Math.min(need, CB_MAX_H, spaceBelow);
   if (maxH < oh * 2) maxH = Math.min(need, Math.max(spaceBelow, oh * 2)); // 兜底：至少两行
   dd.style.position = 'fixed';
-  dd.style.top = (rect.bottom + 2) + 'px';
+  dd.style.top = rect.bottom + 'px'; // v805: 贴住输入框底边（原 +2px 缝隙）
   dd.style.left = rect.left + 'px';
   dd.style.maxHeight = Math.max(oh, Math.floor(maxH / oh) * oh) + 'px';
   if (wrapper.closest('.dc-extra-row,.dc-product-row,.dc-mod-row')) {
@@ -1944,14 +1946,24 @@ function toggleComboboxDropdown(id) {
   if (dd.classList.contains('show')) { cbClose(dd); }
   else { showComboboxDropdown(id); }
 }
+/* v805: 输入即过滤——有匹配自动展开（含首次，无需先点箭头），无匹配自动收起 */
 function filterComboboxDropdown(id, val) {
   const dd = document.getElementById(id);
   if (!dd) return;
+  const wrapper = dd._cbWrapper || cbOptionWrapper(null, id);
+  const toggle = wrapper ? wrapper.querySelector('.combobox-toggle') : null;
   const v = val.toLowerCase();
+  let visible = 0;
   $$('.combobox-option', dd).forEach(o => {
-    o.style.display = (!v || o.textContent.toLowerCase().includes(v)) ? '' : 'none';
+    const hit = (!v || o.textContent.toLowerCase().includes(v));
+    o.style.display = hit ? '' : 'none';
+    if (hit) visible++;
   });
-  layoutComboboxDropdown(dd, dd._cbWrapper || cbOptionWrapper(null, id));
+  if (visible > 0) {
+    dd.classList.add('show');
+    if (toggle) toggle.classList.add('open');
+    layoutComboboxDropdown(dd, wrapper);
+  } else { cbClose(dd); }
 }
 /* v795: portal 期间的选项解析——下拉被 cbPortal 移到 body 后，option.closest('.combobox-wrapper')
    拿到 null → selectComboboxOption 等所有选项回调静默 return，「下拉框选不了」。
@@ -2006,7 +2018,11 @@ document.addEventListener('mousedown', e => {
   e.preventDefault();
 }, true);
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('.combobox-wrapper')) { cbCloseAll(); }
+  if (!e.target.closest('.combobox-wrapper')) { cbCloseAll(); return; }
+  // v805: 点输入框（非箭头/选项）=只输入——收起不属于本输入框的已开下拉
+  if (!e.target.closest('.combobox-toggle') && !e.target.closest('.combobox-dropdown')) {
+    $$('.combobox-dropdown.show').forEach(d => { const hw = d._cbHost; if (!hw || !hw.contains(e.target)) cbClose(d); });
+  }
 });
 
 /* ===== Custom Multiselect Option Adder ===== */
@@ -2668,14 +2684,14 @@ function cdProductComboboxHTML(id, value) {
   const priceList = DB.list('priceList');
   const products = [...new Set(priceList.filter(p => PRODUCT_CATEGORIES.includes(p.category) && p.product).map(p => p.product))];
   const opts = products.map(n => `<div class="combobox-option" onclick="selectComboboxOption('${id}',this)" data-value="${esc(n)}">${esc(n)}</div>`).join('');
-  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="product" value="${esc(value || '')}" placeholder="请输入或选择制品" onfocus="showComboboxDropdown('${id}')" onclick="showComboboxDropdown('${id}')" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${opts}</div><input type="hidden" class="combobox-value" data-key="product" value="${esc(value || '')}"></div>`;
+  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="product" value="${esc(value || '')}" placeholder="请输入或选择制品" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${opts}</div><input type="hidden" class="combobox-value" data-key="product" value="${esc(value || '')}"></div>`;
 }
 // 追加制品专用：制品下拉框（使用 data-ep 命名空间，与初始制品信息大框一致）
 function cdProductComboboxHTMLForEp(id, value) {
   const priceList = DB.list('priceList');
   const products = [...new Set(priceList.filter(p => PRODUCT_CATEGORIES.includes(p.category) && p.product).map(p => p.product))];
   const opts = products.map(n => `<div class="combobox-option" onclick="selectComboboxOption('${id}',this)" data-value="${esc(n)}">${esc(n)}</div>`).join('');
-  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-ep="product" value="${esc(value || '')}" placeholder="请输入或选择制品" onfocus="showComboboxDropdown('${id}')" onclick="showComboboxDropdown('${id}')" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${opts}</div><input type="hidden" class="combobox-value" data-ep="product" value="${esc(value || '')}"></div>`;
+  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-ep="product" value="${esc(value || '')}" placeholder="请输入或选择制品" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${opts}</div><input type="hidden" class="combobox-value" data-ep="product" value="${esc(value || '')}"></div>`;
 }
 // 饭圈/二次：工艺下拉框（支持在设置中管理选项，同时允许自由输入）
 function cdCraftComboboxHTML(value) {
@@ -2689,7 +2705,7 @@ function cdCraftComboboxHTML(value) {
     const v = typeof o === 'string' ? o : (o.value || o);
     return `<div class="combobox-option" data-value="${esc(v)}" onclick="selectComboboxOption('cdCraftCb',this)">${esc(v)}</div>`;
   }).join('');
-  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" value="${esc(value || '')}" placeholder="工艺" onfocus="showComboboxDropdown('cdCraftCb')" onclick="showComboboxDropdown('cdCraftCb')" oninput="filterComboboxDropdown('cdCraftCb',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('cdCraftCb')">▼</button><div class="combobox-dropdown" id="cdCraftCb">${optHTML}</div></div>`;
+  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" value="${esc(value || '')}" placeholder="工艺" oninput="filterComboboxDropdown('cdCraftCb',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('cdCraftCb')">▼</button><div class="combobox-dropdown" id="cdCraftCb">${optHTML}</div></div>`;
 }
 // 饭圈/二次：选择价目表制品后自动回填默认尺寸/出血（初始大框 + 追加制品大框，仅空值时）
 function cdBindProductAutoFill(container) {
@@ -2725,14 +2741,14 @@ function cdTwyProductComboboxHTML(id, value) {
   const defaultOpts = ['壁纸', '封口贴', '封面', '海报', '卡套', '手持镜', '手机壳', '小卡', '易拉宝'];
   const opts = getFieldOpts('design-commission-detail-twy', 'product', defaultOpts.map(v => ({ value: v, label: v }))).map(o => o.value);
   const optHTML = opts.map(n => `<div class="combobox-option" onclick="selectComboboxOption('${id}',this)" data-value="${esc(n)}">${esc(n)}</div>`).join('');
-  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="product" value="${esc(value || '')}" placeholder="请选择或输入制品" onfocus="showComboboxDropdown('${id}')" onclick="showComboboxDropdown('${id}')" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${optHTML}</div><input type="hidden" class="combobox-value" data-key="product" value="${esc(value || '')}"></div>`;
+  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="product" value="${esc(value || '')}" placeholder="请选择或输入制品" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${optHTML}</div><input type="hidden" class="combobox-value" data-key="product" value="${esc(value || '')}"></div>`;
 }
 // 封面约稿单：类型排版·类型下拉框（默认 8 项；可在「设置-选项管理」自定义）
 function cdFmGenreComboboxHTML(id, value) {
   const defaultOpts = ['都市', '古风', '灵异', 'Q版', '素锦', '玄幻', '校园', '言情'];
   const opts = getFieldOpts('design-commission-detail-fm', 'genre', defaultOpts.map(v => ({ value: v, label: v }))).map(o => o.value);
   const optHTML = opts.map(n => `<div class="combobox-option" onclick="selectComboboxOption('${id}',this)" data-value="${esc(n)}">${esc(n)}</div>`).join('');
-  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="genre" value="${esc(value || '')}" placeholder="请选择或输入类型" onfocus="showComboboxDropdown('${id}')" onclick="showComboboxDropdown('${id}')" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${optHTML}</div></div>`;
+  return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="genre" value="${esc(value || '')}" placeholder="请选择或输入类型" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${optHTML}</div></div>`;
 }
 // 土味约稿单：选择价目表制品后自动回填默认尺寸/出血（仅当制品命中价目表时）
 function cdTwyBindProductAutoFill(container) {
@@ -2885,11 +2901,11 @@ MODULES['design-commission-detail-fm'] = {
     { key: 'clientInfo', label: '单主', type: 'text', localOnly: true, hintInline: true, hint: '用于与接稿排期联动，可自行修改' },
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
-    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">尺寸信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">网站/书城</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="type" placeholder="网站/书城" onfocus="showComboboxDropdown(\'cdFmPlatformCb\')" onclick="showComboboxDropdown(\'cdFmPlatformCb\')" oninput="filterComboboxDropdown(\'cdFmPlatformCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdFmPlatformCb\')">▼</button><div class="combobox-dropdown" id="cdFmPlatformCb"><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPlatformCb\',this)" data-value="网站">网站</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPlatformCb\',this)" data-value="书城">书城</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPlatformCb\',this)" data-value="其他">其他</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸</span><input type="text" class="form-input" data-key="size" placeholder="平台尺寸"></div><div class="style-color-col"><span class="style-color-col-label">是否加logo</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="addLogo" placeholder="是否加logo" onfocus="showComboboxDropdown(\'cdFmLogoCb\')" onclick="showComboboxDropdown(\'cdFmLogoCb\')" oninput="filterComboboxDropdown(\'cdFmLogoCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdFmLogoCb\')">▼</button><div class="combobox-dropdown" id="cdFmLogoCb"><div class="combobox-option" onclick="selectComboboxOption(\'cdFmLogoCb\',this)" data-value="不加">不加</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmLogoCb\',this)" data-value="加">加</div></div></div></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">尺寸信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">网站/书城</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="type" placeholder="网站/书城" oninput="filterComboboxDropdown(\'cdFmPlatformCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdFmPlatformCb\')">▼</button><div class="combobox-dropdown" id="cdFmPlatformCb"><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPlatformCb\',this)" data-value="网站">网站</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPlatformCb\',this)" data-value="书城">书城</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPlatformCb\',this)" data-value="其他">其他</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸</span><input type="text" class="form-input" data-key="size" placeholder="平台尺寸"></div><div class="style-color-col"><span class="style-color-col-label">是否加logo</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="addLogo" placeholder="是否加logo" oninput="filterComboboxDropdown(\'cdFmLogoCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdFmLogoCb\')">▼</button><div class="combobox-dropdown" id="cdFmLogoCb"><div class="combobox-option" onclick="selectComboboxOption(\'cdFmLogoCb\',this)" data-value="不加">不加</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmLogoCb\',this)" data-value="加">加</div></div></div></div></div></div>' },
     { key: 'bookName', label: '书名', type: 'text' },
     { key: 'authorName', label: '作者名', type: 'text' },
     { key: 'copyText', label: '文案/小字', type: 'textarea' },
-    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">类型排版</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">类型</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="genre" placeholder="类型" onfocus="showComboboxDropdown(\'cdFmGenreCb\')" onclick="showComboboxDropdown(\'cdFmGenreCb\')" oninput="filterComboboxDropdown(\'cdFmGenreCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdFmGenreCb\')">▼</button><div class="combobox-dropdown" id="cdFmGenreCb"><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="都市">都市</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="古风">古风</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="灵异">灵异</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="Q 版">Q 版</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="素锦">素锦</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="玄幻">玄幻</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="校园">校园</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="言情">言情</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">是否纯排</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="pureLayout" placeholder="是否纯排" onfocus="showComboboxDropdown(\'cdFmPureCb\')" onclick="showComboboxDropdown(\'cdFmPureCb\')" oninput="filterComboboxDropdown(\'cdFmPureCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdFmPureCb\')">▼</button><div class="combobox-dropdown" id="cdFmPureCb"><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPureCb\',this)" data-value="否">否</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPureCb\',this)" data-value="是">是</div></div></div></div></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">类型排版</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">类型</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="genre" placeholder="类型" oninput="filterComboboxDropdown(\'cdFmGenreCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdFmGenreCb\')">▼</button><div class="combobox-dropdown" id="cdFmGenreCb"><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="都市">都市</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="古风">古风</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="灵异">灵异</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="Q 版">Q 版</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="素锦">素锦</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="玄幻">玄幻</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="校园">校园</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmGenreCb\',this)" data-value="言情">言情</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">是否纯排</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="pureLayout" placeholder="是否纯排" oninput="filterComboboxDropdown(\'cdFmPureCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdFmPureCb\')">▼</button><div class="combobox-dropdown" id="cdFmPureCb"><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPureCb\',this)" data-value="否">否</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPureCb\',this)" data-value="是">是</div></div></div></div></div></div></div>' },
     { key: 'color', label: '颜色', type: 'text', hintInline: true, hint: '默认跟底图颜色走' },
     { key: 'baseImg', label: '底图', type: 'combobox', default: '自带', options: [{ value: '自带', label: '自带' }, { value: '有人', label: '有人' }, { value: '无人', label: '无人' }] },
     { key: 'baseReq', label: '底图需求', type: 'text', placeholder: '请说明需求', hintInline: true, hint: '请说明需求 颜色、男女、元素等', showWhenIn: { key: 'baseImg', values: ['有人', '无人'] } },
@@ -2920,7 +2936,7 @@ MODULES['design-commission-detail-fq'] = {
     { section: '制品信息' },
     { key: 'usageType', cls: 'cd-title-gap14', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'theme', label: '企划/主题名称', type: 'text' },
-    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">（特殊尺寸出血请修改 可直接给模板）</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="请输入或选择制品"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" placeholder="工艺" onfocus="showComboboxDropdown(\'cdCraftCb\')" onclick="showComboboxDropdown(\'cdCraftCb\')" oninput="filterComboboxDropdown(\'cdCraftCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdCraftCb\')">▼</button><div class="combobox-dropdown" id="cdCraftCb"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption(\'cdCraftCb\',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption(\'cdCraftCb\',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption(\'cdCraftCb\',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption(\'cdCraftCb\',this)">烫色</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">（初始为默认尺寸）</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">（初始为默认出血）</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">（特殊尺寸出血请修改 可直接给模板）</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="请输入或选择制品"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" placeholder="工艺" oninput="filterComboboxDropdown(\'cdCraftCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdCraftCb\')">▼</button><div class="combobox-dropdown" id="cdCraftCb"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption(\'cdCraftCb\',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption(\'cdCraftCb\',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption(\'cdCraftCb\',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption(\'cdCraftCb\',this)">烫色</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">（初始为默认尺寸）</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">（初始为默认出血）</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息<span class="cd-cp-switch"><button type="button" class="lbt-btn active" data-cpmode="single" onclick="cdSetCpMode(this,\'single\')">单人</button><button type="button" class="lbt-btn" data-cpmode="cp" onclick="cdSetCpMode(this,\'cp\')">CP向</button></span></label><div class="style-color-box info-box cd-imp-box"><div class="cd-imp-single"><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div><div class="cd-imp-cp" style="display:none"><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">姓名</span><input type="text" class="form-input" data-key="charName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">CP名</span><input type="text" class="form-input" data-key="cpName"></div></div></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">（可以给参考图/色卡 请把主色写最前面）</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">元素</label><div class="style-color-box elements-box"><div class="style-color-col"><span class="style-color-col-label">必用</span><input type="text" class="form-input" data-key="elementsRequired"></div><div class="style-color-col"><span class="style-color-col-label">可选</span><input type="text" class="form-input" data-key="elementsOptional"></div><div class="style-color-col"><span class="style-color-col-label">避雷</span><input type="text" class="form-input" data-key="elementsAvoid"></div></div></div>' },
@@ -2952,7 +2968,7 @@ MODULES['design-commission-detail-ec'] = {
     { section: '制品信息' },
     { key: 'usageType', cls: 'cd-title-gap14', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
     { key: 'theme', label: '企划/主题名称', type: 'text' },
-    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">（特殊尺寸出血请修改 可直接给模板）</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="请输入或选择制品"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" placeholder="工艺" onfocus="showComboboxDropdown(\'cdCraftCb\')" onclick="showComboboxDropdown(\'cdCraftCb\')" oninput="filterComboboxDropdown(\'cdCraftCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdCraftCb\')">▼</button><div class="combobox-dropdown" id="cdCraftCb"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption(\'cdCraftCb\',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption(\'cdCraftCb\',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption(\'cdCraftCb\',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption(\'cdCraftCb\',this)">烫色</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">（初始为默认尺寸）</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">（初始为默认出血）</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
+    { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">（特殊尺寸出血请修改 可直接给模板）</span></label><div class="style-color-box info-box cd-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input cd-product-combobox" data-key="product" placeholder="请输入或选择制品"></div><div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="craft" placeholder="工艺" oninput="filterComboboxDropdown(\'cdCraftCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdCraftCb\')">▼</button><div class="combobox-dropdown" id="cdCraftCb"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption(\'cdCraftCb\',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption(\'cdCraftCb\',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption(\'cdCraftCb\',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption(\'cdCraftCb\',this)">烫色</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">（初始为默认尺寸）</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">（初始为默认出血）</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
     { key: 'ipName', label: 'IP', type: 'text' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">重要信息<span class="cd-cp-switch"><button type="button" class="lbt-btn active" data-cpmode="single" onclick="cdSetCpMode(this,\'single\')">单人</button><button type="button" class="lbt-btn" data-cpmode="cp" onclick="cdSetCpMode(this,\'cp\')">CP向</button></span></label><div class="style-color-box info-box cd-imp-box"><div class="cd-imp-single"><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div></div><div class="cd-imp-cp" style="display:none"><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName"></div><div class="style-color-col"><span class="style-color-col-label">角色名</span><input type="text" class="form-input" data-key="charName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName"></div><div class="style-color-col"><span class="style-color-col-label">昵称</span><input type="text" class="form-input" data-key="nickName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName"></div><div class="style-color-col"><span class="style-color-col-label">英文名</span><input type="text" class="form-input" data-key="englishName2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday"></div><div class="style-color-col"><span class="style-color-col-label">生日</span><input type="text" class="form-input" data-key="birthday2"></div></div><div class="cd-imp-cp-row"><div class="style-color-col"><span class="style-color-col-label">CP名</span><input type="text" class="form-input" data-key="cpName"></div></div></div></div></div>' },
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">风格颜色<span class="form-label-hint">（可以给参考图/色卡 请把主色写最前面）</span></label><div class="style-color-box"><div class="style-color-col"><span class="style-color-col-label">风格</span><input type="text" class="form-input" data-key="style"></div><div class="style-color-col"><span class="style-color-col-label">颜色</span><input type="text" class="form-input" data-key="color"></div></div></div>' },
@@ -3479,7 +3495,7 @@ function renderListPage(pageKey, mod) {
       const optHTML = displayOpts.map(o => `<div class="combobox-option${cv === o.value ? ' selected' : ''}" onclick="onFilterCombobox('${pageKey}','${f.key}',this.dataset.value,'${cbId}')" data-value="${esc(o.value)}">${esc(o.label)}</div>`).join('');
       const selectedOpt = displayOpts.find(o => o.value === cv);
       const displayVal = selectedOpt ? selectedOpt.label : (displayOpts[0] ? displayOpts[0].label : '');
-      html += `<div class="combobox-wrapper filter-combobox"><input type="text" class="form-input combobox-input filter-combobox-input" value="${esc(displayVal)}" placeholder="${esc(f.label || '筛选')}" readonly onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
+      html += `<div class="combobox-wrapper filter-combobox"><input type="text" class="form-input combobox-input filter-combobox-input" value="${esc(displayVal)}" placeholder="${esc(f.label || '筛选')}" readonly oninput="filterComboboxDropdown(''${cbId}'',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
     });
   }
   html += '<div class="spacer"></div>';
@@ -4783,7 +4799,7 @@ function renderHome() {
     html += `<div class="home-insp-title">${lucide('lightbulb',16)} 灵感速记 <span class="hint">（随手记，保存后收入「灵感记录」）</span></div>`;
     html += '<div class="home-insp-row">';
     html += '<input type="text" class="form-input" id="hInspTheme" placeholder="灵感主题">';
-    html += '<div class="combobox-wrapper home-insp-combo"><input type="text" class="form-input combobox-input" id="hInspCat" placeholder="请选择或输入制品" onfocus="showComboboxDropdown(\'hInspCatList\')" onclick="showComboboxDropdown(\'hInspCatList\')" oninput="filterComboboxDropdown(\'hInspCatList\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'hInspCatList\')">▼</button><div class="combobox-dropdown" id="hInspCatList">' + hCatOpts + '</div></div>';
+    html += '<div class="combobox-wrapper home-insp-combo"><input type="text" class="form-input combobox-input" id="hInspCat" placeholder="请选择或输入制品" oninput="filterComboboxDropdown(\'hInspCatList\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'hInspCatList\')">▼</button><div class="combobox-dropdown" id="hInspCatList">' + hCatOpts + '</div></div>';
     html += '</div>';
     html += '<textarea class="form-input home-insp-textarea" id="hInspThoughts" placeholder="文字思路"></textarea>';
     html += '<div class="home-insp-actions"><button class="btn btn-primary" onclick="homeAddInspiration()">保存灵感</button></div>';
@@ -4802,7 +4818,7 @@ function renderHome() {
     const ctId = 'homeContentType';
     html += '<div class="toolbar home-toolbar">';
     html += `<div class="search-box"><input type="text" placeholder="搜索" value="${esc(ps.search)}" oninput="homeSearch(this.value)"><span class="search-icon">${lucide('search',16)}</span></div>`;
-    html += `<div class="combobox-wrapper filter-combobox home-content-type"><input type="text" class="form-input combobox-input filter-combobox-input" value="${esc(ctDisplay)}" placeholder="内容类型" readonly onfocus="showComboboxDropdown('${ctId}')" onclick="showComboboxDropdown('${ctId}')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${ctId}')">▼</button><div class="combobox-dropdown" id="${ctId}">${ctOpts}</div></div>`;
+    html += `<div class="combobox-wrapper filter-combobox home-content-type"><input type="text" class="form-input combobox-input filter-combobox-input" value="${esc(ctDisplay)}" placeholder="内容类型" readonly oninput="filterComboboxDropdown(''${ctId}'',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${ctId}')">▼</button><div class="combobox-dropdown" id="${ctId}">${ctOpts}</div></div>`;
     html += '<div class="spacer"></div>';
     html += '<button class="btn btn-primary" onclick="openAddForm(\'home\')">+ 新增记录</button>';
     html += '</div>';
@@ -5333,7 +5349,7 @@ function importStoriesToTimeline() {
   html += '<div><div style="font-size:13px;margin-bottom:6px">选择故事小记</div>';
   html += '<div class="form-row"><div class="combobox-wrapper import-story-combo">';
   html += '<input type="hidden" id="importStorySelect" class="combobox-value" value="">';
-  html += '<input type="text" class="form-input combobox-input" id="importStoryInput" placeholder="请选择或输入故事小记" onfocus="showComboboxDropdown(\'importStoryList\')" onclick="showComboboxDropdown(\'importStoryList\')" oninput="filterComboboxDropdown(\'importStoryList\',this.value)">';
+  html += '<input type="text" class="form-input combobox-input" id="importStoryInput" placeholder="请选择或输入故事小记" oninput="filterComboboxDropdown(\'importStoryList\',this.value)">';
   html += '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'importStoryList\')">▼</button>';
   html += '<div class="combobox-dropdown" id="importStoryList">' + storyOpts + '</div>';
   html += '</div></div></div>';
@@ -5345,7 +5361,7 @@ function importStoriesToTimeline() {
   html += `<div style="margin-top:12px"><div style="font-size:13px;margin-bottom:6px">重要性</div>`;
   html += '<div class="combobox-wrapper import-importance-combo">';
   html += `<input type="hidden" id="importImportanceValue" class="combobox-value" value="${esc(impDef)}">`;
-  html += `<input type="text" class="form-input combobox-input" id="importImportanceInput" value="${esc(TIMELINE_COLORS[impDef].label)}" readonly onclick="showComboboxDropdown('importImportanceList')" onfocus="showComboboxDropdown('importImportanceList')">`;
+  html += `<input type="text" class="form-input combobox-input" id="importImportanceInput" value="${esc(TIMELINE_COLORS[impDef].label)}" readonly oninput="filterComboboxDropdown(''importImportanceList'',this.value)">`;
   html += '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'importImportanceList\')">▼</button>';
   html += `<div class="combobox-dropdown" id="importImportanceList">${impOpts}</div>`;
   html += '</div></div>';
@@ -6100,7 +6116,7 @@ function renderDesignCalc() {
     }).join('');
     html += '<div class="combobox-wrapper calc-import-combo">';
     html += `<input type="hidden" class="combobox-value" id="dcImportSelectValue" value="${esc(_dcImportId || '')}">`;
-    html += `<input type="text" class="form-input combobox-input" id="dcImportSelectInput" value="${esc(selectedLabel)}" placeholder="请选择或输入接稿记录" onfocus="showComboboxDropdown('dcImportSelectList')" onclick="showComboboxDropdown('dcImportSelectList')" oninput="filterComboboxDropdown('dcImportSelectList',this.value)">`;
+    html += `<input type="text" class="form-input combobox-input" id="dcImportSelectInput" value="${esc(selectedLabel)}" placeholder="请选择或输入接稿记录" oninput="filterComboboxDropdown('dcImportSelectList',this.value)">`;
     html += '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'dcImportSelectList\')">▼</button>';
     html += '<div class="combobox-dropdown" id="dcImportSelectList"><div class="combobox-option" onclick="dcImportRecord(\'\');document.getElementById(\'dcImportSelectInput\').value=\'\';document.getElementById(\'dcImportSelectValue\').value=\'\'" data-value="">请选择接稿记录</div>' + importOpts + '</div>';
     html += '</div>';
@@ -6321,7 +6337,7 @@ function dcRenderProducts() {
     const modelTypeLabel = p.sameModelType || '';
     html += `<div class="dc-product-row">`;
     html += `<div class="dc-prod-seq${p.setGroup ? ' setgroup' : ''}">${seq}</div>`;
-    html += `<div class="combobox-wrapper dc-prod-name-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-name" value="${esc(p.name)}" placeholder="制品" data-key="name" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateProduct(${i},'name',this.value);dcFillPrice(this,'product',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
+    html += `<div class="combobox-wrapper dc-prod-name-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-prod-name" value="${esc(p.name)}" placeholder="制品" data-key="name" oninput="dcUpdateProduct(${i},'name',this.value);dcFillPrice(this,'product',${i});filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
     html += `<input type="text" class="form-input dc-prod-pattern" value="${esc(p.patternId||'')}" placeholder="柄图标识" oninput="dcUpdateProduct(${i},'patternId',this.value)">`;
     html += `<input type="number" class="form-input dc-prod-price" value="${p.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateProduct(${i},'price',this.value)">`;
     html += `<input type="number" class="form-input dc-prod-qty" value="${p.quantity}" placeholder="数量" min="1" oninput="dcUpdateProduct(${i},'quantity',this.value)">`;
@@ -6330,7 +6346,7 @@ function dcRenderProducts() {
     html += `<label class="dc-prod-check dc-prod-urgent"><input type="checkbox" ${urgChk ? 'checked' : ''} ${_dcWholeOrderUrgent ? 'disabled' : ''} onchange="dcUpdateProduct(${i},'urgent',this.checked)">加急</label>`;
     html += `<label class="dc-prod-check dc-prod-same"><input type="checkbox" ${p.sameModel ? 'checked' : ''} onchange="dcUpdateProduct(${i},'sameModel',this.checked)">同模</label>`;
     if (p.sameModel) {
-      html += `<div class="combobox-wrapper dc-prod-model-type-wrapper"><input type="text" class="form-input combobox-input dc-prod-model-type" value="${esc(modelTypeLabel)}" placeholder="请选择同模类型" readonly onfocus="showComboboxDropdown('${modelCbId}')" onclick="showComboboxDropdown('${modelCbId}')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${modelCbId}')">▼</button><div class="combobox-dropdown" id="${modelCbId}">${modelOptsHTML}</div></div>`;
+      html += `<div class="combobox-wrapper dc-prod-model-type-wrapper"><input type="text" class="form-input combobox-input dc-prod-model-type" value="${esc(modelTypeLabel)}" placeholder="请选择同模类型" readonly oninput="filterComboboxDropdown(''${modelCbId}'',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${modelCbId}')">▼</button><div class="combobox-dropdown" id="${modelCbId}">${modelOptsHTML}</div></div>`;
     }
     html += `<button type="button" class="btn btn-ghost btn-sm dc-prod-del" onclick="dcRemoveProduct(${i})">${lucide('x',16)}</button>`;
     html += `</div>`;
@@ -6479,9 +6495,9 @@ function dcRenderExtras() {
       })).join('');
     html += '<div class="dc-extra-row">';
     // 绑定制品 combobox（置于名称前面，与灵感记录制品下拉同款，保留【下拉选择器】结构）
-    html += `<div class="combobox-wrapper dc-extra-bind-wrapper"><input type="text" class="form-input combobox-input dc-extra-bind-input" value="${esc(dcExtraBindDisplay(e.bindSeq))}" placeholder="绑定制品" onfocus="showComboboxDropdown('${bindCbId}')" onclick="showComboboxDropdown('${bindCbId}')" oninput="filterComboboxDropdown('${bindCbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${bindCbId}')">▼</button><div class="combobox-dropdown" id="${bindCbId}">${bindOptHTML}</div></div>`;
+    html += `<div class="combobox-wrapper dc-extra-bind-wrapper"><input type="text" class="form-input combobox-input dc-extra-bind-input" value="${esc(dcExtraBindDisplay(e.bindSeq))}" placeholder="绑定制品" oninput="filterComboboxDropdown('${bindCbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${bindCbId}')">▼</button><div class="combobox-dropdown" id="${bindCbId}">${bindOptHTML}</div></div>`;
     // 名称 combobox（保留原结构）
-    html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-extra-name" value="${esc(e.name)}" placeholder="名称" onfocus="showComboboxDropdown('${nameCbId}')" onclick="showComboboxDropdown('${nameCbId}')" oninput="dcUpdateExtra(${i},'name',this.value);dcFillPrice(this,'extra',${i});filterComboboxDropdown('${nameCbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${nameCbId}')">▼</button><div class="combobox-dropdown" id="${nameCbId}">${optHTML}</div></div>`;
+    html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-extra-name" value="${esc(e.name)}" placeholder="名称" oninput="dcUpdateExtra(${i},'name',this.value);dcFillPrice(this,'extra',${i});filterComboboxDropdown('${nameCbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${nameCbId}')">▼</button><div class="combobox-dropdown" id="${nameCbId}">${optHTML}</div></div>`;
     html += `<input type="number" class="form-input dc-extra-qty" value="${e.quantity}" placeholder="数量" min="1" oninput="dcUpdateExtra(${i},'quantity',this.value)">`;
     html += `<input type="number" class="form-input dc-extra-price" value="${e.price}" placeholder="单价" min="0" step="0.01" oninput="dcUpdateExtra(${i},'price',this.value)">`;
     html += `<button type="button" class="btn btn-ghost btn-sm dc-extra-del" onclick="dcRemoveExtra(${i})">${lucide('x',16)}</button>`;
@@ -6543,7 +6559,7 @@ function dcRenderModifications() {
     const cbId = 'dcm_' + i + '_' + Math.random().toString(36).slice(2,6);
     const optHTML = modifyTypeNames.map(n => `<div class="combobox-option" onclick="dcSelectModification(${i},this,'${cbId}')" data-value="${esc(n)}">${esc(n)}</div>`).join('');
     html += '<div class="dc-mod-row">';
-    html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-mod-type" value="${esc(m.modifyType||'')}" placeholder="修改类型" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="dcUpdateModification(${i},'modifyType',this.value);filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
+    html += `<div class="combobox-wrapper" style="min-width:0"><input type="text" class="form-input combobox-input dc-mod-type" value="${esc(m.modifyType||'')}" placeholder="修改类型" oninput="dcUpdateModification(${i},'modifyType',this.value);filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
     html += `<input type="number" class="form-input dc-mod-count" value="${m.modifyCount}" placeholder="次数" min="1" oninput="dcUpdateModification(${i},'modifyCount',this.value)">`;
     html += `<input type="number" class="form-input dc-mod-price" value="${m.modifyPrice}" placeholder="价格" min="0" step="0.01" oninput="dcUpdateModification(${i},'modifyPrice',this.value)">`;
     html += `<input type="text" class="form-input dc-mod-note" value="${esc(m.note||'')}" placeholder="备注" oninput="dcUpdateModification(${i},'note',this.value)">`;
@@ -7613,7 +7629,7 @@ function renderFieldSettings(html) {
   }
   if (!_settingsModule || !modules.includes(_settingsModule)) _settingsModule = modules[0];
   const selLabel = _settingsModule ? (PAGE_TITLES[_settingsModule] || _settingsModule) : '请选择模块';
-  html += `<div class="combobox-wrapper" style="min-width:160px"><input type="text" class="form-input combobox-input" value="${esc(selLabel)}" placeholder="请选择模块" readonly onfocus="showComboboxDropdown('settingsModuleCb')" onclick="showComboboxDropdown('settingsModuleCb')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('settingsModuleCb')">▼</button><div class="combobox-dropdown" id="settingsModuleCb">`;
+  html += `<div class="combobox-wrapper" style="min-width:160px"><input type="text" class="form-input combobox-input" value="${esc(selLabel)}" placeholder="请选择模块" readonly oninput="filterComboboxDropdown(''settingsModuleCb'',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('settingsModuleCb')">▼</button><div class="combobox-dropdown" id="settingsModuleCb">`;
   modules.forEach(k => {
     html += `<div class="combobox-option ${_settingsModule === k ? 'selected' : ''}" data-value="${k}" onclick="_settingsModule='${k}';renderSettingsModal()">${esc(PAGE_TITLES[k] || k)}</div>`;
   });
@@ -7800,7 +7816,7 @@ function renderDisplayFieldsSettings(html) {
   }
   if (!_settingsModule || !modules.includes(_settingsModule)) _settingsModule = modules[0];
   const selLabel = _settingsModule ? (PAGE_TITLES[_settingsModule] || _settingsModule) : '请选择模块';
-  html += `<div class="combobox-wrapper" style="min-width:160px"><input type="text" class="form-input combobox-input" value="${esc(selLabel)}" placeholder="请选择模块" readonly onfocus="showComboboxDropdown('settingsModuleCb')" onclick="showComboboxDropdown('settingsModuleCb')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('settingsModuleCb')">▼</button><div class="combobox-dropdown" id="settingsModuleCb">`;
+  html += `<div class="combobox-wrapper" style="min-width:160px"><input type="text" class="form-input combobox-input" value="${esc(selLabel)}" placeholder="请选择模块" readonly oninput="filterComboboxDropdown(''settingsModuleCb'',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('settingsModuleCb')">▼</button><div class="combobox-dropdown" id="settingsModuleCb">`;
   modules.forEach(k => {
     html += `<div class="combobox-option ${_settingsModule === k ? 'selected' : ''}" data-value="${k}" onclick="_settingsModule='${k}';renderSettingsModal()">${esc(PAGE_TITLES[k] || k)}</div>`;
   });
@@ -8918,7 +8934,7 @@ function lifeCheckinAdd() {
     <div class="form-row">
       <label class="form-label">类型</label>
       <div class="combobox-wrapper">
-        <input type="text" class="form-input combobox-input" id="lc-add-period" value="每日打卡" readonly placeholder="请选择" onfocus="showComboboxDropdown('lc-add-period-cb')" onclick="showComboboxDropdown('lc-add-period-cb')">
+        <input type="text" class="form-input combobox-input" id="lc-add-period" value="每日打卡" readonly placeholder="请选择" oninput="filterComboboxDropdown(''lc-add-period-cb'',this.value)">
         <button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('lc-add-period-cb')">▼</button>
         <div class="combobox-dropdown" id="lc-add-period-cb">
           <div class="combobox-option" data-value="day" onclick="lifeCheckinSelPeriod('day',this)">每日打卡</div>
@@ -9378,7 +9394,7 @@ function milkteaFlavorsList(arr) {
 function renderComboboxHTML(id, value, options) {
   const selected = options.find(o => o.value === value) || options[0];
   let html = `<div class="combobox-wrapper lf-combobox">`;
-  html += `<input type="text" class="form-input combobox-input" value="${esc(selected.label)}" placeholder="请选择" readonly onfocus="showComboboxDropdown('${id}-dropdown')" onclick="showComboboxDropdown('${id}-dropdown')">`;
+  html += `<input type="text" class="form-input combobox-input" value="${esc(selected.label)}" placeholder="请选择" readonly oninput="filterComboboxDropdown(''${id}-dropdown'',this.value)">`;
   html += `<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}-dropdown')">▼</button>`;
   html += `<input type="hidden" class="combobox-value" id="${id}" value="${esc(selected.value)}">`;
   html += `<div class="combobox-dropdown" id="${id}-dropdown">`;
@@ -9606,7 +9622,7 @@ function renderSleepRecordCard(date) {
     html += `<div class="lr-subtype-box">
       <div class="lr-subtype-label">${st.label}</div>
       <div class="lr-subtype-content">
-        ${recs.length ? renderSleepRecordRows(recs) : `<div class="lr-empty-row" onclick="lifeRecOpenForm('sleep','${st.key}')">点击添加${st.label}睡眠记录</div>`}
+        ${recs.length ? renderSleepRecordRows(recs) : `<div class="lr-empty-row lr-empty-sleep" onclick="lifeRecOpenForm('sleep','${st.key}')">点击添加${st.label}睡眠记录</div>`}
       </div>
     </div>`;
   });
@@ -9730,7 +9746,7 @@ function renderLifeRecordHistoryDayCard(typeKey, dateStr, wdLabel) {
       <div class="lr-subtype-content">
         ${recs.length
           ? (typeKey === 'sleep' ? renderSleepRecordRows(recs) : renderDietRecordRows(recs, st))
-          : `<div class="lr-empty-row" onclick="lifeRecordHistoryCellClick('${typeKey}','${sk}','${dateStr}')">点击添加${st.label}记录</div>`}
+          : `<div class="lr-empty-row${typeKey === 'sleep' ? ' lr-empty-sleep' : ''}" onclick="lifeRecordHistoryCellClick('${typeKey}','${sk}','${dateStr}')">点击添加${st.label}记录</div>`}
       </div>
     </div>`;
   });
@@ -10739,7 +10755,7 @@ function cdHandleRefCombobox(idx, items, currentVal) {
   const optHTML = opts.map(o => `<div class="combobox-option" onclick="selectComboboxOption('${cbId}',this);toggleCdExtraProductFull(this.closest('.combobox-wrapper'))" data-value="${esc(o.value)}">${esc(o.label)}</div>`).join('');
   const val = (currentVal === '否' || currentVal === '0' || (currentVal && !isNaN(currentVal))) ? currentVal : '0';
   const lbl = (val === '否') ? '否（独立新柄）' : (val === '0' ? '初始制品 0' : '追加制品 ' + val);
-  return { id: cbId, html: `<div class="combobox-wrapper cd-ep-handleref"><input type="text" class="form-input combobox-input" value="${esc(lbl)}" placeholder="请输入或选择制品" onfocus="showComboboxDropdown('${cbId}')" onclick="showComboboxDropdown('${cbId}')" oninput="filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div><input type="hidden" class="combobox-value" data-ep="sameHandleRef" value="${esc(val)}"></div>` };
+  return { id: cbId, html: `<div class="combobox-wrapper cd-ep-handleref"><input type="text" class="form-input combobox-input" value="${esc(lbl)}" placeholder="请输入或选择制品" oninput="filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div><input type="hidden" class="combobox-value" data-ep="sameHandleRef" value="${esc(val)}"></div>` };
 }
 function cdExtraProductRowHTML(idx, it, isFq, items) {
   const sameHandleRef = it.sameHandleRef || '0';
@@ -10748,7 +10764,7 @@ function cdExtraProductRowHTML(idx, it, isFq, items) {
   const usageOpts = [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }];
   const usageCbId = 'epu_' + idx + '_' + Math.random().toString(36).slice(2, 7);
   const usageCbOpts = usageOpts.map(o => '<div class="combobox-option" onclick="selectComboboxOption(\'' + usageCbId + '\',this)" data-value="' + esc(o.value) + '">' + esc(o.label) + '</div>').join('');
-  const usageCb = '<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-ep="usageType" value="' + esc(it.usageType || '') + '" placeholder="请输入或选择制品" onfocus="showComboboxDropdown(\'' + usageCbId + '\')" onclick="showComboboxDropdown(\'' + usageCbId + '\')" oninput="filterComboboxDropdown(\'' + usageCbId + '\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'' + usageCbId + '\')">▼</button><div class="combobox-dropdown" id="' + usageCbId + '">' + usageCbOpts + '</div></div>';
+  const usageCb = '<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-ep="usageType" value="' + esc(it.usageType || '') + '" placeholder="请输入或选择制品" oninput="filterComboboxDropdown(\'' + usageCbId + '\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'' + usageCbId + '\')">▼</button><div class="combobox-dropdown" id="' + usageCbId + '">' + usageCbOpts + '</div></div>';
   const hr = cdHandleRefCombobox(idx, items, sameHandleRef);
   const sameModelSel = COMM_DETAIL_SAME_MODEL_OPTS.map(o => {
     const checked = (it.sameModel || '否') === o.value ? 'checked' : '';
@@ -10796,7 +10812,7 @@ function cdExtraProductRowHTML(idx, it, isFq, items) {
         <label class="form-label">制品信息<span class="form-label-hint">（特殊尺寸出血请修改 可直接给模板）</span></label>
         <div class="style-color-box info-box cd-product-box cd-ep-product-box">
           <div class="style-color-col"><span class="style-color-col-label">制品</span>${cdProductComboboxHTMLForEp('cdEpProduct_' + idx, it.product)}</div>
-          <div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-ep="craft" value="${esc(it.craft || '')}" placeholder="工艺" onfocus="showComboboxDropdown('cdEpCraftCb_${idx}')" onclick="showComboboxDropdown('cdEpCraftCb_${idx}')" oninput="filterComboboxDropdown('cdEpCraftCb_${idx}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('cdEpCraftCb_${idx}')">▼</button><div class="combobox-dropdown" id="cdEpCraftCb_${idx}"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption('cdEpCraftCb_${idx}',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption('cdEpCraftCb_${idx}',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption('cdEpCraftCb_${idx}',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption('cdEpCraftCb_${idx}',this)">烫色</div></div></div></div>
+          <div class="style-color-col"><span class="style-color-col-label">工艺</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-ep="craft" value="${esc(it.craft || '')}" placeholder="工艺" oninput="filterComboboxDropdown('cdEpCraftCb_${idx}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('cdEpCraftCb_${idx}')">▼</button><div class="combobox-dropdown" id="cdEpCraftCb_${idx}"><div class="combobox-option" data-value="白墨" onclick="selectComboboxOption('cdEpCraftCb_${idx}',this)">白墨</div><div class="combobox-option" data-value="逆向" onclick="selectComboboxOption('cdEpCraftCb_${idx}',this)">逆向</div><div class="combobox-option" data-value="光油" onclick="selectComboboxOption('cdEpCraftCb_${idx}',this)">光油</div><div class="combobox-option" data-value="烫色" onclick="selectComboboxOption('cdEpCraftCb_${idx}',this)">烫色</div></div></div></div>
           <div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">（初始为默认尺寸）</span></span><input type="text" class="form-input" data-ep="size" value="${esc(it.size || '')}"></div>
           <div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">（初始为默认出血）</span></span><input type="text" class="form-input" data-ep="bleed" value="${esc(it.bleed || '')}"></div>
         </div>
@@ -11038,7 +11054,7 @@ function cdCatComboboxHTML(hiddenId, selectedKey, onchange) {
     return `<div class="combobox-option${on}" data-value="${esc(c.key)}" onclick="selectComboboxOption('${hiddenId}cb',this)${oc}">${esc(c.label)}</div>`;
   }).join('');
   return `<div class="combobox-wrapper cd-cat-combo" style="max-width:220px;margin-left:6px;vertical-align:middle">` +
-    `<input type="text" class="form-input combobox-input" value="${esc(sel.label)}" readonly placeholder="请选择分类" onfocus="showComboboxDropdown('${hiddenId}cb')" onclick="showComboboxDropdown('${hiddenId}cb')">` +
+    `<input type="text" class="form-input combobox-input" value="${esc(sel.label)}" readonly placeholder="请选择分类" oninput="filterComboboxDropdown(''${hiddenId}cb'',this.value)">` +
     `<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${hiddenId}cb')">▼</button>` +
     `<div class="combobox-dropdown" id="${hiddenId}cb">${opts}</div>` +
     `<input type="hidden" class="combobox-value" id="${hiddenId}" value="${esc(sel.key)}">` +
@@ -11649,7 +11665,7 @@ function textTplCatComboboxHTML(sel) {
   const cbId = 'txtTplCatCb';
   const ddId = cbId + '-dropdown';
   const opts = cats.map(c => `<div class="combobox-option" data-value="${esc(c)}" onclick="selectComboboxOption('${ddId}',this)">${esc(c)}</div>`).join('');
-  return `<div class="combobox-wrapper" style="max-width:240px"><input type="text" class="form-input combobox-input" id="${cbId}" value="${esc(sel)}" placeholder="选择或输入新分类" onfocus="showComboboxDropdown('${ddId}')" onclick="showComboboxDropdown('${ddId}')" oninput="filterComboboxDropdown('${ddId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${ddId}')">▼</button><div class="combobox-dropdown" id="${ddId}">${opts}</div></div>`;
+  return `<div class="combobox-wrapper" style="max-width:240px"><input type="text" class="form-input combobox-input" id="${cbId}" value="${esc(sel)}" placeholder="选择或输入新分类" oninput="filterComboboxDropdown('${ddId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${ddId}')">▼</button><div class="combobox-dropdown" id="${ddId}">${opts}</div></div>`;
 }
 function renderTxtTplList() {
   const list = $('#txtTplList');
@@ -11740,7 +11756,7 @@ function openTextTemplatePicker(fieldKey) {
     const cbId = 'txtTplPickerCatCb';
     const ddId = cbId + '-dropdown';
     const opts = ordered.map(c => `<div class="combobox-option" data-value="${esc(c)}" onclick="selectComboboxOption('${ddId}',this);setTxtTplPickerCat('${fieldKey}')">${esc(c)}</div>`).join('');
-    const combo = `<div class="txt-tpl-picker-cat"><label class="form-label">选择分类</label><div class="combobox-wrapper" style="flex:1;max-width:none"><input type="text" class="form-input combobox-input" id="${cbId}" value="${esc(_txtTplPickerCat)}" placeholder="选择分类" readonly onfocus="showComboboxDropdown('${ddId}')" onclick="showComboboxDropdown('${ddId}')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${ddId}')">▼</button><div class="combobox-dropdown" id="${ddId}">${opts}</div></div></div>`;
+    const combo = `<div class="txt-tpl-picker-cat"><label class="form-label">选择分类</label><div class="combobox-wrapper" style="flex:1;max-width:none"><input type="text" class="form-input combobox-input" id="${cbId}" value="${esc(_txtTplPickerCat)}" placeholder="选择分类" readonly oninput="filterComboboxDropdown(''${ddId}'',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${ddId}')">▼</button><div class="combobox-dropdown" id="${ddId}">${opts}</div></div></div>`;
     bodyHTML = combo + `<div id="txtTplPickerList">${txtTplPickerListInner(all, fieldKey)}</div>`;
   }
   const ov = document.createElement('div');
