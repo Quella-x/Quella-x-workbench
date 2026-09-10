@@ -2437,15 +2437,17 @@ MODULES['groupbuy-factories'] = {
     { key: 'images', label: '存档图片', type: 'image' },
   ],
   filters: [{ key: 'cooperationStatus', label: '全部状态', options: [{ value: '', label: '全部状态' }, { value: '长期合作', label: '长期合作' }, { value: '临时合作', label: '临时合作' }, { value: '暂停合作', label: '暂停合作' }, { value: '暂无合作', label: '暂无合作' }] }],
+  // v809：展示顺序=合作状态/合作次数/主营品类/所在平台/联系方式/厂家评价；首次联系时间不展示，仅用于归年（见 yearField）
   listFields: [
+    { label: '合作状态', key: 'cooperationStatus', tag: true },
     { label: '合作次数', key: '_coopCount' },
     { label: '主营品类', key: 'category' },
     { label: '所在平台', key: 'platforms', tag: true },
     { label: '联系方式', key: 'phone' },
-    { label: '首次联系时间', key: 'firstContactTime', date: true },
-    { label: '合作状态', key: 'cooperationStatus', tag: true },
     { label: '厂家评价', key: 'factoryEvaluation', tag: true },
   ],
+  // v809：归年仍按首次联系时间（已从展示字段移除，须显式指定，否则 fallback 到创建时间）
+  yearField: 'firstContactTime',
   // v807：厂家年度柱状图——合作次数按月计数，月份取自每条合作记录里的「日期」，日期为空的合作记录跳过不计
   chart: (records) => {
     const coopRows = [];
@@ -3275,6 +3277,8 @@ function getRecordYearStr(r, mod) {
     const starts = (DB.list('commissions') || []).filter(c => (c.clientInfo || '') === (r.clientInfo || '') && c.startTime).map(c => String(c.startTime)).sort();
     if (starts.length) return starts[0];
   }
+  // v809：模块显式指定归年字段（yearField）——字段已从 listFields 移除但仍需按它归年（如厂家=首次联系时间，不展示）
+  if (mod && mod.yearField && r[mod.yearField]) return String(r[mod.yearField]);
   // v806: 归年字段修复——date:true 标记在 listFields 上（展示字段），此前 find(fields) 永远落空导致全部按创建时间归年
   if (mod && mod.listFields) {
     const df = mod.listFields.find(f => f.date);
