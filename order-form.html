@@ -482,27 +482,21 @@ html.apk.modal-lock{overflow:hidden!important}
   .gb-records-2col .gb-right{position:sticky;top:12px;align-self:start}
   .gb-records-2col .stats-divider{display:none}
   .gb-records-2col .chart-stats-2col{margin-top:0}
-  /* v807：五模块两列 + 接稿排期日历视图改独立滚动（同报价计算）——mainBody 锁高不滚，左右列各自内部滚动，撤销 v666 右栏 sticky */
+  /* v808：仅五模块两列独立滚动（同报价计算）——mainBody 锁高不滚，左右列各自内部滚动，撤销 v666 右栏 sticky；接稿排期日历视图 v808 起恢复整页滚动（v679 定稿） */
   .main-body.two-col-fixed{display:flex;flex-direction:column;overflow-y:hidden}
   .main-body.two-col-fixed .fade-in{display:flex;flex-direction:column;flex:1;min-height:0}
   .main-body.two-col-fixed .fade-in > *{flex-shrink:0}
-  .main-body.two-col-fixed .gb-records-2col,
-  .main-body.two-col-fixed .comm-cal-two-col{flex:1 1 auto;min-height:0;align-items:stretch}
-  .main-body.two-col-fixed .gb-records-2col{grid-template-rows:minmax(0,1fr)}
+  .main-body.two-col-fixed .gb-records-2col{flex:1 1 auto;min-height:0;align-items:stretch;grid-template-rows:minmax(0,1fr)}
   .main-body.two-col-fixed .gb-records-2col .gb-left,
   .main-body.two-col-fixed .gb-records-2col .gb-right{min-height:0;overflow-y:auto}
   .main-body.two-col-fixed .gb-records-2col .gb-right{position:static}
-  .main-body.two-col-fixed .comm-cal-two-col{grid-template-rows:minmax(0,1fr) minmax(0,auto)}
-  .main-body.two-col-fixed .comm-cal-col-cal,
-  .main-body.two-col-fixed .comm-cal-chartstats{min-height:0;overflow-y:auto}
-  .main-body.two-col-fixed .comm-cal-col-list{height:auto;min-height:0;overflow-y:auto}
   /* v807：列内滚动条隐藏（同报价计算 v719），滚动条不占布局宽 */
-  .main-body.two-col-fixed .gb-left,.main-body.two-col-fixed .gb-right,.main-body.two-col-fixed .comm-cal-col-cal,.main-body.two-col-fixed .comm-cal-chartstats,.main-body.two-col-fixed .comm-cal-col-list{scrollbar-width:none}
-  .main-body.two-col-fixed .gb-left::-webkit-scrollbar,.main-body.two-col-fixed .gb-right::-webkit-scrollbar,.main-body.two-col-fixed .comm-cal-col-cal::-webkit-scrollbar,.main-body.two-col-fixed .comm-cal-chartstats::-webkit-scrollbar,.main-body.two-col-fixed .comm-cal-col-list::-webkit-scrollbar{width:0;height:0}
+  .main-body.two-col-fixed .gb-left,.main-body.two-col-fixed .gb-right{scrollbar-width:none}
+  .main-body.two-col-fixed .gb-left::-webkit-scrollbar,.main-body.two-col-fixed .gb-right::-webkit-scrollbar{width:0;height:0}
   /* v807：APK 兜底——宽视口 WebView 保持文档滚动（v798 铁律，内部滚动链在部分 WebView 失效） */
   html.apk .main-body.two-col-fixed{display:block;overflow:visible}
   html.apk .main-body.two-col-fixed .fade-in{display:block}
-  html.apk .main-body.two-col-fixed .gb-left,html.apk .main-body.two-col-fixed .gb-right,html.apk .main-body.two-col-fixed .comm-cal-col-cal,html.apk .main-body.two-col-fixed .comm-cal-chartstats,html.apk .main-body.two-col-fixed .comm-cal-col-list{overflow:visible;height:auto}
+  html.apk .main-body.two-col-fixed .gb-left,html.apk .main-body.two-col-fixed .gb-right{overflow:visible;height:auto}
   /* v715：双列容器占满 main-body 高度，左右列 height:100% 实现真正独立滚动 */
   /* v715：双列 gap 设 0（左右列各占 scrollbar 10px，视觉间距 = scrollbar 10px = 与其他双列模块 10px 一致） */
   .lr-2col{display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:stretch;height:100%}
@@ -3509,7 +3503,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=807"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=808"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

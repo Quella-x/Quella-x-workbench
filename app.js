@@ -3761,8 +3761,8 @@ function renderListPage(pageKey, mod) {
   if (gbWrapped) { html += '</div>'; } // close .gb-records-2col
   html += '</div>';
   body.innerHTML = html;
-  // v807：五模块两列 + 接稿排期日历视图 → mainBody 加独立滚动标记（CSS 仅电脑端生效；navigate 切页时清除）
-  body.classList.toggle('two-col-fixed', isGbTwoCol || !!commissionAllRecords);
+  // v808：仅五模块两列加独立滚动标记（接稿排期日历视图 v808 起恢复整页滚动=v679 定稿；navigate 切页时清除）
+  body.classList.toggle('two-col-fixed', isGbTwoCol);
 }
 
 function _restoreSearchFocus(sel) {
