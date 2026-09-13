@@ -1201,7 +1201,10 @@ html.apk.modal-lock{overflow:hidden!important}
 .df-btn.df-sort-btn:hover{background:var(--c-primary-bg);color:var(--c-primary)}
 .df-btn.df-sort-btn:disabled{background:transparent;color:var(--c-border);opacity:1;cursor:not-allowed}
 /* v814：选项管理里选项行的 ▲▼ 排序按钮组（放在删除按钮前面） */
-.opt-sort-btns{display:inline-flex;align-items:center;gap:2px;flex:0 0 auto}
+/* v815：▲▼ 与删除按钮三者等距。原来 ▲▼ 之间 2px、到删除按钮却是行 gap 8px，视觉上疏密不一。
+   统一为 4px（与「展示字段」那组 .df-actions{gap:4px} 同节奏）；删除按钮补 -4px 抵消行 gap。 */
+.opt-sort-btns{display:inline-flex;align-items:center;gap:4px;flex:0 0 auto}
+.option-edit-item .opt-sort-btns + .btn-icon{margin-left:-4px}
 
 /* Home settings bar */
 .home-settings-bar{
@@ -3512,7 +3515,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=814"></script>
+  <script src="app.js?v=815"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

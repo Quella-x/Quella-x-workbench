@@ -4659,9 +4659,8 @@ function saveForm(pageKey, mod, id) {
       data.deliveredTime = todayStr();
     }
   }
-  if (pageKey === 'groupbuy-records') {
-    syncGroupbuyToFactories(data);
-  }
+  // v815：记住开团记录的旧值，保存后据此把厂家合作记录的日期「跟着改」（旧的自动值 → 新值）
+  const _prevGb = (pageKey === 'groupbuy-records' && id) ? DB.getById(mod.store, id) : null;
   if (pageKey === 'design-inspiration' && data.category) saveCustomCategory(data.category);
   if (pageKey === 'groupbuy-samples' && data.category) saveCustomSampleCategory(data.category);
   if (pageKey.indexOf('design-commission-detail') === 0) cdSyncPlatformNick(data);
@@ -4672,6 +4671,8 @@ function saveForm(pageKey, mod, id) {
   if (id && _prevImgs && _prevImgs.length) {
     _prevImgs.forEach(u => { if (imgs.indexOf(u) < 0) ImgCloud.remove(u); });
   }
+  // v815：开团记录 → 厂家合作记录回填（日期 = 截团时间 + 3 天）。放在落库之后，才能拿到带 id 的 saved
+  if (pageKey === 'groupbuy-records' && saved) syncGroupbuyToFactories(saved, _prevGb);
   if (pageKey === 'oc-relations' && saved) syncOcRelationToChars(saved);
   if (pageKey === 'oc-profiles' && saved) syncProfileSocialToRelations(saved.name, saved);
   closeModal();
@@ -4687,30 +4688,132 @@ function calcCommissionPrice(data) {
   if (!parseFloat(data.amount)) data.amount = quoteAmount;
 }
 
-/* ===== 开团制品 -> 厂家合作记录 回填（#6） ===== */
-function syncGroupbuyToFactories(gb) {
-  const products = gb.products || [];
+/* ===== 开团制品 -> 厂家合作记录 回填（#6，v815 改：日期=截团时间+3天） =====
+   规则：
+   - 合作记录的「日期」= 开团记录的「截团时间」+ 3 天（旧版写的是 开团时间||截团时间）
+   - 截团时间为空 → 该开团整条跳过（不生成新条目、也不改动已有条目）
+   - 只维护 coopType==='开团' 的自动条目；手工录的（打样/售卖/无料/自印）永不触碰
+   - 开团记录改了（截团时间变化）→ 对应条目日期跟着改
+   - 开团记录删了 → 对应条目一起删（见 removeGroupbuyFromFactories）
+   - 定位「属于这条开团记录的条目」的优先顺序：
+       ① 日期已是新值 → 不动
+       ② 日期 == 本记录上一次的自动值 → 改为新值
+       ③ 日期为空 → 填上新值
+       ④ 都没有 → 新增一条
+*/
+const GB_COOP_DELAY_DAYS = 3;
+
+// 开团记录 → 厂家合作记录应有的日期（截团时间+3天）；截团时间为空/非法 → 返回 ''
+function gbCoopDate(gb) {
+  if (!gb || !gb.endTime) return '';
+  if (!/^\d{4}-\d{2}-\d{2}/.test(String(gb.endTime))) return '';
+  try { return addDaysStr(String(gb.endTime).slice(0, 10), GB_COOP_DELAY_DAYS); } catch (e) { return ''; }
+}
+
+// 厂家名匹配（支持简称/包含；去空格、忽略大小写）
+function gbMatchFactories(facName) {
+  const nFac = (facName || '').trim().toLowerCase().replace(/\s+/g, '');
+  if (!nFac) return [];
+  return DB.list('factories').filter(f => {
+    const fn = (f.name || '').toLowerCase().replace(/\s+/g, '');
+    return fn && (fn.includes(nFac) || nFac.includes(fn));
+  });
+}
+
+function syncGroupbuyToFactories(gb, prevGb) {
+  if (!gb) return;
+  const products = (gb.products || []).filter(p => (p.factory || '').trim() && (p.name || '').trim());
   if (!products.length) return;
-  const startTime = gb.startTime || gb.endTime || '';
+  const newDate = gbCoopDate(gb);
+  if (!newDate) return;                                   // 截团时间为空 → 整条跳过
+  const oldDate = prevGb ? gbCoopDate(prevGb) : '';
+
+  // 按厂家归并，同一厂家只写一次
+  const byFac = new Map();
   products.forEach(p => {
-    const facName = (p.factory || '').trim();
     const prodName = (p.name || '').trim();
-    if (!facName || !prodName) return;
-    const nFac = facName.toLowerCase().replace(/\s+/g, '');
-    const facs = DB.list('factories').filter(f => {
-      const fn = (f.name || '').toLowerCase().replace(/\s+/g, '');
-      return fn && (fn.includes(nFac) || nFac.includes(fn));
-    });
-    facs.forEach(fac => {
+    gbMatchFactories(p.factory).forEach(fac => {
       if (!fac.id) return;
-      const recs = (fac.cooperationRecords || []).slice();
-      const exists = recs.some(c => (c.coopType || '开团') === '开团' && (c.project || '').trim() === prodName && (c.date || '') === startTime);
-      if (!exists) {
-        recs.push({ coopType: '开团', project: prodName, date: startTime });
-        DB.update('factories', fac.id, { cooperationRecords: recs });
-      }
+      if (!byFac.has(fac.id)) byFac.set(fac.id, { fac, names: [] });
+      const b = byFac.get(fac.id);
+      if (!b.names.includes(prodName)) b.names.push(prodName);
     });
   });
+
+  byFac.forEach(({ fac, names }) => {
+    const recs = (fac.cooperationRecords || []).map(c => ({ ...c }));
+    let dirty = false;
+    names.forEach(prodName => {
+      const isOurs = c => ceqCoopType(c.coopType, '开团') && (c.project || '').trim() === prodName;
+      let i = recs.findIndex(c => isOurs(c) && (c.date || '') === newDate);   // ① 已是最新
+      if (i >= 0) return;
+      if (oldDate) i = recs.findIndex(c => isOurs(c) && (c.date || '') === oldDate);  // ② 旧自动值
+      if (i < 0) i = recs.findIndex(c => isOurs(c) && !(c.date || ''));       // ③ 空日期
+      if (i >= 0) { recs[i] = { ...recs[i], date: newDate }; dirty = true; return; }
+      recs.push({ coopType: '开团', project: prodName, date: newDate });       // ④ 新增
+      dirty = true;
+    });
+    if (dirty) DB.update('factories', fac.id, { cooperationRecords: recs });
+  });
+}
+
+// 合作类型判定：空视为「开团」（历史数据里可能没写 coopType）
+function ceqCoopType(v, want) { return (v || '开团') === want; }
+
+// 删除开团记录时，把由它自动生成的厂家合作条目一并删掉
+function removeGroupbuyFromFactories(gb) {
+  if (!gb) return 0;
+  const newDate = gbCoopDate(gb);
+  const legacyDate = gb.startTime || gb.endTime || '';
+  const products = (gb.products || []).filter(p => (p.factory || '').trim() && (p.name || '').trim());
+  if (!products.length || (!newDate && !legacyDate)) return 0;
+
+  // 别的开团记录也会生成的 (厂家||制品||日期) 组合，删的时候避开
+  const norm = s => (s || '').trim().toLowerCase().replace(/\s+/g, '');
+  const others = new Set();
+  DB.list('groupbuys').forEach(g => {
+    if (g.id === gb.id) return;
+    const nd = gbCoopDate(g);
+    const lg = g.startTime || g.endTime || '';
+    (g.products || []).forEach(p => {
+      const pn = (p.name || '').trim();
+      if (!pn) return;
+      if (nd) others.add(norm(p.factory) + '||' + pn + '||' + nd);
+      if (lg) others.add(norm(p.factory) + '||' + pn + '||' + lg);
+    });
+  });
+
+  const byFac = new Map();
+  products.forEach(p => {
+    const prodName = (p.name || '').trim();
+    gbMatchFactories(p.factory).forEach(fac => {
+      if (!fac.id) return;
+      if (!byFac.has(fac.id)) byFac.set(fac.id, { fac, names: [] });
+      const b = byFac.get(fac.id);
+      if (!b.names.includes(prodName)) b.names.push(prodName);
+    });
+  });
+
+  let removed = 0;
+  byFac.forEach(({ fac, names }) => {
+    const facNorm = norm(fac.name);
+    const recs = (fac.cooperationRecords || []).map(c => ({ ...c }));
+    const kept = recs.filter(c => {
+      if (!ceqCoopType(c.coopType, '开团')) return true;
+      const pn = (c.project || '').trim();
+      if (!pn || names.indexOf(pn) < 0) return true;
+      const d = c.date || '';
+      const mine = (newDate && d === newDate) || (legacyDate && d === legacyDate);
+      if (!mine) return true;
+      // 若别的开团记录也正好会生成同样一条，保留（删掉会误伤）
+      const keyA = facNorm + '||' + pn + '||' + d;
+      const altKey = norm(fac.name) + '||' + pn + '||' + d;
+      if (others.has(keyA) || others.has(altKey)) return true;
+      removed++; return false;
+    });
+    if (kept.length !== recs.length) DB.update('factories', fac.id, { cooperationRecords: kept });
+  });
+  return removed;
 }
 
 /* ===== Detail View ===== */
@@ -4821,9 +4924,12 @@ async function onDelete(pageKey, id) {
   if (!r) return;
   const name = r.title || r.name || r.theme || r.artworkName || r.clientInfo || '此记录';
   if (await confirmDialog(`确定要删除「${name}」吗？此操作不可撤销。`)) {
+    // v815：删开团记录时，把由它自动生成的厂家合作条目一并删掉
+    let _coopRemoved = 0;
+    if (pageKey === 'groupbuy-records') _coopRemoved = removeGroupbuyFromFactories(r);
     DB.remove(mod.store, id);
     if (pageKey === 'oc-relations') removeOcRelationRefs(r);
-    Toast.success('已删除'); navigate(pageKey);
+    Toast.success(_coopRemoved ? `已删除（同步移除厂家合作记录 ${_coopRemoved} 条）` : '已删除'); navigate(pageKey);
   }
 }
 
@@ -6162,6 +6268,10 @@ let _dcCustomDiscs = DB.get('calcCustomDiscs', []); // {name, type:'rate'|'amoun
 let _dcFanReduce = 0; // 同担/同推随机减价金额
 let _dcWholeOrderUrgent = false; // 整单加急（默认关闭）
 let _dcGlobalModelType = ''; // 全局同模类型（单选可空；默认不选择）
+// v815：报价计算每次渲染后把「最终报价/修改加价」缓存下来。
+// 原因：dcGetFinalPrice() 靠读收据 DOM，一旦离开报价计算页就取不到了，
+// 而「约稿单 → 导入报价计算」是在接稿详情页上触发，必须能拿到上次算出的金额。
+let _dcLastResult = null;
 
 function renderDesignCalc() {
   const body = $('#mainBody');
@@ -7227,6 +7337,8 @@ function dcRecalc() {
   }
   r += '<div class="dc-r-footer">@筱小葵｜专属报价・仅供本次使用</div>';
   receipt.innerHTML = r;
+  // v815：缓存本次结果，供「约稿单 → 导入报价计算」在别的页面取用
+  _dcLastResult = { price: finalPrice, modTotal: modTotal, at: Date.now() };
 }
 
 function dcGetFinalPrice() {
@@ -8335,6 +8447,76 @@ function exportData() {
 }
 
 /* ===== Data Migration ===== */
+
+/* v815：厂家合作记录「日期」改口径 —— 由 开团时间||截团时间 改为 截团时间+3天。
+   只动「日期正好等于某个开团记录旧自动值」的开团类条目；手工改过日期的、对不上任何开团记录的、
+   非「开团」类型的一律不碰。改动清单会存进 factoryCoopDateBackup_v815（仅本地，不同步）；
+   万一算错，在控制台执行 restoreFactoryCoopDatesV815() 即可还原。幂等，可反复运行。 */
+function migrateFactoryCoopDates() {
+  const gbs = DB.list('groupbuys');
+  const facs = DB.list('factories');
+  if (!gbs.length || !facs.length) return 0;
+  const norm = s => (s || '').trim().toLowerCase().replace(/\s+/g, '');
+  const targets = [];                    // { fn, pn, legacy, nd }
+  gbs.forEach(g => {
+    const nd = gbCoopDate(g);
+    if (!nd) return;
+    const legacy = g.startTime || g.endTime || '';
+    (g.products || []).forEach(p => {
+      const fn = norm(p.factory), pn = (p.name || '').trim();
+      if (!fn || !pn) return;
+      targets.push({ fn, pn, legacy, nd });
+    });
+  });
+  if (!targets.length) return 0;
+
+  const changes = [];
+  facs.forEach(f => {
+    const fnorm = norm(f.name);
+    if (!fnorm) return;
+    const recs = (f.cooperationRecords || []).map(c => ({ ...c }));
+    let dirty = false;
+    recs.forEach((c, i) => {
+      if (!ceqCoopType(c.coopType, '开团')) return;
+      const pn = (c.project || '').trim();
+      if (!pn) return;
+      const old = c.date || '';
+      const hits = targets.filter(t => t.pn === pn && (t.fn.includes(fnorm) || fnorm.includes(t.fn)));
+      if (!hits.length) return;
+      if (hits.some(t => t.nd === old)) return;                  // 已是新值 → 幂等
+      const hit = hits.find(t => t.legacy && t.legacy === old);   // 正好等于旧自动值
+      if (!hit || hit.nd === old) return;                         // 手工改过 / 对不上 → 不动
+      changes.push({ factory: f.name || '', project: pn, from: old, to: hit.nd });
+      recs[i] = { ...c, date: hit.nd };
+      dirty = true;
+    });
+    if (dirty) DB.update('factories', f.id, { cooperationRecords: recs });
+  });
+
+  if (changes.length) {
+    if (!DB.get('factoryCoopDateBackup_v815', null)) {
+      DB.set('factoryCoopDateBackup_v815', { at: Date.now(), changes });
+    }
+    console.log('[v815] 厂家合作记录日期已按「截团+3天」重算：' + changes.length + ' 条', changes);
+  }
+  return changes.length;
+}
+
+// v815 回滚：把上一次迁移改动的条目日期还原（控制台执行 restoreFactoryCoopDatesV815()）
+function restoreFactoryCoopDatesV815() {
+  const bk = DB.get('factoryCoopDateBackup_v815', null);
+  if (!bk || !bk.changes || !bk.changes.length) return 0;
+  let n = 0;
+  bk.changes.forEach(ch => {
+    const fac = DB.list('factories').find(f => (f.name || '') === ch.factory);
+    if (!fac) return;
+    const recs = (fac.cooperationRecords || []).map(c => ({ ...c }));
+    const i = recs.findIndex(c => (c.project || '').trim() === ch.project && (c.date || '') === ch.to);
+    if (i >= 0) { recs[i] = { ...recs[i], date: ch.from }; DB.update('factories', fac.id, { cooperationRecords: recs }); n++; }
+  });
+  return n;
+}
+
 function migrateStringToArray(store, fields, valueMap) {
   const records = DB.list(store);
   let changed = false;
@@ -8382,6 +8564,10 @@ function migrateData() {
     });
     if (fqChanged) DB.set('factories', factoriesList);
   }
+
+  // v815: 厂家合作记录日期改为「截团时间+3天」（幂等，只动对得上旧自动值的开团类条目）
+  try { migrateFactoryCoopDates(); } catch (e) { console.warn('[v815] 合作记录日期迁移失败', e); }
+
   migrateStringToArray('samples', ['evaluation']);
   migrateStringToArray('inspirations', ['tags']);
   migrateStringToArray('authorizations', ['authType']);
@@ -11263,6 +11449,7 @@ function openCdDetail(id) {
   html += '</div>';
   openModal((mod.category || '约稿') + '约稿需求', html, [
     { label: '关闭', class: 'btn-ghost', action: closeModal },
+    { label: '导入报价计算', class: 'btn-ghost', action: () => cdImportQuote(id) },
     { label: '编辑', class: 'btn-primary', action: () => { closeModal(); openCdEditForm(id); } },
   ], 'lg');
 }
@@ -11280,7 +11467,7 @@ function syncCdToCommission(clientName) {
   if (!clientName) return;
   const linked = DB.list('commissions').some(c => (c.clientInfo || '') === clientName);
   if (!linked) {
-    Toast.info('已保存。若「' + clientName + '」尚未建立接稿排期，可在详情中点「一键推送至接稿排期」');
+    Toast.info('已保存。若「' + clientName + '」尚未建立接稿排期，可在详情中点「导入报价计算」自动新建');
   }
 }
 // 从接稿详情一键推送至接稿排期（创建一条排期草稿，单主自动绑定）
@@ -11304,6 +11491,103 @@ function cdPushToCommission(detailId) {
   Toast.success('已推送至接稿排期（单主：' + (r.clientInfo || '未填') + '）');
   closeModal();
   navigate('design-commission');
+}
+
+/* ===== v815：约稿单 →「导入报价计算」 =====
+   把报价计算里算好的「制品明细 + 报价金额」落到接稿排期：
+   - 接稿详情与接稿排期按「单主姓名」关联（trim 后全等，与页面里别的联动口径一致）
+   - 接稿排期里没有这个单主 → 直接新建一条接稿排期
+   - 只写报价相关字段（制品/加价项目/修改项目/报价金额/定金/尾款/是否加急/最终金额）；
+     接稿排期自己的稿件进度、支付状态、各类日期、备注一律不动
+   - 不往约稿单里写任何东西 */
+function cdQuoteSnapshot() {
+  const prods = (_dcProducts || []).filter(p => (p.name || '').trim());
+  if (!prods.length || !_dcLastResult) return null;
+  const modTotal = typeof dcCalcModTotal === 'function' ? dcCalcModTotal() : 0;
+  const price = _dcLastResult.price || 0;
+  return {
+    prods, price, modTotal, finalTotal: price + modTotal,
+    extras: (_dcExtras || []).filter(e => (e.name || '').trim()),
+    mods: (_dcModifications || []).filter(m => (m.modifyType || '').trim()),
+    wholeUrgent: !!_dcWholeOrderUrgent,
+    srcId: _dcImportId || null,
+  };
+}
+
+// 报价计算制品 → 接稿排期制品（与 dcCreateCommission 同口径：补价目表默认尺寸、同模类型/倍率）
+function cdQuoteProducts(prods) {
+  const priceList = DB.list('priceList');
+  return prods.map(p => {
+    const plItem = priceList.find(pp => pp.product === p.name && PRODUCT_CATEGORIES.includes(pp.category));
+    const sizeAuto = p.size || (plItem && plItem.defaultSize ? plItem.defaultSize : '');
+    let sm = '无同模', smRate = undefined;
+    if (p.sameModel) {
+      if (p.sameModelType) { sm = p.sameModelType; smRate = p.sameModelRate; }
+      else if (_dcGlobalModelType) { sm = _dcGlobalModelType; const gm = DC_MODEL.find(m => m.value === _dcGlobalModelType); smRate = gm ? gm.rate : undefined; }
+    }
+    return { name: p.name, patternId: p.patternId || '', size: sizeAuto, quantity: p.quantity, price: p.price, sameModel: sm, sameModelRate: smRate, urgent: !!p.urgent };
+  });
+}
+
+function cdImportQuote(detailId) {
+  const d = DB.getById('commissionDetails', detailId);
+  if (!d) return;
+  const clientInfo = (d.clientInfo || '').trim();
+  if (!clientInfo) { Toast.error('约稿单还没填「单主」，跟接稿排期对不上号'); return; }
+  const snap = cdQuoteSnapshot();
+  if (!snap) { Toast.error('报价计算里还没有内容，请先去「报价计算」录入制品并算出报价'); return; }
+
+  const target = DB.list('commissions').find(c => (c.clientInfo || '').trim() === clientInfo) || null;
+  const srcRec = snap.srcId ? DB.getById('commissions', snap.srcId) : null;
+  const srcName = srcRec ? (srcRec.clientInfo || '').trim() : '';
+  const mismatch = srcName && srcName !== clientInfo;
+
+  const names = snap.prods.slice(0, 4).map(p => esc(p.name)).join('、') + (snap.prods.length > 4 ? (' 等 ' + snap.prods.length + ' 条') : '');
+  let body = '<div style="font-size:13px;line-height:1.9">';
+  body += '<div>单主：<b>' + esc(clientInfo) + '</b></div>';
+  body += '<div>制品明细：' + names + '</div>';
+  body += '<div>报价金额：<b>¥' + snap.price.toFixed(2) + '</b></div>';
+  if (snap.modTotal > 0) body += '<div>修改加价：¥' + snap.modTotal.toFixed(2) + '　→ 最终总价 <b>¥' + snap.finalTotal.toFixed(2) + '</b></div>';
+  if (snap.extras.length) body += '<div>加价项目：' + snap.extras.length + ' 项</div>';
+  body += '</div>';
+  body += target
+    ? '<div style="margin-top:10px;font-size:13px;color:var(--c-text-light)">接稿排期里已有「' + esc(clientInfo) + '」（接稿日期 ' + esc(target.acceptTime || '未填') + '），将更新它的报价与制品。</div>'
+    : '<div style="margin-top:10px;font-size:13px;color:var(--c-text-light)">接稿排期里没有「' + esc(clientInfo) + '」，将新建一条接稿排期。</div>';
+  if (mismatch) body += '<div style="margin-top:10px;font-size:13px;color:#e8857e">⚠️ 报价计算目前是从接稿排期「' + esc(srcName) + '」导入的，和本约稿单的单主「' + esc(clientInfo) + '」不是同一人，请确认后再导入。</div>';
+
+  openModal('导入报价计算', body, [
+    { label: '取消', class: 'btn-ghost', action: closeModal },
+    { label: '确认导入', class: 'btn-primary', action: () => { closeModal(); cdImportQuoteApply(detailId, snap, clientInfo, target); } },
+  ]);
+}
+
+function cdImportQuoteApply(detailId, snap, clientInfo, target) {
+  const fields = {
+    products: cdQuoteProducts(snap.prods),
+    extraItems: snap.extras.map(e => ({ name: e.name, quantity: e.quantity, price: e.price, bindSeq: e.bindSeq || 'none' })),
+    modifications: snap.mods.map(m => ({ modifyType: m.modifyType, modifyCount: m.modifyCount, modifyPrice: m.modifyPrice, note: m.note })),
+    isUrgent: snap.wholeUrgent ? ['是'] : ['否'],
+    quoteAmount: snap.price,
+    deposit: Math.round(snap.price * 0.5 * 100) / 100,
+    balance: Math.round(snap.price * 0.5 * 100) / 100,
+    amount: snap.finalTotal,
+  };
+  if (target) {
+    DB.update('commissions', target.id, fields);
+    Toast.success('报价已更新至接稿排期（单主：' + clientInfo + '）');
+  } else {
+    const d = DB.getById('commissionDetails', detailId) || {};
+    const draft = Object.assign({
+      clientInfo,
+      acceptTime: todayStr(),
+      progress: ['待接稿'],
+      paymentStatus: ['未付'],
+      notes: '由接稿详情（' + (d.category || '约稿') + '）导入报价计算创建',
+    }, fields);
+    DB.add('commissions', draft);
+    Toast.success('接稿排期里没有「' + clientInfo + '」，已新建一条');
+  }
+  openCdDetail(detailId);   // 回到约稿单，「关联接稿排期」那块会立刻显示出来
 }
 // 接稿排期卡片点击后跳到对应排期（用于联动跳转）
 function commissionSelectById(id) {
