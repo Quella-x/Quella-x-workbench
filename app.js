@@ -1007,6 +1007,36 @@ function getSettings() {
 }
 function saveSettings(s) { DB.set('appSettings', s); }
 
+// v814：允许自由排序选项的字段白名单（key = 模块Key.字段Key）。新增可排序字段只改这里。
+const OPTION_SORTABLE_FIELDS = {
+  'life-record.milktea_size': 1,
+  'life-record.milktea_sugar': 1,
+  'life-record.milktea_temperature': 1,
+  'life-record.milktea_flavors': 1,
+  'life-record.milktea_teaBase': 1,
+  'life-record.milktea_milkBase': 1,
+  'life-record.snack_unit': 1,
+  'oc-relations.relationType': 1,
+};
+// v814：选项排序。「设置 → 版块设置 → 选项管理」里用 ▲▼ 调好的顺序存在 appSettings.optionOrder
+// （key 形如 'life-record.milktea_flavors'），随 appSettings 走云端同步，手机电脑一致。
+// 没排过序的字段原样返回；排序里没列出的新选项排在末尾（保持默认顺序），不会丢失。
+function applyOptionOrder(key, allOpts) {
+  try {
+    const s = getSettings();
+    const order = (s && s.optionOrder && s.optionOrder[key]) || null;
+    if (!order || !order.length || !allOpts || !allOpts.length) return allOpts;
+    const rank = {};
+    order.forEach((o, i) => { if (rank[o] == null) rank[o] = i; });
+    const kOf = o => (o && typeof o === 'object') ? String(o.value != null ? o.value : o.label) : String(o);
+    const known = allOpts.filter(o => rank[kOf(o)] != null);
+    if (!known.length) return allOpts;
+    const rest = allOpts.filter(o => rank[kOf(o)] == null);
+    known.sort((a, b) => rank[kOf(a)] - rank[kOf(b)]);
+    return known.concat(rest);
+  } catch (e) { return allOpts; }
+}
+
 // v542：接稿排期/详情排序优先级（制作中>修改中>已接稿>待接稿>已交付）；次级：接稿时间>开稿时间>截稿时间（均升序）
 const COMMISSION_PROGRESS_ORDER = { '制作中': 1, '修改中': 2, '已接稿': 3, '待接稿': 4, '已交付': 5 };
 // v543：接稿排期展示模块 稿件进度/支付状态 胶囊按状态分色（只改展示，不动新增表单）
@@ -1230,13 +1260,18 @@ function buildFormField(f, data, moduleKey, wrap) {
       const existingVals = opts.map(o => typeof o === 'string' ? o : o.value);
       customOpts.forEach(cv => { if (!existingVals.includes(cv)) { allOpts = allOpts.concat([{ value: cv, label: cv, custom: true }]); } });
     }
-    // 人物关系关系类型按 A-Z 排序（含自定义）
+    // 人物关系关系类型：默认按 A-Z 排序（含自定义）；若用户在设置·选项管理里排过序，则以自定义顺序为准
     if (moduleKey === 'oc-relations' && f.key === 'relationType') {
-      allOpts = allOpts.slice().sort((a, b) => {
-        const av = typeof a === 'string' ? a : (a.label || a.value);
-        const bv = typeof b === 'string' ? b : (b.label || b.value);
-        return av.localeCompare(bv, 'zh-CN');
-      });
+      const ordered = applyOptionOrder('oc-relations.relationType', allOpts);
+      if (ordered !== allOpts) {
+        allOpts = ordered;
+      } else {
+        allOpts = allOpts.slice().sort((a, b) => {
+          const av = typeof a === 'string' ? a : (a.label || a.value);
+          const bv = typeof b === 'string' ? b : (b.label || b.value);
+          return av.localeCompare(bv, 'zh-CN');
+        });
+      }
     }
     const singleAttr = f.single ? ' data-single="true"' : '';
     const onClickAttr = f.single ? ' onclick="limitSingleCheckbox(this)"' : '';
@@ -2879,7 +2914,7 @@ MODULES['design-commission-detail-twy'] = {
   category: '土味',
   fields: [
     { section: '单主信息' },
-    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true, hintInline: true, hint: '用于与接稿排期联动，可自行修改' },
+    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true, hintInline: true, hint: '用于与接稿排期联动/自己确认单主信息，可自行修改' },
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
     { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">制品信息<span class="form-label-hint">（特殊尺寸出血请修改 可直接给模板）</span></label><div class="style-color-box info-box cd-product-box cd-twy-product-box"><div class="style-color-col"><span class="style-color-col-label">制品</span><input type="text" class="form-input combobox-input cd-twy-product-combobox" data-key="product" placeholder="请输入或选择制品"></div><div class="style-color-col"><span class="style-color-col-label">排版</span><input type="text" class="form-input" data-key="layout" placeholder="排版"></div><div class="style-color-col"><span class="style-color-col-label">尺寸<span class="form-label-hint">（初始为默认尺寸）</span></span><input type="text" class="form-input" data-key="size" placeholder="尺寸"></div><div class="style-color-col"><span class="style-color-col-label">出血<span class="form-label-hint">（初始为默认出血）</span></span><input type="text" class="form-input" data-key="bleed" placeholder="默认3mm"></div></div></div>' },
@@ -2909,7 +2944,7 @@ MODULES['design-commission-detail-fm'] = {
   category: '封面',
   fields: [
     { section: '单主信息' },
-    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true, hintInline: true, hint: '用于与接稿排期联动，可自行修改' },
+    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true, hintInline: true, hint: '用于与接稿排期联动/自己确认单主信息，可自行修改' },
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
     { type: 'custom', html: '<div class="form-row style-color-row cd-title-gap14"><label class="form-label">尺寸信息</label><div class="style-color-box info-box"><div class="style-color-col"><span class="style-color-col-label">网站/书城</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="type" placeholder="网站/书城" oninput="filterComboboxDropdown(\'cdFmPlatformCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdFmPlatformCb\')">▼</button><div class="combobox-dropdown" id="cdFmPlatformCb"><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPlatformCb\',this)" data-value="网站">网站</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPlatformCb\',this)" data-value="书城">书城</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmPlatformCb\',this)" data-value="其他">其他</div></div></div></div><div class="style-color-col"><span class="style-color-col-label">尺寸</span><input type="text" class="form-input" data-key="size" placeholder="平台尺寸"></div><div class="style-color-col"><span class="style-color-col-label">是否加logo</span><div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="addLogo" placeholder="是否加logo" oninput="filterComboboxDropdown(\'cdFmLogoCb\',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'cdFmLogoCb\')">▼</button><div class="combobox-dropdown" id="cdFmLogoCb"><div class="combobox-option" onclick="selectComboboxOption(\'cdFmLogoCb\',this)" data-value="不加">不加</div><div class="combobox-option" onclick="selectComboboxOption(\'cdFmLogoCb\',this)" data-value="加">加</div></div></div></div></div></div>' },
@@ -2942,7 +2977,7 @@ MODULES['design-commission-detail-fq'] = {
   category: '饭圈',
   fields: [
     { section: '单主信息' },
-    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true, hintInline: true, hint: '用于与接稿排期联动，可自行修改' },
+    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true, hintInline: true, hint: '用于与接稿排期联动/自己确认单主信息，可自行修改' },
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
     { key: 'usageType', cls: 'cd-title-gap14', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
@@ -2974,7 +3009,7 @@ MODULES['design-commission-detail-ec'] = {
   category: '二次',
   fields: [
     { section: '单主信息' },
-    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true, hintInline: true, hint: '用于与接稿排期联动，可自行修改' },
+    { key: 'clientInfo', label: '单主', type: 'text', localOnly: true, hintInline: true, hint: '用于与接稿排期联动/自己确认单主信息，可自行修改' },
     { key: 'platformNick', label: '您的平台昵称', type: 'text' },
     { section: '制品信息' },
     { key: 'usageType', cls: 'cd-title-gap14', label: '稿件用途', type: 'combobox', default: '自用', options: [{ value: '自用', label: '自用' }, { value: '无盈利', label: '无盈利' }, { value: '商用', label: '商用' }, { value: '买断', label: '买断' }, { value: '企业', label: '企业' }] },
@@ -7706,11 +7741,17 @@ function renderFieldSettings(html) {
     html += '</div>';
     const optFields = mod.fields.filter(f => (f.type === 'combobox' || f.type === 'multiselect') && !f.noOptionManage);
     const hasCustomManaged = _settingsModule === 'design-commission-detail-twy' || _settingsModule === 'design-commission-detail-fm';
+    // v814：白名单内的字段，选项行在删除按钮前多一对 ▲▼（与「展示字段」排序同款按钮）
     function renderOptionBlockHTML(fieldKey, label, defaultOpts, customOpts) {
       const allOpts = customOpts.length ? customOpts : defaultOpts;
-      let block = `<div style="margin-bottom:12px"><div class="option-field-block"><div class="option-field-title">${esc(label)}</div><div class="option-field-inputs" id="opts_${fieldKey}">`;
+      const orderKey = _settingsModule + '.' + fieldKey;
+      const sortable = !!OPTION_SORTABLE_FIELDS[orderKey];
+      let block = `<div style="margin-bottom:12px"><div class="option-field-block"><div class="option-field-title">${esc(label)}</div><div class="option-field-inputs" id="opts_${fieldKey}" data-opt-order-key="${esc(orderKey)}">`;
       allOpts.forEach((opt, i) => {
-        block += `<div class="option-edit-item"><input type="text" value="${esc(opt)}" data-opt-key="${fieldKey}" data-idx="${i}"><button class="btn-icon danger" onclick="this.parentElement.remove()">${lucide('trash-2',16)}</button></div>`;
+        const sortBtns = sortable
+          ? `<span class="opt-sort-btns"><button type="button" class="df-btn df-sort-btn" ${i === 0 ? 'disabled' : ''} onclick="moveOptionItem(this,-1)" title="上移" aria-label="上移">▲</button><button type="button" class="df-btn df-sort-btn" ${i === allOpts.length - 1 ? 'disabled' : ''} onclick="moveOptionItem(this,1)" title="下移" aria-label="下移">▼</button></span>`
+          : '';
+        block += `<div class="option-edit-item" data-opt-row="1"><input type="text" value="${esc(opt)}" data-opt-key="${fieldKey}" data-idx="${i}">${sortBtns}<button class="btn-icon danger" onclick="this.parentElement.remove();refreshOptionSortBtns(this.closest('.option-field-inputs'))">${lucide('trash-2',16)}</button></div>`;
       });
       block += `<div class="option-edit-item" style="margin-bottom:0"><button class="btn btn-primary add-opt-btn" onclick="addOptionItem('${fieldKey}')">+ 添加选项</button><span class="option-delete-placeholder"></span></div>`;
       block += `</div></div></div>`;
@@ -7770,6 +7811,29 @@ function renderFieldSettings(html) {
   }
   html += '</div>';
   return html;
+}
+// v814：选项管理里点 ▲▼ 调整选项顺序。直接交换 DOM（不重渲染设置弹窗，避免丢掉其他未保存改动），
+// 保存时按 DOM 顺序写入 appSettings.optionOrder，所以「谁排前面」点保存即生效。
+function moveOptionItem(btn, dir) {
+  const row = btn.closest('.option-edit-item');
+  if (!row) return;
+  const wrap = row.parentElement;
+  if (!wrap) return;
+  const sib = dir < 0 ? row.previousElementSibling : row.nextElementSibling;
+  if (!sib || sib.getAttribute('data-opt-row') !== '1') return;
+  if (dir < 0) wrap.insertBefore(row, sib);
+  else wrap.insertBefore(sib, row);
+  refreshOptionSortBtns(wrap);
+}
+// 交换/删除后刷新 ▲▼ 的可用状态（首行禁▲、末行禁▼）
+function refreshOptionSortBtns(wrap) {
+  if (!wrap) return;
+  const rows = Array.prototype.slice.call(wrap.querySelectorAll('.option-edit-item[data-opt-row="1"]'));
+  rows.forEach((r, i) => {
+    const btns = r.querySelectorAll('.df-sort-btn');
+    if (btns[0]) btns[0].disabled = (i === 0);
+    if (btns[1]) btns[1].disabled = (i === rows.length - 1);
+  });
 }
 function addOptionItem(fieldKey) {
   const container = $('#opts_' + fieldKey);
@@ -8209,6 +8273,19 @@ function saveSettingsAction() {
     s.moduleFieldOrder = _displayDraft.moduleFieldOrder;
     s.moduleFieldsShown = _displayDraft.moduleFieldsShown;
   }
+  // v814：选项排序——按设置页当前 DOM 顺序记录完整列表，随 appSettings 走云端同步
+  if (!s.optionOrder || typeof s.optionOrder !== 'object') s.optionOrder = {};
+  $$('[data-opt-order-key]').forEach(wrap => {
+    const k = wrap.getAttribute('data-opt-order-key');
+    if (!OPTION_SORTABLE_FIELDS[k]) return;
+    const items = [];
+    wrap.querySelectorAll('.option-edit-item[data-opt-row="1"] input[type="text"]').forEach(inp => {
+      const v = (inp.value || '').trim();
+      if (v) items.push(v);
+    });
+    if (items.length) s.optionOrder[k] = items;
+    else delete s.optionOrder[k];
+  });
   saveSettings(s);
   _displayDraft = null;
   applyTheme(s.theme);
@@ -9510,7 +9587,7 @@ function renderDietRecordRow(r, st) {
 function renderUnitSingleSelect(selected) {
   const opts = LIFE_RECORD_SUBTYPES.diet.snack.unitOptions;
   const customOpts = DB.get('customOpts_lifeRecord_snack_unit', []);
-  const allOpts = opts.concat(customOpts.filter(c => !opts.includes(c)));
+  const allOpts = applyOptionOrder('life-record.snack_unit', opts.concat(customOpts.filter(c => !opts.includes(c))));
   const sel = selected || '包';
   const groupId = 'lrf-unit-group';
   let html = `<div class="form-row"><label class="form-label">单位</label>`;
@@ -9524,10 +9601,20 @@ function renderUnitSingleSelect(selected) {
   html += `</div>`;
   return html;
 }
+// v814：小料单选项 HTML，renderFlavorMultiselect 与 addLifeRecordFlavor 共用。
+// 此前两处各自拼 HTML，自定义添加那段漏了 flavor-item 类与 .flavor-qty 步进器，
+// 导致「自己加的小料」第一次勾选没有 − N +，关掉重开才出现。统一走这里根除该问题。
+function flavorItemHTML(name, on, qty) {
+  const q = (qty && Number(qty) > 0) ? Number(qty) : 1;
+  return `<label class="checkbox-item flavor-item ${on ? 'selected' : ''}" data-name="${esc(name)}" data-qty="${q}">` +
+    `<input type="checkbox" value="${esc(name)}" ${on ? 'checked' : ''} onclick="toggleFlavorItem(this)"> <span class="flavor-name">${esc(name)}</span>` +
+    `<span class="flavor-qty" style="${on ? '' : 'display:none'}"><button type="button" class="fq-btn" onclick="flavorQtyStep(this,-1)" aria-label="减少份数"><svg viewBox="0 0 12 12" width="11" height="11" style="display:block"><path d="M2.5 6h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg></button><span class="fq-val">${q}</span><button type="button" class="fq-btn" onclick="flavorQtyStep(this,1)" aria-label="增加份数"><svg viewBox="0 0 12 12" width="11" height="11" style="display:block"><path d="M2.5 6h7M6 2.5v7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg></button></span>` +
+    `</label>`;
+}
 function renderFlavorMultiselect(selected) {
   const opts = LIFE_RECORD_SUBTYPES.diet.milktea.flavorOptions;
   const customOpts = DB.get('customOpts_lifeRecord_milktea_flavors', []);
-  const allOpts = opts.concat(customOpts.filter(c => !opts.includes(c)));
+  const allOpts = applyOptionOrder('life-record.milktea_flavors', opts.concat(customOpts.filter(c => !opts.includes(c))));
   // selected 兼容旧数据（字符串数组）与新数据（{name,qty} 数组）
   const selMap = {};
   (Array.isArray(selected) ? selected : (selected ? [selected] : [])).forEach(f => {
@@ -9538,12 +9625,8 @@ function renderFlavorMultiselect(selected) {
   let html = `<div class="form-row"><label class="form-label">小料</label>`;
   html += `<div class="checkbox-group tag-group" id="${groupId}" data-key="flavors">`;
   allOpts.forEach(o => {
-    const checked = selMap[o] != null ? 'checked' : '';
-    const qty = selMap[o] != null ? selMap[o] : 1;
-    html += `<label class="checkbox-item flavor-item ${checked ? 'selected' : ''}" data-name="${esc(o)}" data-qty="${qty}">` +
-      `<input type="checkbox" value="${esc(o)}" ${checked} onclick="toggleFlavorItem(this)"> <span class="flavor-name">${esc(o)}</span>` +
-      `<span class="flavor-qty" style="${checked ? '' : 'display:none'}"><button type="button" class="fq-btn" onclick="flavorQtyStep(this,-1)" aria-label="减少份数"><svg viewBox="0 0 12 12" width="11" height="11" style="display:block"><path d="M2.5 6h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg></button><span class="fq-val">${qty}</span><button type="button" class="fq-btn" onclick="flavorQtyStep(this,1)" aria-label="增加份数"><svg viewBox="0 0 12 12" width="11" height="11" style="display:block"><path d="M2.5 6h7M6 2.5v7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg></button></span>` +
-      `</label>`;
+    const on = selMap[o] != null;
+    html += flavorItemHTML(o, on, on ? selMap[o] : 1);
   });
   html += `</div>`;
   html += `<div style="display:flex;gap:6px;margin-top:6px"><input type="text" class="form-input" id="lrf-flavors-custom" placeholder="输入自定义小料后按添加" style="flex:1;font-size:13px"><button type="button" class="btn btn-outline btn-sm" onclick="addLifeRecordFlavor(this)">添加</button><button type="button" class="btn btn-danger btn-sm" onclick="removeCheckedLifeRecordFlavors('${groupId}')">删除</button></div>`;
@@ -9600,7 +9683,7 @@ function renderLifeRecordSubtypeSelect(typeKey, selected) {
 function renderSizeSingleSelect(selected) {
   const opts = LIFE_RECORD_SUBTYPES.diet.milktea.sizeOptions;
   const customOpts = DB.get('customOpts_lifeRecord_milktea_size', []);
-  const allOpts = opts.concat(customOpts.filter(c => !opts.includes(c)));
+  const allOpts = applyOptionOrder('life-record.milktea_size', opts.concat(customOpts.filter(c => !opts.includes(c))));
   const sel = selected || '标准杯';
   const groupId = 'lrf-size-group';
   let html = `<div class="form-row"><label class="form-label">规格</label>`;
@@ -9617,7 +9700,7 @@ function renderSizeSingleSelect(selected) {
 function renderSugarSingleSelect(selected) {
   const opts = LIFE_RECORD_SUBTYPES.diet.milktea.sugarOptions;
   const customOpts = DB.get('customOpts_lifeRecord_milktea_sugar', []);
-  const allOpts = opts.concat(customOpts.filter(c => !opts.includes(c)));
+  const allOpts = applyOptionOrder('life-record.milktea_sugar', opts.concat(customOpts.filter(c => !opts.includes(c))));
   const sel = selected || '三分糖';
   const groupId = 'lrf-sugar-group';
   let html = `<div class="form-row"><label class="form-label">糖分</label>`;
@@ -9634,7 +9717,7 @@ function renderSugarSingleSelect(selected) {
 function renderTemperatureSingleSelect(selected) {
   const opts = LIFE_RECORD_SUBTYPES.diet.milktea.temperatureOptions;
   const customOpts = DB.get('customOpts_lifeRecord_milktea_temperature', []);
-  const allOpts = opts.concat(customOpts.filter(c => !opts.includes(c)));
+  const allOpts = applyOptionOrder('life-record.milktea_temperature', opts.concat(customOpts.filter(c => !opts.includes(c))));
   const sel = selected || '去冰';
   const groupId = 'lrf-temperature-group';
   let html = `<div class="form-row"><label class="form-label">温度</label>`;
@@ -9651,7 +9734,7 @@ function renderTemperatureSingleSelect(selected) {
 function renderTeaBaseSingleSelect(selected) {
   const opts = LIFE_RECORD_SUBTYPES.diet.milktea.teaBaseOptions;
   const customOpts = DB.get('customOpts_lifeRecord_milktea_teaBase', []);
-  const allOpts = opts.concat(customOpts.filter(c => !opts.includes(c)));
+  const allOpts = applyOptionOrder('life-record.milktea_teaBase', opts.concat(customOpts.filter(c => !opts.includes(c))));
   const sel = selected || '';
   const groupId = 'lrf-teabase-group';
   let html = `<div class="form-row"><label class="form-label">茶底</label>`;
@@ -9668,7 +9751,7 @@ function renderTeaBaseSingleSelect(selected) {
 function renderMilkBaseSingleSelect(selected) {
   const opts = LIFE_RECORD_SUBTYPES.diet.milktea.milkBaseOptions;
   const customOpts = DB.get('customOpts_lifeRecord_milktea_milkBase', []);
-  const allOpts = opts.concat(customOpts.filter(c => !opts.includes(c)));
+  const allOpts = applyOptionOrder('life-record.milktea_milkBase', opts.concat(customOpts.filter(c => !opts.includes(c))));
   const sel = selected || '';
   const groupId = 'lrf-milkbase-group';
   let html = `<div class="form-row"><label class="form-label">奶底</label>`;
@@ -10290,10 +10373,7 @@ function addLifeRecordFlavor(btn) {
   if (!customOpts.includes(val)) { customOpts.push(val); DB.set(dbKey, customOpts); }
   const group = document.getElementById('lrf-flavors-group');
   if (group && !group.querySelector(`input[value="${esc(val)}"]`)) {
-    const label = document.createElement('label');
-    label.className = 'checkbox-item selected';
-    label.innerHTML = `<input type="checkbox" value="${esc(val)}" checked onclick="toggleCheckboxItem(this)"> ${esc(val)}`;
-    group.appendChild(label);
+    group.insertAdjacentHTML('beforeend', flavorItemHTML(val, true, 1));
   }
   input.value = '';
 }
