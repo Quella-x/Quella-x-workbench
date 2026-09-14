@@ -6268,10 +6268,6 @@ let _dcCustomDiscs = DB.get('calcCustomDiscs', []); // {name, type:'rate'|'amoun
 let _dcFanReduce = 0; // 同担/同推随机减价金额
 let _dcWholeOrderUrgent = false; // 整单加急（默认关闭）
 let _dcGlobalModelType = ''; // 全局同模类型（单选可空；默认不选择）
-// v815：报价计算每次渲染后把「最终报价/修改加价」缓存下来。
-// 原因：dcGetFinalPrice() 靠读收据 DOM，一旦离开报价计算页就取不到了，
-// 而「约稿单 → 导入报价计算」是在接稿详情页上触发，必须能拿到上次算出的金额。
-let _dcLastResult = null;
 
 function renderDesignCalc() {
   const body = $('#mainBody');
@@ -7337,8 +7333,6 @@ function dcRecalc() {
   }
   r += '<div class="dc-r-footer">@筱小葵｜专属报价・仅供本次使用</div>';
   receipt.innerHTML = r;
-  // v815：缓存本次结果，供「约稿单 → 导入报价计算」在别的页面取用
-  _dcLastResult = { price: finalPrice, modTotal: modTotal, at: Date.now() };
 }
 
 function dcGetFinalPrice() {
@@ -11449,7 +11443,6 @@ function openCdDetail(id) {
   html += '</div>';
   openModal((mod.category || '约稿') + '约稿需求', html, [
     { label: '关闭', class: 'btn-ghost', action: closeModal },
-    { label: '导入报价计算', class: 'btn-ghost', action: () => cdImportQuote(id) },
     { label: '编辑', class: 'btn-primary', action: () => { closeModal(); openCdEditForm(id); } },
   ], 'lg');
 }
@@ -11467,7 +11460,7 @@ function syncCdToCommission(clientName) {
   if (!clientName) return;
   const linked = DB.list('commissions').some(c => (c.clientInfo || '') === clientName);
   if (!linked) {
-    Toast.info('已保存。若「' + clientName + '」尚未建立接稿排期，可在详情中点「导入报价计算」自动新建');
+    Toast.info('已保存。若「' + clientName + '」尚未建立接稿排期，可在详情中点「一键推送至接稿排期」');
   }
 }
 // 从接稿详情一键推送至接稿排期（创建一条排期草稿，单主自动绑定）
@@ -11493,102 +11486,6 @@ function cdPushToCommission(detailId) {
   navigate('design-commission');
 }
 
-/* ===== v815：约稿单 →「导入报价计算」 =====
-   把报价计算里算好的「制品明细 + 报价金额」落到接稿排期：
-   - 接稿详情与接稿排期按「单主姓名」关联（trim 后全等，与页面里别的联动口径一致）
-   - 接稿排期里没有这个单主 → 直接新建一条接稿排期
-   - 只写报价相关字段（制品/加价项目/修改项目/报价金额/定金/尾款/是否加急/最终金额）；
-     接稿排期自己的稿件进度、支付状态、各类日期、备注一律不动
-   - 不往约稿单里写任何东西 */
-function cdQuoteSnapshot() {
-  const prods = (_dcProducts || []).filter(p => (p.name || '').trim());
-  if (!prods.length || !_dcLastResult) return null;
-  const modTotal = typeof dcCalcModTotal === 'function' ? dcCalcModTotal() : 0;
-  const price = _dcLastResult.price || 0;
-  return {
-    prods, price, modTotal, finalTotal: price + modTotal,
-    extras: (_dcExtras || []).filter(e => (e.name || '').trim()),
-    mods: (_dcModifications || []).filter(m => (m.modifyType || '').trim()),
-    wholeUrgent: !!_dcWholeOrderUrgent,
-    srcId: _dcImportId || null,
-  };
-}
-
-// 报价计算制品 → 接稿排期制品（与 dcCreateCommission 同口径：补价目表默认尺寸、同模类型/倍率）
-function cdQuoteProducts(prods) {
-  const priceList = DB.list('priceList');
-  return prods.map(p => {
-    const plItem = priceList.find(pp => pp.product === p.name && PRODUCT_CATEGORIES.includes(pp.category));
-    const sizeAuto = p.size || (plItem && plItem.defaultSize ? plItem.defaultSize : '');
-    let sm = '无同模', smRate = undefined;
-    if (p.sameModel) {
-      if (p.sameModelType) { sm = p.sameModelType; smRate = p.sameModelRate; }
-      else if (_dcGlobalModelType) { sm = _dcGlobalModelType; const gm = DC_MODEL.find(m => m.value === _dcGlobalModelType); smRate = gm ? gm.rate : undefined; }
-    }
-    return { name: p.name, patternId: p.patternId || '', size: sizeAuto, quantity: p.quantity, price: p.price, sameModel: sm, sameModelRate: smRate, urgent: !!p.urgent };
-  });
-}
-
-function cdImportQuote(detailId) {
-  const d = DB.getById('commissionDetails', detailId);
-  if (!d) return;
-  const clientInfo = (d.clientInfo || '').trim();
-  if (!clientInfo) { Toast.error('约稿单还没填「单主」，跟接稿排期对不上号'); return; }
-  const snap = cdQuoteSnapshot();
-  if (!snap) { Toast.error('报价计算里还没有内容，请先去「报价计算」录入制品并算出报价'); return; }
-
-  const target = DB.list('commissions').find(c => (c.clientInfo || '').trim() === clientInfo) || null;
-  const srcRec = snap.srcId ? DB.getById('commissions', snap.srcId) : null;
-  const srcName = srcRec ? (srcRec.clientInfo || '').trim() : '';
-  const mismatch = srcName && srcName !== clientInfo;
-
-  const names = snap.prods.slice(0, 4).map(p => esc(p.name)).join('、') + (snap.prods.length > 4 ? (' 等 ' + snap.prods.length + ' 条') : '');
-  let body = '<div style="font-size:13px;line-height:1.9">';
-  body += '<div>单主：<b>' + esc(clientInfo) + '</b></div>';
-  body += '<div>制品明细：' + names + '</div>';
-  body += '<div>报价金额：<b>¥' + snap.price.toFixed(2) + '</b></div>';
-  if (snap.modTotal > 0) body += '<div>修改加价：¥' + snap.modTotal.toFixed(2) + '　→ 最终总价 <b>¥' + snap.finalTotal.toFixed(2) + '</b></div>';
-  if (snap.extras.length) body += '<div>加价项目：' + snap.extras.length + ' 项</div>';
-  body += '</div>';
-  body += target
-    ? '<div style="margin-top:10px;font-size:13px;color:var(--c-text-light)">接稿排期里已有「' + esc(clientInfo) + '」（接稿日期 ' + esc(target.acceptTime || '未填') + '），将更新它的报价与制品。</div>'
-    : '<div style="margin-top:10px;font-size:13px;color:var(--c-text-light)">接稿排期里没有「' + esc(clientInfo) + '」，将新建一条接稿排期。</div>';
-  if (mismatch) body += '<div style="margin-top:10px;font-size:13px;color:#e8857e">⚠️ 报价计算目前是从接稿排期「' + esc(srcName) + '」导入的，和本约稿单的单主「' + esc(clientInfo) + '」不是同一人，请确认后再导入。</div>';
-
-  openModal('导入报价计算', body, [
-    { label: '取消', class: 'btn-ghost', action: closeModal },
-    { label: '确认导入', class: 'btn-primary', action: () => { closeModal(); cdImportQuoteApply(detailId, snap, clientInfo, target); } },
-  ]);
-}
-
-function cdImportQuoteApply(detailId, snap, clientInfo, target) {
-  const fields = {
-    products: cdQuoteProducts(snap.prods),
-    extraItems: snap.extras.map(e => ({ name: e.name, quantity: e.quantity, price: e.price, bindSeq: e.bindSeq || 'none' })),
-    modifications: snap.mods.map(m => ({ modifyType: m.modifyType, modifyCount: m.modifyCount, modifyPrice: m.modifyPrice, note: m.note })),
-    isUrgent: snap.wholeUrgent ? ['是'] : ['否'],
-    quoteAmount: snap.price,
-    deposit: Math.round(snap.price * 0.5 * 100) / 100,
-    balance: Math.round(snap.price * 0.5 * 100) / 100,
-    amount: snap.finalTotal,
-  };
-  if (target) {
-    DB.update('commissions', target.id, fields);
-    Toast.success('报价已更新至接稿排期（单主：' + clientInfo + '）');
-  } else {
-    const d = DB.getById('commissionDetails', detailId) || {};
-    const draft = Object.assign({
-      clientInfo,
-      acceptTime: todayStr(),
-      progress: ['待接稿'],
-      paymentStatus: ['未付'],
-      notes: '由接稿详情（' + (d.category || '约稿') + '）导入报价计算创建',
-    }, fields);
-    DB.add('commissions', draft);
-    Toast.success('接稿排期里没有「' + clientInfo + '」，已新建一条');
-  }
-  openCdDetail(detailId);   // 回到约稿单，「关联接稿排期」那块会立刻显示出来
-}
 // 接稿排期卡片点击后跳到对应排期（用于联动跳转）
 function commissionSelectById(id) {
   pageState['design-commission'] = pageState['design-commission'] || {};
