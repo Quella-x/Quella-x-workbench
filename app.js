@@ -1606,10 +1606,11 @@ function buildDynamicCombobox(col, value) {
     return String(la).localeCompare(String(lb), 'zh');
   });
   const cbId = 'dycb_' + col.subkey + '_' + Math.random().toString(36).slice(2, 8);
+  const syncFn = col.syncByPattern ? ';syncCommSameModelByPattern(this)' : '';
   const optHTML = sortedOpts.map(o => {
     const v = typeof o === 'string' ? o : o.value;
     const l = typeof o === 'string' ? o : o.label;
-    return `<div class="combobox-option" onclick="selectComboboxOption('${cbId}',this)" data-value="${esc(v)}">${esc(l)}</div>`;
+    return `<div class="combobox-option" onclick="selectComboboxOption('${cbId}',this)${syncFn}" data-value="${esc(v)}">${esc(l)}</div>`;
   }).join('');
   const priceLookupAttr = col.priceLookup ? `fillDynamicPrice(this,'${col.priceLookup}')` : '';
   const oninputStr = `filterComboboxDropdown('${cbId}',this.value);${priceLookupAttr}`;
@@ -1675,6 +1676,28 @@ function groupSameModelUrgentRow(row) {
 }
 function groupSameModelUrgentAll() {
   $$('.dynamic-list-row').forEach(groupSameModelUrgentRow);
+}
+// v819：接稿排期制品列表——柄图标识一致的制品，「同模」改动一起变
+function syncCommSameModelByPattern(el) {
+  const wrap = el.closest('.combobox-wrapper');
+  const row = el.closest('.dynamic-list-row');
+  if (!wrap || !row) return;
+  const src = wrap.querySelector('.combobox-input');
+  if (!src) return;
+  const val = src.value;
+  const pidEl = row.querySelector('input[data-subkey="patternId"]');
+  const key = String(pidEl ? pidEl.value : '').trim();
+  if (!key) return;
+  const container = row.parentElement;
+  if (!container) return;
+  container.querySelectorAll('.dynamic-list-row').forEach(rr => {
+    if (rr === row) return;
+    const rpEl = rr.querySelector('input[data-subkey="patternId"]');
+    if (String(rpEl ? rpEl.value : '').trim() !== key) return;
+    const tw = rr.querySelector('.combobox-wrapper[data-subkey="sameModel"]');
+    const ti = tw ? tw.querySelector('.combobox-input') : null;
+    if (ti) ti.value = val;
+  });
 }
 /* 删除动态列表行并重排序号（序号列仅制品列表有） */
 function removeDynamicRow(btn) {
@@ -1994,6 +2017,11 @@ function filterComboboxDropdown(id, val) {
     const hit = (!v || o.textContent.toLowerCase().includes(v));
     o.style.display = hit ? '' : 'none';
     if (hit) visible++;
+  });
+  // v817: 分组小标题——整组无可见选项时连标题一起隐藏
+  $$('.combobox-group', dd).forEach(g => {
+    const any = $$('.combobox-option', g).some(o => o.style.display !== 'none');
+    g.style.display = any ? '' : 'none';
   });
   if (visible > 0) {
     dd.classList.add('show');
@@ -2598,7 +2626,7 @@ MODULES['design-commission'] = {
       { subkey: 'price', label: '价格', type: 'number' },
       { subkey: 'size', label: '尺寸', type: 'text' },
       { subkey: 'quantity', label: '数量', type: 'number', default: 1 },
-      { subkey: 'sameModel', label: '同模', type: 'text', datalistId: 'comm_sameModel_dl', default: '无同模', options: [
+      { subkey: 'sameModel', label: '同模', type: 'text', datalistId: 'comm_sameModel_dl', syncByPattern: true, default: '无同模', options: [
         { value: '无同模', label: '无同模' },
         { value: '改色+字', label: '改色+字' }, { value: '改人+字/色', label: '改人+字/色' }, { value: '改人', label: '改人' }
       ]},
@@ -3483,6 +3511,10 @@ function renderListPage(pageKey, mod) {
   let records = DB.list(store);
   if (!pageState[pageKey]) pageState[pageKey] = { search: '', filters: {} };
   const ps = pageState[pageKey];
+  // v824 修复白屏：pageState 可能由别处创建为残缺对象（如 commissionSelectById 的 `|| {}`），
+  // 缺 filters 时 3522 行读 ps.filters[f.key] 会抛错 → navigate 已清空 mainBody → 全白屏
+  if (!ps.filters) ps.filters = {};
+  if (ps.search == null) ps.search = '';
   if (ps.pageNo == null) ps.pageNo = 1;
   if (pageKey === 'design-commission') {
     if (!ps.viewMode) ps.viewMode = 'calendar';
@@ -6260,6 +6292,9 @@ function newModification() {
 
 let _dcMode = 'custom';
 let _dcImportId = null;
+let _dcImportKind = 'commission';  // v817: 'commission'=接稿排期 | 'detail'=约稿单
+let _dcImportDetailId = null;      // v817: 选中的约稿单 id
+let _dcImportClient = '';          // v817: 约稿单单主名（用于匹配排期 / 新建接稿）
 let _dcProdSeq = 1;          // CX轮：制品稳定序号（用于手动SET分组）
 let _dcProducts = [newProduct()];
 let _dcExtras = [];
@@ -6298,18 +6333,46 @@ function renderDesignCalc() {
       return Math.floor((_today - d) / 86400000) > 7;
     };
     const visibleCommissions = commissions.filter(c => !isImportHidden(c));
-    const selectedRec = _dcImportId ? visibleCommissions.find(c => c.id === _dcImportId) : null;
-    const selectedLabel = selectedRec ? ((selectedRec.clientInfo || '未命名') + ' · ' + (selectedRec.acceptTime || '')) : '';
-    const importOpts = visibleCommissions.map(c => {
-      const label = (c.clientInfo || '未命名') + ' · ' + (c.acceptTime || '');
-      return `<div class="combobox-option" onclick="dcImportRecord('${c.id}');document.getElementById('dcImportSelectInput').value='${esc(label)}';document.getElementById('dcImportSelectValue').value='${esc(c.id)}'" data-value="${esc(c.id)}">${esc(label)}</div>`;
+    // v817：约稿单（接稿详情）——跟随已关联的接稿排期过滤（关联排期被隐藏则一并隐藏）
+    const visibleDetails = DB.list('commissionDetails').filter(d => {
+      const _m = dcMatchCommission(d.clientInfo);
+      return !(_m && isImportHidden(_m));
+    });
+    // v817：回显（约稿单优先，其次接稿排期）
+    let selectedLabel = '', selectedValue = '';
+    if (_dcImportKind === 'detail' && _dcImportDetailId) {
+      const _d = DB.getById('commissionDetails', _dcImportDetailId);
+      if (_d) { selectedLabel = dcDetailLabel(_d); selectedValue = _d.id; }
+    } else if (_dcImportId) {
+      const _c = commissions.find(c => c.id === _dcImportId);
+      if (_c) { selectedLabel = (_c.clientInfo || '未命名') + ' \u00b7 ' + (_c.acceptTime || ''); selectedValue = _c.id; }
+    }
+    const commOpts = visibleCommissions.map(c => {
+      const label = (c.clientInfo || '未命名') + ' \u00b7 ' + (c.acceptTime || '');
+      return `<div class="combobox-option" onclick="dcImportRecord('${c.id}')" data-value="${esc(c.id)}">${esc(label)}</div>`;
+    }).join('');
+    const detailOpts = visibleDetails.map(d => {
+      const label = dcDetailLabel(d);
+      return `<div class="combobox-option" onclick="dcImportDetail('${d.id}')" data-value="${esc(d.id)}">${esc(label)}</div>`;
     }).join('');
     html += '<div class="combobox-wrapper calc-import-combo">';
-    html += `<input type="hidden" class="combobox-value" id="dcImportSelectValue" value="${esc(_dcImportId || '')}">`;
+    html += `<input type="hidden" class="combobox-value" id="dcImportSelectValue" value="${esc(selectedValue)}">`;
     html += `<input type="text" class="form-input combobox-input" id="dcImportSelectInput" value="${esc(selectedLabel)}" placeholder="请选择或输入接稿记录" oninput="filterComboboxDropdown('dcImportSelectList',this.value)">`;
     html += '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'dcImportSelectList\')">▼</button>';
-    html += '<div class="combobox-dropdown" id="dcImportSelectList"><div class="combobox-option" onclick="dcImportRecord(\'\');document.getElementById(\'dcImportSelectInput\').value=\'\';document.getElementById(\'dcImportSelectValue\').value=\'\'" data-value="">请选择接稿记录</div>' + importOpts + '</div>';
+    html += '<div class="combobox-dropdown" id="dcImportSelectList">';
+    html += '<div class="combobox-group"><div class="combobox-group-title">接稿排期</div>';
+    html += '<div class="combobox-option" onclick="dcImportRecord(\'\')" data-value="">请选择接稿记录</div>' + commOpts;
     html += '</div>';
+    html += '<div class="combobox-group"><div class="combobox-group-title">接稿详情 \u00b7 约稿单</div>' + detailOpts + '</div>';
+    html += '</div>';
+    html += '</div>';
+    // v817：约稿单关联状态提示
+    if (_dcImportKind === 'detail' && _dcImportDetailId) {
+      const _lk = _dcImportId ? DB.getById('commissions', _dcImportId) : null;
+      html += _lk
+        ? `<div class="dc-import-link-hint">已关联接稿排期：<b>${esc(_lk.clientInfo || '未命名')}</b> \u00b7 ${esc(_lk.acceptTime || '')}\uff0c将「更新报价至接稿」</div>`
+        : '<div class="dc-import-link-hint dc-import-link-new">未匹配到同名接稿排期\uff0c将「新增接稿记录」</div>';
+    }
   }
   html += '</div>';
 
@@ -6437,7 +6500,7 @@ function renderDesignCalc() {
   html += '<div class="calc-receipt" id="dc-receipt"></div>';
   html += '<div class="calc-actions">';
   html += `<button class="dc-export-btn" style="flex:1" onclick="dcExportReceipt()">${lucide('camera',16)} 导出报价图</button>`;
-  if (_dcMode === 'import') {
+  if (_dcMode === 'import' && _dcImportId) {
     html += '<button class="btn btn-primary" style="flex:1" onclick="dcUpdateQuote()">更新报价至接稿</button>';
   } else {
     html += '<button class="btn btn-primary" style="flex:1" onclick="dcCreateCommission()">新增接稿记录</button>';
@@ -6462,11 +6525,14 @@ function renderDesignCalc() {
 
 function dcSetMode(mode) {
   _dcMode = mode;
-  if (mode === 'custom') { _dcImportId = null; _dcProducts = [newProduct()]; _dcExtras = []; _dcModifications = []; _dcFanReduce = 0; }
+  if (mode === 'custom') { _dcImportId = null; _dcImportKind = 'commission'; _dcImportDetailId = null; _dcImportClient = ''; _dcProducts = [newProduct()]; _dcExtras = []; _dcModifications = []; _dcFanReduce = 0; }
+  if (mode === 'import') { _dcImportKind = 'commission'; _dcImportDetailId = null; _dcImportClient = ''; }
   renderDesignCalc();
 }
 
 function dcImportRecord(id) {
+  // v817：来源标记为接稿排期
+  _dcImportKind = 'commission'; _dcImportDetailId = null; _dcImportClient = '';
   _dcImportId = id;
   const hidden = document.getElementById('dcImportSelectValue');
   const input = document.getElementById('dcImportSelectInput');
@@ -6479,6 +6545,7 @@ function dcImportRecord(id) {
   }
   const rec = DB.getById('commissions', id);
   if (!rec) return;
+  if (input) input.value = (rec.clientInfo || '未命名') + ' \u00b7 ' + (rec.acceptTime || '');
   // v-NEW: 导入时还原行内同模类型/倍率与加价绑定
   _dcProducts = (rec.products || []).map(p => {
     const sm = p.sameModel;
@@ -6495,6 +6562,11 @@ function dcImportRecord(id) {
     return { _pid: _dcProdSeq++, name: p.name || '', patternId: p.patternId || '', size: p.size || '', quantity: parseInt(p.quantity) || 1, price: parseFloat(p.price) || 0, sameModel, sameModelType, sameModelRate, urgent, setGroup: '' };
   });
   if (!_dcProducts.length) _dcProducts = [newProduct()];
+  else {
+    // 同柄还原：接稿排期制品的 handleRef → 柄图标识（已手动设置 patternId 的制品保留原值）
+    const refs = (rec.products || []).map((p, i) => i === 0 ? '0' : (p.handleRef || '否'));
+    dcApplyHandlePattern(_dcProducts, refs);
+  }
   _dcExtras = (rec.extraItems || []).map(e => ({ name: e.name || '', quantity: parseInt(e.quantity) || 1, price: parseFloat(e.price) || 0, bindSeq: e.bindSeq || 'none' }));
   // AS轮：导入接稿的修改加价
   _dcModifications = (rec.modifications || []).map(m => ({ modifyType: m.modifyType || '', modifyCount: parseInt(m.modifyCount) || 1, modifyPrice: parseFloat(m.modifyPrice) || 0, note: m.note || '' }));
@@ -6511,6 +6583,134 @@ function dcImportRecord(id) {
   }, 60);
 }
 
+/* ===== v817：报价计算 · 导入约稿单 =====
+   1) 约稿单按「单主名 trim 后相等」匹配接稿排期，多条取接稿日期最近的一条；
+   2) 已匹配 → 底部按钮为「更新报价至接稿」；未匹配 → 「新增接稿记录」（单主名取自约稿单）；
+   3) 制品：约稿单的 product 是单值字符串（饭圈/二次另有 extraProducts 数组），
+      逐条写入制品行并按价目表自动带价。 */
+function dcMatchCommission(name) {
+  const n = String(name == null ? '' : name).trim();
+  if (!n) return null;
+  const list = DB.list('commissions').filter(c => String(c.clientInfo == null ? '' : c.clientInfo).trim() === n);
+  if (!list.length) return null;
+  list.sort((a, b) => String(b.acceptTime || '').localeCompare(String(a.acceptTime || '')));
+  return list[0];
+}
+function dcDetailLabel(d) {
+  const parts = [String(d.clientInfo || '').trim() || '未命名'];
+  if (d.category) parts.push(d.category);
+  if (d.product) parts.push(d.product);
+  else if (d.bookName) parts.push(d.bookName);
+  return parts.join(' \u00b7 ');
+}
+// 把约稿单/接稿排期的「是否同柄」关系还原成 报价计算的 柄图标识(patternId)
+// refs：与制品对齐的数组，refs[0] 为主制品（恒为 0=初始柄组），refs[i] 为追加制品的 sameHandleRef/handleRef
+//   值语义：'0'=同柄于初始制品；'否'/空=独立新柄；'N'(1-based)=同柄于追加制品 N（支持链式引用）
+function dcResolveHandleGroups(refs) {
+  const n = refs.length;
+  const memo = new Array(n).fill(-1);
+  function rg(i) {
+    if (i <= 0) return 0;
+    if (memo[i] !== -1) return memo[i];
+    const r = refs[i];
+    let g;
+    if (r === '0' || r === 0) g = 0;
+    else if (r === '否' || r == null) g = i;
+    else {
+      const m = parseInt(r, 10);
+      if (isNaN(m) || m < 0 || m >= n || m === i) g = i;
+      else g = rg(m);
+    }
+    memo[i] = g;
+    return g;
+  }
+  const groups = [];
+  for (let i = 0; i < n; i++) groups.push(rg(i));
+  return groups;
+}
+function dcApplyHandlePattern(products, refs) {
+  if (!products || !products.length) return;
+  const groups = dcResolveHandleGroups(refs);
+  const distinct = [...new Set(groups)].sort((a, b) => a - b);
+  const labelOf = {};
+  distinct.forEach((g, k) => { labelOf[g] = String(k + 1); }); // v819: 柄图标识直接用 1、2、3 数字
+  products.forEach((p, i) => { if (!p.patternId) p.patternId = labelOf[groups[i]] || '1'; });
+}
+// v819：由制品列表推导「同柄图」——柄图标识一致的制品视为共享柄图
+// 只有 1 个柄图且该柄图下制品 ≥2 → 是；≥2 个柄图且有任一柄图制品 ≥2 → 部分同柄；否则 → 否
+function dcCalcSameDesign(products) {
+  const counts = {};
+  let total = 0, emptyCnt = 0;
+  (products || []).forEach(p => {
+    total++;
+    const pid = String((p && p.patternId) || '').trim();
+    if (!pid) { emptyCnt++; return; }
+    counts[pid] = (counts[pid] || 0) + 1;
+  });
+  if (!total) return [];
+  const pids = Object.keys(counts);
+  let maxCnt = 0;
+  pids.forEach(k => { if (counts[k] > maxCnt) maxCnt = counts[k]; });
+  const groupTotal = pids.length + emptyCnt; // 无标识的制品各自独立成组
+  if (maxCnt >= 2 && groupTotal === 1) return ['是'];
+  if (maxCnt >= 2 && groupTotal >= 2) return ['部分同柄'];
+  return ['否'];
+}
+function dcImportDetail(id) {
+  _dcImportKind = 'detail';
+  _dcImportDetailId = id || null;
+  const input = document.getElementById('dcImportSelectInput');
+  const hidden = document.getElementById('dcImportSelectValue');
+  if (hidden) hidden.value = id || '';
+  if (!id) {
+    if (input) input.value = '';
+    _dcImportId = null; _dcImportClient = '';
+    _dcProducts = [newProduct()]; _dcExtras = []; _dcModifications = [];
+    dcRenderProducts(); dcRenderExtras(); dcRenderModifications(); dcRecalc();
+    return;
+  }
+  const d = DB.getById('commissionDetails', id);
+  if (!d) return;
+  _dcImportClient = String(d.clientInfo || '').trim();
+  const matched = dcMatchCommission(_dcImportClient);
+  _dcImportId = matched ? matched.id : null;
+  if (input) input.value = dcDetailLabel(d);
+  const priceList = DB.list('priceList');
+  const plOf = (nm) => priceList.find(p => p.product === nm && PRODUCT_CATEGORIES.includes(p.category));
+  const mkProduct = (nm, sz, smVal) => {
+    const pl = plOf(nm);
+    // v819: 约稿单追加制品的「是否同模」（否/改人/改色+字/改人+字/色）→ 报价计算同模类型
+    let sameModel = false, sameModelType = '', sameModelRate = 1.0;
+    const smRaw = String(smVal == null ? '' : smVal).trim();
+    if (smRaw && smRaw !== '否' && smRaw !== '无同模') {
+      const m = DC_MODEL.find(x => x.value === smRaw || x.label === smRaw);
+      sameModel = true;
+      sameModelType = m ? m.value : '改人';
+      sameModelRate = m ? m.rate : 0.5;
+    }
+    return { _pid: _dcProdSeq++, name: nm || '', patternId: '', size: sz || (pl && pl.defaultSize ? pl.defaultSize : ''), quantity: 1, price: pl ? (parseFloat(pl.price) || 0) : 0, sameModel, sameModelType, sameModelRate, urgent: false, setGroup: '' };
+  };
+  _dcProducts = [];
+  if (String(d.product || '').trim()) _dcProducts.push(mkProduct(String(d.product).trim(), d.size || ''));
+  (d.extraProducts || []).forEach(ep => {
+    const nm = String((ep && ep.product) || '').trim();
+    if (nm) _dcProducts.push(mkProduct(nm, (ep && ep.size) || '', (ep && ep.sameModel) || ''));
+  });
+  if (!_dcProducts.length) _dcProducts = [newProduct()];
+  else {
+    // 同柄还原：约稿单「是否同柄」→ 柄图标识，使报价计算识别共享柄
+    const refs = [0];
+    (d.extraProducts || []).forEach(ep => { refs.push((ep && ep.sameHandleRef) || '否'); });
+    dcApplyHandlePattern(_dcProducts, refs);
+  }
+  _dcExtras = []; _dcModifications = []; _dcFanReduce = 0; _dcWholeOrderUrgent = false;
+  renderDesignCalc();
+  setTimeout(() => {
+    const uv = Array.isArray(d.usageType) ? d.usageType[0] : d.usageType;
+    if (uv) { const r = document.querySelector(`input[name="dcUsage"][value="${uv}"]`); if (r) r.checked = true; }
+    dcRecalc();
+  }, 60);
+}
 function dcRenderProducts() {
   const c = $('#dc-products');
   if (!c) return;
@@ -6581,9 +6781,10 @@ function dcSelectModelType(idx, el, modelCbId) {
   const val = el.dataset.value || el.textContent;
   const rate = parseFloat(el.dataset.rate) || 1.0;
   if (input) input.value = val;
-  dcUpdateProduct(idx, 'sameModelType', val); // 内部会刷新 sameModelRate
-  // 等待 dcUpdateProduct 中的 dcRenderProducts 后 input 会被重新渲染，这里先关闭下拉
-  document.getElementById(modelCbId).classList.remove('show');
+  dcUpdateProduct(idx, 'sameModelType', val); // 内部会刷新 sameModelRate（含同柄行联动）
+  // 重绘后原下拉节点已被替换，取不到就跳过（避免 null.classList 报错）
+  const dd = document.getElementById(modelCbId);
+  if (dd) dd.classList.remove('show');
 }
 
 // Bu轮：全局同模单选（可空切换：再次点击已选项则取消选择）
@@ -6621,21 +6822,39 @@ function dcUpdateProduct(idx, field, val) {
     p.sameModelType = val;
     const m = DC_MODEL.find(m => m.value === val);
     p.sameModelRate = m ? m.rate : 1.0;
+    // v819: 柄图标识一致（同一柄图）的其他行同步「同模类型/倍率」
+    const pidType = String(p.patternId || '').trim();
+    if (pidType) {
+      _dcProducts.forEach(q => {
+        if (q !== p && String(q.patternId || '').trim() === pidType) {
+          q.sameModel = true; q.sameModelType = p.sameModelType; q.sameModelRate = p.sameModelRate;
+        }
+      });
+    }
     dcRenderProducts(); dcRecalc(); return;
   }
   else if (field === 'sameModelRate') { p.sameModelRate = parseFloat(val) || 0; dcRecalc(); return; }
   else if (field === 'name') { p.name = val; }
   else if (field === 'patternId') {
     p.patternId = val;
-    const pVal = parseFloat(val);
-    // 柄图标识 > 1 自动勾选本行同模（Bk轮：仅自动勾选，不预设类型，等待用户选择）
-    if (!isNaN(pVal) && pVal > 1) {
-      p.sameModel = true;
-      _dcProducts.forEach((q, j) => {
-        if (j !== idx && q.patternId === p.patternId) { q.sameModel = true; }
-      });
+    // v819: 柄图标识非空且被多个制品共用 → 该柄图下所有制品自动勾选「同模」（不预设类型，等用户选择）
+    const pid = String(val || '').trim();
+    if (pid) {
+      const mates = _dcProducts.filter(q => String(q.patternId || '').trim() === pid);
+      if (mates.length > 1) mates.forEach(q => { q.sameModel = true; });
     }
-    dcRenderProducts(); dcRecalc(); return;
+    // 整表重绘会丢输入焦点，这里重绘后把焦点/光标还回柄图标识输入框
+    const ae = document.activeElement;
+    const keepFocus = !!(ae && ae.classList && ae.classList.contains('dc-prod-pattern'));
+    let caret = null;
+    if (keepFocus) { try { caret = ae.selectionStart; } catch (e) {} }
+    dcRenderProducts(); dcRecalc();
+    if (keepFocus) {
+      const rows = document.querySelectorAll('.dc-product-row');
+      const inp = rows[idx] ? rows[idx].querySelector('.dc-prod-pattern') : null;
+      if (inp) { inp.focus(); try { inp.setSelectionRange(caret, caret); } catch (e) {} }
+    }
+    return;
   }
   else if (field === 'quantity') { p.quantity = parseInt(val) || 1; }
   else if (field === 'price') { p.price = parseFloat(val) || 0; }
@@ -7372,6 +7591,7 @@ function dcUpdateQuote() {
   rec.modifications = _dcModifications.map(m => ({ modifyType: m.modifyType, modifyCount: m.modifyCount, modifyPrice: m.modifyPrice, note: m.note }));
   rec.isUrgent = _dcWholeOrderUrgent ? ['是'] : ['否'];
   rec.amount = finalTotal;
+  rec.sameDesign = dcCalcSameDesign(rec.products || []); // v819: 同柄图按柄图标识重新判定
   DB.update('commissions', _dcImportId, rec);
   Toast.success('报价金额已更新至接稿记录');
 }
@@ -7386,19 +7606,20 @@ function dcCreateCommission() {
   const urgentRate = urgentInp ? (parseFloat(urgentInp.value) || 1.0) : 1.0;
   // v17: 从价目表自动识别制品的 defaultSize
   const priceList = DB.list('priceList');
+  const dcProdsOut = _dcProducts.map(p => {
+    const plItem = priceList.find(pp => pp.product === p.name && PRODUCT_CATEGORIES.includes(pp.category));
+    const sizeAuto = p.size || (plItem && plItem.defaultSize ? plItem.defaultSize : '');
+    let sm = '无同模', smRate = undefined;
+    if (p.sameModel) {
+      if (p.sameModelType) { sm = p.sameModelType; smRate = p.sameModelRate; }
+      else if (_dcGlobalModelType) { sm = _dcGlobalModelType; const gm = DC_MODEL.find(m => m.value === _dcGlobalModelType); smRate = gm ? gm.rate : undefined; }
+    }
+    return { name: p.name, patternId: p.patternId || '', size: sizeAuto, quantity: p.quantity, price: p.price, sameModel: sm, sameModelRate: smRate, urgent: !!p.urgent };
+  });
   DB.add('commissions', {
-    clientInfo: '', acceptTime: todayStr(), deadline: '', usageType,
-    products: _dcProducts.map(p => {
-      const plItem = priceList.find(pp => pp.product === p.name && PRODUCT_CATEGORIES.includes(pp.category));
-      const sizeAuto = p.size || (plItem && plItem.defaultSize ? plItem.defaultSize : '');
-      let sm = '无同模', smRate = undefined;
-      if (p.sameModel) {
-        if (p.sameModelType) { sm = p.sameModelType; smRate = p.sameModelRate; }
-        else if (_dcGlobalModelType) { sm = _dcGlobalModelType; const gm = DC_MODEL.find(m => m.value === _dcGlobalModelType); smRate = gm ? gm.rate : undefined; }
-      }
-      return { name: p.name, patternId: p.patternId || '', size: sizeAuto, quantity: p.quantity, price: p.price, sameModel: sm, sameModelRate: smRate, urgent: !!p.urgent };
-    }),
-    sameDesign: [], extraItems: _dcExtras.map(e => ({ name: e.name, quantity: e.quantity, price: e.price, bindSeq: e.bindSeq || 'none' })),
+    clientInfo: _dcImportClient || '', acceptTime: todayStr(), deadline: '', usageType,
+    products: dcProdsOut,
+    sameDesign: dcCalcSameDesign(dcProdsOut), extraItems: _dcExtras.map(e => ({ name: e.name, quantity: e.quantity, price: e.price, bindSeq: e.bindSeq || 'none' })),
     modifications: _dcModifications.map(m => ({ modifyType: m.modifyType, modifyCount: m.modifyCount, modifyPrice: m.modifyPrice, note: m.note })),
     urgentRate,
     isUrgent: _dcWholeOrderUrgent ? ['是'] : ['否'],
@@ -10727,10 +10948,12 @@ function removeCheckedLifeRecordMilkBase(groupId) {
   });
   Toast.success('已删除 ' + checked.length + ' 项');
 }
+// v820：单主姓名匹配（两端都 trim），避免约稿单/排期两端空格不一致导致「未关联」误判
+function cdSameClient(a, b) { return ((a || '').trim()) === ((b || '').trim()); }
 function cdRecMonth(r) {
   // 关联接稿排期时，按排期日期（截稿优先，其次开稿/接稿）归月，使约稿条归入对应月份
   if (r.clientInfo) {
-    const linked = DB.list('commissions').filter(c => (c.clientInfo || '') === (r.clientInfo || ''));
+    const linked = DB.list('commissions').filter(c => cdSameClient(c.clientInfo, r.clientInfo));
     if (linked.length) {
       const c = linked[0];
       const dt = c.deadline || c.startTime || c.acceptTime;
@@ -10822,7 +11045,7 @@ function renderCommissionDetailPage() {
   // 当前月记录（支持跨月：关联接稿排期的开稿月~截稿月均显示）
   let monthRecs = recs.filter(r => {
     if (r.clientInfo) {
-      const linked = DB.list('commissions').filter(c => (c.clientInfo || '') === (r.clientInfo || ''));
+      const linked = DB.list('commissions').filter(c => cdSameClient(c.clientInfo, r.clientInfo));
       if (linked.length) {
         const c = linked[0];
         const start = c.startTime || c.acceptTime;
@@ -10843,7 +11066,7 @@ function renderCommissionDetailPage() {
   });
   monthRecs.sort(commissionDetailSort);
   if (ps.showUnlinked) {
-    monthRecs = monthRecs.filter(r => !r.clientInfo || !DB.list('commissions').some(c => (c.clientInfo || '') === (r.clientInfo || '')));
+    monthRecs = monthRecs.filter(r => !r.clientInfo || !DB.list('commissions').some(c => cdSameClient(c.clientInfo, r.clientInfo)));
   }
   const PER_PAGE = getPageSize('design-commission-detail');
   const totalPages = Math.max(1, Math.ceil(monthRecs.length / PER_PAGE));
@@ -10856,7 +11079,7 @@ function renderCommissionDetailPage() {
     html += '<div class="cd-rec-list">';
     pageRecs.forEach(r => {
       // 约稿单(commissionDetails)本身无 progress 字段，进度/已交付状态来自关联的接稿排期(commissions)
-      const linkedComm = DB.list('commissions').find(c => (c.clientInfo || '') === (r.clientInfo || ''));
+      const linkedComm = DB.list('commissions').find(c => cdSameClient(c.clientInfo, r.clientInfo));
       const prog = r.progress || (linkedComm && linkedComm.progress) || '';
       const delivered = valIncludes(prog, '已交付');
       let collapsed = ps.recCollapsed[r.id];
@@ -10905,10 +11128,10 @@ function renderCdFullRecord(r) {
   const mod = MODULES[pageKey];
   let h = '';
   // 关联接稿排期（按单主姓名绑定）
-  const linked = DB.list('commissions').filter(c => (c.clientInfo || '') === (r.clientInfo || ''));
+  const linked = DB.list('commissions').filter(c => cdSameClient(c.clientInfo, r.clientInfo));
 
   // 渲染普通字段（readonly 也展示为静态文本）
-  const hasExtra = (r.category === '饭圈' || r.category === '二次') && Array.isArray(r.extraProducts) && r.extraProducts.length;
+  const hasExtra = CD_EXTRA_CATS.includes(r.category) && Array.isArray(r.extraProducts) && r.extraProducts.length;
   let extraInjected = false;
   mod.fields.forEach(f => {
     if (f.section) {
@@ -10969,7 +11192,7 @@ function renderCdFullRecord(r) {
 
   // 联动块：仅显示稿件进度 / 开稿时间 / 截稿时间，三排样式与交付规范一致
   h += `<div class="cd-rec-section">关联接稿排期</div>`;
-  if (r.clientInfo && linked.length) {
+  if (linked.length) {
     linked.forEach(c => {
       h += `<div class="cd-link-block" onclick="commissionSelectById('${c.id}')">`;
       const prog = c.progress || '';
@@ -10979,8 +11202,10 @@ function renderCdFullRecord(r) {
       h += `</div>`;
     });
   } else {
-    // 关联接稿排期项无信息时显示空白
-    h += '';
+    // v824-4：未关联小框（整框即按钮）—— 文案末尾带链接图标；一行放得下就一行，放不下自然换行
+    h += `<div class="cd-link-block cd-link-empty-box" onclick="cdPushToCommissionFromList('${r.id}')">`
+      + `<span class="cd-link-empty-box-text">当前约稿单尚未与接稿排期关联，点此一键新建接稿排期并关联 ${lucide('link',13)}</span>`
+      + `</div>`;
   }
   return h;
 }
@@ -11154,12 +11379,17 @@ function onCdSearch(val) {
   _restoreSearchFocus('#mainBody .search-box input');
 }
 
+// v818：土味/饭圈/二次 支持多制品（product + extraProducts）；封面无 product 字段不参与
+const CD_EXTRA_CATS = ['土味', '饭圈', '二次'];
+function cdSupportsExtra(pageKey) {
+  return pageKey === 'design-commission-detail-twy' || pageKey === 'design-commission-detail-fq' || pageKey === 'design-commission-detail-ec';
+}
 // 接稿详情本地表单：支持分组 + 追加制品（饭圈/二次），追加制品放在「制品信息」栏内
 function buildCdLocalForm(pageKey, data) {
   const mod = MODULES[pageKey];
   const fields = prepareFields(pageKey, mod.fields);
   const deliveryIdx = fields.findIndex(f => f.section === '交付规范');
-  const hasExtra = pageKey === 'design-commission-detail-fq' || pageKey === 'design-commission-detail-ec';
+  const hasExtra = cdSupportsExtra(pageKey);
   let html = '';
   if (deliveryIdx > -1) {
     html += buildForm(fields.slice(0, deliveryIdx), data, pageKey);
@@ -11174,7 +11404,7 @@ function buildCdLocalForm(pageKey, data) {
 function readCdLocalForm(container, pageKey) {
   const data = readForm(container);
   // 饭圈 / 二次：读取追加制品
-  if (pageKey === 'design-commission-detail-fq' || pageKey === 'design-commission-detail-ec') {
+  if (cdSupportsExtra(pageKey)) {
     data.extraProducts = readCdExtraProducts(container, pageKey);
   }
   return data;
@@ -11385,7 +11615,7 @@ function openCdDetail(id) {
   const pageKey = COMM_DETAIL_CATS.find(c => c.cat === r.category).key;
   const mod = MODULES[pageKey];
   let html = '<div class="detail-view cd-form">';
-  const hasExtraDetail = (r.category === '饭圈' || r.category === '二次') && Array.isArray(r.extraProducts) && r.extraProducts.length;
+  const hasExtraDetail = CD_EXTRA_CATS.includes(r.category) && Array.isArray(r.extraProducts) && r.extraProducts.length;
   let extraInjectedDetail = false;
   mod.fields.forEach(f => {
     if (f.section) {
@@ -11421,9 +11651,9 @@ function openCdDetail(id) {
     html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><span class="detail-value">${v}</span></div>`;
   });
   // 联动块：关联的接稿排期订单
-  const linked = DB.list('commissions').filter(c => (c.clientInfo || '') === (r.clientInfo || ''));
+  const linked = DB.list('commissions').filter(c => cdSameClient(c.clientInfo, r.clientInfo));
   html += `<div class="form-section-title">${lucide('link',14)} 关联接稿排期</div>`;
-  if (r.clientInfo && linked.length) {
+  if (linked.length) {
     html += '<div class="cd-link-list">';
     linked.forEach(c => {
       const pnames = (c.products || []).map(p => p.name).filter(Boolean).join('、') || '';
@@ -11437,8 +11667,10 @@ function openCdDetail(id) {
     });
     html += '</div>';
   } else {
-    // 关联接稿排期项无信息时显示空白
-    html += '';
+    // v824-4：未关联小框（整框即按钮）—— 文案末尾带链接图标；一行放得下就一行，放不下自然换行
+    html += `<div class="cd-link-block cd-link-empty-box" onclick="cdPushToCommission('${r.id}')">`
+      + `<span class="cd-link-empty-box-text">当前约稿单尚未与接稿排期关联，点此一键新建接稿排期并关联 ${lucide('link',13)}</span>`
+      + `</div>`;
   }
   html += '</div>';
   openModal((mod.category || '约稿') + '约稿需求', html, [
@@ -11458,38 +11690,67 @@ async function onCdDelete(id) {
 // 联动：接稿详情 ↔ 接稿排期（按单主姓名绑定）
 function syncCdToCommission(clientName) {
   if (!clientName) return;
-  const linked = DB.list('commissions').some(c => (c.clientInfo || '') === clientName);
+  const linked = DB.list('commissions').some(c => cdSameClient(c.clientInfo, clientName));
   if (!linked) {
     Toast.info('已保存。若「' + clientName + '」尚未建立接稿排期，可在详情中点「一键推送至接稿排期」');
   }
 }
 // 从接稿详情一键推送至接稿排期（创建一条排期草稿，单主自动绑定）
-function cdPushToCommission(detailId) {
-  const r = DB.getById('commissionDetails', detailId);
-  if (!r) return;
+// v819：一键关联核心（弹窗与列表共用）——按约稿单制品明细创建接稿排期
+function cdPushToCommissionCore(r) {
+  // v820：从价目表带出单价并汇总报价金额（与 dcImportDetail 一致）——解决「一键关联后价目表价格为空」
+  const priceList = DB.list('priceList');
+  const plOf = (nm) => priceList.find(p => p.product === nm && PRODUCT_CATEGORIES.includes(p.category));
+  const products = [];
+  const addProd = (nm, sz, handleRef) => {
+    const pl = plOf(nm);
+    products.push({ name: nm, quantity: 1, price: pl ? (parseFloat(pl.price) || 0) : 0, size: sz || (pl && pl.defaultSize ? pl.defaultSize : ''), handleRef: handleRef });
+  };
+  if (r.product && String(r.product).trim()) addProd(String(r.product).trim(), r.size || '', '0');
+  (r.extraProducts || []).forEach(ep => {
+    const nm = (ep && ep.product) ? String(ep.product).trim() : '';
+    if (nm) addProd(nm, (ep && ep.size) || '', (ep && ep.sameHandleRef) || '否');
+  });
+  const total = products.reduce((s, p) => s + (parseFloat(p.price) || 0) * (parseInt(p.quantity) || 1), 0);
   const draft = {
-    clientInfo: r.clientInfo || '',
+    clientInfo: (r.clientInfo || '').trim(),
     acceptTime: todayStr(),
     progress: '待接稿',
     paymentStatus: '未付',
-    products: [],
-    notes: '由接稿详情（' + (r.category || '') + '）推送：' + (r.bookName || r.theme || r.ipRole || ''),
+    isUrgent: '否',
+    products: products,
+    extraItems: [],
+    modifications: [],
+    quoteAmount: total, deposit: Math.round(total * 0.5 * 100) / 100, balance: Math.round(total * 0.5 * 100) / 100, amount: total,
+    note: '由接稿详情（' + (r.category || '') + '）一键关联：' + (r.bookName || r.theme || ''),
   };
-  // 尝试把制品文本拆成制品列表
-  if (r.products) {
-    const parts = String(r.products).split(/[；;、，,]/).map(s => s.trim()).filter(Boolean);
-    draft.products = parts.map(p => ({ name: p, quantity: 1 }));
-  }
   DB.add('commissions', draft);
-  Toast.success('已推送至接稿排期（单主：' + (r.clientInfo || '未填') + '）');
+}
+function cdPushToCommission(detailId) {
+  const r = DB.getById('commissionDetails', detailId);
+  if (!r) return;
+  cdPushToCommissionCore(r);
+  Toast.success('已关联至接稿排期（单主：' + ((r.clientInfo || '').trim() || '未填') + '）');
   closeModal();
-  navigate('design-commission');
+  setTimeout(() => openCdDetail(detailId), 40);
+}
+// v819：列表内（未打开详情弹窗）一键关联——创建后留在列表并刷新
+function cdPushToCommissionFromList(detailId) {
+  const r = DB.getById('commissionDetails', detailId);
+  if (!r) return;
+  cdPushToCommissionCore(r);
+  Toast.success('已关联至接稿排期（单主：' + ((r.clientInfo || '').trim() || '未填') + '）');
+  renderCommissionDetailPage();
 }
 
 // 接稿排期卡片点击后跳到对应排期（用于联动跳转）
 function commissionSelectById(id) {
-  pageState['design-commission'] = pageState['design-commission'] || {};
-  pageState['design-commission'].viewMode = 'list';
+  // v824 修复白屏：必须补齐 filters/search，否则 renderListPage 读到残缺 pageState 会抛错（mainBody 已清空 → 全白）
+  const ps = pageState['design-commission'] || (pageState['design-commission'] = {});
+  if (!ps.filters) ps.filters = {};
+  if (ps.search == null) ps.search = '';
+  if (ps.pageNo == null) ps.pageNo = 1;
+  ps.viewMode = 'list';
   navigate('design-commission');
   setTimeout(() => { openDetail('design-commission', id); }, 80);
 }
@@ -11559,10 +11820,41 @@ function runCdChatParse() {
   let hit = 0;
   // 垃圾值（空 / 纯冒号·标点·数字）不占位，且允许真值覆盖已被占用的垃圾值
   const isJunkVal = (v) => !v || /^[：:，,。.\s\-_/·•・、！!?？~*★☆#@()（）]+$/.test(v);
+  // v819: 分柄图分块——「稿件用途 / 制品 / 姓名(角色名)」为块锚点；
+  // 同一块内锚点重复出现 = 新的一个柄图（块=柄图，块内多制品=同柄/同模）
+  const EP_FIELD_KEYS = { theme: 1, charName: 1, nickName: 1, englishName: 1, birthday: 1, style: 1, color: 1, elementsRequired: 1, elementsOptional: 1, elementsAvoid: 1, copyText: 1, note: 1, craft: 1, bleed: 1 };
+  const BLOCK_ANCHORS = { usageType: 1, product: 1, charName: 1 };
+  const blocks = [{ fields: {}, products: [], sizes: [], seen: {} }];
+  const curBlock = () => blocks[blocks.length - 1];
+  const productParts = []; // v819: 旧「按行聚合」分支已停用（恒为空），改用下方 blocks 分块
   const assign = (key, val) => {
     val = (val || '').trim();
     if (isJunkVal(val)) return;
-    if (!data[key] || isJunkVal(data[key])) { data[key] = val; hit++; }
+    if (BLOCK_ANCHORS[key] && curBlock().seen[key]) blocks.push({ fields: {}, products: [], sizes: [], seen: {} });
+    const b = curBlock();
+    b.seen[key] = 1;
+    if (key === 'product') { b.products.push(val); return; }
+    if (key === 'size') { b.sizes.push(val); return; }
+    if (!b.fields[key] || isJunkVal(b.fields[key])) { b.fields[key] = val; hit++; }
+  };
+  // 别名匹配：取最长别名（如「平台昵称」优先于「昵称」），且别名前后不能是英文/数字（避免单词内部误命中）
+  const findAliasMatch = (labelRaw) => {
+    let best = null;
+    for (const key in aliasMap) {
+      for (const a of aliasMap[key]) {
+        const lowA = a.toLowerCase();
+        const pos = labelRaw.toLowerCase().indexOf(lowA);
+        if (pos === -1) continue;
+        const before = labelRaw.slice(0, pos);
+        const after = labelRaw.slice(pos + lowA.length);
+        const beforeOk = !/[a-zA-Z0-9]$/.test(before);
+        const afterOk = !/^[a-zA-Z0-9]/.test(after);
+        if (!beforeOk || !afterOk) continue;
+        const cand = { key, len: lowA.length, pos };
+        if (!best || cand.len > best.len || (cand.len === best.len && cand.pos < best.pos)) best = cand;
+      }
+    }
+    return best;
   };
   // 元素专项解析：优先从「标签」提取 必用/可选/避雷 子类型（如 元素—必用：星星），再退回按「值」内拆分，均无则整体进必用
   const parseElementLine = (labelRaw, val) => {
@@ -11600,34 +11892,82 @@ function runCdChatParse() {
         parseElementLine(labelRaw, val);
         return;
       }
-      // 标签须以别名为核心：别名前仅允许序号/emoji/空格前缀，别名后仅允许分隔符（避免「尺寸 4:3」把值里的冒号误判为分隔）
-      for (const key in aliasMap) {
-        for (const a of aliasMap[key]) {
-          const lowA = a.toLowerCase();
-          const pos = labelRaw.toLowerCase().indexOf(lowA);
-          if (pos === -1) continue;
-          const before = labelRaw.slice(0, pos);
-          const after = labelRaw.slice(pos + lowA.length);
-          const beforeOk = /^[^a-z\u4e00-\u9fa5]*$/i.test(before);
-          const afterOk = /^[\s　\-_]*$/.test(after);
-          if (beforeOk && afterOk) { assign(key, val); return; }
-        }
-      }
+      const bm = findAliasMatch(labelRaw);
+      if (bm) { assign(bm.key, val); return; }
     } else {
-      const lowLine = line.toLowerCase();
-      if (line.length > 60) return; // 长句不强行识别，避免误判（放宽以容纳多元素列表）
-      for (const key in aliasMap) {
-        for (const a of aliasMap[key]) {
-          const lowA = a.toLowerCase();
-          const idx = lowLine.indexOf(lowA);
-          if (idx > -1 && idx < 12) {
-            const v = line.slice(idx + lowA.length).trim();
-            if (v) { assign(key, v); return; }
-          }
-        }
+      if (line.length > 60) return; // 长句不强行识别，避免误判
+      const bm = findAliasMatch(line);
+      if (bm) {
+        const v = line.slice(bm.pos + bm.len).trim();
+        if (v) { assign(bm.key, v); return; }
       }
     }
   });
+  // 多制品拆分：每个制品行先按 、，,；;／/| 空格 拆开，首个为主制品，其余进 extraProducts（土味/饭圈/二次 均支持多制品）
+  if (productParts.length) {
+    const uniq = [];
+    productParts.forEach(p => {
+      String(p).split(/[、，,；;／/\\|　\s]+/).forEach(seg => {
+        seg = seg.trim();
+        if (seg && uniq.indexOf(seg) === -1) uniq.push(seg);
+      });
+    });
+    // 尺寸按制品顺序一一配对：主制品取第 1 个尺寸，其余追加制品依次对应；不足则为空
+    const sizeParts = String(data.size || '').split(/[、，,；;／/\\|　\s]+/).map(s => s.trim()).filter(s => s);
+    if (uniq.length === 1) data.product = uniq[0];
+    else {
+      data.product = uniq[0];
+      data.extraProducts = uniq.slice(1).map((p, i) => ({ product: p, size: sizeParts[i + 1] || '' }));
+    }
+    if (uniq.length >= 1) data.size = sizeParts[0] || '';
+    hit++;
+  }
+  // v819: 分块组装——第 1 个制品块 → 主记录（含记录级字段），其余块 → 每块一个柄图的追加制品
+  // 块内：第 1 个制品为「初始」，其余「同柄于初始制品」('0')；跨块：块首「独立新柄」('否')，其余「同柄于本块块首」
+  const splitVals = (arr) => {
+    const out = [];
+    (arr || []).forEach(s => String(s).split(/[、，,；;／/|\s　]+/).forEach(seg => {
+      seg = seg.trim();
+      if (seg && out.indexOf(seg) === -1) out.push(seg);
+    }));
+    return out;
+  };
+  Object.keys(blocks[0].fields).forEach(k => { data[k] = blocks[0].fields[k]; });
+  // 记录级字段兜底：末块出现的非制品字段（颜色格式/交付方式/是否可以展示…）回填主记录
+  for (let bi = 1; bi < blocks.length; bi++) {
+    const bf = blocks[bi].fields;
+    Object.keys(bf).forEach(k => {
+      if (EP_FIELD_KEYS[k]) return;
+      if (!data[k] || isJunkVal(data[k])) data[k] = bf[k];
+    });
+  }
+  const prodBlocks = blocks.filter(b => b.products.length);
+  if (prodBlocks.length) {
+    const mainProds = splitVals(prodBlocks[0].products);
+    const mainSizes = splitVals(prodBlocks[0].sizes);
+    const usage0 = data.usageType || '';
+    data.product = mainProds[0];
+    data.size = mainSizes[0] || '';
+    hit++;
+    const extras = [];
+    for (let i = 1; i < mainProds.length; i++) extras.push({ product: mainProds[i], size: mainSizes[i] || '', usageType: usage0, sameHandleRef: '0' });
+    prodBlocks.slice(1).forEach(b => {
+      const prods = splitVals(b.products);
+      const sizes = splitVals(b.sizes);
+      const usage = b.fields.usageType || usage0;
+      const baseNo = extras.length + 1; // 本块块首在「追加制品」中的序号（供同柄引用）
+      prods.forEach((nm, i) => {
+        const ep = { product: nm, size: sizes[i] || '', usageType: usage, sameHandleRef: i === 0 ? '否' : String(baseNo) };
+        // 柄图级补充信息挂到本块块首制品（表单里「同柄于…」的行会隐藏这些字段）
+        if (i === 0) Object.keys(b.fields).forEach(k => { if (EP_FIELD_KEYS[k] && b.fields[k]) ep[k] = b.fields[k]; });
+        extras.push(ep);
+      });
+    });
+    if (extras.length) data.extraProducts = extras;
+  } else {
+    const onlySizes = splitVals(blocks[0].sizes);
+    if (onlySizes.length) { data.size = onlySizes[0]; hit++; }
+  }
   // 交付方式（兼容「交付」与「交付方式」）
   const delM = text.match(/交付(?:方式)?[：:]\s*([^\n]+)/);
   if (delM) {
@@ -12195,7 +12535,7 @@ function openTextTemplatePicker(fieldKey) {
   const all = DB.list('textTemplates');
   let bodyHTML;
   if (!all.length) {
-    bodyHTML = '<div class="tpl-empty">暂无文案模板，可前往「文案模板库」添加。</div>';
+    bodyHTML = '<div class="tpl-empty">暂无文案模版</div>';
   } else {
     const cats = txtTplCatsNames().slice();
     all.forEach(t => { const c = t.cat || '通用'; if (!cats.includes(c)) cats.push(c); });
@@ -12300,7 +12640,7 @@ function buildCdClientForm(pageKey, data) {
   const mod = MODULES[pageKey];
   const fields = prepareFields(pageKey, mod.fields).filter(f => !f.localOnly);
   const deliveryIdx = fields.findIndex(f => f.section === '交付规范');
-  const hasExtra = pageKey === 'design-commission-detail-fq' || pageKey === 'design-commission-detail-ec';
+  const hasExtra = cdSupportsExtra(pageKey);
   let html = '';
   if (deliveryIdx > -1) {
     html += buildForm(fields.slice(0, deliveryIdx), data, pageKey);
@@ -12318,7 +12658,7 @@ function saveCdClientForm(pageKey, standalone) {
   const _ov = document.getElementById('modalOverlay');
   const container = (_ov && _ov.classList.contains('show')) ? $('#modalBody') : $('#mainBody');
   const data = readForm(container);
-  if (pageKey === 'design-commission-detail-fq' || pageKey === 'design-commission-detail-ec') {
+  if (cdSupportsExtra(pageKey)) {
     data.extraProducts = readCdExtraProducts(container, pageKey);
     cdApplyCpModeToData(container, data);
   }

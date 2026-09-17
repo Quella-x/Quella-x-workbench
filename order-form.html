@@ -1804,6 +1804,17 @@ html.apk.modal-lock{overflow:hidden!important}
 /* CC轮：加价项目/制品等 combobox 下拉框内容自适应宽度，保证长名称全部显示不被截断 */
 .dc-extra-row .combobox-dropdown,.dc-product-row .combobox-dropdown,.dc-mod-row .combobox-dropdown{white-space:nowrap;left:0;right:auto;min-width:100%;width:max-content;max-width:90vw}
 .combobox-option.selected{background:var(--c-primary-bg);color:var(--c-primary);font-weight:600}
+/* v817: 导入接稿下拉分组小标题（接稿排期 / 接稿详情·约稿单） */
+.combobox-group-title{
+  padding:5px 12px;font-size:12px;font-weight:600;color:var(--c-text-light);
+  background:var(--c-primary-bg);line-height:1.5;cursor:default;letter-spacing:.2px;
+}
+.combobox-group+.combobox-group .combobox-group-title{border-top:1px solid var(--c-border)}
+.combobox-group-title:hover{background:var(--c-primary-bg);color:var(--c-text-light)}
+/* v817: 约稿单关联状态提示 */
+.dc-import-link-hint{margin-top:6px;font-size:12px;line-height:1.5;color:var(--c-text-light)}
+.dc-import-link-hint b{color:var(--c-text);font-weight:600}
+.dc-import-link-hint.dc-import-link-new{color:var(--c-orange)}
 
 /* ===== Lucide 图标统一规范（v686） =====
    尺寸由 lucide(name,size) 参数控制；此处只统一显示方式与基线对齐。
@@ -3090,6 +3101,12 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-link-block .cd-rec-row:last-child{border-bottom:none}
 .cd-link-empty{font-size:13px;color:var(--c-text-muted);padding:8px 0}
 .cd-link-empty .btn{margin-left:8px}
+/* v824-4：未关联时复用已关联同款小框（.cd-link-block）——整个框即按钮，点击新建关联；
+   文案「当前约稿单尚未与接稿排期关联，点此一键新建接稿排期并关联 🔗」：
+   宽容器下一行铺满，**放不下时自然换行**（不用 nowrap/ellipsis 截断文字） */
+.cd-link-empty-box{display:flex;align-items:center}
+.cd-link-empty-box-text{font-size:13px;color:var(--c-text-muted);line-height:1.5}
+.cd-link-empty-box-text svg{vertical-align:-1px}
 .cd-link-box textarea,#cdClientLink{user-select:text;-webkit-user-select:text}
 /* 接稿详情表单外壳：整体左移5px（离小标题更近） + 顶部/底部提示文字 */
 .cd-form{margin-left:-5px}
@@ -3526,7 +3543,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=816"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=819"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
@@ -3572,6 +3589,83 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
     }
     setTimeout(bind, 0);
     setTimeout(bind, 300);
+  })();
+</script>
+<script>
+  /* v819 本地预览专用：内置预览面板没有刷新入口 → 页面自带刷新渠道。
+     ① 监听 app.js / index.html 的 Last-Modified，文件一变自动重载；
+     ② 左下角常驻「刷新预览」按钮，随时手动刷新。
+     仅在 127.0.0.1 / localhost 生效；线上(GitHub Pages)与 APK(file://) 下整段直接 return，不受影响。 */
+  (function () {
+    var isLocal = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
+    if (!isLocal) return;
+    var FILES = ['app.js', 'index.html'];
+    var POLL = 1200;
+    var sig = null, pending = false;
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'previewReloadBtn';
+    btn.title = '本地预览刷新（文件改动会自动刷新）';
+    btn.textContent = '⟳ 刷新预览';
+    btn.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:950;padding:6px 11px;'
+      + 'font:12px/1.2 system-ui,"Microsoft YaHei",sans-serif;color:#2b6cb0;background:#E0F2FF;'
+      + 'border:1px solid #9DC8FF;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.12);'
+      + 'cursor:pointer;opacity:.9;transition:opacity .2s,background .2s;';
+    btn.onmouseenter = function () { btn.style.opacity = '1'; };
+    btn.onmouseleave = function () { if (!pending) btn.style.opacity = '.9'; };
+    btn.onclick = function () { location.reload(); };
+
+    function ensureBtn() {
+      if (!document.body) return;
+      if (!btn.parentNode) document.body.appendChild(btn);
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', ensureBtn);
+    } else {
+      ensureBtn();
+    }
+    setTimeout(ensureBtn, 500);
+
+    function isTyping() {
+      var el = document.activeElement;
+      if (!el) return false;
+      var tag = (el.tagName || '').toUpperCase();
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+      return !!el.isContentEditable;
+    }
+    function tryReload() {
+      if (!pending || isTyping()) return;
+      location.reload();
+    }
+    function markPending() {
+      if (pending) return;
+      pending = true;
+      btn.textContent = '⟳ 有新改动，点我刷新';
+      btn.style.background = '#FFE9C7';
+      btn.style.borderColor = '#f6ad5c';
+      btn.style.color = '#8a5200';
+      btn.style.opacity = '1';
+      tryReload();
+    }
+    function probe() {
+      return Promise.all(FILES.map(function (f) {
+        return fetch(f + '?_probe=' + Date.now(), { method: 'HEAD', cache: 'no-store' })
+          .then(function (r) {
+            return (r.headers.get('Last-Modified') || '') + '|' + (r.headers.get('Content-Length') || '');
+          })
+          .catch(function () { return 'ERR'; });
+      })).then(function (arr) { return arr.join(' || '); });
+    }
+
+    document.addEventListener('focusout', function () { setTimeout(tryReload, 120); });
+    setInterval(function () {
+      if (pending) { tryReload(); return; }
+      probe().then(function (s) {
+        if (sig === null) { sig = s; return; }
+        if (s !== sig) { sig = s; markPending(); }
+      });
+    }, POLL);
   })();
 </script>
 </body>
