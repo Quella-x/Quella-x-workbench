@@ -1779,7 +1779,7 @@ html.apk.modal-lock{overflow:hidden!important}
 .combobox-toggle.open{background:var(--c-primary-bg);color:var(--c-primary-dark);transform:translateY(-50%) rotate(180deg)}
 .combobox-dropdown{
   display:none;position:absolute;top:100%;left:0;right:0;
-  max-height:200px;overflow-y:auto;background:#fff;
+  max-height:360px;overflow-y:auto;background:#fff;
   border:1px solid var(--c-border);border-radius:var(--radius-sm);
   box-shadow:var(--shadow);z-index:9999;min-width:140px;
 }
@@ -3081,6 +3081,14 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-import-modal .cd-import-tip{font-size:12px;color:var(--c-text-muted);line-height:1.6;background:var(--c-primary-bg);padding:10px 12px;border-radius:8px;margin-bottom:8px}
 .cd-chat-input{min-height:160px}
 .cd-import-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+.cd-allow-urgent{display:flex;flex-direction:row;align-items:center;flex-wrap:nowrap;gap:5px;white-space:nowrap;font-size:13px;line-height:1.4;color:var(--c-text);margin:8px 0 2px;cursor:pointer;user-select:none;width:100%}
+.cd-allow-urgent input{flex:0 0 auto;width:16px;height:16px;margin:0;accent-color:var(--c-primary);cursor:pointer}
+.cd-allow-urgent .cd-allow-urgent-txt{flex:0 0 auto;white-space:nowrap;word-break:keep-all;overflow-wrap:normal;writing-mode:horizontal-tb}
+/* v829：选择分类 + 允许加急 同排（下拉框缩短 140px，允许加急靠右） */
+.cd-cat-row{display:flex;align-items:center;flex-wrap:nowrap;gap:8px}
+.cd-cat-row .form-label{margin:0;flex:0 0 auto;white-space:nowrap}
+.cd-cat-row .combobox-wrapper{flex:0 0 140px}
+.cd-cat-row .cd-allow-urgent{margin:0;width:auto}
 .cd-gen-link .combobox-wrapper{display:flex}
 .cd-form-preview .form-row{margin-bottom:8px}
 .cd-link-list{display:flex;flex-direction:column;gap:6px;margin-top:6px}
@@ -3126,6 +3134,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-ep-field{display:flex;flex-direction:column;gap:8px}
 .cd-ep-field .form-label{font-size:13px;color:var(--c-text);font-weight:500}
 .cd-ep-field.cd-ep-wide{grid-column:1 / -1}
+/* v829b：封面追加制品行直接复用了模块字段（.form-row 自带 14px 上下边距 + 尺寸信息大框的 cd-title-gap14），
+   这里清掉自带边距，让 .cd-ep-grid 的 gap:14px 统一控制，与其它模块追加制品的间距一致 */
+.cd-extra-product-row.cd-ep-fm .cd-ep-grid > .form-row{margin-top:0;margin-bottom:0}
 .cd-ep-full{display:flex;flex-direction:column;gap:14px}
 .cd-ep-full.hidden{display:none}
 /* 追加制品内 风格/颜色 并排 */
@@ -3532,7 +3543,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=819"></script>
+  <script src="app.js?v=830"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

@@ -1176,6 +1176,8 @@ const _dynamicConfigs = {};
 
 /* ===== Form Builder ===== */
 function buildFormField(f, data, moduleKey, wrap) {
+  // 约稿单「是否加急」字段：仅当记录允许（allowUrgent）时才渲染
+  if (f.urgentOnly && !(data && data.allowUrgent)) return '';
   // v799: 小节标题支持右侧提示词小字（与 form-label-hint 同款式）
   if (f.section) return `<div class="form-section">${esc(f.section)}${f.hint ? `<span class="form-section-hint">${esc(f.hint)}</span>` : ''}</div>`;
   if (f.type === 'custom') {
@@ -1940,7 +1942,7 @@ function showComboboxDropdown(id) {
    负值 → 下拉只剩 1 条可见。现改为：下拉 portal 到 body + position:fixed，只按视口
    空间限高，完全不参与弹窗滚动区的高度计算（因此不会再撑出滚动条、不会把弹窗内容
    往左挤），并保证至少可见 CB_MIN_ROWS 行。 */
-const CB_MIN_ROWS = 4, CB_MAX_H = 200;
+const CB_MIN_ROWS = 4, CB_MAX_H = 360;
 function cbPortal(dd) {
   if (dd._cbHost) return;
   dd._cbHost = dd.parentNode; dd._cbNext = dd.nextSibling;
@@ -2951,6 +2953,7 @@ MODULES['design-commission-detail-twy'] = {
     { key: 'copyText', label: '文案/小字', type: 'textarea' },
     { key: 'color', label: '颜色', type: 'text', hintInline: true, hint: '默认跟底图颜色走' },
     commDetailOtherField(),
+    { key: 'isUrgent', label: '是否加急', type: 'multiselect', single: true, options: [{ value: '是', label: '是' }, { value: '否', label: '否' }], urgentOnly: true },
     { section: '交付规范' },
     { key: 'colorFormat', cls: 'cd-title-gap14', label: '颜色格式', type: 'combobox', default: 'RGB', options: COMM_DETAIL_COLOR_FORMAT_OPTS, hintInline: true, hint: '部分小程序不支持CMYK格式' },
     { key: 'delivery', label: '交付方式', type: 'combobox', default: '百度网盘', options: COMM_DETAIL_DELIVERY_OPTS },
@@ -2984,6 +2987,7 @@ MODULES['design-commission-detail-fm'] = {
     { key: 'baseImg', label: '底图', type: 'combobox', default: '自带', options: [{ value: '自带', label: '自带' }, { value: '有人', label: '有人' }, { value: '无人', label: '无人' }] },
     { key: 'baseReq', label: '底图需求', type: 'text', placeholder: '请说明需求', hintInline: true, hint: '请说明需求 颜色、男女、元素等', showWhenIn: { key: 'baseImg', values: ['有人', '无人'] } },
     commDetailOtherField(),
+    { key: 'isUrgent', label: '是否加急', type: 'multiselect', single: true, options: [{ value: '是', label: '是' }, { value: '否', label: '否' }], urgentOnly: true },
     { section: '交付规范' },
     { key: 'colorFormat', cls: 'cd-title-gap14', label: '颜色格式', type: 'combobox', default: 'RGB', options: COMM_DETAIL_COLOR_FORMAT_OPTS, hintInline: true, hint: '部分小程序不支持CMYK格式' },
     { key: 'delivery', label: '交付方式', type: 'combobox', default: '直发', options: COMM_DETAIL_DELIVERY_OPTS },
@@ -3016,6 +3020,7 @@ MODULES['design-commission-detail-fq'] = {
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">元素</label><div class="style-color-box elements-box"><div class="style-color-col"><span class="style-color-col-label">必用</span><input type="text" class="form-input" data-key="elementsRequired"></div><div class="style-color-col"><span class="style-color-col-label">可选</span><input type="text" class="form-input" data-key="elementsOptional"></div><div class="style-color-col"><span class="style-color-col-label">避雷</span><input type="text" class="form-input" data-key="elementsAvoid"></div></div></div>' },
     { key: 'copyText', label: '文案', type: 'textarea' },
     commDetailOtherField(),
+    { key: 'isUrgent', label: '是否加急', type: 'multiselect', single: true, options: [{ value: '是', label: '是' }, { value: '否', label: '否' }], urgentOnly: true },
     { section: '交付规范' },
     { key: 'colorFormat', cls: 'cd-title-gap14', label: '颜色格式', type: 'combobox', default: 'RGB', options: COMM_DETAIL_COLOR_FORMAT_OPTS, hintInline: true, hint: '部分小程序不支持CMYK格式' },
     { key: 'delivery', label: '交付方式', type: 'combobox', default: '百度网盘', options: COMM_DETAIL_DELIVERY_OPTS },
@@ -3049,6 +3054,7 @@ MODULES['design-commission-detail-ec'] = {
     { type: 'custom', html: '<div class="form-row style-color-row"><label class="form-label">元素</label><div class="style-color-box elements-box"><div class="style-color-col"><span class="style-color-col-label">必用</span><input type="text" class="form-input" data-key="elementsRequired"></div><div class="style-color-col"><span class="style-color-col-label">可选</span><input type="text" class="form-input" data-key="elementsOptional"></div><div class="style-color-col"><span class="style-color-col-label">避雷</span><input type="text" class="form-input" data-key="elementsAvoid"></div></div></div>' },
     { key: 'copyText', label: '文案', type: 'textarea' },
     commDetailOtherField(),
+    { key: 'isUrgent', label: '是否加急', type: 'multiselect', single: true, options: [{ value: '是', label: '是' }, { value: '否', label: '否' }], urgentOnly: true },
     { section: '交付规范' },
     { key: 'colorFormat', cls: 'cd-title-gap14', label: '颜色格式', type: 'combobox', default: 'RGB', options: COMM_DETAIL_COLOR_FORMAT_OPTS, hintInline: true, hint: '部分小程序不支持CMYK格式' },
     { key: 'delivery', label: '交付方式', type: 'combobox', default: '百度网盘', options: COMM_DETAIL_DELIVERY_OPTS },
@@ -3110,7 +3116,7 @@ MODULES['design-pricelist'] = {
     { key: 'defaultSize', label: '默认尺寸', type: 'text' },
     { key: 'defaultBleed', label: '默认出血', type: 'text' },
     { key: 'price', label: '单价', type: 'number', hint: '元' },
-    { key: 'priceUnit', label: '单位', type: 'multiselect', single: true, default: '元', options: [{ value: '元', label: '元' }, { value: '元/p', label: '元/p' }, { value: '元/次', label: '元/次' }] },
+    { key: 'priceUnit', label: '单位', type: 'multiselect', single: true, default: '元', options: [{ value: '元', label: '元' }, { value: '元/p', label: '元/p' }, { value: '元/次', label: '元/次' }, { value: '元/起', label: '元/起' }] },
     { key: 'description', label: '备注', type: 'textarea' },
   ],
   listFields: [
@@ -7708,7 +7714,8 @@ function renderPriceList() {
             h += `<span class="menu-cat">${esc(r.category || '未分类')}</span>`;
           } else {
             const priceUnit = Array.isArray(r.priceUnit) ? (r.priceUnit[0] || '元') : (r.priceUnit || '元');
-            const unitSuffix = priceUnit === '元' ? '' : priceUnit.replace('元', '');
+            // v826：单位「元/起」显示为价格后加 "+"（如 ¥10+），其余单位取 "元" 后内容（/p、/次）
+            const unitSuffix = priceUnit === '元' ? '' : (priceUnit === '元/起' ? '+' : priceUnit.replace('元', ''));
             const priceText = `¥${esc(r.price || 0)}${esc(unitSuffix)}`;
             h += `<span class="menu-price">${priceText}</span>`;
           }
@@ -7786,7 +7793,9 @@ function openPriceListSort() {
       html += '<div class="pricelist-sort-item">';
       const sizeTxt = cdPriceListSizeText(r);
       html += `<span class="sort-name">${esc(r.product || '未命名')}${sizeTxt ? `<sub class="menu-size-sub">(${sizeTxt})</sub>` : ''}</span>`;
-      html += `<span class="sort-price">¥${esc(r.price || 0)}</span>`;
+      const _pu = Array.isArray(r.priceUnit) ? (r.priceUnit[0] || '元') : (r.priceUnit || '元');
+      const _us = _pu === '元' ? '' : (_pu === '元/起' ? '+' : _pu.replace('元', ''));
+      html += `<span class="sort-price">¥${esc(r.price || 0)}${esc(_us)}</span>`;
       html += `<span class="sort-btns">`;
       html += `<button class="btn btn-ghost btn-sm" ${isFirst ? 'disabled' : ''} onclick="event.stopPropagation();priceItemMove('${r.id}',-1);openPriceListSort();">▲</button>`;
       html += `<button class="btn btn-ghost btn-sm" ${isLast ? 'disabled' : ''} onclick="event.stopPropagation();priceItemMove('${r.id}',1);openPriceListSort();">▼</button>`;
@@ -8307,8 +8316,8 @@ function renderDataSettings(html) {
     '<span class="sync-pw-wrap"><input type="text" class="sync-field pw-mask" id="' + id + '" value="' + esc(val || '') + '" placeholder="' + ph + '" autocomplete="off" inputmode="text"><button type="button" class="sync-eye" title="显示" onclick="toggleSyncPw(\'' + id + '\', this)">' + lucide('eye-off',16) + '</button></span>';
   html += '<div style="display:flex;flex-direction:column;gap:10px;max-width:440px">';
   html += '<label class="sync-label">Supabase 项目 URL<input type="text" class="sync-field" id="sync_url" value="' + esc(sc.url || '') + '" placeholder="https://xxxx.supabase.co"></label>';
-  html += '<div class="sync-label">Anon Key（公开键，非 secret）' + pwField('sync_key', sc.anonKey, 'sb_publishable_... 开头的公开键') + '</div>';
-  html += '<div class="sync-label">同步码（两端一致）' + pwField('sync_code', sc.syncCode, '自定义，例如 xiaoxiao2026') + '</div>';
+  html += '<div class="sync-label">Anon Key（公开键，非 secret）' + pwField('sync_key', sc.anonKey, 'sb_publishable_') + '</div>';
+  html += '<div class="sync-label">同步码（两端一致）' + pwField('sync_code', sc.syncCode, '6位数') + '</div>';
   html += '</div>';
   html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">';
   html += `<button class="btn btn-outline" onclick="syncTest()">${lucide('plug',16)} 连接测试</button>`;
@@ -8320,10 +8329,11 @@ function renderDataSettings(html) {
   html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:10px">' + st + '</p>';
   html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:6px;line-height:1.6">换新 Supabase 项目时：建表 <code>sync_store</code>（字段：group_key text、store text、data jsonb、updated_at timestamptz，主键 group_key+store），并开启 anon 访问策略。</p>';
   // ---- 凭据保险箱 ----
-  html += '<h4 style="font-size:14px;margin:24px 0 8px;color:var(--c-primary)">' + lucide('lock',16) + ' 凭据保险箱（4 位密码）</h4>';
+  html += '<h4 style="font-size:14px;margin:24px 0 8px;color:var(--c-primary)">' + lucide('lock',16) + ' 凭据保险箱</h4>';
+  // v826：「凭据保险箱（4 位密码）」蓝色标题 → 「凭据保险箱」；下方小标题与提示词同步改为「保险箱密码 / 4位数」
   html += '<p style="font-size:13px;color:var(--c-text-light);margin-bottom:12px">把上面的 Supabase URL / Anon Key / 同步码 用 4 位密码锁进保险箱：存入后<strong>本机 + 云端各留一份</strong>，<strong>卸载重装后输一次密码即可自动填回</strong>，不用再翻聊天记录找。4 位密码只挡「随手翻看」，请勿当高强度口令。</p>';
   html += '<div style="display:flex;flex-direction:column;gap:10px;max-width:440px">';
-  html += '<label class="sync-label">4 位密码<span class="sync-pw-wrap"><input type="text" class="sync-field pw-mask" id="vault_pin" value="" placeholder="4 位数字，例如 1234" autocomplete="off" inputmode="numeric" maxlength="4"><button type="button" class="sync-eye" title="显示" onclick="toggleSyncPw(\'vault_pin\', this)">' + lucide('eye-off',16) + '</button></span></label>';
+  html += '<label class="sync-label">保险箱密码<span class="sync-pw-wrap"><input type="text" class="sync-field pw-mask" id="vault_pin" value="" placeholder="4位数" autocomplete="off" inputmode="numeric" maxlength="4"><button type="button" class="sync-eye" title="显示" onclick="toggleSyncPw(\'vault_pin\', this)">' + lucide('eye-off',16) + '</button></span></label>';
   html += '<div style="display:flex;gap:12px;flex-wrap:wrap">';
   html += `<button class="btn btn-primary" onclick="wbVaultSave()">${lucide('save',16)} 存入保险箱</button>`;
   html += `<button class="btn btn-outline" onclick="wbVaultRestore()">${lucide('download',16)} 取回填回</button>`;
@@ -9178,12 +9188,17 @@ function sleepDurationHours(sleepTime, wakeTime) {
   const [wh, wm] = wakeTime.split(':').map(Number);
   let mins = (wh * 60 + wm) - (sh * 60 + sm);
   if (mins <= 0) mins += 1440;
-  return Math.round(mins / 60 * 10) / 10;
+  // v826：返回精确小时（不四舍五入）——避免与后续 formatSleepDuration 二次取整叠加成分钟漂移
+  return mins / 60;
 }
 function getSleepDuration(r) {
-  if (r && r.duration != null && !isNaN(r.duration)) return Number(r.duration);
-  const computed = r ? sleepDurationHours(r.sleepTime, r.wakeTime) : null;
-  return computed != null ? computed : 0;
+  if (!r) return 0;
+  // v826：优先用入睡/清醒钟点重算精确时长（修旧数据 duration 已被 0.1h 取整导致的显示漂移）；
+  // 仅当缺钟点时才回退到存值 duration
+  const computed = sleepDurationHours(r.sleepTime, r.wakeTime);
+  if (computed != null) return computed;
+  if (r.duration != null && !isNaN(r.duration)) return Number(r.duration);
+  return 0;
 }
 function lifeDailyStreak(typeKey) {
   const set = new Set(DB.list('lifeCheckins').filter(r => r.type === typeKey).map(r => r.date));
@@ -9889,8 +9904,11 @@ function lifeCheckinRemove(typeKey, dateStr) {
 }
 function formatSleepDuration(hours) {
   if (hours == null || isNaN(hours)) return '—';
-  const h = Math.floor(hours);
-  const m = Math.round((hours - h) * 60);
+  // v826：先整体归一到分钟再拆分，杜绝「Math.floor(h)+Math.round((h-h)*60)」在 0.1h 粒度下的进位漂移
+  // （旧算法：7.333h → floor=7、round((0.333)*60)=20 尚可；但 7.3h → 7h18m，与手填 7h20m 不符）
+  const totalMins = Math.round(hours * 60);
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins - h * 60;
   if (h === 0 && m === 0) return '0m';
   return (h ? h + 'h' : '') + (m ? m + 'm' : '');
 }
@@ -11134,9 +11152,13 @@ function renderCdFullRecord(r) {
   const hasExtra = CD_EXTRA_CATS.includes(r.category) && Array.isArray(r.extraProducts) && r.extraProducts.length;
   let extraInjected = false;
   mod.fields.forEach(f => {
+    // v826：记录卡片视图同样受 allowUrgent 控制
+    if (f.urgentOnly && !r.allowUrgent) return;
     if (f.section) {
       // 在「交付规范」之前，把追加制品归入「制品信息」区块（不再单独成块）
-      if (!extraInjected && hasExtra && f.section === '交付规范') { h += renderCdExtraProductsRec(r); extraInjected = true; }
+      if (!extraInjected && hasExtra && f.section === '交付规范') {
+        h += renderCdExtraProductsRec(r); extraInjected = true;
+      }
       h += `<div class="cd-rec-section">${esc(f.section)}</div>`; return;
     }
     // 自定义 HTML 块（饭圈/二次：重要信息 / 风格颜色 / 元素）按 data-key 渲染非空子字段
@@ -11258,9 +11280,17 @@ function cdRenderCustomFieldRows(f, r, mode) {
 function renderCdExtraProductsRec(r) {
   let h = '';
   const refOf = (p) => p.sameHandleRef || p.sameHandle || '否';
+  const isFmRec = r.category === '封面';
   (r.extraProducts || []).forEach((p, idx) => {
     const ref = refOf(p);
     h += `<div class="form-section-title cd-extra-subtitle">追加制品 ${idx + 1}</div>`;
+    // v829b：封面追加制品 = 整个「制品信息」，逐字段展示
+    if (isFmRec) {
+      CD_FM_EP_ROWS.forEach(([k, lb]) => {
+        if (p[k] != null && p[k] !== '') h += cdRecRow(lb, p[k], k === 'copyText' || k === 'other');
+      });
+      return;
+    }
     if (p.usageType != null && p.usageType !== '') h += cdRecRow('稿件用途', p.usageType);
     if (p.product != null && p.product !== '') h += cdRecRow('制品', p.product);
     if (p.size != null && p.size !== '') h += cdRecRow('尺寸', p.size);
@@ -11282,6 +11312,7 @@ function renderCdExtraProductsRec(r) {
     }
     if (p.note != null && p.note !== '') h += cdRecRow('备注', p.note, true);
     if (p.sameModel != null && p.sameModel !== '') h += cdRecRow('是否同模', p.sameModel);
+    if (p.isUrgent != null && p.isUrgent !== '') h += cdRecRow('是否加急', p.isUrgent);
   });
   return h;
 }
@@ -11289,11 +11320,21 @@ function renderCdExtraProductsRec(r) {
 function renderCdExtraProductsDetail(r) {
   let html = '';
   const refOf = (p) => p.sameHandleRef || p.sameHandle || '否';
+  const isFmDetail = r.category === '封面';
   (r.extraProducts || []).forEach((p, idx) => {
     const ref = refOf(p);
     const sameTxt = ref === '否' ? '独立新柄' : ('同柄于' + (ref === '0' ? '初始制品' : '追加制品 ' + ref));
-    const summary = [p.product, p.size, sameTxt, p.sameModel].filter(Boolean).join(' · ');
     html += `<div class="form-section-title cd-extra-subtitle">追加制品 ${idx + 1}</div>`;
+    // v829b：封面追加制品 = 整个「制品信息」，逐字段展示
+    if (isFmDetail) {
+      CD_FM_EP_ROWS.forEach(([k, lb]) => {
+        if (p[k] == null || p[k] === '') return;
+        const v = (k === 'copyText' || k === 'other') ? `<div style="white-space:pre-wrap">${esc(p[k])}</div>` : esc(p[k]);
+        html += `<div class="detail-row"><span class="detail-label">${esc(lb)}</span><span class="detail-value">${v}</span></div>`;
+      });
+      return;
+    }
+    const summary = [p.product, p.size, sameTxt, p.sameModel, (p.isUrgent === '是' ? '加急' : '')].filter(Boolean).join(' · ');
     html += `<div class="detail-row"><span class="detail-label">概览</span><span class="detail-value">${esc(summary)}</span></div>`;
     if (ref === '否') {
       if (r.category === '饭圈') {
@@ -11311,6 +11352,7 @@ function renderCdExtraProductsDetail(r) {
       if (p.copyText != null && p.copyText !== '') html += `<div class="detail-row"><span class="detail-label">文案</span><span class="detail-value"><div style="white-space:pre-wrap">${esc(p.copyText)}</div></span></div>`;
     }
     if (p.note != null && p.note !== '') html += `<div class="detail-row"><span class="detail-label">备注</span><span class="detail-value"><div style="white-space:pre-wrap">${esc(p.note)}</div></span></div>`;
+    if (p.isUrgent != null && p.isUrgent !== '') html += `<div class="detail-row"><span class="detail-label">是否加急</span><span class="detail-value">${esc(p.isUrgent)}</span></div>`;
   });
   return html;
 }
@@ -11380,16 +11422,24 @@ function onCdSearch(val) {
 }
 
 // v818：土味/饭圈/二次 支持多制品（product + extraProducts）；封面无 product 字段不参与
-const CD_EXTRA_CATS = ['土味', '饭圈', '二次'];
+// v829b：封面也支持追加制品（整个「制品信息」区块 + 是否加急）；单主为「封面」的排期制品名固定为「封面」
+const CD_EXTRA_CATS = ['土味', '饭圈', '二次', '封面'];
+// 封面追加制品在记录卡片/详情里的展示字段（顺序与「制品信息」区块一致）
+const CD_FM_EP_ROWS = [['type', '网站/书城'], ['size', '尺寸'], ['addLogo', '是否加logo'], ['bookName', '书名'], ['authorName', '作者名'],
+  ['genre', '类型'], ['pureLayout', '是否纯排'], ['color', '颜色'], ['baseImg', '底图'], ['baseReq', '底图需求'],
+  ['copyText', '文案/小字'], ['other', '备注'], ['isUrgent', '是否加急']];
 function cdSupportsExtra(pageKey) {
-  return pageKey === 'design-commission-detail-twy' || pageKey === 'design-commission-detail-fq' || pageKey === 'design-commission-detail-ec';
+  return pageKey === 'design-commission-detail-twy' || pageKey === 'design-commission-detail-fq' || pageKey === 'design-commission-detail-ec' || pageKey === 'design-commission-detail-fm';
 }
 // 接稿详情本地表单：支持分组 + 追加制品（饭圈/二次），追加制品放在「制品信息」栏内
+// v829：是否加急跟制品走——初始制品的加急字段直接排在制品信息大框之后（fields 自然顺序），不再搬运
 function buildCdLocalForm(pageKey, data) {
   const mod = MODULES[pageKey];
   const fields = prepareFields(pageKey, mod.fields);
   const deliveryIdx = fields.findIndex(f => f.section === '交付规范');
   const hasExtra = cdSupportsExtra(pageKey);
+  // v826：是否允许加急——记录级开关，渲染隐藏字段在提交时原样回填，保证再次编辑仍显示「是否加急」
+  const _auHidden = (data && data.allowUrgent) ? '<input type="hidden" class="form-input" data-key="allowUrgent" value="1">' : '';
   let html = '';
   if (deliveryIdx > -1) {
     html += buildForm(fields.slice(0, deliveryIdx), data, pageKey);
@@ -11399,7 +11449,7 @@ function buildCdLocalForm(pageKey, data) {
     html += buildForm(fields, data, pageKey);
     if (hasExtra) html += buildCdExtraProductsHTML(pageKey, data.extraProducts || [], data);
   }
-  return html;
+  return _auHidden + html;
 }
 function readCdLocalForm(container, pageKey) {
   const data = readForm(container);
@@ -11410,11 +11460,12 @@ function readCdLocalForm(container, pageKey) {
   return data;
 }
 function buildCdExtraProductsHTML(pageKey, items, parentData) {
-  const isFq = pageKey === 'design-commission-detail-fq';
   const list = (items && items.length) ? items : [];
-  let html = `<div class="cd-extra-products" id="cdExtraProducts" data-pagekey="${pageKey}">`;
+  // v829b：追加制品的「是否加急」同样受记录级 allowUrgent 控制，存到容器上供增删行时重渲染复用
+  const au = !!(parentData && parentData.allowUrgent);
+  let html = `<div class="cd-extra-products" id="cdExtraProducts" data-pagekey="${pageKey}" data-allowurgent="${au ? '1' : '0'}">`;
   list.forEach((it, idx) => {
-    html += cdExtraProductRowHTML(idx, it || {}, isFq, list);
+    html += cdExtraRowHTML(pageKey, idx, it || {}, list, au);
   });
   html += `</div>`;
   html += `<button type="button" class="btn btn-primary" onclick="addCdExtraProduct()" style="margin-top:0;width:100%;font-size:13px;padding:8px 12px">+ 新增制品</button>`;
@@ -11436,7 +11487,7 @@ function cdHandleRefCombobox(idx, items, currentVal) {
   const lbl = (val === '否') ? '否（独立新柄）' : (val === '0' ? '初始制品 0' : '追加制品 ' + val);
   return { id: cbId, html: `<div class="combobox-wrapper cd-ep-handleref"><input type="text" class="form-input combobox-input" value="${esc(lbl)}" placeholder="请输入或选择制品" oninput="filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div><input type="hidden" class="combobox-value" data-ep="sameHandleRef" value="${esc(val)}"></div>` };
 }
-function cdExtraProductRowHTML(idx, it, isFq, items) {
+function cdExtraProductRowHTML(idx, it, isFq, items, allowUrgent) {
   const sameHandleRef = it.sameHandleRef || '0';
   const isSame = sameHandleRef !== '否';
   const fullClass = isSame ? 'cd-ep-full hidden' : 'cd-ep-full';
@@ -11448,6 +11499,12 @@ function cdExtraProductRowHTML(idx, it, isFq, items) {
   const sameModelSel = COMM_DETAIL_SAME_MODEL_OPTS.map(o => {
     const checked = (it.sameModel || '否') === o.value ? 'checked' : '';
     return `<label class="checkbox-item ${checked ? 'selected' : ''}"><input type="checkbox" name="ep_${idx}_sameModel" value="${esc(o.value)}" ${checked} onclick="limitSingleCheckbox(this)">${esc(o.label)}</label>`;
+  }).join('');
+  // v829：追加制品各自的「是否加急」（跟制品走，默认否）
+  const urgentSel = [{ value: '是', label: '是' }, { value: '否', label: '否' }].map(o => {
+    // v829b：追加制品「是否加急」无默认（与初始制品一致，未选即空）
+    const checked = it.isUrgent === o.value ? 'checked' : '';
+    return `<label class="checkbox-item ${checked ? 'selected' : ''}"><input type="checkbox" name="ep_${idx}_isUrgent" value="${esc(o.value)}" ${checked} onclick="limitSingleCheckbox(this)">${esc(o.label)}</label>`;
   }).join('');
   // 追加制品完整表单与初始制品保持完全一致（大框分组 + 提示词），企划/主题名称在重要信息之前
   let fullFields = `<div class="form-row"><label class="form-label">企划/主题名称</label><input type="text" class="form-input" data-ep="theme" value="${esc(it.theme || '')}"></div>`;
@@ -11499,8 +11556,46 @@ function cdExtraProductRowHTML(idx, it, isFq, items) {
       <div class="${fullClass}">${fullFields}</div>
       <div class="cd-ep-field cd-ep-wide"><label class="form-label">备注</label><textarea class="form-textarea" data-ep="note">${esc(it.note || '')}</textarea></div>
       <div class="cd-ep-field cd-ep-wide"><label class="form-label">是否同模</label><div class="checkbox-group" data-ep="sameModel" data-single="true">${sameModelSel}</div></div>
+      ${allowUrgent === false ? '' : `<div class="cd-ep-field cd-ep-wide"><label class="form-label">是否加急</label><div class="checkbox-group" data-ep="isUrgent" data-single="true">${urgentSel}</div></div>`}
     </div>
   </div>`;
+}
+// v829b：封面追加制品行 = 整个「制品信息」区块（尺寸信息 + 书名/作者/文案/类型排版/颜色/底图/备注）+ 是否加急
+// 直接复用模块字段渲染，避免手抄漏字段；custom 大框内的 data-key 改写为 data-ep，下拉框 id 加行号后缀防重复
+function cdFmExtraProductRowHTML(idx, it, allowUrgent) {
+  const pk = 'design-commission-detail-fm';
+  const mod = MODULES[pk];
+  const fields = prepareFields(pk, mod.fields);
+  const sIdx = fields.findIndex(f => f.section === '制品信息');
+  const dIdx = fields.findIndex(f => f.section === '交付规范');
+  const slice = (sIdx > -1 && dIdx > sIdx) ? fields.slice(sIdx + 1, dIdx) : fields;
+  let body = '';
+  slice.forEach(f => {
+    if (f.urgentOnly) return; // 是否加急统一放在行尾
+    body += buildFormField(f, it || {}, pk, true);
+  });
+  body = body.replace(/data-key="/g, 'data-ep="').replace(/(cd[A-Za-z0-9_]*Cb)/g, '$1_ep' + idx);
+  const urgentSel = [{ value: '是', label: '是' }, { value: '否', label: '否' }].map(o => {
+    // v829b：追加制品「是否加急」无默认（与初始制品一致，未选即空）
+    const checked = it.isUrgent === o.value ? 'checked' : '';
+    return `<label class="checkbox-item ${checked ? 'selected' : ''}"><input type="checkbox" name="ep_${idx}_isUrgent" value="${esc(o.value)}" ${checked} onclick="limitSingleCheckbox(this)">${esc(o.label)}</label>`;
+  }).join('');
+  const urgentHTML = allowUrgent ? `<div class="cd-ep-field cd-ep-wide"><label class="form-label">是否加急</label><div class="checkbox-group" data-ep="isUrgent" data-single="true">${urgentSel}</div></div>` : '';
+  return `<div class="cd-extra-product-row cd-ep-fm" data-idx="${idx}">
+    <div class="cd-ep-head${idx === 0 ? ' row-first' : ''}">
+      <span class="cd-ep-title">追加制品 ${idx + 1}</span>
+      <button type="button" class="btn btn-danger btn-sm" onclick="deleteCdExtraProduct(this)">删除</button>
+    </div>
+    <div class="cd-ep-grid">
+      ${body}
+      ${urgentHTML}
+    </div>
+  </div>`;
+}
+// 按模块分派追加制品行：封面用「整个制品信息」版，其余用制品信息完整版
+function cdExtraRowHTML(pageKey, idx, it, items, allowUrgent) {
+  if (pageKey === 'design-commission-detail-fm') return cdFmExtraProductRowHTML(idx, it || {}, allowUrgent !== false);
+  return cdExtraProductRowHTML(idx, it || {}, pageKey === 'design-commission-detail-fq', items, allowUrgent !== false);
 }
 function collectCdExtraRows(container) {
   const rows = [];
@@ -11508,6 +11603,7 @@ function collectCdExtraRows(container) {
     const it = {};
     row.querySelectorAll('[data-ep]').forEach(el => {
       if (el.dataset.ep === 'sameModel') return;
+      if (el.dataset.ep === 'isUrgent') return;
       if (el.tagName === 'INPUT' && el.type === 'checkbox') {
         if (el.checked) it[el.dataset.ep] = el.value;
         return;
@@ -11516,21 +11612,27 @@ function collectCdExtraRows(container) {
     });
     const sm = row.querySelector('[data-ep="sameModel"] input[type="checkbox"]:checked');
     it.sameModel = sm ? sm.value : '否';
+    // v829：追加制品各自的「是否加急」（默认否）
+    const iu = row.querySelector('[data-ep="isUrgent"] input[type="checkbox"]:checked');
+    it.isUrgent = iu ? iu.value : ''; // v829b：无默认，未选即空
     rows.push(it);
   });
   return rows;
 }
-function reRenderCdExtra(container, items, isFq) {
-  container.innerHTML = items.map((it, idx) => cdExtraProductRowHTML(idx, it, isFq, items)).join('');
+function reRenderCdExtra(container, items) {
+  const pageKey = container.dataset.pagekey || '';
+  const au = container.dataset.allowurgent !== '0';
+  container.innerHTML = items.map((it, idx) => cdExtraRowHTML(pageKey, idx, it, items, au)).join('');
 }
 function addCdExtraProduct() {
   const container = $('#cdExtraProducts');
   if (!container) return;
-  const isFq = container.dataset.pagekey === 'design-commission-detail-fq';
+  const pageKey = container.dataset.pagekey || '';
   const items = collectCdExtraRows(container);
-  const firstUsage = ($('#modalBody [data-key="usageType"]') || {}).value || '自用';
-  items.push({ usageType: firstUsage, sameHandleRef: '0' });
-  reRenderCdExtra(container, items, isFq);
+  // 封面无「稿件用途/是否同柄」，新行只带空对象；其余沿用整单稿件用途 + 同柄于初始制品
+  if (pageKey === 'design-commission-detail-fm') items.push({});
+  else items.push({ usageType: (($('#modalBody [data-key="usageType"]') || {}).value || '自用'), sameHandleRef: '0' });
+  reRenderCdExtra(container, items);
   cdBindProductAutoFill(container);
 }
 function deleteCdExtraProduct(btn) {
@@ -11539,8 +11641,7 @@ function deleteCdExtraProduct(btn) {
   row.remove();
   const container = $('#cdExtraProducts');
   if (!container) return;
-  const isFq = container.dataset.pagekey === 'design-commission-detail-fq';
-  reRenderCdExtra(container, collectCdExtraRows(container), isFq);
+  reRenderCdExtra(container, collectCdExtraRows(container));
 }
 function toggleCdExtraProductFull(wrapper) {
   if (!wrapper) return;
@@ -11558,6 +11659,7 @@ function readCdExtraProducts(container, pageKey) {
     const it = {};
     row.querySelectorAll('[data-ep]').forEach(el => {
       if (el.dataset.ep === 'sameModel') return;
+      if (el.dataset.ep === 'isUrgent') return;
       if (el.tagName === 'INPUT' && el.type === 'checkbox') {
         if (el.checked) it[el.dataset.ep] = el.value;
         return;
@@ -11567,6 +11669,9 @@ function readCdExtraProducts(container, pageKey) {
     // sameModel 单选
     const sm = row.querySelector('[data-ep="sameModel"] input[type="checkbox"]:checked');
     it.sameModel = sm ? sm.value : '否';
+    // v829：追加制品各自的「是否加急」（默认否）
+    const iu = row.querySelector('[data-ep="isUrgent"] input[type="checkbox"]:checked');
+    it.isUrgent = iu ? iu.value : ''; // v829b：无默认，未选即空
     // 兼容旧数据：仅含 sameHandle 字段时映射到 sameHandleRef
     if (it.sameHandle && !it.sameHandleRef) it.sameHandleRef = it.sameHandle;
     if (Object.values(it).some(v => v && String(v).trim())) items.push(it);
@@ -11618,8 +11723,12 @@ function openCdDetail(id) {
   const hasExtraDetail = CD_EXTRA_CATS.includes(r.category) && Array.isArray(r.extraProducts) && r.extraProducts.length;
   let extraInjectedDetail = false;
   mod.fields.forEach(f => {
+    // v826：约稿单「是否加急」仅当记录允许（allowUrgent）时展示——详情视图同样受控
+    if (f.urgentOnly && !r.allowUrgent) return;
     if (f.section) {
-      if (!extraInjectedDetail && hasExtraDetail && f.section === '交付规范') { html += renderCdExtraProductsDetail(r); extraInjectedDetail = true; }
+      if (!extraInjectedDetail && hasExtraDetail && f.section === '交付规范') {
+        html += renderCdExtraProductsDetail(r); extraInjectedDetail = true;
+      }
       html += `<div class="form-section-title">${esc(f.section)}</div>`; return;
     }
     if (f.type === 'readonly') {
@@ -11702,14 +11811,19 @@ function cdPushToCommissionCore(r) {
   const priceList = DB.list('priceList');
   const plOf = (nm) => priceList.find(p => p.product === nm && PRODUCT_CATEGORIES.includes(p.category));
   const products = [];
-  const addProd = (nm, sz, handleRef) => {
+  const urgBool = (v) => v === '是' || v === true || (Array.isArray(v) && v.includes('是'));
+  // v829：加急跟制品走——初始制品/追加制品各自的 isUrgent 映射到排期制品的 urgent 勾选
+  const addProd = (nm, sz, handleRef, urg) => {
     const pl = plOf(nm);
-    products.push({ name: nm, quantity: 1, price: pl ? (parseFloat(pl.price) || 0) : 0, size: sz || (pl && pl.defaultSize ? pl.defaultSize : ''), handleRef: handleRef });
+    products.push({ name: nm, quantity: 1, price: pl ? (parseFloat(pl.price) || 0) : 0, size: sz || (pl && pl.defaultSize ? pl.defaultSize : ''), handleRef: handleRef, urgent: urgBool(urg) });
   };
-  if (r.product && String(r.product).trim()) addProd(String(r.product).trim(), r.size || '', '0');
+  // v829b：封面无「制品」字段，制品名固定为「封面」（初始制品与每个追加制品都一样，各带自己的尺寸/加急）
+  const isFmPush = r.category === '封面';
+  const initName = isFmPush ? '封面' : (r.product ? String(r.product).trim() : '');
+  if (initName) addProd(initName, r.size || '', '0', r.isUrgent);
   (r.extraProducts || []).forEach(ep => {
-    const nm = (ep && ep.product) ? String(ep.product).trim() : '';
-    if (nm) addProd(nm, (ep && ep.size) || '', (ep && ep.sameHandleRef) || '否');
+    const nm = isFmPush ? '封面' : ((ep && ep.product) ? String(ep.product).trim() : '');
+    if (nm) addProd(nm, (ep && ep.size) || '', (ep && ep.sameHandleRef) || '否', ep && ep.isUrgent);
   });
   const total = products.reduce((s, p) => s + (parseFloat(p.price) || 0) * (parseInt(p.quantity) || 1), 0);
   const draft = {
@@ -11764,7 +11878,7 @@ function cdCatComboboxHTML(hiddenId, selectedKey, onchange) {
     const on = c.key === sel.key ? ' selected' : '';
     return `<div class="combobox-option${on}" data-value="${esc(c.key)}" onclick="selectComboboxOption('${hiddenId}cb',this)${oc}">${esc(c.label)}</div>`;
   }).join('');
-  return `<div class="combobox-wrapper cd-cat-combo" style="max-width:220px;margin-left:6px;vertical-align:middle">` +
+  return `<div class="combobox-wrapper cd-cat-combo" style="max-width:140px;margin-left:0;vertical-align:middle">` +
     `<input type="text" class="form-input combobox-input" value="${esc(sel.label)}" readonly placeholder="请选择分类" oninput="filterComboboxDropdown('${hiddenId}cb',this.value)">` +
     `<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${hiddenId}cb')">▼</button>` +
     `<div class="combobox-dropdown" id="${hiddenId}cb">${opts}</div>` +
@@ -11776,7 +11890,7 @@ function openCdImportChat() {
   let html = '<div class="cd-import-modal">';
   html += '<div class="cd-import-tip">粘贴与单主的聊天记录，系统会智能识别字段并自动回填（字段名不要求完全一致，识别有误可手动修改）</div>';
   // v451：上边距设 0（蓝块下边距已提供 8px 上留白），下边距 8px，使下拉框上下对称
-  html += `<div style="margin-top:0;margin-bottom:10px"><label class="form-label">选择分类</label>${cdCatComboboxHTML('cdChatCat', COMM_DETAIL_CATS[0].key)}</div>`;
+  html += `<div class="cd-cat-row" style="margin-top:0;margin-bottom:10px"><label class="form-label">选择分类</label>${cdCatComboboxHTML('cdChatCat', COMM_DETAIL_CATS[0].key)}<label class="cd-allow-urgent"><input type="checkbox" id="cdChatAllowUrgent"><span class="cd-allow-urgent-txt">允许加急</span></label></div>`;
   html += `<textarea class="form-textarea cd-chat-input" id="cdChatInput" placeholder="您的平台昵称：\n稿件用途：\n制品：\n尺寸：\n企划/主题名称：\n姓名：\n昵称：\n英文名：\n生日：\n风格：\n颜色：\n元素·必用：\n元素·可用：\n元素·避雷：\n文案：\n备注：\n颜色格式：\n交付方式：\n是否可以展示："></textarea>`;
   html += `<div class="cd-import-actions"><button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="runCdChatParse()">解析并回填</button></div>`;
   html += '</div>';
@@ -11792,6 +11906,7 @@ function runCdChatParse() {
   const mod = MODULES[catKey];
   if (!text.trim()) { Toast.error('请先粘贴聊天记录'); return; }
   const data = { category: mod.category };
+  data.allowUrgent = (document.getElementById('cdChatAllowUrgent') || {}).checked || false;
   // 字段识别：模糊别名匹配（忽略标点/空格/emoji/序号前缀，不要求标题完全一致）
   const aliasMap = {
     clientInfo: ['单主', '客户', '甲方', '委托人', '约稿人', '宝子', '宝'],
@@ -11989,7 +12104,7 @@ function openCdImportJson() {
   let html = '<div class="cd-import-modal">';
   html += '<div class="cd-import-tip">支持本系统「生成约稿单导入」导出的回填 JSON。粘贴后选择分类批量导入。</div>';
   // v451：上边距设 0（蓝块下边距已提供 8px 上留白），下边距 8px，使下拉框上下对称
-  html += `<div style="margin-top:0;margin-bottom:10px"><label class="form-label">选择分类</label>${cdCatComboboxHTML('cdJsonCat', COMM_DETAIL_CATS[0].key)}</div>`;
+  html += `<div class="cd-cat-row" style="margin-top:0;margin-bottom:10px"><label class="form-label">选择分类</label>${cdCatComboboxHTML('cdJsonCat', COMM_DETAIL_CATS[0].key)}<label class="cd-allow-urgent"><input type="checkbox" id="cdJsonAllowUrgent"><span class="cd-allow-urgent-txt">允许加急</span></label></div>`;
   html += `<textarea class="form-textarea cd-chat-input" id="cdJsonInput" placeholder='[{"category":"土味","clientInfo":"小明","bookName":"青春纪事",...}]'></textarea>`;
   html += `<div class="cd-import-actions"><button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="runCdJsonImport()">解析并导入</button></div>`;
   html += '</div>';
@@ -11999,6 +12114,7 @@ function runCdJsonImport() {
   const text = ($('#cdJsonInput').value || '').trim();
   const catKey = $('#cdJsonCat').value;
   const fallbackCat = MODULES[catKey].category;
+  const _au = (document.getElementById('cdJsonAllowUrgent') || {}).checked || false;
   if (!text) { Toast.error('请粘贴 JSON 数据'); return; }
   let arr;
   try { arr = JSON.parse(text); } catch (e) { Toast.error('JSON 解析失败：' + e.message); return; }
@@ -12013,6 +12129,7 @@ function runCdJsonImport() {
     // 仅允许已存在的分类
     if (!COMM_DETAIL_CATS.some(c => c.cat === item.category)) item.category = fallbackCat;
     cdSyncPlatformNick(item);
+    item.allowUrgent = _au;
     DB.add('commissionDetails', item);
     ok++;
   });
@@ -12027,7 +12144,7 @@ function openCdClientForm() {
   const defKey = COMM_DETAIL_CATS[0].key;
   let html = '<div class="cd-import-modal">';
   html += '<div class="cd-import-tip">选择分类后自动生成约稿单公网填写链接，微信、QQ、浏览器均可直接打开；单主只能看到填写表单本身，改网址也看不到您的工作台。链接长期有效，单主提交的数据将自动归入对应分类的接稿详情。</div>';
-  html += `<div style="margin-top:10px"><label class="form-label">选择分类</label>${cdCatComboboxHTML('cdClientCat', defKey, 'cdClientCatChange()')}</div>`;
+  html += `<div class="cd-cat-row" style="margin-top:10px"><label class="form-label">选择分类</label>${cdCatComboboxHTML('cdClientCat', defKey, 'cdClientCatChange()')}<label class="cd-allow-urgent"><input type="checkbox" id="cdClientAllowUrgent" onchange="cdClientUrgentToggle()"><span class="cd-allow-urgent-txt">允许加急</span></label></div>`;
   html += `<div id="cdClientLinkWrap" style="margin-top:8px">${cdClientLinkInner(defKey)}</div>`;
   html += '</div>';
   openModal('生成约稿单导入', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'notes-sm add60');
@@ -12051,22 +12168,31 @@ function CD_PUBLIC_BASE() {
   // v798: 沙盒反复停机（错误 12809）且不再救——APK 兜底永久改用 GitHub Pages（用户确认，旧沙盒链接作废）
   return 'https://quella-x.github.io/Quella-x-workbench';
 }
-function buildCdClientUrl(catKey, preset) {
+function buildCdClientUrl(catKey, preset, au) {
   let link = CD_PUBLIC_BASE() + '/order-form.html?cd_client=1&standalone=1&cat=' + encodeURIComponent(catKey);
   if (Sync.enabled()) {
     link += '&su=' + encodeURIComponent(Sync.cfg.url) + '&sk=' + encodeURIComponent(Sync.cfg.anonKey) + '&g=' + encodeURIComponent(Sync.gkey());
   }
   if (preset) { try { link += '&preset=' + encodeURIComponent(JSON.stringify(preset)); } catch (e) {} }
+  if (au) link += '&au=1';
   link += '&_t=' + Date.now();
   return link;
 }
 function cdClientLinkInner(catKey) {
   const mod = MODULES[catKey];
-  const link = buildCdClientUrl(catKey);
+  const _au = (document.getElementById('cdClientAllowUrgent') || {}).checked || false;
+  const link = buildCdClientUrl(catKey, null, _au);
   let h = `<div class="cd-link-box"><textarea class="form-input" id="cdClientLink" readonly>${esc(link)}</textarea></div>`;
   if (!Sync.enabled()) h += '<div class="cd-import-tip" style="color:var(--c-orange);margin-top:8px">尚未配置同步：单主提交的数据暂时无法自动传回，请先到「设置-数据管理」配置同步后再发链接。</div>';
-  h += `<div class="cd-import-actions"><button class="btn btn-primary" onclick="copyCdClientLink()">复制链接</button><button class="btn btn-primary" onclick="cdOpenClientFormFromLink('${catKey}')">直接填写</button></div>`;
+  // v827：直接填写改为点击时实时读勾选框（原来把勾选值烤进 onclick，渲染后勾选不生效）
+  h += `<div class="cd-import-actions"><button class="btn btn-primary" onclick="copyCdClientLink()">复制链接</button><button class="btn btn-primary" onclick="cdOpenClientFormFromLink('${catKey}',{allowUrgent:!!(document.getElementById('cdClientAllowUrgent')||{}).checked})">直接填写</button></div>`;
   return h;
+}
+// v827：勾选「允许加急」后即时刷新链接（含 au=1）
+function cdClientUrgentToggle() {
+  const catKey = ($('#cdClientCat') || {}).value || COMM_DETAIL_CATS[0].key;
+  const wrap = $('#cdClientLinkWrap');
+  if (wrap) wrap.innerHTML = cdClientLinkInner(catKey);
 }
 function cdClientCatChange() {
   const catKey = ($('#cdClientCat') || {}).value || COMM_DETAIL_CATS[0].key;
@@ -12078,9 +12204,9 @@ function runCdClientForm() {
   cdShowClientLink(catKey);
 }
 // v757：可选 preset（约稿模板的固定值）编入链接，单主打开即看到预填内容
-function cdShowClientLink(catKey, preset) {
+function cdShowClientLink(catKey, preset, au) {
   const mod = MODULES[catKey];
-  const link = buildCdClientUrl(catKey, preset);
+  const link = buildCdClientUrl(catKey, preset, au);
   let html = '<div class="cd-import-modal">';
   html += `<div class="cd-link-box"><textarea class="form-input" id="cdClientLink" readonly>${esc(link)}</textarea></div>`;
   if (!Sync.enabled()) html += '<div class="cd-import-tip" style="color:var(--c-orange);margin-top:8px">尚未配置同步：单主提交的数据暂时无法自动传回，请先到「设置-数据管理」配置同步后再发链接。</div>';
@@ -12115,6 +12241,8 @@ function cdOpenClientFormFromLink(catKey, opts) {
   mod.fields.forEach(f => { if (f.default !== undefined && f.key !== 'category') data[f.key] = f.default; });
   // v754：约稿模板点选后，用模板固定值覆盖默认空值
   if (opts.preset) Object.assign(data, opts.preset);
+  // v826：是否允许加急——站内直接填写时由调用方 opts.allowUrgent 传入；模板库新建模板走全局 __tplPendingAllowUrgent；预设数据自带时一并带上
+  if (opts.allowUrgent || window.__tplPendingAllowUrgent || (opts.preset && opts.preset.allowUrgent)) data.allowUrgent = true;
   // v755：把「文本模板」按钮从表单顶部整行，移到「文案/小字」字段标题行右侧（自适应宽），点开片段只插该字段
   let bodyHTML = cdInjectTplBtn(cdFormShell(buildCdClientForm(catKey, data)));
   // v755：从约稿模板库（新建模板/点模板）进入表单时，取消要回到库，避免"直接消失"
@@ -12138,7 +12266,8 @@ function collectCdFormData(catKey) {
   const _ov = document.getElementById('modalOverlay');
   const container = (_ov && _ov.classList.contains('show')) ? $('#modalBody') : ($('#mainBody') || $('#modalBody'));
   const data = readForm(container);
-  if (catKey === 'design-commission-detail-fq' || catKey === 'design-commission-detail-ec') {
+  // v829：改用 cdSupportsExtra 统一判断（原硬编码 fq/ec 漏了土味的追加制品）
+  if (cdSupportsExtra(catKey)) {
     data.extraProducts = readCdExtraProducts(container, catKey);
     cdApplyCpModeToData(container, data);
   }
@@ -12157,7 +12286,8 @@ function saveAsCommissionTemplate(catKey) {
     { label: '保存', class: 'btn-primary', action: () => {
       const name = ($('#tplNameInput').value || '').trim();
       if (!name) { Toast.warning('请填写模板名称'); return; }
-      DB.add('commissionTemplates', { name, catKey, data });
+      DB.add('commissionTemplates', { name, catKey, data, allowUrgent: !!window.__tplPendingAllowUrgent });
+      window.__tplPendingAllowUrgent = false;
       Toast.success('已保存模板：' + name);
       closeModal();
       // v755：保存后回到约稿模板库，直接看到新模板（不再关掉整个库）
@@ -12247,6 +12377,7 @@ function navTplLibCatPage(d) { _tplLibCatPage += d; renderCommCatTabs(); }
 // v754：约稿模板库（按 土味/封面/饭圈/二次 分类列出已存模板，点模板直接生成约稿单链接）
 function openCommissionTemplateLib() {
   if (!_tplLibCat) _tplLibCat = COMM_DETAIL_CATS[0].key;
+  window.__tplPendingAllowUrgent = false;
   let html = '<div class="tpl-lib-folder">';
   // v780：顶部大标题回归 modal-header（openModal 首参）；内容区小标题保留（v781 改名）
   html += '<div class="tpl-new-title">约稿模板库</div>';
@@ -12261,8 +12392,8 @@ function openCommissionTemplateLib() {
   html += '<div class="tpl-newtpl-zone">';
   html += '<div class="tpl-newtpl-title">新建约稿模板</div>';
   html += '<div class="tpl-newtpl-tip-box">选择分类后打开对应约稿单填写界面，填好固定值后点「存为模板」即可保存。</div>';
-  html += `<div class="tpl-newtpl-field"><label class="form-label">选择分类</label>${cdCatComboboxHTML('tplNewCat', _tplLibCat, '')}</div>`;
-  html += `<div class="cd-import-actions"><button class="btn btn-primary" onclick="cdOpenClientFormFromLink(($('#tplNewCat')||{}).value||'${_tplLibCat}',{fromLib:true})">新建模板</button></div>`;
+  html += `<div class="cd-cat-row"><label class="form-label">选择分类</label>${cdCatComboboxHTML('tplNewCat', _tplLibCat, '')}<label class="cd-allow-urgent"><input type="checkbox" id="tplNewAllowUrgent"><span class="cd-allow-urgent-txt">允许加急</span></label></div>`;
+  html += `<div class="cd-import-actions"><button class="btn btn-primary" onclick="window.__tplPendingAllowUrgent=(document.getElementById('tplNewAllowUrgent')||{}).checked;cdOpenClientFormFromLink(($('#tplNewCat')||{}).value||'${_tplLibCat}',{fromLib:true})">新建模板</button></div>`;
   html += '</div>';
   openModal('约稿模板库', html, [
     { label: '关闭', class: 'btn-ghost', action: closeModal },
@@ -12311,7 +12442,7 @@ function applySelectedCommissionTemplate() {
   if (!_commTplSelId) return;
   const t = DB.getById('commissionTemplates', _commTplSelId);
   if (!t) return;
-  cdShowClientLink(t.catKey, t.data);
+  cdShowClientLink(t.catKey, t.data, t.allowUrgent);
 }
 async function delSelectedCommissionTemplate() {
   if (!_commTplSelId) return;
@@ -12587,7 +12718,7 @@ function cdCheckClientFormFromUrl() {
     const p = params.get('preset');
     if (p) { try { preset = JSON.parse(decodeURIComponent(p)); } catch (e) { preset = null; } }
     // v777: 独立页提交/数据联动所需配置（提交前先捕获，replaceState 之后 search 就没了）
-    window.__cdClientCfg = { su: params.get('su') || '', sk: params.get('sk') || '', g: params.get('g') || '' };
+    window.__cdClientCfg = { su: params.get('su') || '', sk: params.get('sk') || '', g: params.get('g') || '', allowUrgent: params.get('au') === '1' };
     // order-form.html 独立页保留参数（单主刷新不丢表单）；工作台内打开时清理地址栏
     if (!/order-form\.html$/.test(window.location.pathname)) {
       history.replaceState({}, '', window.location.pathname || window.location.href.split('?')[0]);
@@ -12609,6 +12740,10 @@ async function cdRenderClientStandalone(catKey, preset) {
   mod.fields.forEach(f => { if (f.default !== undefined && f.key !== 'category') data[f.key] = f.default; });
   // v757：约稿模板生成的链接，单主打开即看到预填内容
   if (preset) Object.assign(data, preset);
+  // v826：允许选择加急——链接 au 参数或模板预设携带时，单主表单也要显示「是否加急」
+  const _cfg = window.__cdClientCfg || {};
+  if (preset && preset.allowUrgent) data.allowUrgent = preset.allowUrgent;
+  if (_cfg.allowUrgent) data.allowUrgent = true;
   const body = $('#mainBody');
   if (!body) return;
   let html = '<div class="cd-client-standalone">';
@@ -12643,6 +12778,7 @@ function buildCdClientForm(pageKey, data) {
   const hasExtra = cdSupportsExtra(pageKey);
   let html = '';
   if (deliveryIdx > -1) {
+    // v829：是否加急跟制品走——初始制品加急按 fields 自然顺序渲染，不再搬运
     html += buildForm(fields.slice(0, deliveryIdx), data, pageKey);
     if (hasExtra) html += buildCdExtraProductsHTML(pageKey, data.extraProducts || [], data);
     html += buildForm(fields.slice(deliveryIdx), data, pageKey);
@@ -12686,6 +12822,7 @@ async function cdSubmitClientOrder(data) {
   const H = { 'Content-Type': 'application/json', 'apikey': cfg.sk, 'Authorization': 'Bearer ' + cfg.sk };
   const now = Date.now();
   const rec = Object.assign({ id: uid(), _ct: now, _mt: now }, data);
+  rec.allowUrgent = cfg.allowUrgent ? true : false;
   try {
     const getUrl = cfg.su.replace(/\/+$/, '') + '/rest/v1/sync_store?group_key=eq.' + encodeURIComponent(cfg.g) + '&store=eq.commissionDetails&select=store,data';
     const r = await fetch(getUrl, { headers: { 'apikey': cfg.sk, 'Authorization': 'Bearer ' + cfg.sk } });
