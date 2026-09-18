@@ -1941,8 +1941,10 @@ function showComboboxDropdown(id) {
    旧实现（v778 fit-to-space）按「最近可滚动祖先的剩余高度」限高，贴底弹窗里常算出
    负值 → 下拉只剩 1 条可见。现改为：下拉 portal 到 body + position:fixed，只按视口
    空间限高，完全不参与弹窗滚动区的高度计算（因此不会再撑出滚动条、不会把弹窗内容
-   往左挤），并保证至少可见 CB_MIN_ROWS 行。 */
-const CB_MIN_ROWS = 4, CB_MAX_H = 360;
+   往左挤），并保证至少可见 CB_MIN_ROWS 行。
+   v831: 高度改按「完整内容高 dd.scrollHeight + 底部剩余空间」取小——输入框距屏幕
+   底部很远时下拉直接加长到内容全部可见（不再被旧的固定上限/选项数卡矮）。 */
+const CB_MIN_ROWS = 4;
 function cbPortal(dd) {
   if (dd._cbHost) return;
   dd._cbHost = dd.parentNode; dd._cbNext = dd.nextSibling;
@@ -1963,9 +1965,8 @@ function cbPlace(dd, wrapper) {
   const oh = (opts[0] || {}).offsetHeight || 32;
   const rect = wrapper.getBoundingClientRect();
   const spaceBelow = window.innerHeight - rect.bottom - 8;
-  const need = opts.length * oh;
-  let maxH = Math.min(need, CB_MAX_H, spaceBelow);
-  if (maxH < oh * 2) maxH = Math.min(need, Math.max(spaceBelow, oh * 2)); // 兜底：至少两行
+  const contentH = Math.max(dd.scrollHeight, opts.length * oh);
+  let maxH = Math.min(contentH, Math.max(spaceBelow, oh * 2)); // v831: 底部空间充足时加长到内容全可见
   dd.style.position = 'fixed';
   dd.style.top = rect.bottom + 'px'; // v805: 贴住输入框底边（原 +2px 缝隙）
   dd.style.left = rect.left + 'px';
