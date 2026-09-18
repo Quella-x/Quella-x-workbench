@@ -1966,7 +1966,9 @@ function cbPlace(dd, wrapper) {
   const rect = wrapper.getBoundingClientRect();
   const spaceBelow = window.innerHeight - rect.bottom - 8;
   const contentH = Math.max(dd.scrollHeight, opts.length * oh);
-  let maxH = Math.min(contentH, Math.max(spaceBelow, oh * 2)); // v831: 底部空间充足时加长到内容全可见
+  // v832: 距屏幕底留出呼吸空间（空间越大留越多，最多 80px），不再一路撑到底
+  const pad = Math.min(80, Math.round(Math.max(spaceBelow, oh * 2) * 0.15));
+  let maxH = Math.min(contentH, Math.max(spaceBelow - pad, oh * 2));
   dd.style.position = 'fixed';
   dd.style.top = rect.bottom + 'px'; // v805: 贴住输入框底边（原 +2px 缝隙）
   dd.style.left = rect.left + 'px';
