@@ -1966,13 +1966,16 @@ function cbPlace(dd, wrapper) {
   const rect = wrapper.getBoundingClientRect();
   const spaceBelow = window.innerHeight - rect.bottom - 8;
   const contentH = Math.max(dd.scrollHeight, opts.length * oh);
-  // v832: 距屏幕底留出呼吸空间（空间越大留越多，最多 80px），不再一路撑到底
+  // v833: 下拉高度主要由「底部空间-留白」决定，不随内容缩成一小块（选项少也保持大块，露空白）；
+  // 距屏幕底留呼吸空间（最多 80px）；内容多时限到空间内滚动。
   const pad = Math.min(80, Math.round(Math.max(spaceBelow, oh * 2) * 0.15));
-  let maxH = Math.min(contentH, Math.max(spaceBelow - pad, oh * 2));
+  let maxH = Math.max(spaceBelow - pad, oh * 2);
+  maxH = Math.min(maxH, Math.max(contentH, oh * 8));
+  dd.style.position = 'fixed';
   dd.style.position = 'fixed';
   dd.style.top = rect.bottom + 'px'; // v805: 贴住输入框底边（原 +2px 缝隙）
   dd.style.left = rect.left + 'px';
-  dd.style.maxHeight = Math.max(oh, Math.floor(maxH / oh) * oh) + 'px';
+  dd.style.maxHeight = Math.max(oh, maxH) + 'px'; // v833: 不做行倍数取整（取整会把分组标题切半）
   if (wrapper.closest('.dc-extra-row,.dc-product-row,.dc-mod-row')) {
     dd.style.width = 'max-content';
     dd.style.minWidth = Math.max(rect.width, 140) + 'px';
