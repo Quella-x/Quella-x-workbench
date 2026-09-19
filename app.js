@@ -1966,12 +1966,9 @@ function cbPlace(dd, wrapper) {
   const rect = wrapper.getBoundingClientRect();
   const spaceBelow = window.innerHeight - rect.bottom - 8;
   const contentH = Math.max(dd.scrollHeight, opts.length * oh);
-  // v833: 下拉高度主要由「底部空间-留白」决定，不随内容缩成一小块（选项少也保持大块，露空白）；
-  // 距屏幕底留呼吸空间（最多 80px）；内容多时限到空间内滚动。
+  // v834: 下拉高度 = min(内容真实高, 底部空间-留白)。选项少→自然高度不放大；选项多且底部空间足→撑满到留白；空间小→几行+滚动。
   const pad = Math.min(80, Math.round(Math.max(spaceBelow, oh * 2) * 0.15));
-  let maxH = Math.max(spaceBelow - pad, oh * 2);
-  maxH = Math.min(maxH, Math.max(contentH, oh * 8));
-  dd.style.position = 'fixed';
+  let maxH = Math.min(contentH, spaceBelow - pad);
   dd.style.position = 'fixed';
   dd.style.top = rect.bottom + 'px'; // v805: 贴住输入框底边（原 +2px 缝隙）
   dd.style.left = rect.left + 'px';
