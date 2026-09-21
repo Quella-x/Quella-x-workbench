@@ -1343,6 +1343,7 @@ function buildFormField(f, data, moduleKey, wrap) {
 let currentDateInput = null;
 let currentDateBtn = null;
 let customDatePickerState = { year: 0, month: 0 };
+let customDatePickerYm = false; // v835：日期弹窗是否处于「年+月」选择视图
 
 function openDatePicker(btn) {
   let inp = btn.previousElementSibling;
@@ -1379,6 +1380,7 @@ function renderCustomDatePicker() {
   closeCustomDatePicker(true);
   const { year, month } = customDatePickerState;
   const selectedValue = (currentDateInput.value || '').trim();
+  if (customDatePickerYm) { renderDatePickerYMView(year); return; }
   const today = new Date();
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -1408,7 +1410,7 @@ function renderCustomDatePicker() {
     <div class="date-picker-popup" role="dialog" aria-modal="true">
       <div class="date-picker-header">
         <button type="button" onclick="changeCustomMonth(-1)" title="上月">‹</button>
-        <span class="date-picker-title">${title}</span>
+        <span class="date-picker-title ym-trigger" onclick="openDatePickerYM()" title="点击切换年份 / 月份">${title} ▾</span>
         <button type="button" onclick="changeCustomMonth(1)" title="下月">›</button>
       </div>
       <div class="date-picker-weekdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
@@ -1462,8 +1464,56 @@ function clearCustomDatePicker() {
 function closeCustomDatePicker(silent) {
   const el = document.getElementById('customDatePicker');
   if (el) el.remove();
+  if (!silent) customDatePickerYm = false;
   if (!silent && currentDateBtn) currentDateBtn.classList.remove('active');
   if (!silent) { currentDateInput = null; currentDateBtn = null; }
+}
+// v835：日期弹窗「年+月」选择视图——点击标题切换，年与月同屏直接点选
+function openDatePickerYM() {
+  customDatePickerYm = true;
+  renderCustomDatePicker();
+}
+function closeDatePickerYM() {
+  customDatePickerYm = false;
+  renderCustomDatePicker();
+}
+function changeCustomYear(delta) {
+  customDatePickerState.year += delta;
+  renderDatePickerYMView(customDatePickerState.year);
+}
+function pickCustomMonth(m) {
+  customDatePickerState.month = m;
+  customDatePickerYm = false;
+  renderCustomDatePicker();
+}
+function renderDatePickerYMView(year) {
+  closeCustomDatePicker(true);
+  const month = customDatePickerState.month;
+  const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+  let monthsHTML = '<div class="date-picker-months">';
+  months.forEach((label, i) => {
+    const sel = (i === month) ? ' selected' : '';
+    monthsHTML += `<button type="button" class="date-picker-month${sel}" onclick="pickCustomMonth(${i})">${label}</button>`;
+  });
+  monthsHTML += '</div>';
+  const modal = document.createElement('div');
+  modal.id = 'customDatePicker';
+  modal.className = 'date-picker-modal';
+  modal.innerHTML = `
+    <div class="date-picker-backdrop" onclick="closeCustomDatePicker()"></div>
+    <div class="date-picker-popup" role="dialog" aria-modal="true">
+      <div class="date-picker-header">
+        <button type="button" onclick="changeCustomYear(-1)" title="上一年">‹</button>
+        <span class="date-picker-title">${year}年</span>
+        <button type="button" onclick="changeCustomYear(1)" title="下一年">›</button>
+      </div>
+      ${monthsHTML}
+      <div class="date-picker-footer">
+        <button type="button" onclick="closeDatePickerYM()">返回</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('.date-picker-popup').addEventListener('click', e => e.stopPropagation());
 }
 // v647：时间字段点 🕐 打开自定义居中模态时间选择器（与日期选择器同模式；输入保持 type=text 可自由手输）；选完归一化为 HH:MM
 let currentTimeInput = null;
@@ -2463,9 +2513,9 @@ MODULES['groupbuy-records'] = {
       { label: '累计开团', value: records.length, unit: '个' },
       { label: '累计制品', value: productSet.size, unit: '种' },
       { label: '累计购买人数', value: buyers, unit: '人' },
-      { label: '总营收', value: '¥' + totalRev.toLocaleString(), sub: '' },
-      { label: '总成本', value: '¥' + totalCost.toLocaleString(), sub: '' },
-      { label: '总利润', value: '¥' + profit.toLocaleString(), unit: profit >= 0 ? '盈利' : '亏损' },
+      { label: '总营收', value: '¥' + totalRev.toFixed(2), sub: '' },
+      { label: '总成本', value: '¥' + totalCost.toFixed(2), sub: '' },
+      { label: '总利润', value: '¥' + profit.toFixed(2), unit: profit >= 0 ? '盈利' : '亏损' },
     ];
   },
   statsTitle: '开团统计',
@@ -3535,7 +3585,15 @@ function renderListPage(pageKey, mod) {
   if (mod.filters) { mod.filters.forEach(f => { const fv = ps.filters[f.key]; if (fv) records = records.filter(r => valIncludes(r[f.key], fv)); }); }
   if (pageKey === 'design-commission') {
     records = applyCommOrder(records.slice().sort(commissionRecordSort));
-  } else if (pageKey === 'oc-profiles') {  } else if (pageKey === 'oc-profiles') {
+  } else if (pageKey === 'groupbuy-factories') {
+    // v835：厂家记录按「首次联系时间」(firstContactTime) 降序，最新联系在前；同日期按创建时间兜底
+    records.sort((a, b) => {
+      const at = (a.firstContactTime || '').replace(/-/g, '');
+      const bt = (b.firstContactTime || '').replace(/-/g, '');
+      if (at !== bt) return bt.localeCompare(at);
+      return (b._ct || 0) - (a._ct || 0);
+    });
+  } else if (pageKey === 'oc-profiles') {
     records.sort((a, b) => {
       const ao = a.order != null ? a.order : 999999;
       const bo = b.order != null ? b.order : 999999;
@@ -6160,15 +6218,7 @@ function drawMindMap(chars, relations) {
   const w = Math.max(container.clientWidth - 40, 600);
   const h = 520;
   const cx = w / 2, cy = h / 2;
-  const n = chars.length;
-  const radius = Math.min(w, h) / 2 - 90;
-  const positions = {};
-  chars.forEach((c, i) => {
-    const angle = (i / Math.max(n, 1)) * 2 * Math.PI - Math.PI / 2;
-    positions[c.name] = { x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) };
-  });
-
-  // Build all connections: explicit + auto-synced
+  // v835：力导向（散开式）布局——节点互相斥开、有关系的靠近；度数最高的节点钉画布中心，连线不穿过别的节点
   const allConnections = [];
   relations.forEach(r => {
     const types = arrVal(r.relationType);
@@ -6197,6 +6247,8 @@ function drawMindMap(chars, relations) {
       }
     });
   });
+  const centerName = pickCenterChar(chars, allConnections);
+  const positions = computeForceLayout(chars, allConnections, w, h, centerName);
 
   // Wrap everything in a zoomable inner div
   let inner = `<div class="mindmap-inner" id="mindmapInner" style="position:relative;width:${w}px;height:${h}px;transform-origin:center center;transform:translate(${_mmPanX}px,${_mmPanY}px) scale(${_mmZoom});transition:transform .15s">`;
@@ -6265,6 +6317,53 @@ function mmZoom(factor) {
 function mmZoomReset() {
   _mmZoom = 1; _mmPanX = 0; _mmPanY = 0;
   mmApplyTransform();
+}
+// v835：关系图力导向（散开式）布局
+function pickCenterChar(chars, connections) {
+  const deg = {};
+  chars.forEach(c => deg[c.name] = 0);
+  connections.forEach(c => { if (deg[c.a] != null) deg[c.a]++; if (deg[c.b] != null) deg[c.b]++; });
+  let best = chars[0] ? chars[0].name : null, max = -1;
+  chars.forEach(c => { if ((deg[c.name] || 0) > max) { max = deg[c.name] || 0; best = c.name; } });
+  return best;
+}
+function computeForceLayout(chars, connections, w, h, centerName) {
+  const cx = w / 2, cy = h / 2;
+  const N = chars.length;
+  const pos = {};
+  const R0 = Math.min(w, h) / 2 - 80;
+  chars.forEach((c, i) => {
+    const ang = (i / Math.max(N, 1)) * 2 * Math.PI;
+    pos[c.name] = { x: cx + R0 * Math.cos(ang), y: cy + R0 * Math.sin(ang), fixed: c.name === centerName };
+  });
+  if (centerName && pos[centerName]) { pos[centerName].x = cx; pos[centerName].y = cy; }
+  const REP = 90000, SPRING = 0.025, REST = Math.min(w, h) / 2 - 60, ITER = 400;
+  for (let it = 0; it < ITER; it++) {
+    const d = {};
+    chars.forEach(c => d[c.name] = { x: 0, y: 0 });
+    for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
+      const a = pos[chars[i].name], b = pos[chars[j].name];
+      let dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy; if (d2 < 1) d2 = 1;
+      const dist = Math.sqrt(d2), f = REP / d2, fx = f * dx / dist, fy = f * dy / dist;
+      d[chars[i].name].x += fx; d[chars[i].name].y += fy;
+      d[chars[j].name].x -= fx; d[chars[j].name].y -= fy;
+    }
+    connections.forEach(cn => {
+      const a = pos[cn.a], b = pos[cn.b]; if (!a || !b) return;
+      let dx = b.x - a.x, dy = b.y - a.y, dist = Math.hypot(dx, dy) || 1;
+      const f = SPRING * (dist - REST), fx = f * dx / dist, fy = f * dy / dist;
+      d[cn.a].x += fx; d[cn.a].y += fy; d[cn.b].x -= fx; d[cn.b].y -= fy;
+    });
+    const cool = (1 - it / ITER) * 0.9 + 0.1;
+    chars.forEach(c => {
+      const p = pos[c.name]; if (p.fixed) return;
+      const v = d[c.name], vmag = Math.hypot(v.x, v.y) || 1, lim = Math.min(vmag, 40) * cool;
+      p.x += v.x / vmag * lim; p.y += v.y / vmag * lim;
+      p.x = Math.max(36, Math.min(w - 36, p.x));
+      p.y = Math.max(36, Math.min(h - 36, p.y));
+    });
+  }
+  return pos;
 }
 
 /* ===== Design Quote Calculator (v10: 报价计算器) ===== */
