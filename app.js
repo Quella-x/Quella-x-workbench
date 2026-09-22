@@ -6321,7 +6321,9 @@ function mmZoomReset() {
   _mmZoom = 1; _mmPanX = 0; _mmPanY = 0;
   mmApplyTransform();
 }
-// v835：关系图力导向（散开式）布局
+// v839：关系图改为同心圆（径向）布局
+// 中心节点在几何中心，一度邻居放第一圈均匀分布，二度邻居放第二圈，
+// 直线连接只走圈与圈之间的空白，从根源避免穿线；同一圈节点间距统一。
 function pickCenterChar(chars, connections) {
   const deg = {};
   chars.forEach(c => deg[c.name] = 0);
@@ -6331,128 +6333,84 @@ function pickCenterChar(chars, connections) {
   return best;
 }
 function computeForceLayout(chars, connections, w, h, centerName) {
-  // v838：关系图布局更紧凑，不再把中心节点钉死，而是软中心+全局弱向心力；
-  // 降低斥力与弹簧自然长度，让节点聚得更拢；后处理对任何节点都推开穿线。
   const cx = w / 2, cy = h / 2;
-  const N = chars.length;
-  const pos = {};
-  // 初始半径收拢，让节点从中心附近开始发散
-  const R0 = Math.min(w, h) / 2 - 110;
-  chars.forEach((c, i) => {
-    const ang = (i / Math.max(N, 1)) * 2 * Math.PI;
-    pos[c.name] = { x: cx + R0 * Math.cos(ang), y: cy + R0 * Math.sin(ang) };
-  });
-  if (centerName && pos[centerName]) { pos[centerName].x = cx; pos[centerName].y = cy; }
-  const REP = 80000, SPRING = 0.018, REST = 120, ITER = 600;
-  const NODE_R = 48, EDGE_MARGIN = 32; // 节点可视半径 30，用更大的保护半径
-  for (let it = 0; it < ITER; it++) {
-    const d = {};
-    chars.forEach(c => d[c.name] = { x: 0, y: 0 });
-    // 1) 节点间斥力
-    for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
-      const a = pos[chars[i].name], b = pos[chars[j].name];
-      let dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy; if (d2 < 1) d2 = 1;
-      const dist = Math.sqrt(d2), f = REP / d2, fx = f * dx / dist, fy = f * dy / dist;
-      d[chars[i].name].x += fx; d[chars[i].name].y += fy;
-      d[chars[j].name].x -= fx; d[chars[j].name].y -= fy;
+  const names = chars.map(c => c.name);
+  const validSet = new Set(names);
+  const adj = {};
+  names.forEach(n => adj[n] = []);
+  connections.forEach(cn => {
+    if (validSet.has(cn.a) && validSet.has(cn.b)) {
+      adj[cn.a].push(cn.b);
+      adj[cn.b].push(cn.a);
     }
-    // 2) 弹簧引力
-    connections.forEach(cn => {
-      const a = pos[cn.a], b = pos[cn.b]; if (!a || !b) return;
-      let dx = b.x - a.x, dy = b.y - a.y, dist = Math.hypot(dx, dy) || 1;
-      const f = SPRING * (dist - REST), fx = f * dx / dist, fy = f * dy / dist;
-      d[cn.a].x += fx; d[cn.a].y += fy; d[cn.b].x -= fx; d[cn.b].y -= fy;
-    });
-    // 3) 边-节点斥力：任何节点靠近某条边的线段时，被垂直推开
-    connections.forEach(cn => {
-      const a = pos[cn.a], b = pos[cn.b]; if (!a || !b) return;
-      const abx = b.x - a.x, aby = b.y - a.y;
-      const len2 = abx * abx + aby * aby;
-      chars.forEach(c => {
-        if (c.name === cn.a || c.name === cn.b) return;
-        const p = pos[c.name];
-        const t = len2 < 1 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * abx + (p.y - a.y) * aby) / len2));
-        const px = a.x + t * abx, py = a.y + t * aby;
-        const dx = p.x - px, dy = p.y - py;
-        const dist = Math.hypot(dx, dy);
-        if (dist < NODE_R + EDGE_MARGIN && dist > 0.1) {
-          const f = (NODE_R + EDGE_MARGIN - dist) * 1.0;
-          const nx = dx / dist, ny = dy / dist;
-          d[c.name].x += nx * f;
-          d[c.name].y += ny * f;
-          d[cn.a].x -= nx * f * 0.15;
-          d[cn.a].y -= ny * f * 0.15;
-          d[cn.b].x -= nx * f * 0.15;
-          d[cn.b].y -= ny * f * 0.15;
-        }
-      });
-    });
-    // 4) 全局弱向心引力，防止整体漂移；软中心让最高度数节点大致留在中心
-    if (centerName) {
-      chars.forEach(c => {
-        const p = pos[c.name];
-        const dx = cx - p.x, dy = cy - p.y;
-        const dist = Math.hypot(dx, dy) || 1;
-        const f = 4 / dist;
-        d[c.name].x += f * dx;
-        d[c.name].y += f * dy;
-      });
-      const pc = pos[centerName];
-      if (pc) {
-        const dx = cx - pc.x, dy = cy - pc.y;
-        const dist = Math.hypot(dx, dy) || 1;
-        const f = 0.02 * dist;
-        d[centerName].x += f * dx / dist;
-        d[centerName].y += f * dy / dist;
+  });
+  const center = (centerName && validSet.has(centerName)) ? centerName : names[0];
+  const level = {};
+  const parent = {};
+  level[center] = 0;
+  const queue = [center];
+  const visited = new Set([center]);
+  while (queue.length) {
+    const u = queue.shift();
+    for (const v of adj[u]) {
+      if (!visited.has(v)) {
+        visited.add(v);
+        level[v] = level[u] + 1;
+        parent[v] = u;
+        queue.push(v);
       }
     }
-    const cool = (1 - it / ITER) * 0.9 + 0.1;
-    chars.forEach(c => {
-      const p = pos[c.name];
-      const v = d[c.name], vmag = Math.hypot(v.x, v.y) || 1, lim = Math.min(vmag, 60) * cool;
-      p.x += v.x / vmag * lim; p.y += v.y / vmag * lim;
-      p.x = Math.max(36, Math.min(w - 36, p.x));
-      p.y = Math.max(36, Math.min(h - 36, p.y));
-    });
   }
-  // v838 后处理：若某条直线仍离非端点节点太近，推开该节点；
-  // 若被穿过的节点是中心节点（已不可移动），则改为推开该连线的两个端点。
-  const SAFE_DIST = 46; // 节点半径 30 + 安全边距 16
-  for (let sweep = 0; sweep < 80; sweep++) {
-    let moved = false;
-    connections.forEach(cn => {
-      const a = pos[cn.a], b = pos[cn.b]; if (!a || !b) return;
-      const abx = b.x - a.x, aby = b.y - a.y;
-      const len2 = abx * abx + aby * aby;
-      chars.forEach(c => {
-        if (c.name === cn.a || c.name === cn.b) return;
-        const p = pos[c.name];
-        const t = len2 < 1 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * abx + (p.y - a.y) * aby) / len2));
-        const px = a.x + t * abx, py = a.y + t * aby;
-        const dx = p.x - px, dy = p.y - py;
-        const dist = Math.hypot(dx, dy);
-        if (dist < SAFE_DIST && dist > 0.1) {
-          const nx = dx / dist, ny = dy / dist;
-          if (c.name === centerName) {
-            // 中心节点被穿过：推开这条线的两个端点
-            const push = (SAFE_DIST - dist) * 0.5;
-            a.x -= nx * push; a.y -= ny * push;
-            b.x -= nx * push; b.y -= ny * push;
-          } else {
-            const push = (SAFE_DIST - dist) * 0.6;
-            p.x += nx * push; p.y += ny * push;
-          }
-          moved = true;
-        }
+  names.forEach(n => { if (level[n] == null) level[n] = 2; }); // 未连通默认放第二圈
+  const maxLevel = Math.max(...Object.values(level));
+
+  const margin = 70; // 边界留白
+  const usableR = Math.min(w, h) / 2 - margin;
+  const radius = {};
+  radius[center] = 0;
+  for (let lv = 1; lv <= maxLevel; lv++) {
+    const r = usableR * (lv / maxLevel);
+    names.forEach(n => { if (level[n] === lv) radius[n] = r; });
+  }
+
+  const angle = {};
+  angle[center] = 0;
+  const layers = [];
+  for (let i = 0; i <= maxLevel; i++) layers[i] = [];
+  names.forEach(n => layers[level[n]].push(n));
+
+  // 第一层：均匀分布在整个圆周，起始角朝上避免重要边水平拥挤
+  const L1 = layers[1] || [];
+  const step1 = (2 * Math.PI) / Math.max(L1.length, 1);
+  const start1 = -Math.PI / 2;
+  L1.forEach((n, i) => { angle[n] = start1 + i * step1; });
+
+  // 第二层及以上：按父节点扇区分配角度，子节点在父节点扇区内均匀分布
+  for (let lv = 2; lv <= maxLevel; lv++) {
+    const nodes = layers[lv];
+    const byParent = {};
+    nodes.forEach(n => { const p = parent[n] || center; (byParent[p] ||= []).push(n); });
+    const sectors = {};
+    if (lv === 2) {
+      L1.forEach((n, i) => {
+        const a = angle[n];
+        sectors[n] = [a - step1 / 2, a + step1 / 2];
       });
-    });
-    if (!moved) break;
+    } else {
+      layers[lv - 1].forEach(n => { sectors[n] = [angle[n] - Math.PI / 4, angle[n] + Math.PI / 4]; });
+    }
+    for (const [pName, children] of Object.entries(byParent)) {
+      const [s, e] = sectors[pName] || [0, 2 * Math.PI];
+      const step = (e - s) / Math.max(children.length, 1);
+      children.forEach((n, i) => { angle[n] = s + step * (i + 0.5); });
+    }
   }
-  // 最后 clamp 到画布内
-  chars.forEach(c => {
-    const p = pos[c.name];
-    p.x = Math.max(36, Math.min(w - 36, p.x));
-    p.y = Math.max(36, Math.min(h - 36, p.y));
+
+  const pos = {};
+  names.forEach(n => {
+    const r = radius[n] || 0;
+    const a = angle[n] || 0;
+    pos[n] = { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
   });
   return pos;
 }
