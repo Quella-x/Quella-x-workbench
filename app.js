@@ -6331,16 +6331,20 @@ function computeForceLayout(chars, connections, w, h, centerName) {
   const cx = w / 2, cy = h / 2;
   const N = chars.length;
   const pos = {};
-  const R0 = Math.min(w, h) / 2 - 80;
+  // 初始半径再散开一些，避免一开始就挤在中心
+  const R0 = Math.min(w, h) / 2 - 60;
   chars.forEach((c, i) => {
     const ang = (i / Math.max(N, 1)) * 2 * Math.PI;
     pos[c.name] = { x: cx + R0 * Math.cos(ang), y: cy + R0 * Math.sin(ang), fixed: c.name === centerName };
   });
   if (centerName && pos[centerName]) { pos[centerName].x = cx; pos[centerName].y = cy; }
-  const REP = 90000, SPRING = 0.025, REST = Math.min(w, h) / 2 - 60, ITER = 400;
+  // v836：加大斥力、增加边-节点斥力，防止连线从其他节点中间穿过
+  const REP = 150000, SPRING = 0.020, REST = Math.min(w, h) / 2 - 40, ITER = 500;
+  const NODE_R = 42, EDGE_MARGIN = 24; // 节点可视半径 30，这里用更大的保护半径
   for (let it = 0; it < ITER; it++) {
     const d = {};
     chars.forEach(c => d[c.name] = { x: 0, y: 0 });
+    // 1) 节点间斥力
     for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
       const a = pos[chars[i].name], b = pos[chars[j].name];
       let dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy; if (d2 < 1) d2 = 1;
@@ -6348,16 +6352,54 @@ function computeForceLayout(chars, connections, w, h, centerName) {
       d[chars[i].name].x += fx; d[chars[i].name].y += fy;
       d[chars[j].name].x -= fx; d[chars[j].name].y -= fy;
     }
+    // 2) 弹簧引力
     connections.forEach(cn => {
       const a = pos[cn.a], b = pos[cn.b]; if (!a || !b) return;
       let dx = b.x - a.x, dy = b.y - a.y, dist = Math.hypot(dx, dy) || 1;
       const f = SPRING * (dist - REST), fx = f * dx / dist, fy = f * dy / dist;
       d[cn.a].x += fx; d[cn.a].y += fy; d[cn.b].x -= fx; d[cn.b].y -= fy;
     });
+    // 3) 边-节点斥力：任何节点靠近某条边的线段时，被垂直推开
+    connections.forEach(cn => {
+      const a = pos[cn.a], b = pos[cn.b]; if (!a || !b) return;
+      const abx = b.x - a.x, aby = b.y - a.y;
+      const len2 = abx * abx + aby * aby;
+      chars.forEach(c => {
+        if (c.name === cn.a || c.name === cn.b) return;
+        const p = pos[c.name];
+        const t = len2 < 1 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * abx + (p.y - a.y) * aby) / len2));
+        const px = a.x + t * abx, py = a.y + t * aby;
+        const dx = p.x - px, dy = p.y - py;
+        const dist = Math.hypot(dx, dy);
+        if (dist < NODE_R + EDGE_MARGIN && dist > 0.1) {
+          const f = (NODE_R + EDGE_MARGIN - dist) * 0.8;
+          const nx = dx / dist, ny = dy / dist;
+          d[c.name].x += nx * f;
+          d[c.name].y += ny * f;
+          // 线端点也略微让开，帮助线段从节点旁边绕过去
+          d[cn.a].x -= nx * f * 0.18;
+          d[cn.a].y -= ny * f * 0.18;
+          d[cn.b].x -= nx * f * 0.18;
+          d[cn.b].y -= ny * f * 0.18;
+        }
+      });
+    });
+    // 4) 非中心节点轻微远离画布中心，避免全挤在中央
+    if (centerName) {
+      chars.forEach(c => {
+        if (c.name === centerName) return;
+        const p = pos[c.name];
+        const dx = p.x - cx, dy = p.y - cy;
+        const dist = Math.hypot(dx, dy) || 1;
+        const f = 3 / dist;
+        d[c.name].x += f * dx;
+        d[c.name].y += f * dy;
+      });
+    }
     const cool = (1 - it / ITER) * 0.9 + 0.1;
     chars.forEach(c => {
       const p = pos[c.name]; if (p.fixed) return;
-      const v = d[c.name], vmag = Math.hypot(v.x, v.y) || 1, lim = Math.min(vmag, 40) * cool;
+      const v = d[c.name], vmag = Math.hypot(v.x, v.y) || 1, lim = Math.min(vmag, 50) * cool;
       p.x += v.x / vmag * lim; p.y += v.y / vmag * lim;
       p.x = Math.max(36, Math.min(w - 36, p.x));
       p.y = Math.max(36, Math.min(h - 36, p.y));
