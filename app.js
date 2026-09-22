@@ -6267,7 +6267,7 @@ function drawMindMap(chars, relations) {
     const bDir = Math.atan2(a.y - b.y, a.x - b.x);
     const ax = a.x + nodeR * Math.cos(aDir), ay = a.y + nodeR * Math.sin(aDir);
     const bx = b.x + nodeR * Math.cos(bDir), by = b.y + nodeR * Math.sin(bDir);
-    // v621: 参考图为直线连接；同 pair 多条关系平行错开 12，标签彻底错开到各自线条外侧
+    // v621/v837: 同 pair 多条关系平行错开 12；中心-卫星用直线，卫星-卫星用向外凸的二次贝塞尔曲线
     const dx = bx - ax, dy = by - ay;
     const len = Math.hypot(dx, dy) || 1;
     const nx = -dy / len, ny = dx / len; // 垂直单位向量
@@ -6275,26 +6275,29 @@ function drawMindMap(chars, relations) {
     const aox = ax + nx * off, aoy = ay + ny * off;
     const box = bx + nx * off, boy = by + ny * off;
     const opacity = 0.65;
+    // v837：用户要求连线用直线，靠力导向+后处理保证不穿节点
     inner += `<line x1="${aox}" y1="${aoy}" x2="${box}" y2="${boy}" stroke="${color}" stroke-width="2" opacity="${opacity}"/>`;
-    // v645：仅当关系状态为「单向」才在端点 b(人物2)绘制箭头，表示方向 人物1->人物2；双向/未选单向的关系不画箭头
+    const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.20;
+    let labX = aox + t * (box - aox);
+    let labY = aoy + t * (boy - aoy);
+    const angle = Math.atan2(Math.abs(dy), Math.abs(dx));
+    let labSign, labMag;
+    if (conn._pc === 1) { labSign = 1; labMag = 18; }
+    else { labSign = (off === 0 ? 1 : Math.sign(off)); labMag = 10 + Math.sin(angle) * 12; }
+    const arrowAng = Math.atan2(by - ay, bx - ax);
+
+    // v645：仅当关系状态为「单向」才在端点 b(人物2)绘制箭头，表示方向 人物1->人物2
     if (conn.status && conn.status.includes('单向')) {
-      const ang = Math.atan2(by - ay, bx - ax);
       const aLen = 10, aW = 5;
       const tipX = box, tipY = boy;
-      const bcx = box - aLen * Math.cos(ang), bcy = boy - aLen * Math.sin(ang);
-      const px = -Math.sin(ang) * aW, py = Math.cos(ang) * aW;
+      const bcx = box - aLen * Math.cos(arrowAng), bcy = boy - aLen * Math.sin(arrowAng);
+      const px = -Math.sin(arrowAng) * aW, py = Math.cos(arrowAng) * aW;
       inner += `<polygon points="${tipX},${tipY} ${bcx + px},${bcy + py} ${bcx - px},${bcy - py}" fill="${color}" opacity="${opacity + 0.2}"/>`;
     }
-    // Label 沿连线错开；v641：靠左的连线和文字放线左侧、靠右的放线右侧、单条放外侧，文字不压线
-    const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.20;
-    const lx = aox + t * (box - aox);
-    const ly = aoy + t * (boy - aoy);
-    const angle = Math.atan2(Math.abs(dy), Math.abs(dx)); // 0=水平，PI/2=垂直
-    let labSign, labMag;
-    if (conn._pc === 1) { labSign = 1; labMag = 18; }       // 单条连线：文字放外侧
-    else { labSign = (off === 0 ? 1 : Math.sign(off)); labMag = 10 + Math.sin(angle) * 12; } // 多条：线在哪侧标签放哪侧
-    const labX = lx + nx * labMag * labSign;
-    const labY = ly + ny * labMag * labSign;
+
+    // 标签统一偏移
+    labX += nx * labMag * labSign;
+    labY += ny * labMag * labSign;
     inner += `<text x="${labX}" y="${labY}" text-anchor="middle" dominant-baseline="middle" font-size="10" fill="${color}" style="paint-order:stroke;stroke:#fff;stroke-width:3" font-weight="600">${esc(conn.type)}</text>`;
   });
   inner += '</svg>';
@@ -6328,19 +6331,20 @@ function pickCenterChar(chars, connections) {
   return best;
 }
 function computeForceLayout(chars, connections, w, h, centerName) {
+  // v837：保留散开式力导向布局（节点互相斥开、有关系的靠近），
+  // 但加大斥力与边-节点斥力，让节点本身就不容易落在别人连线上。
   const cx = w / 2, cy = h / 2;
   const N = chars.length;
   const pos = {};
   // 初始半径再散开一些，避免一开始就挤在中心
-  const R0 = Math.min(w, h) / 2 - 60;
+  const R0 = Math.min(w, h) / 2 - 70;
   chars.forEach((c, i) => {
     const ang = (i / Math.max(N, 1)) * 2 * Math.PI;
     pos[c.name] = { x: cx + R0 * Math.cos(ang), y: cy + R0 * Math.sin(ang), fixed: c.name === centerName };
   });
   if (centerName && pos[centerName]) { pos[centerName].x = cx; pos[centerName].y = cy; }
-  // v836：加大斥力、增加边-节点斥力，防止连线从其他节点中间穿过
-  const REP = 150000, SPRING = 0.020, REST = Math.min(w, h) / 2 - 40, ITER = 500;
-  const NODE_R = 42, EDGE_MARGIN = 24; // 节点可视半径 30，这里用更大的保护半径
+  const REP = 200000, SPRING = 0.018, REST = Math.min(w, h) / 2 - 50, ITER = 600;
+  const NODE_R = 48, EDGE_MARGIN = 32; // 节点可视半径 30，用更大的保护半径
   for (let it = 0; it < ITER; it++) {
     const d = {};
     chars.forEach(c => d[c.name] = { x: 0, y: 0 });
@@ -6372,15 +6376,14 @@ function computeForceLayout(chars, connections, w, h, centerName) {
         const dx = p.x - px, dy = p.y - py;
         const dist = Math.hypot(dx, dy);
         if (dist < NODE_R + EDGE_MARGIN && dist > 0.1) {
-          const f = (NODE_R + EDGE_MARGIN - dist) * 0.8;
+          const f = (NODE_R + EDGE_MARGIN - dist) * 1.0;
           const nx = dx / dist, ny = dy / dist;
           d[c.name].x += nx * f;
           d[c.name].y += ny * f;
-          // 线端点也略微让开，帮助线段从节点旁边绕过去
-          d[cn.a].x -= nx * f * 0.18;
-          d[cn.a].y -= ny * f * 0.18;
-          d[cn.b].x -= nx * f * 0.18;
-          d[cn.b].y -= ny * f * 0.18;
+          d[cn.a].x -= nx * f * 0.15;
+          d[cn.a].y -= ny * f * 0.15;
+          d[cn.b].x -= nx * f * 0.15;
+          d[cn.b].y -= ny * f * 0.15;
         }
       });
     });
@@ -6391,7 +6394,7 @@ function computeForceLayout(chars, connections, w, h, centerName) {
         const p = pos[c.name];
         const dx = p.x - cx, dy = p.y - cy;
         const dist = Math.hypot(dx, dy) || 1;
-        const f = 3 / dist;
+        const f = 4 / dist;
         d[c.name].x += f * dx;
         d[c.name].y += f * dy;
       });
@@ -6399,12 +6402,43 @@ function computeForceLayout(chars, connections, w, h, centerName) {
     const cool = (1 - it / ITER) * 0.9 + 0.1;
     chars.forEach(c => {
       const p = pos[c.name]; if (p.fixed) return;
-      const v = d[c.name], vmag = Math.hypot(v.x, v.y) || 1, lim = Math.min(vmag, 50) * cool;
+      const v = d[c.name], vmag = Math.hypot(v.x, v.y) || 1, lim = Math.min(vmag, 60) * cool;
       p.x += v.x / vmag * lim; p.y += v.y / vmag * lim;
       p.x = Math.max(36, Math.min(w - 36, p.x));
       p.y = Math.max(36, Math.min(h - 36, p.y));
     });
   }
+  // v837 后处理：若某条直线仍离非端点节点太近，直接把该节点垂直推开，直到满足安全距离
+  const SAFE_DIST = 46; // 节点半径 30 + 安全边距 16
+  for (let sweep = 0; sweep < 80; sweep++) {
+    let moved = false;
+    connections.forEach(cn => {
+      const a = pos[cn.a], b = pos[cn.b]; if (!a || !b) return;
+      const abx = b.x - a.x, aby = b.y - a.y;
+      const len2 = abx * abx + aby * aby;
+      chars.forEach(c => {
+        if (c.name === cn.a || c.name === cn.b) return;
+        const p = pos[c.name]; if (p.fixed) return;
+        const t = len2 < 1 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * abx + (p.y - a.y) * aby) / len2));
+        const px = a.x + t * abx, py = a.y + t * aby;
+        const dx = p.x - px, dy = p.y - py;
+        const dist = Math.hypot(dx, dy);
+        if (dist < SAFE_DIST && dist > 0.1) {
+          const push = (SAFE_DIST - dist) * 0.6;
+          p.x += dx / dist * push;
+          p.y += dy / dist * push;
+          moved = true;
+        }
+      });
+    });
+    if (!moved) break;
+  }
+  // 最后 clamp 到画布内
+  chars.forEach(c => {
+    const p = pos[c.name];
+    p.x = Math.max(36, Math.min(w - 36, p.x));
+    p.y = Math.max(36, Math.min(h - 36, p.y));
+  });
   return pos;
 }
 
