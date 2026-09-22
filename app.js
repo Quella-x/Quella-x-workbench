@@ -6305,7 +6305,7 @@ function drawMindMap(chars, relations) {
   chars.forEach(c => {
     const pos = positions[c.name];
     const nodeHTML = `<div class="mindmap-node circular" style="left:${pos.x - 30}px;top:${pos.y - 30}px" onclick="navigate('oc-profiles')" title="${esc(c.name)}">` +
-      `<div style="width:44px;height:44px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:${(c.name||'?').length>3?'8px':(c.name||'?').length>2?'10px':'12px'};font-weight:700;color:var(--c-primary-dark);text-align:center;word-break:break-all;overflow:hidden;padding:2px">${esc(c.name || '?')}</div>` +
+      `<div style="width:44px;height:44px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:${(c.name||'?').length>3?'9px':'12px'};font-weight:700;color:var(--c-primary-dark);text-align:center;word-break:break-all;overflow:hidden;padding:2px">${esc(c.name || '?')}</div>` +
       '</div>';
     inner += nodeHTML;
   });
@@ -6331,19 +6331,19 @@ function pickCenterChar(chars, connections) {
   return best;
 }
 function computeForceLayout(chars, connections, w, h, centerName) {
-  // v837：保留散开式力导向布局（节点互相斥开、有关系的靠近），
-  // 但加大斥力与边-节点斥力，让节点本身就不容易落在别人连线上。
+  // v838：关系图布局更紧凑，不再把中心节点钉死，而是软中心+全局弱向心力；
+  // 降低斥力与弹簧自然长度，让节点聚得更拢；后处理对任何节点都推开穿线。
   const cx = w / 2, cy = h / 2;
   const N = chars.length;
   const pos = {};
-  // 初始半径再散开一些，避免一开始就挤在中心
-  const R0 = Math.min(w, h) / 2 - 70;
+  // 初始半径收拢，让节点从中心附近开始发散
+  const R0 = Math.min(w, h) / 2 - 110;
   chars.forEach((c, i) => {
     const ang = (i / Math.max(N, 1)) * 2 * Math.PI;
-    pos[c.name] = { x: cx + R0 * Math.cos(ang), y: cy + R0 * Math.sin(ang), fixed: c.name === centerName };
+    pos[c.name] = { x: cx + R0 * Math.cos(ang), y: cy + R0 * Math.sin(ang) };
   });
   if (centerName && pos[centerName]) { pos[centerName].x = cx; pos[centerName].y = cy; }
-  const REP = 200000, SPRING = 0.018, REST = Math.min(w, h) / 2 - 50, ITER = 600;
+  const REP = 80000, SPRING = 0.018, REST = 120, ITER = 600;
   const NODE_R = 48, EDGE_MARGIN = 32; // 节点可视半径 30，用更大的保护半径
   for (let it = 0; it < ITER; it++) {
     const d = {};
@@ -6387,28 +6387,36 @@ function computeForceLayout(chars, connections, w, h, centerName) {
         }
       });
     });
-    // 4) 非中心节点轻微远离画布中心，避免全挤在中央
+    // 4) 全局弱向心引力，防止整体漂移；软中心让最高度数节点大致留在中心
     if (centerName) {
       chars.forEach(c => {
-        if (c.name === centerName) return;
         const p = pos[c.name];
-        const dx = p.x - cx, dy = p.y - cy;
+        const dx = cx - p.x, dy = cy - p.y;
         const dist = Math.hypot(dx, dy) || 1;
         const f = 4 / dist;
         d[c.name].x += f * dx;
         d[c.name].y += f * dy;
       });
+      const pc = pos[centerName];
+      if (pc) {
+        const dx = cx - pc.x, dy = cy - pc.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const f = 0.02 * dist;
+        d[centerName].x += f * dx / dist;
+        d[centerName].y += f * dy / dist;
+      }
     }
     const cool = (1 - it / ITER) * 0.9 + 0.1;
     chars.forEach(c => {
-      const p = pos[c.name]; if (p.fixed) return;
+      const p = pos[c.name];
       const v = d[c.name], vmag = Math.hypot(v.x, v.y) || 1, lim = Math.min(vmag, 60) * cool;
       p.x += v.x / vmag * lim; p.y += v.y / vmag * lim;
       p.x = Math.max(36, Math.min(w - 36, p.x));
       p.y = Math.max(36, Math.min(h - 36, p.y));
     });
   }
-  // v837 后处理：若某条直线仍离非端点节点太近，直接把该节点垂直推开，直到满足安全距离
+  // v838 后处理：若某条直线仍离非端点节点太近，推开该节点；
+  // 若被穿过的节点是中心节点（已不可移动），则改为推开该连线的两个端点。
   const SAFE_DIST = 46; // 节点半径 30 + 安全边距 16
   for (let sweep = 0; sweep < 80; sweep++) {
     let moved = false;
@@ -6418,15 +6426,22 @@ function computeForceLayout(chars, connections, w, h, centerName) {
       const len2 = abx * abx + aby * aby;
       chars.forEach(c => {
         if (c.name === cn.a || c.name === cn.b) return;
-        const p = pos[c.name]; if (p.fixed) return;
+        const p = pos[c.name];
         const t = len2 < 1 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * abx + (p.y - a.y) * aby) / len2));
         const px = a.x + t * abx, py = a.y + t * aby;
         const dx = p.x - px, dy = p.y - py;
         const dist = Math.hypot(dx, dy);
         if (dist < SAFE_DIST && dist > 0.1) {
-          const push = (SAFE_DIST - dist) * 0.6;
-          p.x += dx / dist * push;
-          p.y += dy / dist * push;
+          const nx = dx / dist, ny = dy / dist;
+          if (c.name === centerName) {
+            // 中心节点被穿过：推开这条线的两个端点
+            const push = (SAFE_DIST - dist) * 0.5;
+            a.x -= nx * push; a.y -= ny * push;
+            b.x -= nx * push; b.y -= ny * push;
+          } else {
+            const push = (SAFE_DIST - dist) * 0.6;
+            p.x += nx * push; p.y += ny * push;
+          }
           moved = true;
         }
       });
