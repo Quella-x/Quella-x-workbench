@@ -4773,7 +4773,7 @@ function saveForm(pageKey, mod, id) {
   // v815：开团记录 → 厂家合作记录回填（日期 = 截团时间 + 3 天）。放在落库之后，才能拿到带 id 的 saved
   if (pageKey === 'groupbuy-records' && saved) syncGroupbuyToFactories(saved, _prevGb);
   if (pageKey === 'oc-relations' && saved) syncOcRelationToChars(saved);
-  if (pageKey === 'oc-profiles' && saved) syncProfileSocialToRelations(saved.name, saved);
+  if (pageKey === 'oc-profiles' && saved) { syncProfileSocialToRelations(saved.name, saved); syncProfileReverseSocial(saved.name); }
   closeModal();
   navigate(pageKey);
 }
@@ -5773,6 +5773,26 @@ const RELATION_TYPE_SOCIAL_FIELD = {
 function splitOcNames(v) {
   return (v || '').split(/[、,，]/).map(s => pureOcName(s.trim())).filter(Boolean);
 }
+
+// v841：给定一组关系记录，按 pair 计算每对应显示类型，返回 [{record, visibleTypes}]
+function ocRelationsWithVisible(records) {
+  const pairMap = {};
+  records.forEach(r => {
+    const a = pureOcName(r.charA), b = pureOcName(r.charB);
+    const k = [a, b].sort().join('\u0000');
+    (pairMap[k] = pairMap[k] || []).push(r);
+  });
+  const res = [];
+  Object.values(pairMap).forEach(group => {
+    const allTypes = group.flatMap(r => arrVal(r.relationType));
+    const vis = new Set(ocRelationVisibleTypes(allTypes));
+    group.forEach(r => {
+      const rtArr = arrVal(r.relationType).filter(t => vis.has(t));
+      res.push({ record: r, visibleTypes: rtArr });
+    });
+  });
+  return res;
+}
 // 从 ocRelations 推导某人物档案的六类社会关系字段（双向绑定：关系 -> 档案）
 function deriveSocialFieldsFromRelations(charName) {
   const result = { parents: '', siblings: '', master: '', companion: '', friends: '', fellow: '' };
@@ -5818,6 +5838,26 @@ function normalizeOcRelationSocial() {
 }
 // v615：人物档案社会关系字段 -> 人物关系记录（双向绑定：档案 -> 关系）
 // 在档案保存时调用：为档案社会关系里填写的每个人自动建立/清理对应的人物关系记录
+// v841：人物档案关系反向自动同步（档案 -> 档案）
+function syncProfileReverseSocial(charName) {
+  if (!charName) return;
+  const c = DB.list('ocCharacters').find(x => x.name === charName || pureOcName(x.name) === charName);
+  if (!c) return;
+  const name = c.name;
+  const SYMMETRIC = ['siblings', 'master', 'companion', 'friends', 'fellow']; // parents 单向，不处理
+  SYMMETRIC.forEach(field => {
+    splitOcNames(c[field]).forEach(other => {
+      if (other === name) return;
+      const t = DB.list('ocCharacters').find(x => x.name === other || pureOcName(x.name) === other);
+      if (!t) return;
+      const cur = splitOcNames(t[field]);
+      if (!cur.includes(name)) {
+        cur.push(name);
+        DB.update('ocCharacters', t.id, { [field]: cur.join('、') });
+      }
+    });
+  });
+}
 function syncProfileSocialToRelations(charName, socialData) {
   if (!charName) return;
   const name = pureOcName(charName);
@@ -6019,8 +6059,11 @@ function renderRelations() {
         html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDeleteOcRelationGroup('${first.id}')">${lucide('trash-2',16)}</span>`;
         html += '</div></div>';
         html += '<div class="record-card-body detail-relations" style="margin:0">';
+        const _grpTypes = group.flatMap(r => arrVal(r.relationType));
+        const _vis = new Set(ocRelationVisibleTypes(_grpTypes));
         group.forEach(r => {
-          const rtArr = arrVal(r.relationType);
+          const rtArr = arrVal(r.relationType).filter(rt => _vis.has(rt));
+          if (!rtArr.length) return;
           const rs = arrVal(r.relationStatus).join('、');
           html += '<div class="detail-rel-sub">';
           html += '<div class="detail-rel-head">';
@@ -6076,9 +6119,12 @@ function showAllPersonRelations(btn) {
   if (!relations.length) {
     html += '<div style="color:var(--c-text-muted)">暂无关系记录</div>';
   } else {
+    const _pairTypes = {};
+    relations.forEach(r => { const k = [pureOcName(r.charA), pureOcName(r.charB)].sort().join('\u0000'); (_pairTypes[k] = _pairTypes[k] || []).push(...arrVal(r.relationType)); });
     relations.forEach(r => {
       const a = pureOcName(r.charA), b = pureOcName(r.charB);
-      const rtArr = arrVal(r.relationType);
+      const rtArr = arrVal(r.relationType).filter(rt => new Set(ocRelationVisibleTypes(_pairTypes[[a, b].sort().join('\u0000')] || [])).has(rt));
+      if (!rtArr.length) return;
       html += `<div style="padding:4px 0;display:flex;align-items:center;gap:6px;flex-wrap:wrap">`;
       rtArr.forEach(rt => {
         const color = RELATION_COLORS[rt] || '#b0b8c0';
@@ -6110,9 +6156,12 @@ function togglePersonRelations(name, btn) {
   const myRels = relations.filter(r => pureOcName(r.charA) === name || pureOcName(r.charB) === name);
   if (myRels.length) {
     html += '<div style="margin-bottom:8px"><b>显式关系:</b></div>';
+    const _myPairTypes = {};
+    myRels.forEach(r => { const k = [pureOcName(r.charA), pureOcName(r.charB)].sort().join('\u0000'); (_myPairTypes[k] = _myPairTypes[k] || []).push(...arrVal(r.relationType)); });
     myRels.forEach(r => {
       const other = pureOcName(r.charA) === name ? pureOcName(r.charB) : pureOcName(r.charA);
-      const rtArr = arrVal(r.relationType);
+      const rtArr = arrVal(r.relationType).filter(rt => new Set(ocRelationVisibleTypes(_myPairTypes[[pureOcName(r.charA), pureOcName(r.charB)].sort().join('\u0000')] || [])).has(rt));
+      if (!rtArr.length) return;
       const rsArr = arrVal(r.relationStatus);
       rtArr.forEach(rt => {
         const color = RELATION_COLORS[rt] || '#b0b8c0';
@@ -6211,13 +6260,26 @@ function mmInitDrag() {
     _mmPinchDist = 0;
   };
 }
+// v841：关系类型粗细分层。GENERIC=笼统类型（兄弟姐妹/父母/好友），当同一对人物同时存在
+// 具体类型（兄妹/父女/…）时，图上/列表里只显示具体类型，笼统的不显示（数据保留，不删除）。
+const GENERIC_REL_TYPES = new Set(['兄弟姐妹', '父母', '好友']);
+// 给定某对人物的全部关系类型，返回应显示的类型（同 pair 有具体类型则隐藏笼统类型）
+function ocRelationVisibleTypes(types) {
+  const arr = arrVal(types);
+  const hasSpecific = arr.some(t => !GENERIC_REL_TYPES.has(t));
+  return hasSpecific ? arr.filter(t => !GENERIC_REL_TYPES.has(t)) : arr;
+}
 function drawMindMap(chars, relations) {
   const canvas = $('#mindmapCanvas');
   if (!canvas) return;
   const container = $('#mindmapContainer');
-  const w = Math.max(container.clientWidth - 40, 600);
+  const containerW = container.clientWidth || 600;
+  // v841：布局用虚拟空间（窄屏也保证 >=620，让力导向有空间铺开、零重叠）；渲染后自动缩放适配容器宽度
+  const w = Math.max(containerW - 40, 620);
   const h = 520;
   const cx = w / 2, cy = h / 2;
+  const _fit = containerW > 0 ? Math.min(1, (containerW - 40) / w) : 1;
+  _mmZoom = _fit; _mmPanX = 0; _mmPanY = 0;
   // v835：力导向（散开式）布局——节点互相斥开、有关系的靠近；度数最高的节点钉画布中心，连线不穿过别的节点
   const allConnections = [];
   relations.forEach(r => {
@@ -6260,8 +6322,11 @@ function drawMindMap(chars, relations) {
   });
   allConnections.length = 0;
   deduped.forEach(c => allConnections.push(c));
-  const centerName = pickCenterChar(chars, allConnections);
-  const positions = computeForceLayout(chars, allConnections, w, h, centerName);
+  // v841：仅对有关系的节点做布局（孤立人物不进图），避免无意义重叠
+  const connectedSet = new Set();
+  allConnections.forEach(c => { connectedSet.add(c.a); connectedSet.add(c.b); });
+  const layoutChars = chars.filter(c => connectedSet.has(c.name));
+  const positions = computeForceLayout(layoutChars, allConnections, w, h);
 
   // Wrap everything in a zoomable inner div
   let inner = `<div class="mindmap-inner" id="mindmapInner" style="position:relative;width:${w}px;height:${h}px;transform-origin:center center;transform:translate(${_mmPanX}px,${_mmPanY}px) scale(${_mmZoom});transition:transform .15s">`;
@@ -6315,7 +6380,7 @@ function drawMindMap(chars, relations) {
   });
   inner += '</svg>';
   // Nodes (circular, text only — no images)
-  chars.forEach(c => {
+  layoutChars.forEach(c => {
     const pos = positions[c.name];
     const nodeHTML = `<div class="mindmap-node circular" style="left:${pos.x - 30}px;top:${pos.y - 30}px" onclick="navigate('oc-profiles')" title="${esc(c.name)}">` +
       `<div style="width:44px;height:44px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:${(c.name||'?').length>3?'9px':'12px'};font-weight:700;color:var(--c-primary-dark);text-align:center;word-break:break-all;overflow:hidden;padding:2px">${esc(c.name || '?')}</div>` +
@@ -6345,88 +6410,86 @@ function pickCenterChar(chars, connections) {
   chars.forEach(c => { if ((deg[c.name] || 0) > max) { max = deg[c.name] || 0; best = c.name; } });
   return best;
 }
-function computeForceLayout(chars, connections, w, h, centerName) {
-  const cx = w / 2, cy = h / 2;
-  const names = chars.map(c => c.name);
-  const validSet = new Set(names);
-  const adj = {};
-  names.forEach(n => adj[n] = []);
-  connections.forEach(cn => {
-    if (validSet.has(cn.a) && validSet.has(cn.b)) {
-      adj[cn.a].push(cn.b);
-      adj[cn.b].push(cn.a);
-    }
-  });
-  const center = (centerName && validSet.has(centerName)) ? centerName : names[0];
-  const level = {};
-  const parent = {};
-  level[center] = 0;
-  const queue = [center];
-  const visited = new Set([center]);
-  while (queue.length) {
-    const u = queue.shift();
-    for (const v of adj[u]) {
-      if (!visited.has(v)) {
-        visited.add(v);
-        level[v] = level[u] + 1;
-        parent[v] = u;
-        queue.push(v);
-      }
-    }
-  }
-  names.forEach(n => { if (level[n] == null) level[n] = 2; }); // 未连通默认放第二圈
-  const maxLevel = Math.max(...Object.values(level));
-
-  const margin = 42; // 边界留白（收紧，让节点铺得更开、连线更长）
-  const usableR = Math.min(w, h) / 2 - margin;
-  const radius = {};
-  radius[center] = 0;
-  for (let lv = 1; lv <= maxLevel; lv++) {
-    let r;
-    if (maxLevel === 1) r = usableR;                 // 只有一圈：尽量铺满，线不局促
-    else r = usableR * (0.58 + 0.42 * (lv - 1) / (maxLevel - 1)); // 首圈 0.58，最外圈 1.0
-    names.forEach(n => { if (level[n] === lv) radius[n] = r; });
-  }
-
-  const angle = {};
-  angle[center] = 0;
-  const layers = [];
-  for (let i = 0; i <= maxLevel; i++) layers[i] = [];
-  names.forEach(n => layers[level[n]].push(n));
-
-  // 第一层：均匀分布在整个圆周，起始角朝上避免重要边水平拥挤
-  const L1 = layers[1] || [];
-  const step1 = (2 * Math.PI) / Math.max(L1.length, 1);
-  const start1 = -Math.PI / 2;
-  L1.forEach((n, i) => { angle[n] = start1 + i * step1; });
-
-  // 第二层及以上：按父节点扇区分配角度，子节点在父节点扇区内均匀分布
-  for (let lv = 2; lv <= maxLevel; lv++) {
-    const nodes = layers[lv];
-    const byParent = {};
-    nodes.forEach(n => { const p = parent[n] || center; (byParent[p] ||= []).push(n); });
-    const sectors = {};
-    if (lv === 2) {
-      L1.forEach((n, i) => {
-        const a = angle[n];
-        sectors[n] = [a - step1 / 2, a + step1 / 2];
-      });
-    } else {
-      layers[lv - 1].forEach(n => { sectors[n] = [angle[n] - Math.PI / 4, angle[n] + Math.PI / 4]; });
-    }
-    for (const [pName, children] of Object.entries(byParent)) {
-      const [s, e] = sectors[pName] || [0, 2 * Math.PI];
-      const step = (e - s) / Math.max(children.length, 1);
-      children.forEach((n, i) => { angle[n] = s + step * (i + 0.5); });
-    }
-  }
-
+// v841：关系图布局改为「有机力导向（弹簧 FR）」——节点散开、连线不交叉、留白多、
+// 边尽量等长（统一目标长度 k，只有间接连接的才更远），零容忍节点重叠（中心距<60 即重叠），允许缩放。
+function computeForceLayout(chars, connections, w, h) {
+  const NODE_R = 30;
+  const names = chars.map(c => c.name).filter(Boolean);
   const pos = {};
-  names.forEach(n => {
-    const r = radius[n] || 0;
-    const a = angle[n] || 0;
-    pos[n] = { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+  const cx = w / 2, cy = h / 2;
+  // 初始：均匀撒在中心圆，避免同位置
+  const R0 = Math.min(w, h) / 3;
+  names.forEach((n, i) => {
+    const a = (i / Math.max(names.length, 1)) * 2 * Math.PI;
+    pos[n] = { x: cx + R0 * Math.cos(a), y: cy + R0 * Math.sin(a) };
   });
+  if (names.length <= 1) return pos;
+  const area = w * h;
+  const k = Math.max(90, Math.min(Math.sqrt(area / names.length) * 1.15, Math.min(w, h) / 2 - 45));
+  const SPRING = 0.04;
+  const ITER = 900;
+  for (let it = 0; it < ITER; it++) {
+    const disp = {};
+    names.forEach(n => disp[n] = { x: 0, y: 0 });
+    // 1) 节点间斥力（防重叠 + 散开）
+    for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
+      const a = pos[names[i]], b = pos[names[j]];
+      let dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy;
+      if (d2 < 0.01) { d2 = 0.01; dx = Math.random() - 0.5; dy = Math.random() - 0.5; }
+      const d = Math.sqrt(d2);
+      const f = (k * k) / d2;
+      const fx = (dx / d) * f, fy = (dy / d) * f;
+      disp[names[i]].x += fx; disp[names[i]].y += fy;
+      disp[names[j]].x -= fx; disp[names[j]].y -= fy;
+    }
+    // 2) 边弹簧引力（目标长度 k：d>k 拉近，d<k 推远 → 等长）
+    connections.forEach(cn => {
+      const a = pos[cn.a], b = pos[cn.b]; if (!a || !b) return;
+      let dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 0.01;
+      const f = SPRING * (d - k);
+      const fx = (dx / d) * f, fy = (dy / d) * f;
+      disp[cn.a].x += fx; disp[cn.a].y += fy;
+      disp[cn.b].x -= fx; disp[cn.b].y -= fy;
+    });
+    // 3) 轻微向中心引力，防整体漂走
+    names.forEach(n => {
+      const p = pos[n];
+      disp[n].x += (cx - p.x) * 0.015;
+      disp[n].y += (cy - p.y) * 0.015;
+    });
+    // 4) 冷却温度限制
+    const temp = Math.max(1.5, (Math.min(w, h) / 2) * (1 - it / ITER) + 1.5);
+    names.forEach(n => {
+      const v = disp[n], mag = Math.hypot(v.x, v.y) || 0.01;
+      const lim = Math.min(mag, temp);
+      pos[n].x += (v.x / mag) * lim;
+      pos[n].y += (v.y / mag) * lim;
+      pos[n].x = Math.max(NODE_R + 4, Math.min(w - NODE_R - 4, pos[n].x));
+      pos[n].y = Math.max(NODE_R + 4, Math.min(h - NODE_R - 4, pos[n].y));
+    });
+  }
+  // 后处理：任何非端点节点靠近某条边则垂直推开（双重保险，消除穿线）
+  for (let sweep = 0; sweep < 120; sweep++) {
+    let moved = false;
+    connections.forEach(cn => {
+      const a = pos[cn.a], b = pos[cn.b]; if (!a || !b) return;
+      const abx = b.x - a.x, aby = b.y - a.y, len2 = abx * abx + aby * aby;
+      names.forEach(n => {
+        if (n === cn.a || n === cn.b) return;
+        const p = pos[n];
+        const t = len2 < 1 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * abx + (p.y - a.y) * aby) / len2));
+        const px = a.x + t * abx, py = a.y + t * aby;
+        const dx = p.x - px, dy = p.y - py, dist = Math.hypot(dx, dy);
+        if (dist < NODE_R + 6 && dist > 0.1) {
+          const push = (NODE_R + 6 - dist) * 0.8;
+          pos[n].x += (dx / dist) * push;
+          pos[n].y += (dy / dist) * push;
+          moved = true;
+        }
+      });
+    });
+    if (!moved) break;
+  }
   return pos;
 }
 
