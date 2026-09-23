@@ -2484,6 +2484,7 @@ MODULES['groupbuy-records'] = {
         { value: '补偿', label: '补偿' }, { value: '补发', label: '补发' }, { value: '补寄', label: '补寄' }, { value: '退款', label: '退款' }
       ]},
       { subkey: 'amount', label: '价格', type: 'number' },
+      { subkey: 'remark', label: '备注', type: 'text', mobileBelow: true },
     ]},
     { key: 'purchaseCount', label: '购买人数', type: 'number', row: 'purchaseInfo' },
     { key: 'purchasePopularity', label: '拼团人气', type: 'number', row: 'purchaseInfo' },
@@ -4967,16 +4968,23 @@ function openDetail(pageKey, id) {
       };
       const thStyle = c => isCommProd ? commColStyle(c, true) : (isGb ? gbColStyle(c, true) : '');
       // v530：需求①——空列表也展示表头（无信息就空着）
-      html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><div class="detail-value"><table class="detail-table"><tr>${cols.map(c => `<th${thStyle(c)}>${isCommProd ? commThLabel(c) : esc(c.label)}</th>`).join('')}${extraHead}</tr>`;
+      const _belowCols = cols.filter(c => c.mobileBelow);
+      const _mainCols = cols.filter(c => !c.mobileBelow);
+      html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><div class="detail-value"><table class="detail-table"><tr>${_mainCols.map(c => `<th${thStyle(c)}>${isCommProd ? commThLabel(c) : esc(c.label)}</th>`).join('')}${_belowCols.map(c => `<th class="gb-remark-col"${thStyle(c)}>${esc(c.label)}</th>`).join('')}${extraHead}</tr>`;
       items.forEach((item, idx) => {
         html += `<tr class="${item.done ? 'prod-done' : ''}">`;
-        cols.forEach(c => {
+        _mainCols.forEach(c => {
           if (c.type === 'seq') html += `<td style="text-align:center;font-weight:700;color:var(--c-text-light)">${String(idx + 1).padStart(2, '0')}</td>`;
           else if (c.type === 'checkbox') html += `<td style="text-align:center">${item[c.subkey] ? lucide('check',12) : ''}</td>`;
-          else html += `<td>${esc(item[c.subkey] || '')}</td>`;
+          else html += `<td><span class="td-wrap">${esc(item[c.subkey] || '')}</span></td>`;
         });
+        _belowCols.forEach(c => { html += `<td class="gb-remark-col"><span class="td-wrap">${esc(item[c.subkey] || '')}</span></td>`; });
         html += extraCell ? extraCell(item, idx) : '';
         html += `</tr>`;
+        if (_belowCols.length) {
+          const _bTxt = _belowCols.map(c => { const _v = item[c.subkey]; return _v ? `${esc(c.label)}：${esc(_v)}` : ''; }).filter(Boolean).join('　');
+          if (_bTxt) html += `<tr class="gb-remark-row"><td colspan="${_mainCols.length}"><span class="td-wrap">${_bTxt}</span></td></tr>`;
+        }
       });
       html += `</table></div></div>`;
       return;
