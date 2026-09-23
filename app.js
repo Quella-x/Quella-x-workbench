@@ -6247,6 +6247,19 @@ function drawMindMap(chars, relations) {
       }
     });
   });
+  // v839.1：同一对人物若同时有笼统类型（兄弟姐妹/父母/好友，来自档案同步）与细分类型（兄妹/父女/…），
+  // 仅保留细分类型——「按人物关系走」，避免图上两条线重叠。
+  const GENERIC_REL = new Set(['兄弟姐妹', '父母', '好友']);
+  const byPair = {};
+  allConnections.forEach(c => { const k = [c.a, c.b].sort().join(' '); (byPair[k] ||= []).push(c); });
+  const deduped = [];
+  Object.values(byPair).forEach(list => {
+    const specific = list.filter(c => !GENERIC_REL.has(c.type));
+    if (specific.length) specific.forEach(c => deduped.push(c));
+    else list.forEach(c => deduped.push(c));
+  });
+  allConnections.length = 0;
+  deduped.forEach(c => allConnections.push(c));
   const centerName = pickCenterChar(chars, allConnections);
   const positions = computeForceLayout(chars, allConnections, w, h, centerName);
 
@@ -6364,12 +6377,14 @@ function computeForceLayout(chars, connections, w, h, centerName) {
   names.forEach(n => { if (level[n] == null) level[n] = 2; }); // 未连通默认放第二圈
   const maxLevel = Math.max(...Object.values(level));
 
-  const margin = 70; // 边界留白
+  const margin = 42; // 边界留白（收紧，让节点铺得更开、连线更长）
   const usableR = Math.min(w, h) / 2 - margin;
   const radius = {};
   radius[center] = 0;
   for (let lv = 1; lv <= maxLevel; lv++) {
-    const r = usableR * (lv / maxLevel);
+    let r;
+    if (maxLevel === 1) r = usableR;                 // 只有一圈：尽量铺满，线不局促
+    else r = usableR * (0.58 + 0.42 * (lv - 1) / (maxLevel - 1)); // 首圈 0.58，最外圈 1.0
     names.forEach(n => { if (level[n] === lv) radius[n] = r; });
   }
 
