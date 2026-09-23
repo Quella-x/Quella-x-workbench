@@ -2474,7 +2474,7 @@ MODULES['groupbuy-records'] = {
       { subkey: 'price', label: '单价', type: 'number' },
       { subkey: 'factory', label: '对应厂家', type: 'text', datalistId: 'gb_factory_dl' },
       { subkey: 'salesCount', label: '售卖数量', type: 'number' },
-      { subkey: 'isDisbanded', label: '是否流团', type: 'text', datalistId: 'gb_disbanded_dl', default: '否' },
+      { subkey: 'isDisbanded', label: '是否流团', type: 'text', datalistId: 'gb_disbanded_dl', default: '否', mobileBelow: true, mobileBelowOnlyYes: true },
     ]},
     { key: 'afterSales', label: '售后记录', type: 'dynamic-list', columns: [
       { subkey: 'orderNo', label: '单号', type: 'text' },
@@ -4943,21 +4943,17 @@ function openDetail(pageKey, id) {
       const isCommProd = (pageKey === 'design-commission' && f.key === 'products');
       const cols = (f.columns || []).filter(c => !(isCommProd && c.subkey === 'urgent'));
 
-      const extraHead = isCommProd ? '<th style="width:32px;white-space:normal">加急</th><th style="width:32px;white-space:normal">完成</th>' : '';
+      const extraHead = isCommProd ? '<th class="cc-urgent">加急</th><th class="cc-done">完成</th>' : '';
       const extraCell = isCommProd
         ? (item, idx) => `<td class="comm-prod-urgent"><label><input type="checkbox" ${item.urgent ? 'checked' : ''} onclick="commissionToggleProductUrgent('${id}',${idx},this.checked)"></label></td><td class="comm-prod-done"><label><input type="checkbox" ${item.done ? 'checked' : ''} onclick="commissionToggleProductDone('${id}',${idx},this.checked)"></label></td>`
         : null;
       const commColStyle = (c, forTh) => {
-        const ws = forTh ? '' : 'white-space:nowrap;';
-        if (c.subkey === '_seq') return ` style="width:33px;${ws}"`;
-        if (c.subkey === 'patternId') return ` style="width:33px;${ws}"`;
-        if (c.subkey === 'price') return ` style="width:33px;${ws}"`;
-        if (c.subkey === 'quantity') return ` style="width:33px;${ws}"`;
-        if (c.subkey === 'size') return ` style="width:64px;${ws}"`;
-        if (c.subkey === 'name' || c.subkey === 'sameModel') return ` style="min-width:60px;${ws}"`;
-        return '';
+        // v844: 宽度改 class（桌面 media 生效，手机端自动均分）；单元格 nowrap 保留
+        const _cc = { _seq: 'cc-seq', patternId: 'cc-pat', price: 'cc-price', size: 'cc-size', quantity: 'cc-qty', sameModel: 'cc-model' }[c.subkey];
+        const ws = forTh ? '' : ' style="white-space:nowrap;"';
+        return _cc ? ` class="${_cc}"${ws}` : '';
       };
-      const commThLabel = c => c.subkey === 'patternId' ? '柄图<br>标识' : esc(c.label);
+      const commThLabel = c => esc(c.label);
       const isGb = (pageKey === 'groupbuy-records');
       // v569：开团记录详情「制品列表」与「售后记录」表格宽度统一——固定宽度列(单价/售卖数量/是否流团/单号/价格/补偿方式)均 62px 且两张表一致，其余列(制品名称/对应厂家 与 制品名称/售后数量)由 table-layout:fixed 均分剩余宽度。
       const gbFixedCols = new Set(['price','salesCount','isDisbanded','orderNo','quantity','amount']);
@@ -4970,7 +4966,7 @@ function openDetail(pageKey, id) {
       // v530：需求①——空列表也展示表头（无信息就空着）
       const _belowCols = cols.filter(c => c.mobileBelow);
       const _mainCols = cols.filter(c => !c.mobileBelow);
-      html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><div class="detail-value"><table class="detail-table"><tr>${_mainCols.map(c => `<th${thStyle(c)}>${isCommProd ? commThLabel(c) : esc(c.label)}</th>`).join('')}${_belowCols.map(c => `<th class="gb-remark-col"${thStyle(c)}>${esc(c.label)}</th>`).join('')}${extraHead}</tr>`;
+      html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><div class="detail-value"><table class="detail-table"><tr>${_mainCols.map(c => `<th${thStyle(c)}>${isCommProd ? commThLabel(c) : esc(c.label)}</th>`).join('')}${_belowCols.map(c => { const _s = thStyle(c); const _m = /class="([^"]*)"/.exec(_s); const _rest = _s.replace(/ ?class="[^"]*"/, ''); return `<th class="gb-remark-col${_m ? ' ' + _m[1] : ''}"${_rest}>${esc(c.label)}</th>`; }).join('')}${extraHead}</tr>`;
       items.forEach((item, idx) => {
         html += `<tr class="${item.done ? 'prod-done' : ''}">`;
         _mainCols.forEach(c => {
@@ -4981,8 +4977,12 @@ function openDetail(pageKey, id) {
         _belowCols.forEach(c => { html += `<td class="gb-remark-col"><span class="td-wrap">${esc(item[c.subkey] || '')}</span></td>`; });
         html += extraCell ? extraCell(item, idx) : '';
         html += `</tr>`;
+        if (isCommProd) html += `<tr class="comm-ud-row"><td colspan="${_mainCols.length}">`
+          + `<span class="cu-urgent"><label><input type="checkbox" ${item.urgent ? 'checked' : ''} onclick="commissionToggleProductUrgent('${id}',${idx},this.checked)">加急</label></span>`
+          + `<span class="cu-done"><label><input type="checkbox" ${item.done ? 'checked' : ''} onclick="commissionToggleProductDone('${id}',${idx},this.checked)">完成</label></span>`
+          + `</td></tr>`;
         if (_belowCols.length) {
-          const _bTxt = _belowCols.map(c => { const _v = item[c.subkey]; return _v ? `${esc(c.label)}：${esc(_v)}` : ''; }).filter(Boolean).join('　');
+          const _bTxt = _belowCols.map(c => { const _v = item[c.subkey]; if (c.mobileBelowOnlyYes && (!_v || _v === '否')) return ''; return _v ? `${esc(c.label)}：${esc(_v)}` : ''; }).filter(Boolean).join('　');
           if (_bTxt) html += `<tr class="gb-remark-row"><td colspan="${_mainCols.length}"><span class="td-wrap">${_bTxt}</span></td></tr>`;
         }
       });
@@ -5002,7 +5002,22 @@ function openDetail(pageKey, id) {
     { label: '关闭', class: 'btn-ghost', action: closeModal },
     { label: '编辑', class: 'btn-primary', action: () => { closeModal(); openEditForm(pageKey, id); } },
   ], 'lg');
+  // v844: 详情表格文本格换行检测（单行居中，多行末行左对）
+  scanTdWrap();
 }
+
+/* v844: 详情表格 .td-wrap 换行检测：单行纯居中；多行格首行居中、末行左对（text-align-last:left） */
+function scanTdWrap() {
+  document.querySelectorAll('.td-wrap').forEach(el => {
+    const lh = parseFloat(getComputedStyle(el).lineHeight) || 16;
+    el.classList.toggle('td-multi', el.offsetHeight > lh * 1.6);
+  });
+}
+let _scanTdWrapRaf = null;
+window.addEventListener('resize', () => {
+  if (_scanTdWrapRaf) cancelAnimationFrame(_scanTdWrapRaf);
+  _scanTdWrapRaf = requestAnimationFrame(scanTdWrap);
+});
 
 // 接稿排期：制品完成勾选（持久化到 commission.products[idx].done）
 function commissionToggleProductDone(id, idx, checked, fromList = false) {

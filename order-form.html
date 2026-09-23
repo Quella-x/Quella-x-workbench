@@ -1089,7 +1089,12 @@ html.apk.modal-lock{overflow:hidden!important}
 .detail-row:has(.detail-table) .detail-value{padding:0;margin:0}
 .detail-table th{background:var(--c-primary-bg);padding:6px 4px;text-align:center;vertical-align:middle;font-weight:400;color:var(--c-text-muted);border:1px solid var(--c-border)}
 .detail-table td{padding:6px 4px;text-align:center;vertical-align:middle;border:1px solid var(--c-border);color:var(--c-text)}
-.detail-table td .td-wrap{display:inline-block;text-align:left;max-width:100%;vertical-align:middle}
+/* v844: 详情表格对齐修正——第一行居中、换行的末行左对齐（v843 的 inline-block+left 会让首行也左对齐）。
+   改 block+center，渲染后扫描真实换行（scanTdWrap）给多行格加 .td-multi（text-align-last:left 只把末行靠左）；
+   单行格保持纯居中。备注行（gb-remark-row）维持左对齐不变 */
+.detail-table td .td-wrap{display:block;text-align:center;vertical-align:middle}
+.detail-table td .td-wrap.td-multi{text-align-last:left}
+.gb-remark-row .td-wrap{text-align:left}
 /* 接稿排期制品完成勾选（DN轮） */
 .detail-table td.comm-prod-done{text-align:center;white-space:nowrap}
 .detail-table td.comm-prod-done label{display:inline-flex;align-items:center;gap:2px;cursor:pointer;font-size:12px;color:var(--c-green)}
@@ -1098,6 +1103,30 @@ html.apk.modal-lock{overflow:hidden!important}
 .detail-table td.comm-prod-urgent label{display:inline-flex;align-items:center;justify-content:center;gap:2px;cursor:pointer;font-size:12px;color:var(--c-red)}
 .detail-table td.comm-prod-urgent input{width:16px;height:16px;accent-color:var(--c-red)}
 .detail-table tr.prod-done td{text-decoration:line-through;color:var(--c-text-muted);opacity:.7}
+/* v844: 接稿排期详情制品列表列宽合理化（桌面）——原序号/柄图/价格/数量/加急/完成挤到表头竖排、制品/同模巨宽。
+   宽度只在桌面(>=769px)生效（用 class 替代内联 width），手机端表格自动均分；
+   加急/完成列手机端隐藏，改在每行下方显示「加急 ☑ 完成 ☐」（comm-ud-row），桌面端隐藏该行 */
+.detail-table th.cc-seq,.detail-table th.cc-pat,.detail-table th.cc-price,.detail-table th.cc-size,.detail-table th.cc-qty,.detail-table th.cc-urgent,.detail-table th.cc-done{white-space:nowrap}
+.detail-table tr.comm-ud-row{display:none}
+@media (min-width:769px){
+  .detail-table th.cc-seq{width:36px}
+  .detail-table th.cc-pat{width:64px}
+  .detail-table th.cc-price{width:44px}
+  .detail-table th.cc-size{width:64px}
+  .detail-table th.cc-qty{width:44px}
+  .detail-table th.cc-model{width:96px}
+  .detail-table th.cc-urgent,.detail-table th.cc-done{width:36px}
+}
+@media (max-width:768px){
+  .detail-table th.cc-urgent,.detail-table td.comm-prod-urgent,.detail-table th.cc-done,.detail-table td.comm-prod-done{display:none}
+  .detail-table tr.comm-ud-row{display:table-row}
+  .comm-ud-row td{padding:4px 6px;font-size:12px;text-align:left;white-space:nowrap}
+  .comm-ud-row label{display:inline-flex;align-items:center;gap:3px;cursor:pointer;font-size:12px;margin-right:10px}
+  .comm-ud-row .cu-urgent{color:var(--c-red)}
+  .comm-ud-row .cu-urgent input{width:15px;height:15px;accent-color:var(--c-red)}
+  .comm-ud-row .cu-done{color:var(--c-green)}
+  .comm-ud-row .cu-done input{width:15px;height:15px;accent-color:var(--c-green)}
+}
 /* v842：开团记录售后「备注」——电脑端作为第6列；手机端(<=768px)隐藏该列、改在每行下方显示小字，避免横向滚动 */
 .gb-remark-row{display:none}
 .detail-table th.gb-remark-col,.detail-table td.gb-remark-col{white-space:normal;word-break:break-all}
@@ -2688,7 +2717,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-subtype-box{display:flex;align-items:center;gap:10px;border:1px solid var(--c-border-light);border-radius:var(--radius-sm);background:var(--c-bg);margin-bottom:10px;padding:10px 12px;position:relative}
 .lr-subtype-box:last-child{margin-bottom:0}
 /* v782: 行高整体降一档（66→62）且行间距收一点——记录行 gap 6→4px、行高 line-height 1.25；空行 padding 13.5→11.5px 同步等高；标签居中基准 11→9px */
-.lr-subtype-label{flex-shrink:0;align-self:flex-start;width:44px;font-size:18px;font-weight:700;color:var(--c-text);line-height:1.2;text-align:center;margin-top:9px}
+/* v844: 标签上下间距修成相等——桌面实测墨迹 上18/下26（差8），margin-top 9→13 下移4px 居中 */
+.lr-subtype-label{flex-shrink:0;align-self:flex-start;width:44px;font-size:18px;font-weight:700;color:var(--c-text);line-height:1.2;text-align:center;margin-top:13px}
 .lr-subtype-content{flex:1;min-width:0}
 .lr-subtype-add{flex-shrink:0;width:28px;height:28px;border-radius:var(--radius-sm);border:1px solid var(--c-primary);background:var(--c-primary);color:#fff;font-size:18px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-top:2px;align-self:flex-start}
 .lr-subtype-add:hover{background:var(--c-primary-dark)}
@@ -2719,6 +2749,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-info-full .lr-info-val{white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word;font-size:13px}
 /* v784: 编辑/删除按钮与第一行文字顶对齐——实测按钮文字比首行文字高 2px（btn 有 1px 边框+2px 内边距把文字顶上去） */
 .lr-record-ops{display:flex;gap:1px;flex-shrink:0;align-items:center;margin-top:2px}
+/* v844: 记录行直接子级的编辑/删除（睡眠/零食行）从整行垂直居中改为贴首行——与 head 内按钮行为统一 */
+.lr-record-row > .lr-record-ops{align-self:flex-start}
 .lr-record-ops .btn{padding:2px 7px;font-size:12px;line-height:1.1;border-radius:var(--radius-sm)}
 .lr-size-note{font-size:11px;color:var(--c-text-light);white-space:normal;word-break:break-word;overflow-wrap:anywhere}
 .lr-info-val .lr-size-note{font-weight:500}
@@ -2733,7 +2765,12 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 @media (min-width:641px){
   .lr-record-info-2col .lr-info-line:not(.lr-info-full){line-height:19px;height:19px}
   .lr-info-full{line-height:19px;min-height:19px}
-  .lr-record-ops{margin-top:0}
+  /* v844: 内容块上下间距修相等——用 relative top（margin 会撑高行盒破坏 60px 等高）：
+     桌面实测盒 上11/下15 → top:2px；head 内按钮墨迹比首行文字低 2.5px，-5px 校平（原 margin-top:0）；
+     行直接子按钮（睡眠/零食）flex-start 后 margin-top:3px 与首行墨迹校平 */
+  .lr-record-info{position:relative;top:2px}
+  .lr-info-line-head .lr-record-ops{margin-top:-5px}
+  .lr-record-row > .lr-record-ops{margin-top:3px}
   .lr-record-ops .btn{line-height:1}
 }
 
@@ -2849,7 +2886,13 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-card-title{font-size:14px}
   .lr-card-body{padding:8px 10px}
   .lr-subtype-box{align-items:center;gap:8px;padding:10px 10px}
-  .lr-subtype-label{width:36px;font-size:16px;margin-top:8px}
+  /* v844: 标签墨迹实测 上17.5/下21（差3.5）→ margin-top 9.75 居中；内容块 上10/下12（差2）→ relative top:1px
+     （margin 会撑高行盒破坏 60px 等高）；head 内按钮墨迹比首行低 2.2px → -4.4px 校平；
+     行直接子按钮（睡眠/零食）flex-start 后 margin-top:1.5px 与首行墨迹校平 */
+  .lr-subtype-label{width:36px;font-size:16px;margin-top:9.75px}
+  .lr-record-info{position:relative;top:1px}
+  .lr-info-line-head .lr-record-ops{margin-top:-4.4px}
+  .lr-record-row > .lr-record-ops{margin-top:0.5px}
   .lr-subtype-add{width:24px;height:24px;font-size:16px}
   .lr-empty-row{padding:9.5px 0}
   /* v798: 手机端记录条加高一档（54→58px，盒 padding 8→10px，记录/空行同步等高）+ 内容下移居中：
@@ -3582,7 +3625,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=843"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=844"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
