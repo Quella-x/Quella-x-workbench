@@ -2877,10 +2877,14 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   /* v844: 标签墨迹实测 上17.5/下21（差3.5）→ margin-top 9.75 居中；内容块 上10/下12（差2）→ relative top:1px
      （margin 会撑高行盒破坏 60px 等高）；head 内按钮墨迹比首行低 2.2px → -4.4px 校平；
      行直接子按钮（睡眠/零食）flex-start 后 margin-top:1.5px 与首行墨迹校平 */
-  .lr-subtype-label{width:36px;font-size:16px;margin-top:9.75px}
-  .lr-record-info{position:relative;top:1px}
+  /* v845: 像素级墨迹校准（截图真实墨迹，非 Range 度量框——雅黑度量框上沿比真实墨迹高约3.25px，
+     按 Range 校准会调反方向）。实测 v844 标签墨迹 上24/下21.5 → 上移1.25px 居中 */
+  .lr-subtype-label{width:36px;font-size:16px;margin-top:8.5px}
+  /* 内容墨迹 上15.5/下13 → 上移1.25px（top 1→-0.25）；空行占位 24/21.5 → 同步上移 */
+  .lr-record-info{position:relative;top:-0.25px}
+  .lr-empty-row{position:relative;top:-1.25px}
   .lr-info-line-head .lr-record-ops{margin-top:-4.4px}
-  .lr-record-row > .lr-record-ops{margin-top:0.5px}
+  .lr-record-row > .lr-record-ops{margin-top:-0.75px}
   .lr-subtype-add{width:24px;height:24px;font-size:16px}
   .lr-empty-row{padding:9.5px 0}
   /* v798: 手机端记录条加高一档（54→58px，盒 padding 8→10px，记录/空行同步等高）+ 内容下移居中：
@@ -3614,7 +3618,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=844"></script>
+  <script src="app.js?v=845"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
