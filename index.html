@@ -2815,7 +2815,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .life-hero .lh-ico{font-size:26px}
   .life-record-page{padding:0;margin:0}
   .life-quick-checkin{padding:14px 12px}
-  .lr-top-card{padding:10px;min-height:160px}
+  .lr-top-card{padding:10px}
   .lr-top-left{gap:6px;padding:10px 10px 10px 1px;border-right:1px solid var(--c-border-light)}
   .sleep-ring-wrap{width:100px;height:100px}
   .sleep-ring-text{font-size:22px}
@@ -2839,11 +2839,11 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-subtype-box{align-items:center;gap:8px;padding:10px 10px}
   .lr-subtype-label{width:36px;font-size:16px;margin-top:8px}
   .lr-subtype-add{width:24px;height:24px;font-size:16px}
-  .lr-empty-row{padding:9.5px 0;min-height:44px}
+  .lr-empty-row{padding:9.5px 0}
   /* v798: 手机端记录条加高一档（54→58px，盒 padding 8→10px，记录/空行同步等高）+ 内容下移居中：
      全局 translateY(-2px) 是按桌面墨迹校准的，手机端实测 11/12.75（偏上 1.75px），改 -1px 后 12/11.75；
      分割线 bottom 同步 -1px 抵消平移，保持居中。桌面端（62px/-2px）不动 */
-  .lr-record-row{transform:translateY(-1px);align-items:center;min-height:44px;padding:0}
+  .lr-record-row{transform:translateY(-1px);min-height:38px}
   .lr-record-row::after{bottom:-1px}
   .lr-record-info-2col{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3px 22px}
   .lr-info-label{font-size:11px}
@@ -2855,7 +2855,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-info-full{line-height:16px}
   /* 单记录内容高：普通（头行18+全文16+gap3）=37px；睡眠（2×2 网格 18+18+gap3）=39px */
   /* v806: 手机端空行统一高度（电脑端实测空条统一62/空行统一40，故手机端不再区分普通/睡眠），普通条有记录=37px 看齐 */
-  .lr-empty-row{padding:0;min-height:44px;display:flex;align-items:center}
+  .lr-empty-row{padding:0;min-height:38px;height:38px;display:flex;align-items:center}
   .lr-record-ops .btn{padding:1px 6px;font-size:11px}
   .lr-size-note{font-size:10px}
   .lr-history-stat-card{padding:8px}
@@ -3275,6 +3275,16 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .kb-open .modal.tpl-lib-modal .tpl-folder-list{min-height:110px}
 .kb-open .modal.tpl-lib-modal .tpl-new-title{margin:0 0 6px}
 .kb-open .tpl-newtip,.kb-open .tpl-new-tip-box{margin:4px 0 6px}
+
+/* v843: 记录详情手机端表格换行优化——字号 11px；固定列缩到 52px、单号保持 64px，把空间让给制品名称等长文本列 */
+.detail-table th.gb-fix-col{width:62px}
+.detail-table th.gb-order-col{width:62px}
+@media (max-width:768px){
+  .detail-table{font-size:11px}
+  .detail-table th,.detail-table td{padding:5px 3px}
+  .detail-table th.gb-fix-col{width:52px}
+  .detail-table th.gb-order-col{width:64px}
+}
 </style>
 <script>
   (function(){
@@ -3561,7 +3571,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=842"></script>
+  <script src="app.js?v=843"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

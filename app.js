@@ -4963,7 +4963,7 @@ function openDetail(pageKey, id) {
       const gbFixedCols = new Set(['price','salesCount','isDisbanded','orderNo','quantity','amount']);
       const gbColStyle = (c, forTh) => {
         const ws = forTh ? '' : 'white-space:nowrap;';
-        if (gbFixedCols.has(c.subkey)) return ` style="width:62px;${ws}"`;
+        if (gbFixedCols.has(c.subkey)) return ` class="${c.subkey === 'orderNo' ? 'gb-order-col' : 'gb-fix-col'}"${ws ? ` style="${ws}"` : ''}`;
         return '';
       };
       const thStyle = c => isCommProd ? commColStyle(c, true) : (isGb ? gbColStyle(c, true) : '');
@@ -6185,6 +6185,8 @@ function togglePersonRelations(name, btn) {
 let _mmZoom = 1;
 let _mmPanX = 0;
 let _mmPanY = 0;
+let _mmBasePanX = 0;
+let _mmBasePanY = 0;
 let _mmDragging = false;
 let _mmLastX = 0;
 let _mmLastY = 0;
@@ -6282,12 +6284,8 @@ function drawMindMap(chars, relations) {
   if (!canvas) return;
   const container = $('#mindmapContainer');
   const containerW = container.clientWidth || 600;
-  // v841：布局用虚拟空间（窄屏也保证 >=620，让力导向有空间铺开、零重叠）；渲染后自动缩放适配容器宽度
-  const w = Math.max(containerW - 40, 620);
-  const h = 520;
-  const cx = w / 2, cy = h / 2;
-  const _fit = containerW > 0 ? Math.min(1, (containerW - 40) / w) : 1;
-  _mmZoom = _fit; _mmPanX = 0; _mmPanY = 0;
+  const containerH = container.clientHeight || 500;
+  const isNarrow = containerW < 700;
   // v835：力导向（散开式）布局——节点互相斥开、有关系的靠近；度数最高的节点钉画布中心，连线不穿过别的节点
   const allConnections = [];
   relations.forEach(r => {
@@ -6334,7 +6332,30 @@ function drawMindMap(chars, relations) {
   const connectedSet = new Set();
   allConnections.forEach(c => { connectedSet.add(c.a); connectedSet.add(c.b); });
   const layoutChars = chars.filter(c => connectedSet.has(c.name));
+  // v843：恢复「大节点」观感——画布尺寸随节点数增长（给力导向足够铺开空间、零重叠），
+  // 初始缩放恒为 1（节点保持满尺寸 60px），不再自动缩小；人多超出容器时由用户手势缩小/拖动查看
+  const _nConn = Math.max(layoutChars.length, 1);
+  const _need = Math.sqrt(_nConn) * (isNarrow ? 95 : 150);
+  const _wrapW = Math.max(containerW - 40, isNarrow ? 300 : 560);
+  const _baseH = isNarrow ? Math.max(containerH - 40, 380) : 520;
+  // 16 人以内在可视宽内铺开（初始视图完整不裁切）；再多人多才扩画布，由用户手势缩小查看。
+  // 大 N 兜底：星型（一个中心挂很多边）要求相邻节点圆心距 >= 60，反推所需画布边长，避免被夹到同一点而重叠
+  const _ringNeed = _nConn > 16 ? (2 * (30 / Math.sin(Math.PI / _nConn)) + 68) : 0;
+  const w = Math.max(_wrapW, _nConn > 16 ? Math.max(_need, _ringNeed) : 0);
+  const h = Math.max(_baseH, Math.min(Math.max(_need, _ringNeed), 900));
   const positions = computeForceLayout(layoutChars, allConnections, w, h);
+  // 初始视图：把关系图包围盒居中到可视区（避免默认只看到左上角一半）
+  let _minX = Infinity, _maxX = -Infinity, _minY = Infinity, _maxY = -Infinity;
+  layoutChars.forEach(c => {
+    const p = positions[c.name]; if (!p) return;
+    if (p.x < _minX) _minX = p.x; if (p.x > _maxX) _maxX = p.x;
+    if (p.y < _minY) _minY = p.y; if (p.y > _maxY) _maxY = p.y;
+  });
+  if (!isFinite(_minX)) { _minX = _maxX = w / 2; _minY = _maxY = h / 2; }
+  _mmZoom = 1;
+  _mmPanX = _wrapW / 2 - (_minX + _maxX) / 2;
+  _mmPanY = h / 2 - (_minY + _maxY) / 2;
+  _mmBasePanX = _mmPanX; _mmBasePanY = _mmPanY;
 
   // Wrap everything in a zoomable inner div
   let inner = `<div class="mindmap-inner" id="mindmapInner" style="position:relative;width:${w}px;height:${h}px;transform-origin:center center;transform:translate(${_mmPanX}px,${_mmPanY}px) scale(${_mmZoom});transition:transform .15s">`;
@@ -6404,7 +6425,7 @@ function mmZoom(factor) {
   mmApplyTransform();
 }
 function mmZoomReset() {
-  _mmZoom = 1; _mmPanX = 0; _mmPanY = 0;
+  _mmZoom = 1; _mmPanX = _mmBasePanX; _mmPanY = _mmBasePanY;
   mmApplyTransform();
 }
 // v839：关系图改为同心圆（径向）布局

@@ -10,7 +10,7 @@
  */
 const fs = require('fs');
 
-let html = fs.readFileSync('index.html', 'utf8');
+let html = fs.readFileSync('index.html', 'utf8').replace(/\r\n/g, '\n'); // CRLF 归一化，守卫串按 LF 匹配
 
 // 1) 标题
 html = html.replace('<title>小筱工作台</title>', '<title>约稿单填写</title>');
