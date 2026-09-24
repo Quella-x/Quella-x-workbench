@@ -10556,7 +10556,7 @@ function renderDietRecordRows(recs, st) {
       const unitNote = r.unit ? `<span class="lr-size-note">（${esc(r.unit)}）</span>` : '';
       const qtyLine = r.qty != null ? `<div class="lr-info-line"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}</span></div>` : '';
       lines = `<div class="lr-info-line"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${unitNote}</span></div>`;
-      trailingOps = opsHtml;
+      trailingOps = `<div class="lr-record-ops lr-ops-snack"><button class="btn btn-sm btn-ghost" onclick="lifeRecEdit('diet','${r.id}')">编辑</button><button class="btn btn-sm btn-ghost" onclick="lifeRecDelete('${r.id}')">删除</button></div>`;
     } else if (st.key === 'milktea') {
       const notes = [];
       if (r.size) notes.push(r.size);
@@ -10571,7 +10571,7 @@ function renderDietRecordRows(recs, st) {
       lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">${st.key === 'midnight' ? '享用时间' : '吃饭时间'}:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">餐食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}</span></div>`;
     }
     return `<div class="lr-record-row">
-      <div class="lr-record-info lr-record-info-2col">${lines}</div>${trailingOps}
+      <div class="lr-record-info lr-record-info-2col${st.key === 'snack' ? ' lr-record-info-snack' : ''}">${lines}</div>${trailingOps}
     </div>`;
   }).join('');
 }

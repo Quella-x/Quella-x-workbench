@@ -2718,7 +2718,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-subtype-box:last-child{margin-bottom:0}
 /* v782: 行高整体降一档（66→62）且行间距收一点——记录行 gap 6→4px、行高 line-height 1.25；空行 padding 13.5→11.5px 同步等高；标签居中基准 11→9px */
 /* v844: 标签上下间距修成相等——桌面实测墨迹 上18/下26（差8），margin-top 9→13 下移4px 居中 */
-.lr-subtype-label{flex-shrink:0;align-self:flex-start;width:44px;font-size:18px;font-weight:700;color:var(--c-text);line-height:1.2;text-align:center;margin-top:13px}
+.lr-subtype-label{flex-shrink:0;align-self:flex-start;width:44px;font-size:18px;font-weight:700;color:var(--c-text);line-height:1.2;text-align:center;margin-top:12px}
 .lr-subtype-content{flex:1;min-width:0}
 .lr-subtype-add{flex-shrink:0;width:28px;height:28px;border-radius:var(--radius-sm);border:1px solid var(--c-primary);background:var(--c-primary);color:#fff;font-size:18px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-top:2px;align-self:flex-start}
 .lr-subtype-add:hover{background:var(--c-primary-dark)}
@@ -2746,7 +2746,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-info-label{font-size:12px;color:var(--c-text-light);font-weight:500;white-space:nowrap}
 .lr-info-val{font-size:16px;color:var(--c-text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lr-info-full{grid-column:1 / -1;white-space:normal;word-break:break-word}
-.lr-info-full .lr-info-val{white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word;font-size:13px}
+.lr-info-full .lr-info-val{white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word;font-size:14px}
 /* v784: 编辑/删除按钮与第一行文字顶对齐——实测按钮文字比首行文字高 2px（btn 有 1px 边框+2px 内边距把文字顶上去） */
 .lr-record-ops{display:flex;gap:1px;flex-shrink:0;align-items:center;margin-top:2px}
 /* v844: 记录行直接子级的编辑/删除（睡眠/零食行）从整行垂直居中改为贴首行——与 head 内按钮行为统一 */
@@ -2763,14 +2763,15 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
    配套：编辑/删除按钮高收到 19px 内（margin-top 2→0、line-height 1.1→1），否则首行被按钮撑高。
    手机端（≤640px）另有 37px 一套（v805/v806 定稿），本块不影响。 */
 @media (min-width:641px){
-  .lr-record-info-2col .lr-info-line:not(.lr-info-full){line-height:19px;height:19px}
-  .lr-info-full{line-height:19px;min-height:19px}
-  /* v844: 内容块上下间距修相等——用 relative top（margin 会撑高行盒破坏 60px 等高）：
-     桌面实测盒 上11/下15 → top:2px；head 内按钮墨迹比首行文字低 2.5px，-5px 校平（原 margin-top:0）；
-     行直接子按钮（睡眠/零食）flex-start 后 margin-top:3px 与首行墨迹校平 */
+  .lr-record-info-2col .lr-info-line:not(.lr-info-full){line-height:18px;height:18px}
+  .lr-info-full{line-height:18px;min-height:18px}
+  /* v844/v846: 内容块上下间距修相等——默认 top:2px 适用于有内容单行；
+     snack 多行在 app.js 里单独加 .lr-record-info-snack 覆盖 */
   .lr-record-info{position:relative;top:2px}
+  .lr-record-info.lr-record-info-snack{top:-2px}
   .lr-info-line-head .lr-record-ops{margin-top:-5px}
   .lr-record-row > .lr-record-ops{margin-top:3px}
+  .lr-record-row > .lr-record-ops.lr-ops-snack{margin-top:1px}
   .lr-record-ops .btn{line-height:1}
 }
 
@@ -3629,7 +3630,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=845"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=846"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
