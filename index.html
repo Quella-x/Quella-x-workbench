@@ -2867,18 +2867,11 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-card-title{font-size:14px}
   .lr-card-body{padding:8px 10px}
   .lr-subtype-box{align-items:center;gap:8px;padding:10px 10px}
-  /* v844: 标签墨迹实测 上17.5/下21（差3.5）→ margin-top 9.75 居中；内容块 上10/下12（差2）→ relative top:1px
-     （margin 会撑高行盒破坏 60px 等高）；head 内按钮墨迹比首行低 2.2px → -4.4px 校平；
-     行直接子按钮（睡眠/零食）flex-start 后 margin-top:1.5px 与首行墨迹校平 */
-  /* v849: 还原 v845 像素墨迹校准（v834 模型：标签/内容/按钮位置恢复校准值） */
-  .lr-subtype-label{width:36px;font-size:16px;margin-top:8.5px}
-  .lr-record-info{position:relative;top:-0.25px}
-  .lr-empty-row{position:relative;top:-1.25px}
-  .lr-info-line-head .lr-record-ops{margin-top:-4.4px}
-  .lr-record-row > .lr-record-ops{margin-top:-0.75px}
+  /* v850: 还原 v843 = v834 原样 + 空/有记录行等高（唯一保留的改动） */
+  .lr-subtype-label{width:36px;font-size:16px;margin-top:8px}
   .lr-subtype-add{width:24px;height:24px;font-size:16px}
   .lr-empty-row{padding:9.5px 0}
-  .lr-record-row{transform:translateY(-1px);min-height:38px}
+  .lr-record-row{transform:translateY(-1px)}
   .lr-record-row::after{bottom:-1px}
   .lr-record-info-2col{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3px 22px}
   .lr-info-label{font-size:11px}
@@ -3606,7 +3599,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=849"></script>
+  <script src="app.js?v=850"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
