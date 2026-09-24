@@ -10555,7 +10555,7 @@ function renderDietRecordRows(recs, st) {
     if (st.key === 'snack') {
       const unitNote = r.unit ? `<span class="lr-size-note">（${esc(r.unit)}）</span>` : '';
       const qtyLine = r.qty != null ? `<div class="lr-info-line"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}</span></div>` : '';
-      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${unitNote}</span></div>`;
+      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span>${opsHtml}</div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${unitNote}</span></div>`;
     } else if (st.key === 'milktea') {
       const notes = [];
       if (r.size) notes.push(r.size);
