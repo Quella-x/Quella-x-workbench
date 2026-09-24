@@ -12,7 +12,7 @@ const valIncludes = (val, target) => { if (Array.isArray(val)) return val.includ
 const parseNum = (v) => { const n = parseFloat(String(v == null ? '' : v).replace(/[,\s¥￥]/g, '')); return isNaN(n) ? 0 : n; };
 const arrVal = (val) => Array.isArray(val) ? val : (val ? [val] : []);
 // 去掉人物姓名后附带的「(道号/外号)」后缀，仅保留纯姓名
-function pureOcName(s) { if (!s) return s; return String(s).replace(/\s*\([^)]*\)\s*$/, '').trim(); }
+function pureOcName(s) { if (!s) return s; return String(s).replace(/\s*[（(][^）)]*[）)]\s*$/, '').trim(); }
 const fmtDate = (d) => { if (!d) return ''; try { const dt = new Date(d); if (isNaN(dt)) return d; return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0'); } catch { return d; } };
 const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const thisMonthStr = () => todayStr().slice(0, 7);
@@ -5784,7 +5784,7 @@ const RELATION_TYPE_SOCIAL_MAP = {
   '姐弟': { field: 'siblings', dir: 'both' },
   '兄妹': { field: 'siblings', dir: 'both' },
   '表亲': { field: 'siblings', dir: 'both' },
-  '堂亲': { field: 'siblings', dir: 'both' }
+  '堂亲': { field: 'siblings', dir: 'both' }, '兄弟姐妹': { field: 'siblings', dir: 'both' }, '父母': { field: 'parents', dir: 'junior' }
 };
 // v615：人物档案社会关系字段 -> 关系类型（双向绑定：档案 -> 关系，反向回填）
 const SOCIAL_FIELD_RELATION_TYPE = {
@@ -5795,6 +5795,54 @@ const RELATION_TYPE_SOCIAL_FIELD = {
 };
 function splitOcNames(v) {
   return (v || '').split(/[、,，]/).map(s => pureOcName(s.trim())).filter(Boolean);
+}
+// v852：拆出「名字（标注）」——社会关系栏里写「张三（哥哥）」时，名字与括号内详情分开取，全角/半角括号都认
+// 按分隔符拆栏，保留每个名字的括号标注（splitOcNames 会把括号剥掉，不能用于反推标注）
+function splitOcNameEntries(v) {
+  return String(v || '').split(/[、,，]/).map(s => splitOcNameDetail(s)).filter(p => p.name);
+}
+function splitOcNameDetail(s) {
+  const raw = String(s || '').trim();
+  const m = raw.match(/^(.*?)\s*[（(]([^）)]*)[）)]\s*$/);
+  if (!m) return { name: pureOcName(raw), detail: '' };
+  return { name: pureOcName(m[1]), detail: String(m[2] || '').trim() };
+}
+// v852：笼统类型 -> 同族具体类型（用于「有具体类型就隐藏笼统类型」的判重，好友不再被误隐藏）
+const REL_GENERIC_FAMILY = {
+  '兄弟姐妹': ['兄弟', '兄妹', '姐弟', '姐妹', '表亲', '堂亲'],
+  '父母': ['父子', '父女', '母子', '母女'],
+};
+// v852：括号标注 -> 关系类型（现场识别现推，关键词匹配，不依赖穷举词表）
+// 返回 { type, seniorOther }：seniorOther=true 对方是长辈/师父（关系记录 charA=对方），false 自己是长辈，null 平辈
+function inferRelationFromDetail(detail, field, gender) {
+  const d = String(detail || '').replace(/\s/g, '');
+  const g = (gender === '女') ? 'F' : (gender === '男') ? 'M' : '';
+  const fallback = SOCIAL_FIELD_RELATION_TYPE[field] || '好友';
+  if (field === 'siblings') {
+    if (/表/.test(d)) return { type: '表亲', seniorOther: null };
+    if (/堂/.test(d)) return { type: '堂亲', seniorOther: null };
+    if (/哥|兄/.test(d)) return { type: g === 'F' ? '兄妹' : (g === 'M' ? '兄弟' : '兄弟姐妹'), seniorOther: true };
+    if (/姐/.test(d)) return { type: g === 'F' ? '姐妹' : (g === 'M' ? '姐弟' : '兄弟姐妹'), seniorOther: true };
+    if (/弟/.test(d)) return { type: g === 'F' ? '姐弟' : (g === 'M' ? '兄弟' : '兄弟姐妹'), seniorOther: false };
+    if (/妹/.test(d)) return { type: g === 'F' ? '姐妹' : (g === 'M' ? '兄妹' : '兄弟姐妹'), seniorOther: false };
+    return { type: fallback, seniorOther: null };
+  }
+  if (field === 'parents') {
+    if (/父|爸/.test(d)) return { type: g === 'F' ? '父女' : (g === 'M' ? '父子' : '父母'), seniorOther: true };
+    if (/母|妈/.test(d)) return { type: g === 'F' ? '母女' : (g === 'M' ? '母子' : '父母'), seniorOther: true };
+    if (/女/.test(d)) return { type: g === 'M' ? '父女' : (g === 'F' ? '母女' : '父母'), seniorOther: false }; // 「女儿」先判，别被 子|儿 抢走
+    if (/子|儿/.test(d)) return { type: g === 'M' ? '父子' : (g === 'F' ? '母子' : '父母'), seniorOther: false };
+    return { type: fallback, seniorOther: true }; // 无标注：默认对方是父母（长辈）
+  }
+  if (field === 'master') {
+    // 「师徒」栏语义是「我的师父/徒弟」：默认对方是师父，仅当标注写「徒弟/弟子」时才反过来
+    if (/徒|弟子/.test(d)) return { type: '师徒', seniorOther: false };
+    return { type: '师徒', seniorOther: true };
+  }
+  if (field === 'companion') return { type: '道侣', seniorOther: null };
+  if (field === 'friends') return { type: /交好/.test(d) ? '交好' : '好友', seniorOther: null };
+  if (field === 'fellow') return { type: /上下/.test(d) ? '上下级' : '同门', seniorOther: null };
+  return { type: fallback, seniorOther: null };
 }
 
 // v841：给定一组关系记录，按 pair 计算每对应显示类型，返回 [{record, visibleTypes}]
@@ -5849,6 +5897,14 @@ function syncOcRelationSocialFields(charName) {
   // v641：删除关系后必须用「重新推导」的值覆盖，不能和旧的 c[f] 取并集，
   // 否则被删关系的名字会残留，导致思维导图自动同步仍画出该连线（删除后导图不变）。
   const derived = deriveSocialFieldsFromRelations(charName);
+  // v852：推导值只有纯名，回填前把档案里原有的括号标注按纯名贴回去，避免「张三（哥哥）」被抹平成「张三」
+  ['parents', 'siblings', 'master', 'companion', 'friends', 'fellow'].forEach(f => {
+    const oldVal = c[f];
+    const anno = {};
+    splitOcNameEntries(oldVal).forEach(p => { if (p.detail) anno[p.name] = p.detail; });
+    if (!oldVal || !derived[f] || !Object.keys(anno).length) return;
+    derived[f] = splitOcNames(derived[f]).map(n => (anno[n] ? n + '（' + anno[n] + '）' : n)).join('、');
+  });
   DB.update('ocCharacters', c.id, derived);
 }
 // v614：一次性迁移，用已有关系回填所有人物档案的社会关系字段
@@ -5884,42 +5940,63 @@ function syncProfileReverseSocial(charName) {
 function syncProfileSocialToRelations(charName, socialData) {
   if (!charName) return;
   const name = pureOcName(charName);
-  let relations = DB.list('ocRelations');
-  // 1) 新增：档案社会关系里存在、但 ocRelations 中尚无对应记录的人 -> 建立关系
+  const self = DB.list('ocCharacters').find(x => x.name === charName || pureOcName(x.name) === name);
+  const gender = self ? arrVal(self.gender).join('') : '';
+  const pairKey = (x, y) => [x, y].sort().join('\u0000');
+  // 1) 解析六栏：拆出「名字 + 括号标注」，现场反推具体关系类型（例：A 性别女 + 「张三（哥哥）」-> 兄妹）
+  const wanted = [];
   ['parents', 'siblings', 'master', 'companion', 'friends', 'fellow'].forEach(field => {
-    const type = SOCIAL_FIELD_RELATION_TYPE[field];
-    splitOcNames(socialData && socialData[field]).forEach(other => {
-      if (other === name) return;
-      const exists = relations.some(r =>
-        arrVal(r.relationType).includes(type) &&
-        ((pureOcName(r.charA) === name && pureOcName(r.charB) === other) ||
-         (pureOcName(r.charA) === other && pureOcName(r.charB) === name))
-      );
-      if (exists) return;
-      const rec = { charA: name, charB: other, relationType: [type], relationStatus: [], _syncedFromProfile: true };
-      const saved = DB.add('ocRelations', rec);
-      relations.push(saved);
-      syncOcRelationToChars(saved);
+    splitOcNameEntries(socialData && socialData[field]).forEach(p => {
+      if (!p.name || p.name === name) return;
+      const inf = inferRelationFromDetail(p.detail, field, gender);
+      wanted.push({ field: field, other: p.name, type: inf.type, seniorOther: inf.seniorOther });
     });
   });
-  // 2) 清理：档案社会关系里已不再包含的人，其对应的关系记录（含手动建立的关系）同步删除，实现「档案↔关系」双向联动删除
-  // 仅当关系所有类型都能映射到某个社会关系字段、且对应字段均已不含对方时才删除；无法由档案驱动的类型（如死敌）保留，避免误删
-  relations.forEach(r => {
-    const involves = pureOcName(r.charA) === name || pureOcName(r.charB) === name;
-    if (!involves) return;
-    const other = pureOcName(r.charA) === name ? pureOcName(r.charB) : pureOcName(r.charA);
+  // 2) 建/更新：同 pair 已有该类型则复用；已有同栏笼统类型（兄弟姐妹/父母/师徒…）则升级为反推出的具体类型；长辈/师父一律落在 charA
+  wanted.forEach(w => {
+    const key = pairKey(name, w.other);
+    const inPair = DB.list('ocRelations').filter(r => pairKey(pureOcName(r.charA), pureOcName(r.charB)) === key);
+    let rec = inPair.find(r => arrVal(r.relationType).includes(w.type));
+    if (!rec) {
+      const genericType = SOCIAL_FIELD_RELATION_TYPE[w.field];
+      const g = inPair.find(r => arrVal(r.relationType).includes(genericType));
+      if (g) { DB.update('ocRelations', g.id, { relationType: [w.type] }); rec = DB.getById('ocRelations', g.id); }
+    }
+    if (!rec) {
+      const senior = w.seniorOther === true;
+      rec = DB.add('ocRelations', { charA: senior ? w.other : name, charB: senior ? name : w.other, relationType: [w.type], relationStatus: [], _syncedFromProfile: true });
+    } else if (w.seniorOther === true || w.seniorOther === false) {
+      const seniorA = w.seniorOther === true ? w.other : name;
+      const juniorB = w.seniorOther === true ? name : w.other;
+      if (pureOcName(rec.charA) !== seniorA) DB.update('ocRelations', rec.id, { charA: seniorA, charB: juniorB });
+    }
+    // v852：回填放到第 3 步统一做——逐个建关系就回填的话，后面几栏的关系还没建，会被推导值提前清空
+  });
+  // 3) 关系全部建完后统一回填（人物反向引用 + 档案六栏）
+  DB.list('ocRelations').forEach(r => {
+    const a = pureOcName(r.charA), b = pureOcName(r.charB);
+    if (a === name || b === name) syncOcRelationToChars(r);
+  });
+  // 4) 清理：档案里已删掉的人 -> 对应关系记录同步删除（保留「档案↔关系」双向联动删除）
+  //    方向敏感：师徒/父母这类单向类型，只有「晚辈方」的档案能驱动删除；长辈方保存档案不会误删关系
+  const wantedKeys = new Set(wanted.map(w => pairKey(name, w.other)));
+  DB.list('ocRelations').forEach(r => {
+    const a = pureOcName(r.charA), b = pureOcName(r.charB);
+    const iAmA = (a === name), iAmB = (b === name);
+    if (!iAmA && !iAmB) return;
+    const other = iAmA ? b : a;
     const types = arrVal(r.relationType);
     if (!types.length) return;
-    const allMapped = types.every(t => !!RELATION_TYPE_SOCIAL_FIELD[t]);
-    if (!allMapped) return; // 含无法由档案驱动的类型，保留该关系
-    const stillThere = types.some(t => {
-      const f = RELATION_TYPE_SOCIAL_FIELD[t];
-      return splitOcNames(socialData && socialData[f]).includes(other);
+    if (!types.every(t => !!RELATION_TYPE_SOCIAL_MAP[t])) return; // 含无法由档案驱动的类型（如敌对）不动
+    if (wantedKeys.has(pairKey(a, b))) return;
+    const still = types.some(t => {
+      const m = RELATION_TYPE_SOCIAL_MAP[t];
+      if (m.dir === 'junior' && iAmA) return true; // 我是长辈/师父方，这一栏不由我的档案驱动，保留
+      return splitOcNames(socialData && socialData[m.field]).includes(other);
     });
-    if (!stillThere) {
-      DB.remove('ocRelations', r.id);
-      removeOcRelationRefs(r);
-    }
+    if (still) return;
+    DB.remove('ocRelations', r.id);
+    removeOcRelationRefs(r);
   });
 }
 // v620: 人物关系按 pair 组合编辑/删除（卡片已按 pair 合并展示）
@@ -6287,12 +6364,17 @@ function mmInitDrag() {
 }
 // v841：关系类型粗细分层。GENERIC=笼统类型（兄弟姐妹/父母/好友），当同一对人物同时存在
 // 具体类型（兄妹/父女/…）时，图上/列表里只显示具体类型，笼统的不显示（数据保留，不删除）。
-const GENERIC_REL_TYPES = new Set(['兄弟姐妹', '父母', '好友']);
-// 给定某对人物的全部关系类型，返回应显示的类型（同 pair 有具体类型则隐藏笼统类型）
+// v852：只隐藏「同族」笼统类型（有兄妹就隐藏兄弟姐妹、有父女就隐藏父母）；好友/同门等独立关系不再被误隐藏，
+// 同一对人物有几个关系就显示几个（图上几条线、列表几个标签）。
 function ocRelationVisibleTypes(types) {
   const arr = arrVal(types);
-  const hasSpecific = arr.some(t => !GENERIC_REL_TYPES.has(t));
-  return hasSpecific ? arr.filter(t => !GENERIC_REL_TYPES.has(t)) : arr;
+  const set = new Set(arr);
+  const hidden = new Set();
+  Object.keys(REL_GENERIC_FAMILY).forEach(g => {
+    if (set.has(g) && REL_GENERIC_FAMILY[g].some(s => set.has(s))) hidden.add(g);
+  });
+  const kept = arr.filter(t => !hidden.has(t));
+  return kept.length ? kept : arr;
 }
 function drawMindMap(chars, relations) {
   const canvas = $('#mindmapCanvas');
@@ -6305,9 +6387,11 @@ function drawMindMap(chars, relations) {
   const allConnections = [];
   relations.forEach(r => {
     const types = arrVal(r.relationType);
-    const type = types[0] || '关系';
     const status = arrVal(r.relationStatus);
-    allConnections.push({ a: pureOcName(r.charA), b: pureOcName(r.charB), type, auto: false, status });
+    // v852：一条关系记录里有几个类型就画几条线（过去只取 types[0]，多类型的记录只显示成一个标签）
+    (types.length ? types : ['关系']).forEach(t => {
+      allConnections.push({ a: pureOcName(r.charA), b: pureOcName(r.charB), type: t, auto: false, status });
+    });
   });
   // Auto-sync from profile social fields
   const socialFields = [
@@ -6316,30 +6400,44 @@ function drawMindMap(chars, relations) {
     { key: 'friends', type: '好友' }, { key: 'fellow', type: '同门' },
   ];
   chars.forEach(c => {
+    const cg = arrVal(c.gender).join('');
     socialFields.forEach(sf => {
       const val = c[sf.key];
-      if (val) {
-        chars.forEach(t => {
-          if (t.name !== c.name && (val.includes(t.name) || (t.alias && val.includes(t.alias)))) {
-            const exists = allConnections.some(conn =>
-              ((conn.a === c.name && conn.b === t.name) || (conn.a === t.name && conn.b === c.name)) && !conn.auto
-            );
-            if (!exists) allConnections.push({ a: c.name, b: t.name, type: sf.type, auto: true });
-          }
-        });
-      }
+      if (!val) return;
+      // v852：按「名字（标注）」解析，档案里写的括号标注同样参与反推（如「张三（哥哥）」-> 兄妹）
+      splitOcNameEntries(val).forEach(p => {
+        if (!p.name || p.name === c.name) return;
+        const t = chars.find(x => x.name === p.name || (x.alias && p.name === x.alias) || pureOcName(x.name) === p.name);
+        if (!t || t.name === c.name) return;
+        const exists = allConnections.some(conn =>
+          ((conn.a === c.name && conn.b === t.name) || (conn.a === t.name && conn.b === c.name)) && !conn.auto
+        );
+        if (exists) return;
+        const inf = inferRelationFromDetail(p.detail, sf.key, cg);
+        allConnections.push({ a: c.name, b: t.name, type: inf.type, auto: true });
+      });
     });
   });
   // v839.1：同一对人物若同时有笼统类型（兄弟姐妹/父母/好友，来自档案同步）与细分类型（兄妹/父女/…），
   // 仅保留细分类型——「按人物关系走」，避免图上两条线重叠。
-  const GENERIC_REL = new Set(['兄弟姐妹', '父母', '好友']);
+  const GENERIC_REL = new Set([]); // v852：改用 REL_GENERIC_FAMILY 同族判重，不再一刀切隐藏笼统类型
   const byPair = {};
   allConnections.forEach(c => { const k = [c.a, c.b].sort().join(' '); (byPair[k] ||= []).push(c); });
   const deduped = [];
   Object.values(byPair).forEach(list => {
-    const specific = list.filter(c => !GENERIC_REL.has(c.type));
-    if (specific.length) specific.forEach(c => deduped.push(c));
-    else list.forEach(c => deduped.push(c));
+    const set = new Set(list.map(c => c.type));
+    const hidden = new Set();
+    Object.keys(REL_GENERIC_FAMILY).forEach(g => {
+      if (set.has(g) && REL_GENERIC_FAMILY[g].some(s => set.has(s))) hidden.add(g);
+    });
+    const seen = new Set();
+    list.forEach(c => {
+      if (hidden.has(c.type)) return;
+      const key = c.type + '|' + (c.auto ? '1' : '0');
+      if (seen.has(key)) return; // 完全相同的类型只画一次，其余关系各画一条线
+      seen.add(key);
+      deduped.push(c);
+    });
   });
   allConnections.length = 0;
   deduped.forEach(c => allConnections.push(c));
