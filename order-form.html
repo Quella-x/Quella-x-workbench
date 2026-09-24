@@ -2716,10 +2716,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-card-body{padding:10px 12px}
 .lr-subtype-box{display:flex;align-items:center;gap:10px;border:1px solid var(--c-border-light);border-radius:var(--radius-sm);background:var(--c-bg);margin-bottom:10px;padding:10px 12px;position:relative}
 .lr-subtype-box:last-child{margin-bottom:0}
-/* v782: 行高整体降一档（66→62）且行间距收一点——记录行 gap 6→4px、行高 line-height 1.25；空行 padding 13.5→11.5px 同步等高；标签居中基准 11→9px */
-/* v844: 标签上下间距修成相等——桌面实测墨迹 上18/下26（差8），margin-top 9→13 下移4px 居中 */
-.lr-subtype-label{flex-shrink:0;align-self:flex-start;width:44px;font-size:18px;font-weight:700;color:var(--c-text);line-height:1.2;text-align:center;margin-top:12px}
-.lr-subtype-content{flex:1;min-width:0}
+/* v847: 标签/内容用 flexbox 自然居中，不再依赖逐像素 margin-top/translateY（不同浏览器/OS 度量差异大） */
+.lr-subtype-label{flex-shrink:0;align-self:center;width:44px;font-size:18px;font-weight:700;color:var(--c-text);line-height:1.2;text-align:center}
+.lr-subtype-content{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
 .lr-subtype-add{flex-shrink:0;width:28px;height:28px;border-radius:var(--radius-sm);border:1px solid var(--c-primary);background:var(--c-primary);color:#fff;font-size:18px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-top:2px;align-self:flex-start}
 .lr-subtype-add:hover{background:var(--c-primary-dark)}
 .lr-head-add{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);border:1px solid var(--c-primary);background:var(--c-primary);color:#fff;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;line-height:1}
@@ -2727,10 +2726,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-head-add::before{content:'+';font-size:13px;font-weight:500;line-height:1;display:inline-flex;align-items:center;justify-content:center}
 .lr-empty-row{color:var(--c-text-muted);font-size:13px;min-height:46px;display:flex;align-items:center;padding:0;line-height:17px;cursor:pointer}
 .lr-empty-row:hover{color:var(--c-primary)}
-/* v784: 分割线改用蓝调可见色——原 var(--c-border-light)=#eef2f5 与卡片底色 #eef7ff 几乎同色，实测看到的线像素就是底色的深浅差（不可见） */
-/* v786: 分割线定稿——浅灰实线撑满（左端延伸到小标题下方 label 44+gap 10），bottom -2px 抵消整行 translateY(-2px) 使其在两条记录间垂直居中 */
-.lr-record-row{display:flex;align-items:center;gap:10px;min-height:46px;padding:0;position:relative;transform:translateY(-2px)}
-.lr-record-row::after{content:'';position:absolute;left:0;right:0;bottom:-2px;height:0;border-top:1px dashed var(--c-border-light)}
+/* v847: 分割线定稿——浅灰实线撑满，bottom:-5px 让伪元素落在两条记录（.lr-subtype-box）间距中间；不再 translate 整行 */
+.lr-record-row{display:flex;align-items:center;gap:10px;min-height:46px;padding:0;position:relative}
+.lr-record-row::after{content:'';position:absolute;left:0;right:0;bottom:-5px;height:0;border-top:1px dashed var(--c-border-light)}
 .lr-record-row:last-child::after{display:none}
 .lr-record-row:last-child{padding-bottom:0}
 .lr-record-row:first-child{padding-top:0}
@@ -2747,11 +2745,12 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-info-val{font-size:16px;color:var(--c-text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lr-info-full{grid-column:1 / -1;white-space:normal;word-break:break-word}
 .lr-info-full .lr-info-val{white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word;font-size:14px}
-/* v784: 编辑/删除按钮与第一行文字顶对齐——实测按钮文字比首行文字高 2px（btn 有 1px 边框+2px 内边距把文字顶上去） */
-.lr-record-ops{display:flex;gap:1px;flex-shrink:0;align-items:center;margin-top:2px}
-/* v844: 记录行直接子级的编辑/删除（睡眠/零食行）从整行垂直居中改为贴首行——与 head 内按钮行为统一 */
-.lr-record-row > .lr-record-ops{align-self:flex-start}
-.lr-record-ops .btn{padding:2px 7px;font-size:12px;line-height:1.1;border-radius:var(--radius-sm)}
+/* v847: 编辑/删除按钮与第一行文字顶对齐 */
+.lr-record-ops{display:flex;gap:1px;flex-shrink:0;align-items:baseline;margin-top:0}
+/* v844/v847: 编辑/删除按钮贴首行文字顶 */
+.lr-info-line-head .lr-record-ops{align-self:flex-start;margin-top:-3px}
+.lr-record-row > .lr-record-ops{align-self:flex-start;margin-top:0}
+.lr-record-ops .btn{padding:2px 7px;font-size:12px;line-height:1;border-radius:var(--radius-sm)}
 .lr-size-note{font-size:11px;color:var(--c-text-light);white-space:normal;word-break:break-word;overflow-wrap:anywhere}
 .lr-info-val .lr-size-note{font-weight:500}
 /* v810：电脑端每日记录——记录条严格等高
@@ -2765,13 +2764,10 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 @media (min-width:641px){
   .lr-record-info-2col .lr-info-line:not(.lr-info-full){line-height:18px;height:18px}
   .lr-info-full{line-height:18px;min-height:18px}
-  /* v844/v846: 内容块上下间距修相等——默认 top:2px 适用于有内容单行；
-     snack 多行在 app.js 里单独加 .lr-record-info-snack 覆盖 */
-  .lr-record-info{position:relative;top:2px}
-  .lr-record-info.lr-record-info-snack{top:-2px}
-  .lr-info-line-head .lr-record-ops{margin-top:-5px}
-  .lr-record-row > .lr-record-ops{margin-top:3px}
-  .lr-record-row > .lr-record-ops.lr-ops-snack{margin-top:1px}
+  /* v847: 内容块随 align-items:center 自然居中；按钮与首行文字顶对齐 */
+  .lr-record-info{position:static}
+  .lr-info-line-head .lr-record-ops{align-self:flex-start;margin-top:-3px}
+  .lr-record-row > .lr-record-ops{margin-top:0}
   .lr-record-ops .btn{line-height:1}
 }
 
@@ -2890,21 +2886,17 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   /* v844: 标签墨迹实测 上17.5/下21（差3.5）→ margin-top 9.75 居中；内容块 上10/下12（差2）→ relative top:1px
      （margin 会撑高行盒破坏 60px 等高）；head 内按钮墨迹比首行低 2.2px → -4.4px 校平；
      行直接子按钮（睡眠/零食）flex-start 后 margin-top:1.5px 与首行墨迹校平 */
-  /* v845: 像素级墨迹校准（截图真实墨迹，非 Range 度量框——雅黑度量框上沿比真实墨迹高约3.25px，
-     按 Range 校准会调反方向）。实测 v844 标签墨迹 上24/下21.5 → 上移1.25px 居中 */
-  .lr-subtype-label{width:36px;font-size:16px;margin-top:8.5px}
-  /* 内容墨迹 上15.5/下13 → 上移1.25px（top 1→-0.25）；空行占位 24/21.5 → 同步上移 */
-  .lr-record-info{position:relative;top:-0.25px}
-  .lr-empty-row{position:relative;top:-1.25px}
-  .lr-info-line-head .lr-record-ops{margin-top:-4.4px}
-  .lr-record-row > .lr-record-ops{margin-top:-0.75px}
+  /* v847: 标签/内容用 flexbox 居中，取消像素微调（不同浏览器/OS 下 transform/margin 不可靠） */
+  .lr-subtype-label{width:36px;font-size:16px;align-self:center;margin-top:0}
+  .lr-record-info{position:static}
+  .lr-empty-row{position:static}
+  .lr-info-line-head .lr-record-ops{align-self:flex-start;margin-top:0}
+  .lr-record-row > .lr-record-ops{align-self:flex-start;margin-top:0}
   .lr-subtype-add{width:24px;height:24px;font-size:16px}
   .lr-empty-row{padding:9.5px 0}
-  /* v798: 手机端记录条加高一档（54→58px，盒 padding 8→10px，记录/空行同步等高）+ 内容下移居中：
-     全局 translateY(-2px) 是按桌面墨迹校准的，手机端实测 11/12.75（偏上 1.75px），改 -1px 后 12/11.75；
-     分割线 bottom 同步 -1px 抵消平移，保持居中。桌面端（62px/-2px）不动 */
-  .lr-record-row{transform:translateY(-1px);min-height:38px}
-  .lr-record-row::after{bottom:-1px}
+  /* v847: 手机端记录条随 flexbox 居中，取消 translateY；分割线在两条记录间距中间 */
+  .lr-record-row{transform:none;min-height:38px}
+  .lr-record-row::after{bottom:-6px}
   .lr-record-info-2col{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3px 22px}
   .lr-info-label{font-size:11px}
   .lr-info-val{font-size:14px}
@@ -3630,7 +3622,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=846"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=847"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
