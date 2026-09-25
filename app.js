@@ -6040,15 +6040,17 @@ function syncOcRelationSocialFields(charName) {
         if (d && d !== FIELD_GENERIC_WORD[f]) return n + '（' + d + '）';
         return n;
       }
-      // 用户写了括号 -> 按关系记录反推该字段正确的括号词
-      if (!d) {
-        // 没有关系或关系类型不匹配该字段：若括号词是别的字段的专用词，则去掉错误括号
-        if (ALL_REVERSE_WORDS.has(userDetail) && !fieldAllowedWords.has(userDetail)) return n;
-        return n + '（' + userDetail + '）'; // 保留用户自定义括号
+      // v860：用户写了括号 -> 优先保留用户标注；仅在以下情况改动（修复 v859 误删用户已填默认类型括号）：
+      //   ① 标注词属于其他字段专用词（明显跨栏错误，如道侣栏写「徒弟」）-> 去括号；
+      //   ② 标注词本身是关系词且关系匹配本栏 -> 方向/细分类型用反推词 d 修正（用户打括号即让系统反推正确类型），
+      //      对称默认类型（道侣/好友/同门，与字段标签重复）保留用户原样；
+      //   ③ 自定义词/通用词 -> 一律保留。
+      if (ALL_REVERSE_WORDS.has(userDetail) && !fieldAllowedWords.has(userDetail)) return n; // 跨栏错误去括号
+      if (ALL_REVERSE_WORDS.has(userDetail) && d) {
+        if (d === FIELD_GENERIC_WORD[f]) return n + '（' + userDetail + '）'; // 对称默认类型：保留用户原括号
+        return n + '（' + d + '）'; // 方向/细分类型：用关系反推的正确词修正
       }
-      // v859：对称关系只保留有意义的细分类型（交好/上下级），与字段标签重复的默认类型（道侣/好友/同门）不再显示
-      if (d === FIELD_GENERIC_WORD[f]) return n;
-      return n + '（' + d + '）'; // 方向性关系保留并修正括号词
+      return n + '（' + userDetail + '）'; // 自定义词/通用词保留
     }).join('、');
   });
   DB.update('ocCharacters', c.id, derived);
@@ -6125,6 +6127,13 @@ function normalizeOcProfileReverseDetailV859() {
   if (DB.get('oc_profile_reverse_v859')) return;
   DB.list('ocCharacters').forEach(c => { if (c && c.name) syncOcRelationSocialFields(c.name); });
   DB.set('oc_profile_reverse_v859', true);
+}
+// v860：按最新括号策略重算所有人物档案社会关系——保留用户已填的默认类型括号（道侣/好友/同门），
+// 修正跨字段错误标注、方向/细分类型用关系反推词修正；无需用户逐个重新保存。
+function normalizeOcProfileReverseDetailV860() {
+  if (DB.get('oc_profile_reverse_v860')) return;
+  DB.list('ocCharacters').forEach(c => { if (c && c.name) syncOcRelationSocialFields(c.name); });
+  DB.set('oc_profile_reverse_v860', true);
 }
 // v615：人物档案社会关系字段 -> 人物关系记录（双向绑定：档案 -> 关系）
 // 在档案保存时调用：为档案社会关系里填写的每个人自动建立/清理对应的人物关系记录
@@ -13465,6 +13474,8 @@ function init() {
   normalizeOcProfileReverseDetailV858();
   // v859：保留对称关系细分类型括号（交好/上下级），默认类型去括号；新建人物档案时保留他人为其建立的关系。
   normalizeOcProfileReverseDetailV859();
+  // v860：刷新即用最新括号策略重算所有档案
+  normalizeOcProfileReverseDetailV860();
   Sync.load();
   initEvents();
   renderAppLogo();
