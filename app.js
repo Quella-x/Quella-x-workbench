@@ -6009,12 +6009,21 @@ function syncOcRelationSocialFields(charName) {
   // v852：推导值只有纯名，回填前把档案里原有的括号标注按纯名贴回去，避免「张三（哥哥）」被抹平成「张三」
   // v853：原有标注优先；没有标注时按「关系类型 + 自己在关系里的位置」反向生成（例：对方填了「云烬（哥哥）」，云烬这栏自动写「云影（弟弟）」）
   // v855：反向括号必须按字段过滤关系类型，道侣/好友/同门等对称类型不自动加括号
+  // v857：取「关系推导的人物」与「用户原字段填写的人物」并集，防止用户手动填的人被消掉；
+  //       括号只在用户原本写过括号的人物上按关系记录修正，没写括号的保持纯名，不再主动加括号。
   ['parents', 'siblings', 'master', 'companion', 'friends', 'fellow'].forEach(f => {
+    const entries = splitOcNameEntries(c[f]);
     const anno = {};
-    splitOcNameEntries(c[f]).forEach(p => { if (p.detail) anno[p.name] = p.detail; });
-    const names = derived[f] ? splitOcNames(derived[f]) : [];
-    derived[f] = names.map(n => {
-      const d = anno[n] || reverseDetailBetween(charName, n, SOCIAL_FIELD_REVERSE_ALLOWED[f]) || '';
+    entries.forEach(p => { if (p.name) anno[p.name] = p.detail; });
+    const derivedNames = derived[f] ? splitOcNames(derived[f]) : [];
+    const userNames = entries.map(p => p.name).filter(Boolean);
+    // 合并去重：关系记录里有的自动补上，用户手动填的也保留
+    const allNames = Array.from(new Set([...derivedNames, ...userNames]));
+    derived[f] = allNames.map(n => {
+      // 用户没写括号 -> 保持纯名，系统不再主动加括号
+      if (!anno[n]) return n;
+      // 用户写了括号 -> 按关系记录反推修正为该字段正确的括号词；若关系不支持该字段则去括号
+      const d = reverseDetailBetween(charName, n, SOCIAL_FIELD_REVERSE_ALLOWED[f]) || '';
       return d ? n + '（' + d + '）' : n;
     }).join('、');
   });
@@ -6072,6 +6081,13 @@ function normalizeOcProfileReverseDetailV856() {
   DB.list('ocCharacters').forEach(c => { if (c && c.name) syncOcRelationSocialFields(c.name); });
   DB.set('oc_profile_reverse_v856', true);
 }
+// v857：社会关系字段取「关系推导」与「用户原字段」并集，且括号只修正用户已写的——
+// 修复 v855/v856 自动给所有关系人物加括号、以及可能覆盖/清空用户手动填写人物的问题
+function normalizeOcProfileReverseDetailV857() {
+  if (DB.get('oc_profile_reverse_v857')) return;
+  DB.list('ocCharacters').forEach(c => { if (c && c.name) syncOcRelationSocialFields(c.name); });
+  DB.set('oc_profile_reverse_v857', true);
+}
 // v615：人物档案社会关系字段 -> 人物关系记录（双向绑定：档案 -> 关系）
 // 在档案保存时调用：为档案社会关系里填写的每个人自动建立/清理对应的人物关系记录
 // v841：人物档案关系反向自动同步（档案 -> 档案）
@@ -6127,15 +6143,10 @@ function syncProfileSocialToRelations(charName, socialData) {
       const juniorB = w.seniorOther === true ? name : w.other;
       if (pureOcName(rec.charA) !== seniorA) DB.update('ocRelations', rec.id, { charA: seniorA, charB: juniorB });
     }
-    // v852：回填放到第 3 步统一做——逐个建关系就回填的话，后面几栏的关系还没建，会被推导值提前清空
-  });
-  // 3) 关系全部建完后统一回填（人物反向引用 + 档案六栏）
-  DB.list('ocRelations').forEach(r => {
-    const a = pureOcName(r.charA), b = pureOcName(r.charB);
-    if (a === name || b === name) syncOcRelationToChars(r);
   });
   // 4) 清理：档案里已删掉的人 -> 对应关系记录同步删除（保留「档案↔关系」双向联动删除）
   //    方向敏感：师徒/父母这类单向类型，只有「晚辈方」的档案能驱动删除；长辈方保存档案不会误删关系
+  // v857：先删关系、再统一回填（第 3 步），避免旧关系把用户已删的人物重新填回档案
   const wantedKeys = new Set(wanted.map(w => pairKey(name, w.other)));
   DB.list('ocRelations').forEach(r => {
     const a = pureOcName(r.charA), b = pureOcName(r.charB);
@@ -6154,6 +6165,12 @@ function syncProfileSocialToRelations(charName, socialData) {
     if (still) return;
     DB.remove('ocRelations', r.id);
     removeOcRelationRefs(r);
+  });
+  // v852：回填放到第 3 步统一做——逐个建关系就回填的话，后面几栏的关系还没建，会被推导值提前清空
+  // 3) 关系全部建完后统一回填（人物反向引用 + 档案六栏）
+  DB.list('ocRelations').forEach(r => {
+    const a = pureOcName(r.charA), b = pureOcName(r.charB);
+    if (a === name || b === name) syncOcRelationToChars(r);
   });
 }
 // v620: 人物关系按 pair 组合编辑/删除（卡片已按 pair 合并展示）
@@ -13400,6 +13417,8 @@ function init() {
   normalizeOcProfileReverseDetailV855();
   // v856：道侣/好友/同门支持自身对应括号
   normalizeOcProfileReverseDetailV856();
+  // v857：取关系推导与用户原字段并集；括号只修正用户已写的，不再主动给所有人加括号
+  normalizeOcProfileReverseDetailV857();
   Sync.load();
   initEvents();
   renderAppLogo();
