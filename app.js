@@ -6135,6 +6135,34 @@ function normalizeOcProfileReverseDetailV860() {
   DB.list('ocCharacters').forEach(c => { if (c && c.name) syncOcRelationSocialFields(c.name); });
   DB.set('oc_profile_reverse_v860', true);
 }
+// v862：一次性恢复迁移——此前多个版本曾误删「人物关系记录」，导致档案六栏被同步清空。
+// 从所有人物档案六栏的残留文本（任何一方还写着对方）重建缺失的关系记录：只增不删，
+// 然后全量回填（关系 -> 档案六栏，v860 规则合并，保留用户原文字与括号）。
+function repairOcSocialRelationsV862() {
+  if (DB.get('oc_social_repair_v862')) return;
+  const chars = DB.list('ocCharacters').filter(c => c && c.name);
+  const pairKey = (x, y) => [pureOcName(x), pureOcName(y)].sort().join('\u0000');
+  // 1) 扫描全部档案六栏 -> 补建缺失关系
+  chars.forEach(c => {
+    const name = pureOcName(c.name);
+    const gender = arrVal(c.gender).join('');
+    ['parents', 'siblings', 'master', 'companion', 'friends', 'fellow'].forEach(field => {
+      splitOcNameEntries(c[field]).forEach(p => {
+        if (!p.name || p.name === name) return;
+        const inf = inferRelationFromDetail(p.detail, field, gender) || {};
+        const type = inf.type || SOCIAL_FIELD_RELATION_TYPE[field];
+        const inPair = DB.list('ocRelations').filter(r => pairKey(r.charA, r.charB) === pairKey(name, p.name));
+        if (inPair.some(r => arrVal(r.relationType).includes(type))) return;
+        const senior = inf.seniorOther === true;
+        DB.add('ocRelations', { charA: senior ? p.name : name, charB: senior ? name : p.name, relationType: [type], relationStatus: [], _syncedFromProfile: true });
+      });
+    });
+  });
+  // 2) 全量回填：关系 -> 双方档案
+  DB.list('ocRelations').forEach(r => syncOcRelationToChars(r));
+  chars.forEach(c => { if (c && c.name) syncOcRelationSocialFields(c.name); });
+  DB.set('oc_social_repair_v862', true);
+}
 // v615：人物档案社会关系字段 -> 人物关系记录（双向绑定：档案 -> 关系）
 // 在档案保存时调用：为档案社会关系里填写的每个人自动建立/清理对应的人物关系记录
 // v841：人物档案关系反向自动同步（档案 -> 档案）
@@ -10878,9 +10906,12 @@ function renderDietRecordRows(recs, st) {
     let lines = '';
     let trailingOps = '';
     if (st.key === 'snack') {
-      // v861：单位归位到「数量」后面（按 v247 1:1 复刻截图的原样），与列表行「数量: 4包」一致；零食记录行不再挂（包）
-      const qtyLine = r.qty != null ? `<div class="lr-info-line"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}${r.unit || '包'}</span></div>` : '';
-      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span>${opsHtml}</div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}</span></div>`;
+      // v862：恢复 v1.1.30(v775)/v1.1.48(v834) 基线原样——享用时间与数量同一行左右两列，
+      // 零食记录跨两列、单位挂在零食名后（包），编辑/删除在整块右侧（与睡眠行一致）
+      const unitNote = r.unit ? `<span class="lr-size-note">（${esc(r.unit)}）</span>` : '';
+      const qtyLine = r.qty != null ? `<div class="lr-info-line"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}</span></div>` : '';
+      lines = `<div class="lr-info-line"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${unitNote}</span></div>`;
+      trailingOps = opsHtml;
     } else if (st.key === 'milktea') {
       const notes = [];
       if (r.size) notes.push(r.size);
@@ -13476,6 +13507,8 @@ function init() {
   normalizeOcProfileReverseDetailV859();
   // v860：刷新即用最新括号策略重算所有档案
   normalizeOcProfileReverseDetailV860();
+  // v862：一次性恢复——从档案残留文本重建被误删的关系记录（只增不删）
+  repairOcSocialRelationsV862();
   Sync.load();
   initEvents();
   renderAppLogo();
