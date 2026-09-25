@@ -10878,9 +10878,9 @@ function renderDietRecordRows(recs, st) {
     let lines = '';
     let trailingOps = '';
     if (st.key === 'snack') {
-      const unitNote = r.unit ? `<span class="lr-size-note">（${esc(r.unit)}）</span>` : '';
-      const qtyLine = r.qty != null ? `<div class="lr-info-line"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}</span></div>` : '';
-      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span>${opsHtml}</div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${unitNote}</span></div>`;
+      // v861：单位归位到「数量」后面（按 v247 1:1 复刻截图的原样），与列表行「数量: 4包」一致；零食记录行不再挂（包）
+      const qtyLine = r.qty != null ? `<div class="lr-info-line"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}${r.unit || '包'}</span></div>` : '';
+      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span>${opsHtml}</div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}</span></div>`;
     } else if (st.key === 'milktea') {
       const notes = [];
       if (r.size) notes.push(r.size);
