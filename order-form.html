@@ -987,13 +987,19 @@ html.apk.modal-lock{overflow:hidden!important}
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .form-input[data-subkey="price"]{flex:0 0 80px}
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="isDisbanded"],
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .combobox-wrapper[data-subkey="isDisbanded"]{flex:0 0 80px!important;min-width:0!important}
+/* v855：开团售后记录编辑表——取消写死 208px（横向滚动条主因），改为固定列 + name/备注自适应，备注不再被挤窄 */
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="orderNo"],
-.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="orderNo"]{flex:0 0 80px}
-.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="name"],
-.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="type"]{flex:0 0 208px}
-.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="name"]{flex:0 0 208px!important;width:208px!important;min-width:0!important}
-.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="type"],
-.dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="type"]{flex:0 0 208px!important;width:208px!important;min-width:0!important}
+.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="orderNo"]{flex:0 0 64px}
+.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="quantity"],
+.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="quantity"]{flex:0 0 64px}
+.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="amount"],
+.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="amount"]{flex:0 0 76px}
+.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="name"]{flex:1.4 1 0;min-width:70px}
+.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="name"]{flex:1.4 1 0;width:auto!important;min-width:70px!important}
+.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="type"]{flex:0 0 96px}
+.dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="type"]{flex:0 0 96px!important;width:96px!important;min-width:0!important}
+.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="remark"],
+.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="remark"]{flex:1.8 1 0;min-width:110px}
 }
 /* v794: 手机端接稿排期制品列表完全还原 v1.1.30（wk_130 APK 实测提取）——撤销 v793 的「一行连排」收窄：
    尺寸70/数量60/同模110/加急50（v22 移动基准，即 v1.1.30 原值），删除按钮 flex-shrink:0 min-width:40px 自然换行到第三行——
@@ -3607,7 +3613,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=854"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=855"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

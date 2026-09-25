@@ -1983,7 +1983,18 @@ function readForm(container) {
             return;
           }
           if (input.tagName === 'INPUT' || input.tagName === 'SELECT' || input.tagName === 'TEXTAREA') {
-            if (item[input.dataset.subkey] === undefined) item[input.dataset.subkey] = input.value;
+            if (item[input.dataset.subkey] === undefined) {
+              let val = input.value;
+              // v855：带 calc 标记的数值列（如售后「价格」）支持输入表达式（5+7.5 -> 12.5），保存时自动计算为数值
+              const cfg = input.closest('.dynamic-list-container');
+              const fld = cfg ? _dynamicConfigs[cfg.dataset.key] : null;
+              const col = fld ? (fld.columns || []).find(c => c.subkey === input.dataset.subkey) : null;
+              if (col && col.calc) {
+                const cv = calcExprStr(val);
+                if (cv !== val) { input.value = cv; val = cv; }
+              }
+              item[input.dataset.subkey] = val;
+            }
           }
         });
         if (Object.values(item).some(v => v && (Array.isArray(v) ? v.length : String(v).trim()))) items.push(item);
@@ -1996,6 +2007,17 @@ function readForm(container) {
 function readFormImages(container) {
   const uploader = container.querySelector('.img-upload-container');
   return (uploader && uploader._getImages) ? uploader._getImages() : [];
+}
+// v855：安全计算简单数值表达式（仅允许数字、小数点及 +-*/() 与空格），失败则原样返回
+function calcExprStr(str) {
+  const s = String(str == null ? '' : str).trim();
+  if (!s) return s;
+  if (!/^[\d\s\.\+\-\*\/\(\)]+$/.test(s)) return s;
+  try {
+    const v = Function('"use strict";return (' + s.replace(/\s+/g, '') + ')')();
+    if (typeof v === 'number' && isFinite(v)) return v;
+  } catch (e) {}
+  return s;
 }
 
 /* ===== Combobox Dropdown Helpers ===== */
@@ -2514,7 +2536,7 @@ MODULES['groupbuy-records'] = {
       { subkey: 'type', label: '补偿方式', type: 'combobox', default: '补偿', options: [
         { value: '补偿', label: '补偿' }, { value: '补发', label: '补发' }, { value: '补寄', label: '补寄' }, { value: '退款', label: '退款' }
       ]},
-      { subkey: 'amount', label: '价格', type: 'number' },
+      { subkey: 'amount', label: '价格', type: 'text', calc: true },
       { subkey: 'remark', label: '备注', type: 'text', mobileBelow: true },
     ]},
     { key: 'purchaseCount', label: '购买人数', type: 'number', row: 'purchaseInfo' },
@@ -5017,6 +5039,8 @@ function openDetail(pageKey, id) {
           if (_bTxt) html += `<tr class="gb-remark-row"><td colspan="${_mainCols.length}"><span class="td-wrap">${_bTxt}</span></td></tr>`;
         }
       });
+      // v855：空列表也展示表头，但再加一行空白占位，避免「光杆表头」空摆着
+      if (!items.length) { const _cc = _mainCols.length + _belowCols.length + (extraHead ? 1 : 0); html += `<tr><td colspan="${_cc}" style="text-align:center;color:var(--c-text-muted)">&nbsp;</td></tr>`; }
       html += `</table></div></div>`;
       return;
     }
@@ -5914,8 +5938,11 @@ function deriveSocialFieldsFromRelations(charName) {
       if (!m) return;
       if (m.dir === 'both') {
         addUnique(m.field, other);
+      } else if (m.field === 'master') {
+        // v855：师徒双向——师父(charA)记徒弟(charB)、徒弟(charB)记师父(charA)，双方师徒栏都显示对方
+        addUnique(m.field, other);
       } else {
-        // junior：charA 为长辈/师父，仅把对应长辈写入晚辈(charB)的社会关系字段
+        // parents 等单向：仅晚辈(charB)记长辈(charA)，长辈方不显示对方
         if (charName === b) addUnique(m.field, a);
       }
     });
@@ -5938,19 +5965,31 @@ const REL_REVERSE_DETAIL = {
   '师徒': { a: '徒弟', b: '师父' }
 };
 // 查两个人的关系记录，返回「对方在我这栏该标的括号词」（查不到/无对应词返回 ''）
-function reverseDetailBetween(selfName, otherName) {
+// v855：allowedTypes 限定「只取该社会关系字段允许的关系类型」，避免道侣栏被贴师徒括号、或师徒栏取到道侣类型清空括号
+function reverseDetailBetween(selfName, otherName, allowedTypes) {
   if (!selfName || !otherName) return '';
   const self = pureOcName(selfName), other = pureOcName(otherName);
-  const r = DB.list('ocRelations').find(x => {
+  const recs = DB.list('ocRelations').filter(x => {
     const a = pureOcName(x.charA), b = pureOcName(x.charB);
     return (a === self && b === other) || (a === other && b === self);
   });
-  if (!r) return '';
-  const types = arrVal(r.relationType);
-  const t = types.find(t => REL_REVERSE_DETAIL[t]) || '';
+  if (!recs.length) return '';
+  // 取该 pair 所有类型并集，再从并集中挑「本字段允许 + 有反向标注」的类型（多关系记录时不会取错）
+  const allTypes = recs.flatMap(r => arrVal(r.relationType));
+  // allowedTypes 三态：未传(undefined)=不限类型(兼容旧调用，返回第一条有反向标注的类型)；
+  // 传空数组[]=该字段禁止任何自动括号(道侣/好友/同门)；传具体数组=仅允许这些类型
+  const t = allTypes.find(t => REL_REVERSE_DETAIL[t] && (allowedTypes === undefined || (allowedTypes.length && allowedTypes.includes(t))));
   if (!t) return '';
+  const r = recs.find(x => arrVal(x.relationType).includes(t));
   return pureOcName(r.charA) === self ? REL_REVERSE_DETAIL[t].a : REL_REVERSE_DETAIL[t].b;
 }
+// v855：各社会关系字段允许自动加括号的关系类型（其他对称类型如道侣/好友/同门不加括号）
+const SOCIAL_FIELD_REVERSE_ALLOWED = {
+  parents: ['父母', '父子', '父女', '母子', '母女'],
+  siblings: ['兄弟姐妹', '兄弟', '兄妹', '姐弟', '姐妹', '表亲', '堂亲'],
+  master: ['师徒'],
+  companion: [], friends: [], fellow: []
+};
 function syncOcRelationSocialFields(charName) {
   const c = DB.list('ocCharacters').find(x => pureOcName(x.name) === charName || x.name === charName);
   if (!c) return;
@@ -5959,12 +5998,13 @@ function syncOcRelationSocialFields(charName) {
   const derived = deriveSocialFieldsFromRelations(charName);
   // v852：推导值只有纯名，回填前把档案里原有的括号标注按纯名贴回去，避免「张三（哥哥）」被抹平成「张三」
   // v853：原有标注优先；没有标注时按「关系类型 + 自己在关系里的位置」反向生成（例：对方填了「云烬（哥哥）」，云烬这栏自动写「云影（弟弟）」）
+  // v855：反向括号必须按字段过滤关系类型，道侣/好友/同门等对称类型不自动加括号
   ['parents', 'siblings', 'master', 'companion', 'friends', 'fellow'].forEach(f => {
     const anno = {};
     splitOcNameEntries(c[f]).forEach(p => { if (p.detail) anno[p.name] = p.detail; });
     const names = derived[f] ? splitOcNames(derived[f]) : [];
     derived[f] = names.map(n => {
-      const d = anno[n] || reverseDetailBetween(charName, n) || '';
+      const d = anno[n] || reverseDetailBetween(charName, n, SOCIAL_FIELD_REVERSE_ALLOWED[f]) || '';
       return d ? n + '（' + d + '）' : n;
     }).join('、');
   });
@@ -6009,6 +6049,12 @@ function normalizeOcProfileReverseDetail() {
   if (DB.get('oc_profile_reverse_v853')) return;
   DB.list('ocCharacters').forEach(c => { if (c && c.name) syncOcRelationSocialFields(c.name); });
   DB.set('oc_profile_reverse_v853', true);
+}
+// v855：按字段过滤关系类型重算反向括号——纠正 v853/v854 因「道侣栏被贴师徒括号、师徒栏取到道侣类型清空括号」写错的旧档案
+function normalizeOcProfileReverseDetailV855() {
+  if (DB.get('oc_profile_reverse_v855')) return;
+  DB.list('ocCharacters').forEach(c => { if (c && c.name) syncOcRelationSocialFields(c.name); });
+  DB.set('oc_profile_reverse_v855', true);
 }
 // v615：人物档案社会关系字段 -> 人物关系记录（双向绑定：档案 -> 关系）
 // 在档案保存时调用：为档案社会关系里填写的每个人自动建立/清理对应的人物关系记录
@@ -11668,7 +11714,12 @@ function renderCdFullRecord(r) {
       const items = r[f.key] || [];
       const cols = f.columns || [];
       h += `<div class="cd-rec-row"><span class="cd-rec-k">${esc(label)}</span><div class="cd-rec-v"><table class="detail-table"><tr>${cols.map(c => `<th>${esc(c.label)}</th>`).join('')}</tr>`;
-      items.forEach(item => { h += '<tr>' + cols.map(c => `<td>${esc(item[c.subkey] || '')}</td>`).join('') + '</tr>'; });
+      if (items.length) {
+        items.forEach(item => { h += '<tr>' + cols.map(c => `<td>${esc(item[c.subkey] || '')}</td>`).join('') + '</tr>'; });
+      } else {
+        // v855：空列表加一行空白占位，避免光杆表头空摆着
+        h += `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--c-text-muted)">&nbsp;</td></tr>`;
+      }
       h += '</table></div></div>';
       return;
     }
@@ -13329,6 +13380,8 @@ function init() {
   // v853：先合并同 pair 的重复关系记录，再按关系给所有档案补反向括号标注
   mergeDuplicateOcRelations();
   normalizeOcProfileReverseDetail();
+  // v855：按字段过滤关系类型重算反向括号，纠正 v853/v854 写错的旧档案
+  normalizeOcProfileReverseDetailV855();
   Sync.load();
   initEvents();
   renderAppLogo();
