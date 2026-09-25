@@ -4820,7 +4820,9 @@ function saveForm(pageKey, mod, id) {
   // v815：开团记录 → 厂家合作记录回填（日期 = 截团时间 + 3 天）。放在落库之后，才能拿到带 id 的 saved
   if (pageKey === 'groupbuy-records' && saved) syncGroupbuyToFactories(saved, _prevGb);
   if (pageKey === 'oc-relations' && saved) syncOcRelationToChars(saved);
-  if (pageKey === 'oc-profiles' && saved) { syncProfileSocialToRelations(saved.name, saved); syncProfileReverseSocial(saved.name); }
+  // v858：档案保存后只通过 syncProfileSocialToRelations 同步关系，不再调用 syncProfileReverseSocial 直接写对方档案，
+  // 避免对方档案顺序/括号被冗余写入破坏，并确保删除关系后不会把已删人物重新填回。
+  if (pageKey === 'oc-profiles' && saved) { syncProfileSocialToRelations(saved.name, saved); }
   closeModal();
   navigate(pageKey);
 }
@@ -6011,20 +6013,27 @@ function syncOcRelationSocialFields(charName) {
   // v855：反向括号必须按字段过滤关系类型，道侣/好友/同门等对称类型不自动加括号
   // v857：取「关系推导的人物」与「用户原字段填写的人物」并集，防止用户手动填的人被消掉；
   //       括号只在用户原本写过括号的人物上按关系记录修正，没写括号的保持纯名，不再主动加括号。
+  // v858：保持用户原字段中人物的顺序，关系记录里新增的人物追加到末尾；
+  //       对称关系类型本身（道侣/好友/同门）不加括号，只保留/修正方向性关系的括号（哥哥/师父/徒弟等）。
+  const SYMMETRIC_SELF_WORDS = ['道侣', '好友', '同门'];
   ['parents', 'siblings', 'master', 'companion', 'friends', 'fellow'].forEach(f => {
     const entries = splitOcNameEntries(c[f]);
     const anno = {};
     entries.forEach(p => { if (p.name) anno[p.name] = p.detail; });
     const derivedNames = derived[f] ? splitOcNames(derived[f]) : [];
     const userNames = entries.map(p => p.name).filter(Boolean);
-    // 合并去重：关系记录里有的自动补上，用户手动填的也保留
-    const allNames = Array.from(new Set([...derivedNames, ...userNames]));
+    // 合并去重：先保持用户原顺序，再把关系记录里新增的人物追加到末尾
+    const allNames = [...userNames];
+    derivedNames.forEach(n => { if (!allNames.includes(n)) allNames.push(n); });
     derived[f] = allNames.map(n => {
       // 用户没写括号 -> 保持纯名，系统不再主动加括号
       if (!anno[n]) return n;
-      // 用户写了括号 -> 按关系记录反推修正为该字段正确的括号词；若关系不支持该字段则去括号
+      // 用户写了括号 -> 按关系记录反推该字段正确的括号词
       const d = reverseDetailBetween(charName, n, SOCIAL_FIELD_REVERSE_ALLOWED[f]) || '';
-      return d ? n + '（' + d + '）' : n;
+      if (!d) return n + '（' + anno[n] + '）'; // 关系不支持该字段，保留用户原括号
+      // 对称关系类型本身（道侣/好友/同门）不加括号，避免系统残留的无意义括号
+      if (SYMMETRIC_SELF_WORDS.includes(d)) return n;
+      return n + '（' + d + '）'; // 方向性关系保留并修正括号词
     }).join('、');
   });
   DB.update('ocCharacters', c.id, derived);
@@ -6087,6 +6096,13 @@ function normalizeOcProfileReverseDetailV857() {
   if (DB.get('oc_profile_reverse_v857')) return;
   DB.list('ocCharacters').forEach(c => { if (c && c.name) syncOcRelationSocialFields(c.name); });
   DB.set('oc_profile_reverse_v857', true);
+}
+// v858：社会关系字段保持用户原顺序、关系新增人物追加到末尾；
+// 对称关系类型本身（道侣/好友/同门）不加括号，只保留/修正方向性关系括号（哥哥/师父/徒弟等）。
+function normalizeOcProfileReverseDetailV858() {
+  if (DB.get('oc_profile_reverse_v858')) return;
+  DB.list('ocCharacters').forEach(c => { if (c && c.name) syncOcRelationSocialFields(c.name); });
+  DB.set('oc_profile_reverse_v858', true);
 }
 // v615：人物档案社会关系字段 -> 人物关系记录（双向绑定：档案 -> 关系）
 // 在档案保存时调用：为档案社会关系里填写的每个人自动建立/清理对应的人物关系记录
@@ -13419,6 +13435,8 @@ function init() {
   normalizeOcProfileReverseDetailV856();
   // v857：取关系推导与用户原字段并集；括号只修正用户已写的，不再主动给所有人加括号
   normalizeOcProfileReverseDetailV857();
+  // v858：保持用户原顺序、对称关系类型本身不加括号、只保留/修正方向性关系括号
+  normalizeOcProfileReverseDetailV858();
   Sync.load();
   initEvents();
   renderAppLogo();
