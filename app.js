@@ -4822,7 +4822,7 @@ function saveForm(pageKey, mod, id) {
   if (pageKey === 'oc-relations' && saved) syncOcRelationToChars(saved);
   // v858：档案保存后只通过 syncProfileSocialToRelations 同步关系，不再调用 syncProfileReverseSocial 直接写对方档案，
   // 避免对方档案顺序/括号被冗余写入破坏，并确保删除关系后不会把已删人物重新填回。
-  if (pageKey === 'oc-profiles' && saved) { syncProfileSocialToRelations(saved.name, saved); }
+  if (pageKey === 'oc-profiles' && saved) { syncProfileSocialToRelations(saved.name, saved, !id); }
   closeModal();
   navigate(pageKey);
 }
@@ -5971,7 +5971,9 @@ const REL_REVERSE_DETAIL = {
   '师徒': { a: '徒弟', b: '师父' },
   '道侣': { a: '道侣', b: '道侣' },
   '好友': { a: '好友', b: '好友' },
-  '同门': { a: '同门', b: '同门' }
+  '同门': { a: '同门', b: '同门' },
+  '交好': { a: '交好', b: '交好' },
+  '上下级': { a: '上下级', b: '上下级' }
 };
 // 查两个人的关系记录，返回「对方在我这栏该标的括号词」（查不到/无对应词返回 ''）
 // v855：allowedTypes 限定「只取该社会关系字段允许的关系类型」，避免道侣栏被贴师徒括号、或师徒栏取到道侣类型清空括号
@@ -5999,8 +6001,8 @@ const SOCIAL_FIELD_REVERSE_ALLOWED = {
   siblings: ['兄弟姐妹', '兄弟', '兄妹', '姐弟', '姐妹', '表亲', '堂亲'],
   master: ['师徒'],
   companion: ['道侣'],
-  friends: ['好友'],
-  fellow: ['同门']
+  friends: ['好友', '交好'],
+  fellow: ['同门', '上下级']
 };
 function syncOcRelationSocialFields(charName) {
   const c = DB.list('ocCharacters').find(x => pureOcName(x.name) === charName || x.name === charName);
@@ -6014,25 +6016,38 @@ function syncOcRelationSocialFields(charName) {
   // v857：取「关系推导的人物」与「用户原字段填写的人物」并集，防止用户手动填的人被消掉；
   //       括号只在用户原本写过括号的人物上按关系记录修正，没写括号的保持纯名，不再主动加括号。
   // v858：保持用户原字段中人物的顺序，关系记录里新增的人物追加到末尾；
-  //       对称关系类型本身（道侣/好友/同门）不加括号，只保留/修正方向性关系的括号（哥哥/师父/徒弟等）。
-  const SYMMETRIC_SELF_WORDS = ['道侣', '好友', '同门'];
+  // v859：对称关系只保留有意义的细分类型括号（交好/上下级），与字段标签重复的默认类型（道侣/好友/同门）去括号；
+  //       系统新增的人物自动标上有意义的方向/细分括号；用户写了不对应字段的括号时去掉错误括号。
+  const FIELD_GENERIC_WORD = { parents: '父母', siblings: '兄弟姐妹', master: '师徒', companion: '道侣', friends: '好友', fellow: '同门' };
+  const ALL_REVERSE_WORDS = new Set(Object.values(REL_REVERSE_DETAIL).flatMap(o => [o.a, o.b]));
   ['parents', 'siblings', 'master', 'companion', 'friends', 'fellow'].forEach(f => {
     const entries = splitOcNameEntries(c[f]);
     const anno = {};
     entries.forEach(p => { if (p.name) anno[p.name] = p.detail; });
     const derivedNames = derived[f] ? splitOcNames(derived[f]) : [];
     const userNames = entries.map(p => p.name).filter(Boolean);
+    const userOriginalSet = new Set(userNames);
+    const fieldAllowedWords = new Set(SOCIAL_FIELD_REVERSE_ALLOWED[f].flatMap(t => REL_REVERSE_DETAIL[t] ? [REL_REVERSE_DETAIL[t].a, REL_REVERSE_DETAIL[t].b] : []));
     // 合并去重：先保持用户原顺序，再把关系记录里新增的人物追加到末尾
     const allNames = [...userNames];
     derivedNames.forEach(n => { if (!allNames.includes(n)) allNames.push(n); });
     derived[f] = allNames.map(n => {
-      // 用户没写括号 -> 保持纯名，系统不再主动加括号
-      if (!anno[n]) return n;
-      // 用户写了括号 -> 按关系记录反推该字段正确的括号词
+      const userDetail = anno[n] || '';
       const d = reverseDetailBetween(charName, n, SOCIAL_FIELD_REVERSE_ALLOWED[f]) || '';
-      if (!d) return n + '（' + anno[n] + '）'; // 关系不支持该字段，保留用户原括号
-      // 对称关系类型本身（道侣/好友/同门）不加括号，避免系统残留的无意义括号
-      if (SYMMETRIC_SELF_WORDS.includes(d)) return n;
+      if (!userDetail) {
+        // 用户没写括号：自己填的名字保持纯名；系统从关系新增的人物自动标上有意义的括号
+        if (userOriginalSet.has(n)) return n;
+        if (d && d !== FIELD_GENERIC_WORD[f]) return n + '（' + d + '）';
+        return n;
+      }
+      // 用户写了括号 -> 按关系记录反推该字段正确的括号词
+      if (!d) {
+        // 没有关系或关系类型不匹配该字段：若括号词是别的字段的专用词，则去掉错误括号
+        if (ALL_REVERSE_WORDS.has(userDetail) && !fieldAllowedWords.has(userDetail)) return n;
+        return n + '（' + userDetail + '）'; // 保留用户自定义括号
+      }
+      // v859：对称关系只保留有意义的细分类型（交好/上下级），与字段标签重复的默认类型（道侣/好友/同门）不再显示
+      if (d === FIELD_GENERIC_WORD[f]) return n;
       return n + '（' + d + '）'; // 方向性关系保留并修正括号词
     }).join('、');
   });
@@ -6104,6 +6119,13 @@ function normalizeOcProfileReverseDetailV858() {
   DB.list('ocCharacters').forEach(c => { if (c && c.name) syncOcRelationSocialFields(c.name); });
   DB.set('oc_profile_reverse_v858', true);
 }
+// v859：修正对称关系括号策略——保留有意义的细分类型（交好/上下级），默认类型（道侣/好友/同门）去括号；
+// 同时补全 REL_REVERSE_DETAIL 对 交好/上下级 的支持。
+function normalizeOcProfileReverseDetailV859() {
+  if (DB.get('oc_profile_reverse_v859')) return;
+  DB.list('ocCharacters').forEach(c => { if (c && c.name) syncOcRelationSocialFields(c.name); });
+  DB.set('oc_profile_reverse_v859', true);
+}
 // v615：人物档案社会关系字段 -> 人物关系记录（双向绑定：档案 -> 关系）
 // 在档案保存时调用：为档案社会关系里填写的每个人自动建立/清理对应的人物关系记录
 // v841：人物档案关系反向自动同步（档案 -> 档案）
@@ -6126,7 +6148,7 @@ function syncProfileReverseSocial(charName) {
     });
   });
 }
-function syncProfileSocialToRelations(charName, socialData) {
+function syncProfileSocialToRelations(charName, socialData, isNew = false) {
   if (!charName) return;
   const name = pureOcName(charName);
   const self = DB.list('ocCharacters').find(x => x.name === charName || pureOcName(x.name) === name);
@@ -6160,28 +6182,32 @@ function syncProfileSocialToRelations(charName, socialData) {
       if (pureOcName(rec.charA) !== seniorA) DB.update('ocRelations', rec.id, { charA: seniorA, charB: juniorB });
     }
   });
-  // 4) 清理：档案里已删掉的人 -> 对应关系记录同步删除（保留「档案↔关系」双向联动删除）
-  //    方向敏感：师徒/父母这类单向类型，只有「晚辈方」的档案能驱动删除；长辈方保存档案不会误删关系
-  // v857：先删关系、再统一回填（第 3 步），避免旧关系把用户已删的人物重新填回档案
-  const wantedKeys = new Set(wanted.map(w => pairKey(name, w.other)));
-  DB.list('ocRelations').forEach(r => {
-    const a = pureOcName(r.charA), b = pureOcName(r.charB);
-    const iAmA = (a === name), iAmB = (b === name);
-    if (!iAmA && !iAmB) return;
-    const other = iAmA ? b : a;
-    const types = arrVal(r.relationType);
-    if (!types.length) return;
-    if (!types.every(t => !!RELATION_TYPE_SOCIAL_MAP[t])) return; // 含无法由档案驱动的类型（如敌对）不动
-    if (wantedKeys.has(pairKey(a, b))) return;
-    const still = types.some(t => {
-      const m = RELATION_TYPE_SOCIAL_MAP[t];
-      if (m.dir === 'junior' && iAmA) return true; // 我是长辈/师父方，这一栏不由我的档案驱动，保留
-      return splitOcNames(socialData && socialData[m.field]).includes(other);
+  // v859：新建人物档案时，它还没有自己的社会关系字段，不能按空字段清理关系，
+  // 否则会误删其他人物早先为它建立的关系；跳过清理，让第 3 步从已有关系回填。
+  if (!isNew) {
+    // 4) 清理：档案里已删掉的人 -> 对应关系记录同步删除（保留「档案↔关系」双向联动删除）
+    //    方向敏感：师徒/父母这类单向类型，只有「晚辈方」的档案能驱动删除；长辈方保存档案不会误删关系
+    // v857：先删关系、再统一回填（第 3 步），避免旧关系把用户已删的人物重新填回档案
+    const wantedKeys = new Set(wanted.map(w => pairKey(name, w.other)));
+    DB.list('ocRelations').forEach(r => {
+      const a = pureOcName(r.charA), b = pureOcName(r.charB);
+      const iAmA = (a === name), iAmB = (b === name);
+      if (!iAmA && !iAmB) return;
+      const other = iAmA ? b : a;
+      const types = arrVal(r.relationType);
+      if (!types.length) return;
+      if (!types.every(t => !!RELATION_TYPE_SOCIAL_MAP[t])) return; // 含无法由档案驱动的类型（如敌对）不动
+      if (wantedKeys.has(pairKey(a, b))) return;
+      const still = types.some(t => {
+        const m = RELATION_TYPE_SOCIAL_MAP[t];
+        if (m.dir === 'junior' && iAmA) return true; // 我是长辈/师父方，这一栏不由我的档案驱动，保留
+        return splitOcNames(socialData && socialData[m.field]).includes(other);
+      });
+      if (still) return;
+      DB.remove('ocRelations', r.id);
+      removeOcRelationRefs(r);
     });
-    if (still) return;
-    DB.remove('ocRelations', r.id);
-    removeOcRelationRefs(r);
-  });
+  }
   // v852：回填放到第 3 步统一做——逐个建关系就回填的话，后面几栏的关系还没建，会被推导值提前清空
   // 3) 关系全部建完后统一回填（人物反向引用 + 档案六栏）
   DB.list('ocRelations').forEach(r => {
@@ -13437,6 +13463,8 @@ function init() {
   normalizeOcProfileReverseDetailV857();
   // v858：保持用户原顺序、对称关系类型本身不加括号、只保留/修正方向性关系括号
   normalizeOcProfileReverseDetailV858();
+  // v859：保留对称关系细分类型括号（交好/上下级），默认类型去括号；新建人物档案时保留他人为其建立的关系。
+  normalizeOcProfileReverseDetailV859();
   Sync.load();
   initEvents();
   renderAppLogo();
