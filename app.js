@@ -1625,7 +1625,7 @@ function closeCustomTimePicker(silent) {
   if (!silent) { currentTimeInput = null; currentTimeBtn = null; }
 }
 // 将任意可解析日期归一化为 YYYY-MM-DD（已是规范格式则不动；与 📅 选择器输出格式完全一致）
-// v853：手输常见写法全部认：2026-9-9 / 2026.9.9 / 2026/9/9 / 2026年9月9日 / 20260909 / 9.9 / 9-9（后两种补当前年份）
+// v854：手输常见写法全部认：2026-9-9 / 2026.9.9 / 2026/9/9 / 2026年9月9日 / 20260909 / 26-9-9 / 26.9.9 / 26/9/9 / 26年9月9日 / 260909 / 9.9 / 9-9
 function normalizeDateValue(inp) {
   if (!inp || !inp.value) return;
   const raw = String(inp.value).trim();
@@ -1638,12 +1638,20 @@ function normalizeDateValue(inp) {
   let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if (m) out = mk(m[1], m[2], m[3]);
   if (!out) {
+    m = s.match(/^(\d{2})-(\d{1,2})-(\d{1,2})$/);
+    if (m) out = mk('20' + m[1], m[2], m[3]); // 2位年份 -> 补 20
+  }
+  if (!out) {
     m = s.match(/^(\d{1,2})-(\d{1,2})$/);
     if (m) out = mk(new Date().getFullYear(), m[1], m[2]); // 只写月日 -> 补当前年份
   }
   if (!out) {
     m = s.match(/^(\d{4})(\d{2})(\d{2})$/);
     if (m) out = mk(m[1], m[2], m[3]);
+  }
+  if (!out) {
+    m = s.match(/^(\d{2})(\d{2})(\d{2})$/);
+    if (m) out = mk('20' + m[1], m[2], m[3]); // YYMMDD -> 补 20
   }
   if (!out) { const d = new Date(raw); if (!isNaN(d.getTime())) out = fmtDate(d); }
   if (out) inp.value = out;
@@ -6246,21 +6254,22 @@ function renderRelations() {
         html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDeleteOcRelationGroup('${first.id}')">${lucide('trash-2',16)}</span>`;
         html += '</div></div>';
         html += '<div class="record-card-body detail-relations" style="margin:0">';
+        // v854：合并展示后仍按「每个关系类型一个等宽列」渲染，恢复竖线分隔
         const _grpTypes = group.flatMap(r => arrVal(r.relationType));
         const _vis = new Set(ocRelationVisibleTypes(_grpTypes));
+        const typeStatusMap = new Map();
         group.forEach(r => {
           const rtArr = arrVal(r.relationType).filter(rt => _vis.has(rt));
-          if (!rtArr.length) return;
           const rs = arrVal(r.relationStatus).join('、');
+          rtArr.forEach(rt => { if (!typeStatusMap.has(rt)) typeStatusMap.set(rt, rs); });
+        });
+        typeStatusMap.forEach((rs, rt) => {
+          const color = RELATION_COLORS[rt] || '#b0b8c0';
           html += '<div class="detail-rel-sub">';
           html += '<div class="detail-rel-head">';
-          rtArr.forEach(rt => {
-            const color = RELATION_COLORS[rt] || '#b0b8c0';
-            html += '<span class="tag" style="background:' + color + '20;color:' + color + '">' + esc(rt) + '</span>';
-          });
+          html += '<span class="tag" style="background:' + color + '20;color:' + color + '">' + esc(rt) + '</span>';
           html += (rs ? '<span class="detail-rel-status">' + esc(rs) + '</span>' : '');
-          html += '</div>';
-          html += '</div>';
+          html += '</div></div>';
         });
         html += '</div></div>';
       });
