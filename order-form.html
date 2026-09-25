@@ -1109,13 +1109,10 @@ html.apk.modal-lock{overflow:hidden!important}
 .detail-table th.cc-seq,.detail-table th.cc-pat,.detail-table th.cc-price,.detail-table th.cc-size,.detail-table th.cc-qty,.detail-table th.cc-urgent,.detail-table th.cc-done{white-space:nowrap}
 .detail-table tr.comm-ud-row{display:none}
 @media (min-width:769px){
-  .detail-table th.cc-seq{width:36px}
-  .detail-table th.cc-pat{width:64px}
-  .detail-table th.cc-price{width:44px}
-  .detail-table th.cc-size{width:64px}
-  .detail-table th.cc-qty{width:44px}
-  .detail-table th.cc-model{width:96px}
-  .detail-table th.cc-urgent,.detail-table th.cc-done{width:36px}
+  /* v853：接稿排期详情「制品列表」列宽重排——序号/价格/数量/加急/完成 等宽(48px)；柄图标识/同模 等宽(88px)；
+     剩余宽度由 制品、尺寸 均分（不再出现「制品巨宽、数值列挤扁」）。手机端(<=768px)维持自动均分不动 */
+  .detail-table th.cc-seq,.detail-table th.cc-price,.detail-table th.cc-qty,.detail-table th.cc-urgent,.detail-table th.cc-done{width:48px}
+  .detail-table th.cc-pat,.detail-table th.cc-model{width:88px}
 }
 @media (max-width:768px){
   .detail-table th.cc-urgent,.detail-table td.comm-prod-urgent,.detail-table th.cc-done,.detail-table td.comm-prod-done{display:none}
@@ -1639,7 +1636,7 @@ html.apk.modal-lock{overflow:hidden!important}
 .stats-section .stat-card{
   background:rgba(255,255,255,.85);
   border:1px solid var(--c-primary-light);
-  padding:12px 14px;
+  padding:8px 10px;
   display:flex;flex-direction:column;justify-content:center;
 }
 .stats-section .stat-card .stat-value{font-size:15px}
@@ -3610,7 +3607,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=852"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=853"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

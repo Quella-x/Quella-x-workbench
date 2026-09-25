@@ -1624,12 +1624,35 @@ function closeCustomTimePicker(silent) {
   if (!silent && currentTimeBtn) currentTimeBtn.classList.remove('active');
   if (!silent) { currentTimeInput = null; currentTimeBtn = null; }
 }
-// 将任意可解析日期归一化为 YYYY-MM-DD（已是规范格式则不动）
+// 将任意可解析日期归一化为 YYYY-MM-DD（已是规范格式则不动；与 📅 选择器输出格式完全一致）
+// v853：手输常见写法全部认：2026-9-9 / 2026.9.9 / 2026/9/9 / 2026年9月9日 / 20260909 / 9.9 / 9-9（后两种补当前年份）
 function normalizeDateValue(inp) {
   if (!inp || !inp.value) return;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(inp.value)) return;
-  const d = new Date(inp.value);
-  if (!isNaN(d.getTime())) inp.value = fmtDate(d);
+  const raw = String(inp.value).trim();
+  if (!raw) return;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return;
+  const pad = n => String(n).padStart(2, '0');
+  const mk = (y, m, d) => { const dt = new Date(+y, +m - 1, +d); return (dt.getMonth() === +m - 1 && dt.getDate() === +d) ? `${y}-${pad(m)}-${pad(d)}` : ''; };
+  let out = '';
+  const s = raw.replace(/年|月/g, '-').replace(/日/g, '').replace(/[./]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) out = mk(m[1], m[2], m[3]);
+  if (!out) {
+    m = s.match(/^(\d{1,2})-(\d{1,2})$/);
+    if (m) out = mk(new Date().getFullYear(), m[1], m[2]); // 只写月日 -> 补当前年份
+  }
+  if (!out) {
+    m = s.match(/^(\d{4})(\d{2})(\d{2})$/);
+    if (m) out = mk(m[1], m[2], m[3]);
+  }
+  if (!out) { const d = new Date(raw); if (!isNaN(d.getTime())) out = fmtDate(d); }
+  if (out) inp.value = out;
+}
+// v853：手输时间归一化（与 🕐 选择器输出 HH:MM 一致）；认 9:30 / 9点30 / 9点半 / 0930 等
+function normalizeTimeValue(inp) {
+  if (!inp || !inp.value) return;
+  const v = normalizeTime(inp.value);
+  if (v) inp.value = v;
 }
 function buildForm(fields, data = {}, moduleKey = '') {
   let html = '';
@@ -5891,6 +5914,35 @@ function deriveSocialFieldsFromRelations(charName) {
   });
   return result;
 }
+// v853：由「关系类型 + 自己在这条关系里是 charA 还是 charB」反推「对方在我这一栏的括号标注」。
+// charA 恒为长辈/年长/师父一方（见 syncProfileSocialToRelations），故 a 描述 charB、b 描述 charA。
+// 只给「有具体称呼/方向」的类型生成标注（兄妹、父子、师徒…）；
+// 好友/同门/道侣这类对称类型不自动加括号——否则会把「赵六」改成「赵六（好友）」，改坏已有数据。
+const REL_REVERSE_DETAIL = {
+  '兄弟': { a: '弟弟', b: '哥哥' },
+  '兄妹': { a: '妹妹', b: '哥哥' },
+  '姐弟': { a: '弟弟', b: '姐姐' },
+  '姐妹': { a: '妹妹', b: '姐姐' },
+  '父子': { a: '儿子', b: '父亲' },
+  '父女': { a: '女儿', b: '父亲' },
+  '母子': { a: '儿子', b: '母亲' },
+  '母女': { a: '女儿', b: '母亲' },
+  '师徒': { a: '徒弟', b: '师父' }
+};
+// 查两个人的关系记录，返回「对方在我这栏该标的括号词」（查不到/无对应词返回 ''）
+function reverseDetailBetween(selfName, otherName) {
+  if (!selfName || !otherName) return '';
+  const self = pureOcName(selfName), other = pureOcName(otherName);
+  const r = DB.list('ocRelations').find(x => {
+    const a = pureOcName(x.charA), b = pureOcName(x.charB);
+    return (a === self && b === other) || (a === other && b === self);
+  });
+  if (!r) return '';
+  const types = arrVal(r.relationType);
+  const t = types.find(t => REL_REVERSE_DETAIL[t]) || '';
+  if (!t) return '';
+  return pureOcName(r.charA) === self ? REL_REVERSE_DETAIL[t].a : REL_REVERSE_DETAIL[t].b;
+}
 function syncOcRelationSocialFields(charName) {
   const c = DB.list('ocCharacters').find(x => pureOcName(x.name) === charName || x.name === charName);
   if (!c) return;
@@ -5898,12 +5950,15 @@ function syncOcRelationSocialFields(charName) {
   // 否则被删关系的名字会残留，导致思维导图自动同步仍画出该连线（删除后导图不变）。
   const derived = deriveSocialFieldsFromRelations(charName);
   // v852：推导值只有纯名，回填前把档案里原有的括号标注按纯名贴回去，避免「张三（哥哥）」被抹平成「张三」
+  // v853：原有标注优先；没有标注时按「关系类型 + 自己在关系里的位置」反向生成（例：对方填了「云烬（哥哥）」，云烬这栏自动写「云影（弟弟）」）
   ['parents', 'siblings', 'master', 'companion', 'friends', 'fellow'].forEach(f => {
-    const oldVal = c[f];
     const anno = {};
-    splitOcNameEntries(oldVal).forEach(p => { if (p.detail) anno[p.name] = p.detail; });
-    if (!oldVal || !derived[f] || !Object.keys(anno).length) return;
-    derived[f] = splitOcNames(derived[f]).map(n => (anno[n] ? n + '（' + anno[n] + '）' : n)).join('、');
+    splitOcNameEntries(c[f]).forEach(p => { if (p.detail) anno[p.name] = p.detail; });
+    const names = derived[f] ? splitOcNames(derived[f]) : [];
+    derived[f] = names.map(n => {
+      const d = anno[n] || reverseDetailBetween(charName, n) || '';
+      return d ? n + '（' + d + '）' : n;
+    }).join('、');
   });
   DB.update('ocCharacters', c.id, derived);
 }
@@ -5914,6 +5969,38 @@ function normalizeOcRelationSocial() {
     DB.update('ocCharacters', c.id, deriveSocialFieldsFromRelations(c.name));
   });
   DB.set('oc_rels_social_v614', true);
+}
+// v853：一次性迁移——同一对人物的重复关系记录合并成一条（类型/状态取并集去重，方向以含「师徒/父女」等有方向类型的记录为准）
+function mergeDuplicateOcRelations() {
+  if (DB.get('oc_rels_merge_v853')) return;
+  const DIRECTIONAL = ['师徒', '父子', '父女', '母子', '母女', '兄弟', '兄妹', '姐弟', '姐妹'];
+  const groups = {};
+  DB.list('ocRelations').forEach(r => {
+    const k = [pureOcName(r.charA), pureOcName(r.charB)].sort().join('\u0000');
+    (groups[k] = groups[k] || []).push(r);
+  });
+  Object.values(groups).forEach(g => {
+    if (g.length < 2) return;
+    // 保留含方向类型的那条（这样 charA/charB 的长幼/师徒方向才不会丢），否则保留最早的一条
+    const directed = g.find(r => arrVal(r.relationType).some(t => DIRECTIONAL.includes(t)));
+    const keep = directed || g[0];
+    const types = [], statuses = [], details = [];
+    g.forEach(r => {
+      arrVal(r.relationType).forEach(t => { if (t && !types.includes(t)) types.push(t); });
+      arrVal(r.relationStatus).forEach(s => { if (s && !statuses.includes(s)) statuses.push(s); });
+      const d = String(r.relationDetail || '').trim();
+      if (d && !details.includes(d)) details.push(d);
+    });
+    DB.update('ocRelations', keep.id, { relationType: types, relationStatus: statuses, relationDetail: details.join('\n') });
+    g.forEach(r => { if (r.id !== keep.id) DB.remove('ocRelations', r.id); });
+  });
+  DB.set('oc_rels_merge_v853', true);
+}
+// v853：一次性迁移——按现有关系给所有人物档案的社会关系字段补上反向括号标注
+function normalizeOcProfileReverseDetail() {
+  if (DB.get('oc_profile_reverse_v853')) return;
+  DB.list('ocCharacters').forEach(c => { if (c && c.name) syncOcRelationSocialFields(c.name); });
+  DB.set('oc_profile_reverse_v853', true);
 }
 // v615：人物档案社会关系字段 -> 人物关系记录（双向绑定：档案 -> 关系）
 // 在档案保存时调用：为档案社会关系里填写的每个人自动建立/清理对应的人物关系记录
@@ -10559,13 +10646,13 @@ function renderLifeRecordModalBody(typeKey, subtypeKey, values) {
   let html = `<div class="life-rec-form" id="lifeRecForm"><input type="hidden" id="lrf-type" value="${typeKey}">`;
   html += `<div class="form-row"><label class="form-label">记录项</label>${renderLifeRecordSubtypeSelect(typeKey, subtypeKey)}</div>`;
   if (typeKey === 'sleep') {
-    html += `<div class="form-row"><label class="form-label">入睡时间</label><div class="time-field-wrap"><input type="text" class="form-input" id="lrf-sleepTime" value="${esc(values.sleepTime || '')}" placeholder="HH:MM" oninput="lifeRecordModalCalcDuration()"><button type="button" class="time-pick-btn" onclick="openTimePicker(this)" title="选择时间" aria-label="选择时间"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button></div></div>`;
-    html += `<div class="form-row"><label class="form-label">清醒时间</label><div class="time-field-wrap"><input type="text" class="form-input" id="lrf-wakeTime" value="${esc(values.wakeTime || '')}" placeholder="HH:MM" oninput="lifeRecordModalCalcDuration()"><button type="button" class="time-pick-btn" onclick="openTimePicker(this)" title="选择时间" aria-label="选择时间"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button></div></div>`;
+    html += `<div class="form-row"><label class="form-label">入睡时间</label><div class="time-field-wrap"><input type="text" class="form-input" id="lrf-sleepTime" value="${esc(values.sleepTime || '')}" placeholder="HH:MM" oninput="lifeRecordModalCalcDuration()" onchange="normalizeTimeValue(this)"><button type="button" class="time-pick-btn" onclick="openTimePicker(this)" title="选择时间" aria-label="选择时间"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button></div></div>`;
+    html += `<div class="form-row"><label class="form-label">清醒时间</label><div class="time-field-wrap"><input type="text" class="form-input" id="lrf-wakeTime" value="${esc(values.wakeTime || '')}" placeholder="HH:MM" oninput="lifeRecordModalCalcDuration()" onchange="normalizeTimeValue(this)"><button type="button" class="time-pick-btn" onclick="openTimePicker(this)" title="选择时间" aria-label="选择时间"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button></div></div>`;
     html += `<div class="form-row"><label class="form-label">睡眠时长（自动）</label><input type="text" class="form-input" id="lrf-duration" value="${values.duration != null ? formatSleepDuration(Number(values.duration)) : ''}" readonly style="background:var(--c-primary-bg);cursor:default"></div>`;
     html += `<div class="form-row"><label class="form-label">清醒次数</label><input type="number" class="form-input" id="lrf-wakeCount" value="${esc(values.wakeCount != null ? values.wakeCount : '')}"></div>`;
   } else {
     const isEnjoyTime = ['midnight','snack','milktea'].includes(subtypeKey);
-    html += `<div class="form-row"><label class="form-label" id="lrf-time-label">${isEnjoyTime ? '享用时间' : '吃饭时间'}</label><div class="time-field-wrap"><input type="text" class="form-input" id="lrf-time" value="${esc(values.time || '')}" placeholder="HH:MM"><button type="button" class="time-pick-btn" onclick="openTimePicker(this)" title="选择时间" aria-label="选择时间"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button></div></div>`;
+    html += `<div class="form-row"><label class="form-label" id="lrf-time-label">${isEnjoyTime ? '享用时间' : '吃饭时间'}</label><div class="time-field-wrap"><input type="text" class="form-input" id="lrf-time" value="${esc(values.time || '')}" placeholder="HH:MM" onchange="normalizeTimeValue(this)"><button type="button" class="time-pick-btn" onclick="openTimePicker(this)" title="选择时间" aria-label="选择时间"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button></div></div>`;
     const noteLabel = subtypeKey === 'snack' ? '零食记录' : subtypeKey === 'milktea' ? '奶茶记录' : '餐食记录';
     const placeholder = subtypeKey === 'snack' ? '吃了什么零食' : subtypeKey === 'milktea' ? '奶茶名称/店铺' : '吃了什么';
     html += `<div class="form-row"><label class="form-label" id="lrf-note-label">${noteLabel}</label><input type="text" class="form-input" id="lrf-note" value="${esc(values.note || '')}" placeholder="${placeholder}"></div>`;
@@ -10626,9 +10713,10 @@ function openLifeRecordModal(typeKey, subtypeKey, editId) {
   const st = getLifeRecordSubtype(typeKey, subtypeKey);
   const title = (rec ? '编辑' : '新增') + (st ? st.label : '') + (typeKey === 'sleep' ? '睡眠' : '') + '记录';
   const body = renderLifeRecordModalBody(typeKey, subtypeKey, values);
+  // v853：保存类按钮一律放最右边，取消放左边（避免习惯性点最右时误点取消）
   openModal(title, body, [
-    { label: rec ? '保存修改' : '保存', class: 'btn-primary', action: () => lifeRecSave(typeKey) },
-    { label: '取消', class: 'btn-ghost', action: closeModal }
+    { label: '取消', class: 'btn-ghost', action: closeModal },
+    { label: rec ? '保存修改' : '保存', class: 'btn-primary', action: () => lifeRecSave(typeKey) }
   ]);
 }
 function renderSleepRecordRows(recs) {
@@ -13229,6 +13317,9 @@ function init() {
   normalizeOcRelationsAlias();
   normalizeOcRelationSocial();
   normalizeOcProfileSocial();
+  // v853：先合并同 pair 的重复关系记录，再按关系给所有档案补反向括号标注
+  mergeDuplicateOcRelations();
+  normalizeOcProfileReverseDetail();
   Sync.load();
   initEvents();
   renderAppLogo();
