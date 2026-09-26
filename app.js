@@ -6080,8 +6080,11 @@ function syncOcRelationSocialFields(charName) {
   const ALL_REVERSE_WORDS = new Set(Object.values(REL_REVERSE_DETAIL).flatMap(o => [o.a, o.b]));
   // v869：道侣/好友栏的自定义括号词（正宫/侧室/挚友/知己等）原样携带到对方档案的同一栏；
   // 她亲手写/改过的一侧以她的为准（解除镜像），镜像词在她改动源头后自动跟随更新。
-  const CARRY_FIELDS = { companion: true, friends: true };
-  const carryMap = DB.get('oc_carry_anno_v869') || {};
+  // v870：只好友栏携带（用户明确：道侣不原样带，两边各自写各自）；携带后互不跟随——
+  // 她改哪边哪边变，另一边不动；她删掉/改过的镜像位永不再自动携带（dismissedMap）。
+  const CARRY_FIELDS = { friends: true };
+  const carryMap = DB.get('oc_carry_anno_v869') || {};          // 镜像标记：该侧括号词是系统携带的（用于回声判定）
+  const dismissedMap = DB.get('oc_carry_dismissed_v870') || {}; // 她手改/删过的镜像位，之后不再自动携带
   const otherCustomWord = (otherName, f) => {
     const oc = DB.list('ocCharacters').find(x => pureOcName(x.name) === otherName);
     if (!oc) return '';
@@ -6106,21 +6109,17 @@ function syncOcRelationSocialFields(charName) {
     derivedNames.forEach(n => { if (!allNames.includes(n)) allNames.push(n); });
     derived[f] = allNames.map(n => {
       const userDetail = anno[n] || '';
-      // v869：道侣/好友自定义括号词携带（在常规反推之前处理）
+      // v870：好友栏自定义括号词携带（一次性）——携带后两边互不跟随，她改哪边哪边变
       if (CARRY_FIELDS[f]) {
         const ckey = f + '\u0000' + charName + '\u0000' + n;
         const carried = carryMap[ckey];
         if (carried) {
-          if (!userDetail || userDetail !== carried) { delete carryMap[ckey]; } // 她删掉括号或改了词 → 解除镜像，走常规规则（她的为准）
-          else {
-            const ow = otherCustomWord(n, f);
-            if (ow && ow !== carried) { carryMap[ckey] = ow; return n + '（' + ow + '）'; } // 源头改动 → 镜像跟随
-            if (!ow) { delete carryMap[ckey]; return n; } // 源头删了括号 → 镜像跟随删除
-            return n + '（' + userDetail + '）'; // 两侧未变 → 镜像维持
-          }
-        } else if (!userDetail) {
+          if (userDetail === carried) return n + '（' + userDetail + '）'; // 她没动过 → 原样保持（源头改/删都不跟随）
+          delete carryMap[ckey]; // 她删掉或改了这个词 → 以她的为准，且之后不再自动携带
+          dismissedMap[ckey] = true;
+        } else if (!userDetail && !dismissedMap[ckey]) {
           const ow = otherCustomWord(n, f);
-          if (ow) { carryMap[ckey] = ow; return n + '（' + ow + '）'; } // 对方栏有她写的自定义词 → 原样带过来
+          if (ow) { carryMap[ckey] = ow; return n + '（' + ow + '）'; } // 对方栏有她写的自定义词 → 原样带过来（仅此一次）
         }
       }
       const d = reverseDetailBetween(charName, n, SOCIAL_FIELD_REVERSE_ALLOWED[f]) || '';
@@ -6150,6 +6149,7 @@ function syncOcRelationSocialFields(charName) {
     }).join('、');
   });
   DB.set('oc_carry_anno_v869', carryMap);
+  DB.set('oc_carry_dismissed_v870', dismissedMap);
   DB.update('ocCharacters', c.id, derived);
 }
 // v614：一次性迁移，用已有关系回填所有人物档案的社会关系字段

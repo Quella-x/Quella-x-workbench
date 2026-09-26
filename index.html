@@ -2733,7 +2733,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-record-info-2col .lr-info-line{line-height:1.25}
 .lr-record-info-2col .lr-info-val{overflow:visible;text-overflow:clip}
 .lr-info-line{display:flex;align-items:baseline;gap:4px;min-width:0}
-.lr-info-line-head{grid-column:1 / -1;display:flex;align-items:center;gap:6px}
+.lr-info-line-head{grid-column:1 / -1;grid-row:1;display:flex;align-items:center;gap:6px} /* v870: 显式钉 row1，避免被显式定位的「数量」(r1c2) 挤到第2行 */
 .lr-info-line-head .lr-info-main{flex:1;min-width:0;display:flex;align-items:baseline;gap:4px}
 .lr-info-line-head .lr-record-ops{margin-left:auto;flex-shrink:0;margin-top:4px} /* v866: +2px，按钮文字与「时间」小标题字迹中心对齐（中文字体墨迹偏下） */
 .lr-info-label{font-size:12px;color:var(--c-text-light);font-weight:500;white-space:nowrap}
@@ -3605,7 +3605,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=869"></script>
+  <script src="app.js?v=870"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
