@@ -11208,7 +11208,7 @@ function renderDietRecordRows(recs, st) {
       const unitNote = r.unit ? `<span class="lr-size-note">（${esc(r.unit)}）</span>` : '';
       const qtyLine = r.qty != null ? `<div class="lr-info-line"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}</span></div>` : '';
       lines = `<div class="lr-info-line"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${unitNote}</span></div>`;
-      trailingOps = opsHtml;
+      trailingOps = opsHtml.replace('class="lr-record-ops"', 'class="lr-record-ops lr-ops-trail"'); // v874: 挂网格外的按钮补上与 head 内联按钮相同的下移对齐(窄4/宽2)，否则比时间标签高1-2px
     } else if (st.key === 'milktea') {
       const notes = [];
       if (r.size) notes.push(r.size);

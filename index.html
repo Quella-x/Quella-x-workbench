@@ -2742,6 +2742,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-info-full .lr-info-val{white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word;font-size:13px}
 /* v849: 还原 v834——按钮随「吃饭时间」标题行垂直居中（与 v1.1.48 一致，不再钉行顶） */
 .lr-record-ops{display:flex;gap:1px;flex-shrink:0;align-items:center;margin-top:2px}
+.lr-ops-trail{margin-top:4px} /* v874: 零食行挂网格外的编辑/删除与 head 内联按钮同值下移(窄4/宽2)，墨迹与时间标签对齐 */
 .lr-record-ops .btn{padding:2px 7px;font-size:12px;line-height:1.1;border-radius:var(--radius-sm)}
 .lr-size-note{font-size:11px;color:var(--c-text-light);white-space:normal;word-break:break-word;overflow-wrap:anywhere}
 .lr-info-val .lr-size-note{font-weight:500}
@@ -2758,6 +2759,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-info-full{line-height:19px;min-height:19px}
   .lr-record-ops{margin-top:0}
   .lr-info-line-head .lr-record-ops{margin-top:2px} /* v866: 桌面端同样下移与时间小标题对齐 */
+  .lr-ops-trail{margin-top:2px} /* v874: 同 head 内联按钮的桌面下移值 */
   .lr-record-ops .btn{line-height:1}
 }
 
@@ -3605,7 +3607,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=873"></script>
+  <script src="app.js?v=874"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
