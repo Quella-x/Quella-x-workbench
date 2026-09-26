@@ -5905,12 +5905,14 @@ function inferRelationFromDetail(detail, field, gender) {
   if (field === 'companion') return { type: '道侣', seniorOther: null };
   if (field === 'friends') return { type: /交好/.test(d) ? '交好' : '好友', seniorOther: null };
   if (field === 'fellow') {
-    // v865：同门栏支持师门方向词（师兄/师姐/师弟/师妹，师哥等同师兄）——按正则自动识别、无需硬编码词表；
-    // 关系类型仍记「同门」，variant='shimen' 用于反向生成师门词（见 reverseDetailBetween）。后续用户打新词（如大师兄/小师妹）也能命中正则。
-    if (/师(兄|哥)/.test(d)) return { type: '同门', seniorOther: true, variant: 'shimen' };
-    if (/师姐/.test(d)) return { type: '同门', seniorOther: true, variant: 'shimen' };
-    if (/师弟/.test(d)) return { type: '同门', seniorOther: false, variant: 'shimen' };
-    if (/师妹/.test(d)) return { type: '同门', seniorOther: false, variant: 'shimen' };
+    // v867：师门词通用识别（按用户要求：打新词不用改代码）——
+    // 同辈：师+哥/兄/姐/弟/妹（大师兄/小师妹等含「师兄/师妹」子串即命中）；
+    // 隔辈：师叔/师伯/师姑（对方长一辈）、师侄/师侄女（对方晚一辈），gen='cross' 标记隔辈（charA=长一辈一方）。
+    // 关系类型仍记「同门」，variant='shimen' 用于反向生成师门词（见 reverseDetailBetween）。
+    if (/师(叔|伯|姑)/.test(d)) return { type: '同门', seniorOther: true, variant: 'shimen', gen: 'cross' };
+    if (/师侄/.test(d)) return { type: '同门', seniorOther: false, variant: 'shimen', gen: 'cross' };
+    if (/师(兄|哥|姐)/.test(d)) return { type: '同门', seniorOther: true, variant: 'shimen' };
+    if (/师(弟|妹)/.test(d)) return { type: '同门', seniorOther: false, variant: 'shimen' };
     return { type: /上下/.test(d) ? '上下级' : '同门', seniorOther: null };
   }
   return { type: fallback, seniorOther: null };
@@ -6022,13 +6024,20 @@ function reverseDetailBetween(selfName, otherName, allowedTypes) {
   // v863：师门关系（relation.variant='shimen'）用师门词反推（师兄/师姐/师弟/师妹），其余沿用 REL_REVERSE_DETAIL 亲属词
   const variant = (r && r.variant) || 'family';
   let word;
-  if (variant === 'shimen' && t === '同门') {
-    // v865：同门师门方向词——按对方性别反推（gender 存储为 '女'/'男'，非 F/M）
-    const otherName = pureOcName(r.charA) === self ? pureOcName(r.charB) : pureOcName(r.charA);
-    const og = genderOfOcName(otherName);
-    word = { a: og === '女' ? '师妹' : '师弟', b: og === '女' ? '师姐' : '师兄' };
+  if (variant === 'shimen' && (t === '同门' || SIBLING_REVERSE.shimen[t])) {
+    // v867：师门方向词按「辈分 + 对方性别」反推（性别存储为 '女'/'男'）——
+    // 同辈：charA(长辈)侧看对方(晚辈)：女=师妹 / 男=师弟；charB(晚辈)侧看对方(长辈)：女=师姐 / 男=师兄。
+    // 例：筱小葵填 萧砚冰（师兄）→ 萧砚冰(charA)侧自动得 筱小葵（师妹）。
+    // 隔辈(gen='cross')：charA=长一辈（师叔/师伯/师姑），charB=晚一辈（师侄/师侄女），按性别选词。
+    const ogA = genderOfOcName(pureOcName(r.charA));
+    const ogB = genderOfOcName(pureOcName(r.charB));
+    if (r.gen === 'cross') {
+      word = { a: ogB === '女' ? '师侄女' : '师侄', b: ogA === '女' ? '师姑' : '师叔' };
+    } else {
+      word = { a: ogB === '女' ? '师妹' : '师弟', b: ogA === '女' ? '师姐' : '师兄' };
+    }
   } else {
-    word = (variant === 'shimen' && SIBLING_REVERSE.shimen[t]) ? SIBLING_REVERSE.shimen[t] : REL_REVERSE_DETAIL[t];
+    word = REL_REVERSE_DETAIL[t];
   }
   return pureOcName(r.charA) === self ? word.a : word.b;
 }
@@ -6057,9 +6066,11 @@ function syncOcRelationSocialFields(charName) {
   // v859：对称关系只保留有意义的细分类型括号（交好/上下级），与字段标签重复的默认类型（道侣/好友/同门）去括号；
   //       系统新增的人物自动标上有意义的方向/细分括号；用户写了不对应字段的括号时去掉错误括号。
   const FIELD_GENERIC_WORD = { parents: '父母', siblings: '兄弟姐妹', master: '师徒', companion: '道侣', friends: '好友', fellow: '同门' };
-  // v866：师门方向词正则 + 方向判定（兄/哥/姐=长辈方，弟/妹=晚辈方）
-  const SHIMEN_WORD_RE = /^师(兄|哥|姐|弟|妹)$/;
-  const shimenDir = (w) => /师(兄|哥|姐)/.test(w) ? 's' : 'j';
+  // v866(867扩展)：师门方向词（同辈 师兄/师姐/师弟/师妹 + 隔辈 师叔/师伯/师姑/师侄/师侄女）都是关系词，
+  // 不当「自定义词」放任残留——方向与关系记录一致时保留用户原词（性别词以用户打字为准，师伯≠师叔也尊重原词），
+  // 矛盾时（如一边师兄一边师姐）用关系反推词修正。
+  const SHIMEN_WORD_RE = /^师(兄|哥|姐|弟|妹|叔|伯|姑|侄|侄女)$/;
+  const shimenDir = (w) => /师(兄|哥|姐|叔|伯|姑)/.test(w) ? 's' : 'j';
   const ALL_REVERSE_WORDS = new Set(Object.values(REL_REVERSE_DETAIL).flatMap(o => [o.a, o.b]));
   ['parents', 'siblings', 'master', 'companion', 'friends', 'fellow'].forEach(f => {
     const entries = splitOcNameEntries(c[f]);
@@ -6277,6 +6288,38 @@ function normalizeOcShimenAnnoV866() {
   });
   DB.set('oc_shimen_anno_v866', true);
 }
+// v867：一次性迁移——师叔/师伯/师姑/师侄隔辈词此前不被识别（当自定义词），对应关系缺 gen 标记、
+// 方向可能错（charA 恒应为长一辈一方）。扫描六栏中的隔辈词 → 补 variant+gen 并修正方向 → 双方重算。幂等。
+function normalizeOcShimenCrossV867() {
+  if (DB.get('oc_shimen_cross_v867')) return;
+  const CROSS_RE = /师(叔|伯|姑|侄)/;
+  const infoByPair = {};
+  DB.list('ocCharacters').forEach(c => {
+    const name = pureOcName(c.name);
+    ['fellow', 'siblings'].forEach(f => {
+      splitOcNameEntries(c[f]).forEach(p => {
+        const w = (p.detail || '').trim();
+        if (!CROSS_RE.test(w)) return;
+        const k = [name, pureOcName(p.name)].sort().join('\u0000');
+        const info = infoByPair[k] || (infoByPair[k] = { gen: 'cross' });
+        // 师叔/师伯/师姑 描述的是长辈 → 括号挂在晚辈栏，p.name 是长一辈；师侄/师侄女反之，当前人是长一辈
+        if (/师(叔|伯|姑)/.test(w)) info.elder = pureOcName(p.name);
+        else info.elder = name;
+      });
+    });
+  });
+  DB.list('ocRelations').forEach(r => {
+    const a = pureOcName(r.charA), b = pureOcName(r.charB);
+    const info = infoByPair[[a, b].sort().join('\u0000')];
+    if (!info) return;
+    const patch = { variant: 'shimen', gen: 'cross' };
+    if (info.elder && info.elder !== a) { patch.charA = info.elder; patch.charB = a; }
+    DB.update('ocRelations', r.id, patch);
+    syncOcRelationSocialFields(a);
+    syncOcRelationSocialFields(b);
+  });
+  DB.set('oc_shimen_cross_v867', true);
+}
 // v615：人物档案社会关系字段 -> 人物关系记录（双向绑定：档案 -> 关系）
 // 在档案保存时调用：为档案社会关系里填写的每个人自动建立/清理对应的人物关系记录
 // v841：人物档案关系反向自动同步（档案 -> 档案）
@@ -6311,7 +6354,7 @@ function syncProfileSocialToRelations(charName, socialData, isNew = false) {
     splitOcNameEntries(socialData && socialData[field]).forEach(p => {
       if (!p.name || p.name === name) return;
       const inf = inferRelationFromDetail(p.detail, field, gender);
-      wanted.push({ field: field, other: p.name, type: inf.type, seniorOther: inf.seniorOther, variant: inf.variant });
+      wanted.push({ field: field, other: p.name, type: inf.type, seniorOther: inf.seniorOther, variant: inf.variant, gen: inf.gen });
     });
   });
   // 2) 建/更新：同 pair 已有该类型则复用；已有同栏笼统类型（兄弟姐妹/父母/师徒…）则升级为反推出的具体类型；长辈/师父一律落在 charA
@@ -6326,12 +6369,13 @@ function syncProfileSocialToRelations(charName, socialData, isNew = false) {
     }
     if (!rec) {
       const senior = w.seniorOther === true;
-      rec = DB.add('ocRelations', { charA: senior ? w.other : name, charB: senior ? name : w.other, relationType: [w.type], relationStatus: [], variant: w.variant || 'family', _syncedFromProfile: true });
+      rec = DB.add('ocRelations', { charA: senior ? w.other : name, charB: senior ? name : w.other, relationType: [w.type], relationStatus: [], variant: w.variant || 'family', gen: w.gen, _syncedFromProfile: true });
     } else if (w.seniorOther === true || w.seniorOther === false) {
       const seniorA = w.seniorOther === true ? w.other : name;
       const juniorB = w.seniorOther === true ? name : w.other;
       if (pureOcName(rec.charA) !== seniorA) DB.update('ocRelations', rec.id, { charA: seniorA, charB: juniorB });
       if (w.variant && rec.variant !== w.variant) DB.update('ocRelations', rec.id, { variant: w.variant });
+      if (w.gen && rec.gen !== w.gen) DB.update('ocRelations', rec.id, { gen: w.gen });
     }
   });
   // v859：新建人物档案时，它还没有自己的社会关系字段，不能按空字段清理关系，
@@ -13710,6 +13754,8 @@ function init() {
   normalizeOcFellowShimenV865();
   // v866：纠正两侧残留方向相反的师门旧词（师兄/师姐 不会自动互斥的问题）
   normalizeOcShimenAnnoV866();
+  // v867：隔辈师门词（师叔/师伯/师姑/师侄）补建 gen 标记并修正 charA 方向
+  normalizeOcShimenCrossV867();
   Sync.load();
   initEvents();
   renderAppLogo();
