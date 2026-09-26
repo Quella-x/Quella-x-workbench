@@ -11202,13 +11202,13 @@ function renderDietRecordRows(recs, st) {
     let lines = '';
     let trailingOps = '';
     if (st.key === 'snack') {
-      // v872：数量钉回 v834/v775 基线 x——基线里编辑/删除在网格外把网格挤窄，第二列起点=(行宽-按钮区91px)/2+列距一半；
-      // v868/v870 的 grid-column:2 在按钮内联后的全宽网格上，起点比基线偏右 45.5px（headless 实测 877.8 vs 832.3）。
-      // 改为首行(head)内绝对定位 lr-snack-qty（CSS 按窄屏/宽屏列距分别钉位），按钮内联结构(v865)不动。
+      // v873：恢复 v834/v247 原始「两列两行」grid 结构——享用时间(r1c1)+数量(r1c2)+零食记录(跨两列)，编辑/删除挂网格外(trailingOps)。
+      // 同一 grid 行同一排版机制，数量与时间的墨迹基线在任何设备上都必然对齐；
+      // 弃用 v872 的 lr-snack-qty 绝对定位——绝对定位行与 head 内 flex 居中的时间是两套机制，墨迹随设备字体度量漂移（电脑偏高、手机偏低 ~1px）。
       const unitNote = r.unit ? `<span class="lr-size-note">（${esc(r.unit)}）</span>` : '';
-      const qtyAbs = r.qty != null ? `<div class="lr-info-line lr-snack-qty"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}</span></div>` : '';
-      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span>${opsHtml}${qtyAbs}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${unitNote}</span></div>`;
-      trailingOps = '';
+      const qtyLine = r.qty != null ? `<div class="lr-info-line"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}</span></div>` : '';
+      lines = `<div class="lr-info-line"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${unitNote}</span></div>`;
+      trailingOps = opsHtml;
     } else if (st.key === 'milktea') {
       const notes = [];
       if (r.size) notes.push(r.size);
