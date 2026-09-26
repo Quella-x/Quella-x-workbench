@@ -11032,12 +11032,11 @@ function renderDietRecordRows(recs, st) {
     let lines = '';
     let trailingOps = '';
     if (st.key === 'snack') {
-      // v862：恢复 v1.1.30(v775)/v1.1.48(v834) 基线原样——享用时间与数量同一行左右两列，
-      // 零食记录跨两列、单位挂在零食名后（包），编辑/删除在整块右侧（与睡眠行一致）
+      // v864：零食编辑/删除改与奶茶/午饭首行垂直居中，保留 v834 布局（享用时间+数量左右两列）
       const unitNote = r.unit ? `<span class="lr-size-note">（${esc(r.unit)}）</span>` : '';
       const qtyLine = r.qty != null ? `<div class="lr-info-line"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}</span></div>` : '';
-      lines = `<div class="lr-info-line"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${unitNote}</span></div>`;
-      trailingOps = opsHtml;
+      lines = `<div class="snack-grid-left"><div class="lr-info-line"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></div>${qtyLine}</div>${opsHtml}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${unitNote}</span></div>`;
+      trailingOps = '';
     } else if (st.key === 'milktea') {
       const notes = [];
       if (r.size) notes.push(r.size);
@@ -11051,8 +11050,9 @@ function renderDietRecordRows(recs, st) {
     } else {
       lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">${st.key === 'midnight' ? '享用时间' : '吃饭时间'}:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">餐食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}</span></div>`;
     }
+    const infoClass = 'lr-record-info lr-record-info-2col' + (st.key === 'snack' ? ' snack-grid' : '');
     return `<div class="lr-record-row">
-      <div class="lr-record-info lr-record-info-2col">${lines}</div>${trailingOps}
+      <div class="${infoClass}">${lines}</div>${trailingOps}
     </div>`;
   }).join('');
 }
