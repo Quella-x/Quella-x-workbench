@@ -5058,7 +5058,11 @@ function openDetail(pageKey, id) {
   });
   if (mod.detailExtra) html += mod.detailExtra(r);
   html += '</div>';
-  openModal('记录详情', html, [
+  // v868：详情弹窗标题显示记录自身的名称（姓名/名称/标题/样品名称等），不再一律「记录详情」——
+  // 否则同时开几条记录根本分不清哪条是谁。按模块字段 key 匹配 name/title，取不到回落「记录详情」。
+  const _nameField = mod.fields.find(f => f.key && /name|title/i.test(String(f.key)) && f.type !== 'dynamic-list' && f.type !== 'image');
+  const _recTitle = (_nameField && r[_nameField.key]) ? esc(String(r[_nameField.key]).trim()) : '';
+  openModal(_recTitle || '记录详情', html, [
     { label: '关闭', class: 'btn-ghost', action: closeModal },
     { label: '编辑', class: 'btn-primary', action: () => { closeModal(); openEditForm(pageKey, id); } },
   ], 'lg');
@@ -5891,8 +5895,9 @@ function inferRelationFromDetail(detail, field, gender) {
     return { type: fallback, seniorOther: null };
   }
   if (field === 'parents') {
-    if (/父|爸/.test(d)) return { type: g === 'F' ? '父女' : (g === 'M' ? '父子' : '父母'), seniorOther: true };
-    if (/母|妈/.test(d)) return { type: g === 'F' ? '母女' : (g === 'M' ? '母子' : '父母'), seniorOther: true };
+    // v868：父母栏扩充常见变体词——爹爹/阿爹/爸比、娘亲/额娘/阿妈等含 父/爸/爹/母/妈/娘 的词都自动识别反推
+    if (/父|爸|爹/.test(d)) return { type: g === 'F' ? '父女' : (g === 'M' ? '父子' : '父母'), seniorOther: true };
+    if (/母|妈|娘/.test(d)) return { type: g === 'F' ? '母女' : (g === 'M' ? '母子' : '父母'), seniorOther: true };
     if (/女/.test(d)) return { type: g === 'M' ? '父女' : (g === 'F' ? '母女' : '父母'), seniorOther: false }; // 「女儿」先判，别被 子|儿 抢走
     if (/子|儿/.test(d)) return { type: g === 'M' ? '父子' : (g === 'F' ? '母子' : '父母'), seniorOther: false };
     return { type: fallback, seniorOther: true }; // 无标注：默认对方是父母（长辈）
@@ -6032,7 +6037,8 @@ function reverseDetailBetween(selfName, otherName, allowedTypes) {
     const ogA = genderOfOcName(pureOcName(r.charA));
     const ogB = genderOfOcName(pureOcName(r.charB));
     if (r.gen === 'cross') {
-      word = { a: ogB === '女' ? '师侄女' : '师侄', b: ogA === '女' ? '师姑' : '师叔' };
+      // v868：师侄不分男女（用户明确），长一辈侧对晚一辈一律标「师侄」；晚辈侧看长辈按性别 师姑/师叔
+      word = { a: '师侄', b: ogA === '女' ? '师姑' : '师叔' };
     } else {
       word = { a: ogB === '女' ? '师妹' : '师弟', b: ogA === '女' ? '师姐' : '师兄' };
     }
@@ -11145,10 +11151,11 @@ function renderDietRecordRows(recs, st) {
     let lines = '';
     let trailingOps = '';
     if (st.key === 'snack') {
-      // v865：零食编辑/删除与奶茶/午饭完全同结构——首行 flex 内含「享用时间 + 数量」(左) 与 ops(右,垂直居中)，保证严格对齐
+      // v868：数量放回第二列（grid 显式定位 row1/col2，与 v834 基线、其他行右列起点精确对齐），不再内联在时间后面；
+      // 首行仍为「享用时间(左) + 编辑/删除(右,垂直居中)」，零食记录跨两列、单位挂零食名后（包）
       const unitNote = r.unit ? `<span class="lr-size-note">（${esc(r.unit)}）</span>` : '';
-      const qtyPart = r.qty != null ? `<span class="lr-info-label" style="margin-left:28px">数量:</span><span class="lr-info-val">${r.qty}</span>` : '';
-      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span>${qtyPart}</span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${unitNote}</span></div>`;
+      const qtyLine = r.qty != null ? `<div class="lr-info-line" style="grid-row:1;grid-column:2"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}</span></div>` : '';
+      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span>${opsHtml}</div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${unitNote}</span></div>`;
       trailingOps = '';
     } else if (st.key === 'milktea') {
       const notes = [];
