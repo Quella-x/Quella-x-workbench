@@ -6082,7 +6082,11 @@ function syncOcRelationSocialFields(charName) {
   // 她亲手写/改过的一侧以她的为准（解除镜像），镜像词在她改动源头后自动跟随更新。
   // v870：只好友栏携带（用户明确：道侣不原样带，两边各自写各自）；携带后互不跟随——
   // 她改哪边哪边变，另一边不动；她删掉/改过的镜像位永不再自动携带（dismissedMap）。
-  const CARRY_FIELDS = { friends: true };
+  // v871：道侣栏也要「对应」（不原样带）——她在一侧写的自定义词，按常见关系把对应词写到另一侧：
+  //   婚姻位分词（正宫/侧室/妾/妃/夫君/娘子等）→ 按写字一方的性别给称谓（男→夫君，女→夫人，未知→道侣）；
+  //   对称缘分词（青梅竹马/两小无猜）→ 同词对应；其余自定义词 → 道侣。
+  //   携带语义与好友一致：一次写入后互不跟随，她改/删哪边以哪边为准（dismissedMap 防复活）。
+  const CARRY_FIELDS = { friends: true, companion: true };
   const carryMap = DB.get('oc_carry_anno_v869') || {};          // 镜像标记：该侧括号词是系统携带的（用于回声判定）
   const dismissedMap = DB.get('oc_carry_dismissed_v870') || {}; // 她手改/删过的镜像位，之后不再自动携带
   const otherCustomWord = (otherName, f) => {
@@ -6095,6 +6099,17 @@ function syncOcRelationSocialFields(charName) {
     if (relWords.has(w) || SHIMEN_WORD_RE.test(w)) return ''; // 系统关系词不携带，只带她的自定义词
     if (carryMap[f + '\u0000' + otherName + '\u0000' + charName] === w) return ''; // 对方侧这个词是镜像回声，不是源头词，防止反弹
     return w;
+  };
+  // v871：道侣栏对应词转换——婚姻位分词按写字一方性别转称谓，对称缘分词同词，其余自定义词转「道侣」
+  const COMPANION_SPOUSE_RE = /正宫|侧室|侧妃|平妻|正妻|发妻|原配|妾|妃|皇夫|夫君|夫人|相公|娘子|妻子|丈夫|良人/;
+  const COMPANION_SYM_RE = /青梅|竹马|两小无猜/;
+  const companionMirrorWord = (writerName, w) => {
+    if (COMPANION_SPOUSE_RE.test(w)) {
+      const g = genderOfOcName(writerName);
+      return g === '男' ? '夫君' : g === '女' ? '夫人' : '道侣';
+    }
+    if (COMPANION_SYM_RE.test(w)) return w;
+    return '道侣';
   };
   ['parents', 'siblings', 'master', 'companion', 'friends', 'fellow'].forEach(f => {
     const entries = splitOcNameEntries(c[f]);
@@ -6119,7 +6134,10 @@ function syncOcRelationSocialFields(charName) {
           dismissedMap[ckey] = true;
         } else if (!userDetail && !dismissedMap[ckey]) {
           const ow = otherCustomWord(n, f);
-          if (ow) { carryMap[ckey] = ow; return n + '（' + ow + '）'; } // 对方栏有她写的自定义词 → 原样带过来（仅此一次）
+          if (ow) {
+            const mw = f === 'companion' ? companionMirrorWord(n, ow) : ow; // v871：道侣栏转对应词，好友栏仍原样
+            carryMap[ckey] = mw; return n + '（' + mw + '）'; // 对方栏有她写的自定义词 → 写对应词（仅此一次）
+          }
         }
       }
       const d = reverseDetailBetween(charName, n, SOCIAL_FIELD_REVERSE_ALLOWED[f]) || '';
