@@ -2747,7 +2747,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-info-line{display:flex;align-items:baseline;gap:4px;min-width:0}
 .lr-info-line-head{grid-column:1 / -1;display:flex;align-items:center;gap:6px}
 .lr-info-line-head .lr-info-main{flex:1;min-width:0;display:flex;align-items:baseline;gap:4px}
-.lr-info-line-head .lr-record-ops{margin-left:auto;flex-shrink:0}
+.lr-info-line-head .lr-record-ops{margin-left:auto;flex-shrink:0;margin-top:4px} /* v866: +2px，按钮文字与「时间」小标题字迹中心对齐（中文字体墨迹偏下） */
 .lr-info-label{font-size:12px;color:var(--c-text-light);font-weight:500;white-space:nowrap}
 .lr-info-val{font-size:16px;color:var(--c-text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lr-info-full{grid-column:1 / -1;white-space:normal;word-break:break-word}
@@ -2769,6 +2769,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-record-info-2col .lr-info-line:not(.lr-info-full){line-height:19px;height:19px}
   .lr-info-full{line-height:19px;min-height:19px}
   .lr-record-ops{margin-top:0}
+  .lr-info-line-head .lr-record-ops{margin-top:2px} /* v866: 桌面端同样下移与时间小标题对齐 */
   .lr-record-ops .btn{line-height:1}
 }
 
@@ -3615,7 +3616,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=865"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=866"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

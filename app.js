@@ -6057,6 +6057,9 @@ function syncOcRelationSocialFields(charName) {
   // v859：对称关系只保留有意义的细分类型括号（交好/上下级），与字段标签重复的默认类型（道侣/好友/同门）去括号；
   //       系统新增的人物自动标上有意义的方向/细分括号；用户写了不对应字段的括号时去掉错误括号。
   const FIELD_GENERIC_WORD = { parents: '父母', siblings: '兄弟姐妹', master: '师徒', companion: '道侣', friends: '好友', fellow: '同门' };
+  // v866：师门方向词正则 + 方向判定（兄/哥/姐=长辈方，弟/妹=晚辈方）
+  const SHIMEN_WORD_RE = /^师(兄|哥|姐|弟|妹)$/;
+  const shimenDir = (w) => /师(兄|哥|姐)/.test(w) ? 's' : 'j';
   const ALL_REVERSE_WORDS = new Set(Object.values(REL_REVERSE_DETAIL).flatMap(o => [o.a, o.b]));
   ['parents', 'siblings', 'master', 'companion', 'friends', 'fellow'].forEach(f => {
     const entries = splitOcNameEntries(c[f]);
@@ -6084,6 +6087,12 @@ function syncOcRelationSocialFields(charName) {
       //      对称默认类型（道侣/好友/同门，与字段标签重复）保留用户原样；
       //   ③ 自定义词/通用词 -> 一律保留。
       if (ALL_REVERSE_WORDS.has(userDetail) && !fieldAllowedWords.has(userDetail)) return n; // 跨栏错误去括号
+      // v866：师门方向词（师兄/师姐/师弟/师妹）也是关系词，不再当「自定义词」放任残留——
+      // 方向与关系记录一致时保留用户原词（性别词以用户打字为准），矛盾时用关系反推词修正，
+      // 避免两侧档案残留方向相反的旧词（例：一边师兄一边师姐，实际类型是师妹）。
+      if (SHIMEN_WORD_RE.test(userDetail) && d && SHIMEN_WORD_RE.test(d)) {
+        return n + '（' + (shimenDir(userDetail) === shimenDir(d) ? userDetail : d) + '）';
+      }
       if (ALL_REVERSE_WORDS.has(userDetail) && d) {
         if (d === FIELD_GENERIC_WORD[f]) return n + '（' + userDetail + '）'; // 对称默认类型：保留用户原括号
         return n + '（' + d + '）'; // 方向/细分类型：用关系反推的正确词修正
@@ -6255,6 +6264,18 @@ function normalizeOcFellowShimenV865() {
     }
   });
   DB.set('oc_fellow_shimen_v865', true);
+}
+// v866：一次性迁移——师门词此前被当「自定义词」永不纠正，两侧档案可能残留方向相反的旧词
+// （例：一边「师兄」一边「师姐」，实际关系是师妹）。对所有 shimen 关系双方按 v866 规则
+// 重算社会关系六栏：方向一致的词保留、矛盾的换成关系反推词。幂等。
+function normalizeOcShimenAnnoV866() {
+  if (DB.get('oc_shimen_anno_v866')) return;
+  DB.list('ocRelations').forEach(r => {
+    if (r.variant !== 'shimen') return;
+    syncOcRelationSocialFields(r.charA);
+    syncOcRelationSocialFields(r.charB);
+  });
+  DB.set('oc_shimen_anno_v866', true);
 }
 // v615：人物档案社会关系字段 -> 人物关系记录（双向绑定：档案 -> 关系）
 // 在档案保存时调用：为档案社会关系里填写的每个人自动建立/清理对应的人物关系记录
@@ -13687,6 +13708,8 @@ function init() {
   normalizeOcRelationVariantV863();
   // v865：同门栏的师门标注（原漏处理）也补标 variant
   normalizeOcFellowShimenV865();
+  // v866：纠正两侧残留方向相反的师门旧词（师兄/师姐 不会自动互斥的问题）
+  normalizeOcShimenAnnoV866();
   Sync.load();
   initEvents();
   renderAppLogo();
