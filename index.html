@@ -2733,9 +2733,10 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-record-info-2col .lr-info-line{line-height:1.25}
 .lr-record-info-2col .lr-info-val{overflow:visible;text-overflow:clip}
 .lr-info-line{display:flex;align-items:baseline;gap:4px;min-width:0}
-.lr-info-line-head{grid-column:1 / -1;grid-row:1;display:flex;align-items:center;gap:6px} /* v870: 显式钉 row1，避免被显式定位的「数量」(r1c2) 挤到第2行 */
+.lr-info-line-head{grid-column:1 / -1;grid-row:1;display:flex;align-items:center;gap:6px;position:relative} /* v870: 显式钉 row1，避免被显式定位的「数量」(r1c2) 挤到第2行；v872: relative 供零食数量绝对定位 */
 .lr-info-line-head .lr-info-main{flex:1;min-width:0;display:flex;align-items:baseline;gap:4px}
 .lr-info-line-head .lr-record-ops{margin-left:auto;flex-shrink:0;margin-top:4px} /* v866: +2px，按钮文字与「时间」小标题字迹中心对齐（中文字体墨迹偏下） */
+.lr-snack-qty{position:absolute;left:calc((100% - 83px)/2 + 11px);top:0} /* v872: 数量钉回 v834/v775 基线x——基线第二列起点=(行宽-按钮区73px-行gap10px)/2+列距一半(窄屏22/2=11)；宽屏媒体查询覆盖为按钮区81+20 */
 .lr-info-label{font-size:12px;color:var(--c-text-light);font-weight:500;white-space:nowrap}
 .lr-info-val{font-size:16px;color:var(--c-text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lr-info-full{grid-column:1 / -1;white-space:normal;word-break:break-word}
@@ -2758,6 +2759,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-info-full{line-height:19px;min-height:19px}
   .lr-record-ops{margin-top:0}
   .lr-info-line-head .lr-record-ops{margin-top:2px} /* v866: 桌面端同样下移与时间小标题对齐 */
+  .lr-snack-qty{left:calc((100% - 91px)/2 + 20px)} /* v872: 桌面列距40→半个列距+20 */
   .lr-record-ops .btn{line-height:1}
 }
 
@@ -3605,7 +3607,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=871"></script>
+  <script src="app.js?v=872"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

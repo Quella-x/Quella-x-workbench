@@ -11202,11 +11202,12 @@ function renderDietRecordRows(recs, st) {
     let lines = '';
     let trailingOps = '';
     if (st.key === 'snack') {
-      // v868：数量放回第二列（grid 显式定位 row1/col2，与 v834 基线、其他行右列起点精确对齐），不再内联在时间后面；
-      // 首行仍为「享用时间(左) + 编辑/删除(右,垂直居中)」，零食记录跨两列、单位挂零食名后（包）
+      // v872：数量钉回 v834/v775 基线 x——基线里编辑/删除在网格外把网格挤窄，第二列起点=(行宽-按钮区91px)/2+列距一半；
+      // v868/v870 的 grid-column:2 在按钮内联后的全宽网格上，起点比基线偏右 45.5px（headless 实测 877.8 vs 832.3）。
+      // 改为首行(head)内绝对定位 lr-snack-qty（CSS 按窄屏/宽屏列距分别钉位），按钮内联结构(v865)不动。
       const unitNote = r.unit ? `<span class="lr-size-note">（${esc(r.unit)}）</span>` : '';
-      const qtyLine = r.qty != null ? `<div class="lr-info-line" style="grid-row:1;grid-column:2"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}</span></div>` : '';
-      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span>${opsHtml}</div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${unitNote}</span></div>`;
+      const qtyAbs = r.qty != null ? `<div class="lr-info-line lr-snack-qty"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}</span></div>` : '';
+      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span>${opsHtml}${qtyAbs}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${unitNote}</span></div>`;
       trailingOps = '';
     } else if (st.key === 'milktea') {
       const notes = [];
