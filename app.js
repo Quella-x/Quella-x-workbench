@@ -5879,12 +5879,15 @@ function inferRelationFromDetail(detail, field, gender) {
   const g = (gender === '女') ? 'F' : (gender === '男') ? 'M' : '';
   const fallback = SOCIAL_FIELD_RELATION_TYPE[field] || '好友';
   if (field === 'siblings') {
+    // v863：内含「师」的称呼（师兄/师姐/师弟/师妹）标记为师门 variant，反推时用师门词；
+    // 凡命中 哥/姐/弟/妹 正则即自动识别（含表哥/堂姐/大姐等未来新词，无需为每个硬编码）。
+    const sv = (det) => /师/.test(det) ? 'shimen' : 'family';
     if (/表/.test(d)) return { type: '表亲', seniorOther: null };
     if (/堂/.test(d)) return { type: '堂亲', seniorOther: null };
-    if (/哥|兄/.test(d)) return { type: g === 'F' ? '兄妹' : (g === 'M' ? '兄弟' : '兄弟姐妹'), seniorOther: true };
-    if (/姐/.test(d)) return { type: g === 'F' ? '姐妹' : (g === 'M' ? '姐弟' : '兄弟姐妹'), seniorOther: true };
-    if (/弟/.test(d)) return { type: g === 'F' ? '姐弟' : (g === 'M' ? '兄弟' : '兄弟姐妹'), seniorOther: false };
-    if (/妹/.test(d)) return { type: g === 'F' ? '姐妹' : (g === 'M' ? '兄妹' : '兄弟姐妹'), seniorOther: false };
+    if (/哥|兄/.test(d)) return { type: g === 'F' ? '兄妹' : (g === 'M' ? '兄弟' : '兄弟姐妹'), seniorOther: true, variant: sv(d) };
+    if (/姐/.test(d)) return { type: g === 'F' ? '姐妹' : (g === 'M' ? '姐弟' : '兄弟姐妹'), seniorOther: true, variant: sv(d) };
+    if (/弟/.test(d)) return { type: g === 'F' ? '姐弟' : (g === 'M' ? '兄弟' : '兄弟姐妹'), seniorOther: false, variant: sv(d) };
+    if (/妹/.test(d)) return { type: g === 'F' ? '姐妹' : (g === 'M' ? '兄妹' : '兄弟姐妹'), seniorOther: false, variant: sv(d) };
     return { type: fallback, seniorOther: null };
   }
   if (field === 'parents') {
@@ -5975,6 +5978,17 @@ const REL_REVERSE_DETAIL = {
   '交好': { a: '交好', b: '交好' },
   '上下级': { a: '上下级', b: '上下级' }
 };
+// v863：师门方向词反推表——关系由「师兄/师姐/师弟/师妹」等师门称呼推导（relation.variant='shimen'）时，
+// 反向括号用师门词而非亲属词。约定与 REL_REVERSE_DETAIL 一致：a 描述晚辈(charB)、b 描述长辈(charA)。
+// 规则化后无需为每个师门新称呼硬编码：只要命中 哥/姐/弟/妹 正则即自动识别并沿用此表反推。
+const SIBLING_REVERSE = {
+  shimen: {
+    '兄妹': { a: '师妹', b: '师兄' },
+    '姐弟': { a: '师弟', b: '师姐' },
+    '兄弟': { a: '师弟', b: '师兄' },
+    '姐妹': { a: '师妹', b: '师姐' }
+  }
+};
 // 查两个人的关系记录，返回「对方在我这栏该标的括号词」（查不到/无对应词返回 ''）
 // v855：allowedTypes 限定「只取该社会关系字段允许的关系类型」，避免道侣栏被贴师徒括号、或师徒栏取到道侣类型清空括号
 function reverseDetailBetween(selfName, otherName, allowedTypes) {
@@ -5992,7 +6006,10 @@ function reverseDetailBetween(selfName, otherName, allowedTypes) {
   const t = allTypes.find(t => REL_REVERSE_DETAIL[t] && (allowedTypes === undefined || (allowedTypes.length && allowedTypes.includes(t))));
   if (!t) return '';
   const r = recs.find(x => arrVal(x.relationType).includes(t));
-  return pureOcName(r.charA) === self ? REL_REVERSE_DETAIL[t].a : REL_REVERSE_DETAIL[t].b;
+  // v863：师门关系（relation.variant='shimen'）用师门词反推（师兄/师姐/师弟/师妹），其余沿用 REL_REVERSE_DETAIL 亲属词
+  const variant = (r && r.variant) || 'family';
+  const word = (variant === 'shimen' && SIBLING_REVERSE.shimen[t]) ? SIBLING_REVERSE.shimen[t] : REL_REVERSE_DETAIL[t];
+  return pureOcName(r.charA) === self ? word.a : word.b;
 }
 // v856：各社会关系字段允许自动加括号的关系类型；
 // 道侣/好友/同门只取自己类型，避免被师徒等有方向类型串场，同时保留对称类型自身的对应括号。
@@ -6154,7 +6171,7 @@ function repairOcSocialRelationsV862() {
         const inPair = DB.list('ocRelations').filter(r => pairKey(r.charA, r.charB) === pairKey(name, p.name));
         if (inPair.some(r => arrVal(r.relationType).includes(type))) return;
         const senior = inf.seniorOther === true;
-        DB.add('ocRelations', { charA: senior ? p.name : name, charB: senior ? name : p.name, relationType: [type], relationStatus: [], _syncedFromProfile: true });
+        DB.add('ocRelations', { charA: senior ? p.name : name, charB: senior ? name : p.name, relationType: [type], relationStatus: [], variant: inf.variant || 'family', _syncedFromProfile: true });
       });
     });
   });
@@ -6162,6 +6179,34 @@ function repairOcSocialRelationsV862() {
   DB.list('ocRelations').forEach(r => syncOcRelationToChars(r));
   chars.forEach(c => { if (c && c.name) syncOcRelationSocialFields(c.name); });
   DB.set('oc_social_repair_v862', true);
+}
+// v863：一次性迁移——从人物档案「兄弟姐妹」栏里写有师门词（师兄/师姐/师弟/师妹）的条目，
+// 反推对应人物关系记录的 variant='shimen'，使反向括号改用师门词（师兄/师姐/师弟/师妹）。
+// 旧版本建立的关系记录未存 variant，默认走亲属词；本迁移让历史师门关系也正确反推，无需用户重新保存。
+function normalizeOcRelationVariantV863() {
+  if (DB.get('oc_rel_variant_v863')) return;
+  const SHIMEN_WORDS = ['师兄', '师姐', '师弟', '师妹'];
+  const variantByPair = {};
+  DB.list('ocCharacters').forEach(c => {
+    const name = pureOcName(c.name);
+    splitOcNameEntries(c.siblings).forEach(p => {
+      const w = (p.detail || '').trim();
+      if (SHIMEN_WORDS.includes(w)) {
+        const k = [name, pureOcName(p.name)].sort().join('\u0000');
+        variantByPair[k] = 'shimen';
+      }
+    });
+  });
+  DB.list('ocRelations').forEach(r => {
+    const k = [pureOcName(r.charA), pureOcName(r.charB)].sort().join('\u0000');
+    if (variantByPair[k] && !r.variant) {
+      DB.update('ocRelations', r.id, { variant: 'shimen' });
+      // 重算双方档案六栏，使反向括号立即改用师门词（师兄/师姐/师弟/师妹）
+      syncOcRelationSocialFields(r.charA);
+      syncOcRelationSocialFields(r.charB);
+    }
+  });
+  DB.set('oc_rel_variant_v863', true);
 }
 // v615：人物档案社会关系字段 -> 人物关系记录（双向绑定：档案 -> 关系）
 // 在档案保存时调用：为档案社会关系里填写的每个人自动建立/清理对应的人物关系记录
@@ -6197,7 +6242,7 @@ function syncProfileSocialToRelations(charName, socialData, isNew = false) {
     splitOcNameEntries(socialData && socialData[field]).forEach(p => {
       if (!p.name || p.name === name) return;
       const inf = inferRelationFromDetail(p.detail, field, gender);
-      wanted.push({ field: field, other: p.name, type: inf.type, seniorOther: inf.seniorOther });
+      wanted.push({ field: field, other: p.name, type: inf.type, seniorOther: inf.seniorOther, variant: inf.variant });
     });
   });
   // 2) 建/更新：同 pair 已有该类型则复用；已有同栏笼统类型（兄弟姐妹/父母/师徒…）则升级为反推出的具体类型；长辈/师父一律落在 charA
@@ -6212,11 +6257,12 @@ function syncProfileSocialToRelations(charName, socialData, isNew = false) {
     }
     if (!rec) {
       const senior = w.seniorOther === true;
-      rec = DB.add('ocRelations', { charA: senior ? w.other : name, charB: senior ? name : w.other, relationType: [w.type], relationStatus: [], _syncedFromProfile: true });
+      rec = DB.add('ocRelations', { charA: senior ? w.other : name, charB: senior ? name : w.other, relationType: [w.type], relationStatus: [], variant: w.variant || 'family', _syncedFromProfile: true });
     } else if (w.seniorOther === true || w.seniorOther === false) {
       const seniorA = w.seniorOther === true ? w.other : name;
       const juniorB = w.seniorOther === true ? name : w.other;
       if (pureOcName(rec.charA) !== seniorA) DB.update('ocRelations', rec.id, { charA: seniorA, charB: juniorB });
+      if (w.variant && rec.variant !== w.variant) DB.update('ocRelations', rec.id, { variant: w.variant });
     }
   });
   // v859：新建人物档案时，它还没有自己的社会关系字段，不能按空字段清理关系，
@@ -6630,6 +6676,8 @@ function ocRelationVisibleTypes(types) {
   const kept = arr.filter(t => !hidden.has(t));
   return kept.length ? kept : arr;
 }
+// v863：关系图布局缓存——关系集合未变时复用上次力导向结果，避免重进抖动/重复计算
+let _mmLayoutCache = { sig: '', pos: null };
 function drawMindMap(chars, relations) {
   const canvas = $('#mindmapCanvas');
   if (!canvas) return;
@@ -6710,7 +6758,15 @@ function drawMindMap(chars, relations) {
   const _ringNeed = _nConn > 16 ? (2 * (30 / Math.sin(Math.PI / _nConn)) + 68) : 0;
   const w = Math.max(_wrapW, _nConn > 16 ? Math.max(_need, _ringNeed) : 0);
   const h = Math.max(_baseH, Math.min(Math.max(_need, _ringNeed), 900));
-  const positions = computeForceLayout(layoutChars, allConnections, w, h);
+  // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的力导向结果，避免重进抖动/重复计算；
+  // 仅在签名变化（新增关系）或缓存越界（容器尺寸变化）时重算。
+  const _layoutSig = JSON.stringify({ n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  let positions = _mmLayoutCache.sig === _layoutSig ? _mmLayoutCache.pos : null;
+  if (positions) {
+    const _oob = layoutChars.some(c => { const p = positions[c.name]; return !p || p.x < 26 || p.y < 26 || p.x > w - 26 || p.y > h - 26; });
+    if (_oob) positions = null;
+  }
+  if (!positions) { positions = computeForceLayout(layoutChars, allConnections, w, h); _mmLayoutCache = { sig: _layoutSig, pos: positions }; }
   // 初始视图：把关系图包围盒居中到可视区（避免默认只看到左上角一半）
   let _minX = Infinity, _maxX = -Infinity, _minY = Infinity, _maxY = -Infinity;
   layoutChars.forEach(c => {
@@ -6731,6 +6787,7 @@ function drawMindMap(chars, relations) {
   const _pairMap = {};
   allConnections.forEach(c => { const k = [c.a, c.b].sort().join('\u0000'); (_pairMap[k] = _pairMap[k] || []).push(c); });
   Object.keys(_pairMap).forEach(k => { _pairMap[k].forEach((c, i) => { c._pi = i; c._pc = _pairMap[k].length; }); });
+  const _labels = [];
   allConnections.forEach(conn => {
     const a = positions[conn.a], b = positions[conn.b];
     if (!a || !b) return;
@@ -6772,7 +6829,15 @@ function drawMindMap(chars, relations) {
     // 标签统一偏移
     labX += nx * labMag * labSign;
     labY += ny * labMag * labSign;
-    inner += `<text x="${labX}" y="${labY}" text-anchor="middle" dominant-baseline="middle" font-size="10" fill="${color}" style="paint-order:stroke;stroke:#fff;stroke-width:3" font-weight="600">${esc(conn.type)}</text>`;
+    _labels.push({ x: labX, y: labY, color: color, type: conn.type });
+  });
+  // v863：关系词标签最后绘制（覆盖在连线之上），并加白底圆角衬底，确保交叉处不被连线遮挡
+  _labels.forEach(lb => {
+    const tw = lb.type.length * 6.2 + 6;
+    inner += `<rect x="${lb.x - tw / 2 - 3}" y="${lb.y - 9}" width="${tw + 6}" height="18" rx="4" fill="#ffffff" opacity="0.92"/>`;
+  });
+  _labels.forEach(lb => {
+    inner += `<text x="${lb.x}" y="${lb.y}" text-anchor="middle" dominant-baseline="middle" font-size="10.5" fill="${lb.color}" style="paint-order:stroke;stroke:#fff;stroke-width:3" font-weight="600">${esc(lb.type)}</text>`;
   });
   inner += '</svg>';
   // Nodes (circular, text only — no images)
@@ -6808,16 +6873,39 @@ function pickCenterChar(chars, connections) {
 }
 // v841：关系图布局改为「有机力导向（弹簧 FR）」——节点散开、连线不交叉、留白多、
 // 边尽量等长（统一目标长度 k，只有间接连接的才更远），零容忍节点重叠（中心距<60 即重叠），允许缩放。
-function computeForceLayout(chars, connections, w, h) {
+// v863：多起点 + 取交叉最少解 + 2-opt 交换，进一步消除「可避免的交叉」。
+function _mmRand(seed) {
+  let s = seed >>> 0;
+  return () => { s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function _segIntersect(p1, p2, p3, p4) {
+  const d = (ax, ay, bx, by, cx, cy) => (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+  const d1 = d(p3.x, p3.y, p4.x, p4.y, p1.x, p1.y);
+  const d2 = d(p3.x, p3.y, p4.x, p4.y, p2.x, p2.y);
+  const d3 = d(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
+  const d4 = d(p1.x, p1.y, p2.x, p2.y, p4.x, p4.y);
+  return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
+}
+function countEdgeCrossings(pos, conns) {
+  const segs = conns.filter(c => pos[c.a] && pos[c.b]).map(c => ({ a: pos[c.a], b: pos[c.b] }));
+  let n = 0;
+  for (let i = 0; i < segs.length; i++) for (let j = i + 1; j < segs.length; j++) {
+    const s1 = segs[i], s2 = segs[j];
+    if (s1.a === s2.a || s1.a === s2.b || s1.b === s2.a || s1.b === s2.b) continue;
+    if (_segIntersect(s1.a, s1.b, s2.a, s2.b)) n++;
+  }
+  return n;
+}
+function computeForceLayoutOnce(chars, connections, w, h, rng) {
   const NODE_R = 30;
   const names = chars.map(c => c.name).filter(Boolean);
   const pos = {};
   const cx = w / 2, cy = h / 2;
-  // 初始：均匀撒在中心圆，避免同位置
   const R0 = Math.min(w, h) / 3;
   names.forEach((n, i) => {
-    const a = (i / Math.max(names.length, 1)) * 2 * Math.PI;
-    pos[n] = { x: cx + R0 * Math.cos(a), y: cy + R0 * Math.sin(a) };
+    const a = (i / Math.max(names.length, 1)) * 2 * Math.PI + (rng() - 0.5) * 0.7;
+    const rr = R0 * (0.78 + rng() * 0.44);
+    pos[n] = { x: cx + rr * Math.cos(a), y: cy + rr * Math.sin(a) };
   });
   if (names.length <= 1) return pos;
   const area = w * h;
@@ -6831,7 +6919,7 @@ function computeForceLayout(chars, connections, w, h) {
     for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
       const a = pos[names[i]], b = pos[names[j]];
       let dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy;
-      if (d2 < 0.01) { d2 = 0.01; dx = Math.random() - 0.5; dy = Math.random() - 0.5; }
+      if (d2 < 0.01) { d2 = 0.01; const r1 = rng() - 0.5, r2 = rng() - 0.5; dx = r1; dy = r2; }
       const d = Math.sqrt(d2);
       const f = (k * k) / d2;
       const fx = (dx / d) * f, fy = (dy / d) * f;
@@ -6864,7 +6952,7 @@ function computeForceLayout(chars, connections, w, h) {
       pos[n].y = Math.max(NODE_R + 4, Math.min(h - NODE_R - 4, pos[n].y));
     });
   }
-  // 后处理：任何非端点节点靠近某条边则垂直推开（双重保险，消除穿线）
+  // 后处理：任何非端点节点靠近某条边则垂直推开（双重保险，消除穿节点）
   for (let sweep = 0; sweep < 120; sweep++) {
     let moved = false;
     connections.forEach(cn => {
@@ -6887,6 +6975,44 @@ function computeForceLayout(chars, connections, w, h) {
     if (!moved) break;
   }
   return pos;
+}
+function computeForceLayout(chars, connections, w, h) {
+  const NODE_R = 30;
+  const names = chars.map(c => c.name).filter(Boolean);
+  if (names.length <= 2) return computeForceLayoutOnce(chars, connections, w, h, _mmRand(1));
+  // 多起点：取交叉数最少的解
+  const K = Math.max(3, Math.min(6, 9 - Math.floor(names.length / 5)));
+  let best = null, bestCross = Infinity;
+  for (let s = 0; s < K; s++) {
+    const p = computeForceLayoutOnce(chars, connections, w, h, _mmRand(s * 100003 + 7));
+    const c = countEdgeCrossings(p, connections);
+    if (c < bestCross) { bestCross = c; best = p; }
+  }
+  // 2-opt：随机交换两节点位置，若减少交叉且不引入重叠则保留
+  let cur = best ? JSON.parse(JSON.stringify(best)) : null;
+  if (cur) {
+    let curCross = countEdgeCrossings(cur, connections);
+    const attempts = Math.min(300, names.length * 20);
+    const rng = _mmRand(99173);
+    for (let a = 0; a < attempts; a++) {
+      const i = Math.floor(rng() * names.length), j = Math.floor(rng() * names.length);
+      if (i === j) continue;
+      const ni = names[i], nj = names[j];
+      const t = cur[ni]; cur[ni] = cur[nj]; cur[nj] = t;
+      let overlap = false;
+      for (let m = 0; m < names.length && !overlap; m++) {
+        const nm = names[m];
+        if (nm === ni || nm === nj) continue;
+        if (Math.hypot(cur[ni].x - cur[nm].x, cur[ni].y - cur[nm].y) < 2 * NODE_R - 4) overlap = true;
+        if (Math.hypot(cur[nj].x - cur[nm].x, cur[nj].y - cur[nm].y) < 2 * NODE_R - 4) overlap = true;
+      }
+      const nc = countEdgeCrossings(cur, connections);
+      if (!(nc < curCross && !overlap)) { const t2 = cur[ni]; cur[ni] = cur[nj]; cur[nj] = t2; }
+      else curCross = nc;
+    }
+    best = cur;
+  }
+  return best || computeForceLayoutOnce(chars, connections, w, h, _mmRand(1));
 }
 
 /* ===== Design Quote Calculator (v10: 报价计算器) ===== */
@@ -13509,6 +13635,8 @@ function init() {
   normalizeOcProfileReverseDetailV860();
   // v862：一次性恢复——从档案残留文本重建被误删的关系记录（只增不删）
   repairOcSocialRelationsV862();
+  // v863：从历史师门标注补标关系 variant，使反向括号用师门词
+  normalizeOcRelationVariantV863();
   Sync.load();
   initEvents();
   renderAppLogo();
