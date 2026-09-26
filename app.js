@@ -5904,7 +5904,15 @@ function inferRelationFromDetail(detail, field, gender) {
   }
   if (field === 'companion') return { type: '道侣', seniorOther: null };
   if (field === 'friends') return { type: /交好/.test(d) ? '交好' : '好友', seniorOther: null };
-  if (field === 'fellow') return { type: /上下/.test(d) ? '上下级' : '同门', seniorOther: null };
+  if (field === 'fellow') {
+    // v865：同门栏支持师门方向词（师兄/师姐/师弟/师妹，师哥等同师兄）——按正则自动识别、无需硬编码词表；
+    // 关系类型仍记「同门」，variant='shimen' 用于反向生成师门词（见 reverseDetailBetween）。后续用户打新词（如大师兄/小师妹）也能命中正则。
+    if (/师(兄|哥)/.test(d)) return { type: '同门', seniorOther: true, variant: 'shimen' };
+    if (/师姐/.test(d)) return { type: '同门', seniorOther: true, variant: 'shimen' };
+    if (/师弟/.test(d)) return { type: '同门', seniorOther: false, variant: 'shimen' };
+    if (/师妹/.test(d)) return { type: '同门', seniorOther: false, variant: 'shimen' };
+    return { type: /上下/.test(d) ? '上下级' : '同门', seniorOther: null };
+  }
   return { type: fallback, seniorOther: null };
 }
 
@@ -5989,6 +5997,11 @@ const SIBLING_REVERSE = {
     '姐妹': { a: '师妹', b: '师姐' }
   }
 };
+// v865：查某人物性别（'F'/'M'/''），用于师门方向词按对方性别反推 师兄/师姐/师弟/师妹
+function genderOfOcName(n) {
+  const c = DB.list('ocCharacters').find(x => pureOcName(x.name) === n || x.name === n);
+  return c ? arrVal(c.gender).join('') : '';
+}
 // 查两个人的关系记录，返回「对方在我这栏该标的括号词」（查不到/无对应词返回 ''）
 // v855：allowedTypes 限定「只取该社会关系字段允许的关系类型」，避免道侣栏被贴师徒括号、或师徒栏取到道侣类型清空括号
 function reverseDetailBetween(selfName, otherName, allowedTypes) {
@@ -6008,7 +6021,15 @@ function reverseDetailBetween(selfName, otherName, allowedTypes) {
   const r = recs.find(x => arrVal(x.relationType).includes(t));
   // v863：师门关系（relation.variant='shimen'）用师门词反推（师兄/师姐/师弟/师妹），其余沿用 REL_REVERSE_DETAIL 亲属词
   const variant = (r && r.variant) || 'family';
-  const word = (variant === 'shimen' && SIBLING_REVERSE.shimen[t]) ? SIBLING_REVERSE.shimen[t] : REL_REVERSE_DETAIL[t];
+  let word;
+  if (variant === 'shimen' && t === '同门') {
+    // v865：同门师门方向词——按对方性别反推（gender 存储为 '女'/'男'，非 F/M）
+    const otherName = pureOcName(r.charA) === self ? pureOcName(r.charB) : pureOcName(r.charA);
+    const og = genderOfOcName(otherName);
+    word = { a: og === '女' ? '师妹' : '师弟', b: og === '女' ? '师姐' : '师兄' };
+  } else {
+    word = (variant === 'shimen' && SIBLING_REVERSE.shimen[t]) ? SIBLING_REVERSE.shimen[t] : REL_REVERSE_DETAIL[t];
+  }
   return pureOcName(r.charA) === self ? word.a : word.b;
 }
 // v856：各社会关系字段允许自动加括号的关系类型；
@@ -6207,6 +6228,33 @@ function normalizeOcRelationVariantV863() {
     }
   });
   DB.set('oc_rel_variant_v863', true);
+}
+// v865：一次性迁移——从人物档案「同门」栏里写有师门词（师兄/师姐/师弟/师妹）的条目，
+// 反推对应「同门」关系记录的 variant='shimen'，使反向括号改用师门词（师兄/师姐/师弟/师妹）。
+// v863 只扫描了兄弟姐妹栏，漏了同门栏；本迁移补齐历史同门师门关系，无需用户重新保存。
+function normalizeOcFellowShimenV865() {
+  if (DB.get('oc_fellow_shimen_v865')) return;
+  const SHIMEN_RE = /师(兄|哥)|师姐|师弟|师妹/;
+  const variantByPair = {};
+  DB.list('ocCharacters').forEach(c => {
+    const name = pureOcName(c.name);
+    splitOcNameEntries(c.fellow).forEach(p => {
+      const w = (p.detail || '').trim();
+      if (SHIMEN_RE.test(w)) {
+        const k = [name, pureOcName(p.name)].sort().join('\u0000');
+        variantByPair[k] = 'shimen';
+      }
+    });
+  });
+  DB.list('ocRelations').forEach(r => {
+    const k = [pureOcName(r.charA), pureOcName(r.charB)].sort().join('\u0000');
+    if (variantByPair[k] && r.relationType && r.relationType.indexOf('同门') >= 0 && !r.variant) {
+      DB.update('ocRelations', r.id, { variant: 'shimen' });
+      syncOcRelationSocialFields(r.charA);
+      syncOcRelationSocialFields(r.charB);
+    }
+  });
+  DB.set('oc_fellow_shimen_v865', true);
 }
 // v615：人物档案社会关系字段 -> 人物关系记录（双向绑定：档案 -> 关系）
 // 在档案保存时调用：为档案社会关系里填写的每个人自动建立/清理对应的人物关系记录
@@ -11032,10 +11080,10 @@ function renderDietRecordRows(recs, st) {
     let lines = '';
     let trailingOps = '';
     if (st.key === 'snack') {
-      // v864：零食编辑/删除改与奶茶/午饭首行垂直居中，保留 v834 布局（享用时间+数量左右两列）
+      // v865：零食编辑/删除与奶茶/午饭完全同结构——首行 flex 内含「享用时间 + 数量」(左) 与 ops(右,垂直居中)，保证严格对齐
       const unitNote = r.unit ? `<span class="lr-size-note">（${esc(r.unit)}）</span>` : '';
-      const qtyLine = r.qty != null ? `<div class="lr-info-line"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}</span></div>` : '';
-      lines = `<div class="snack-grid-left"><div class="lr-info-line"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></div>${qtyLine}</div>${opsHtml}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${unitNote}</span></div>`;
+      const qtyPart = r.qty != null ? `<span class="lr-info-label" style="margin-left:28px">数量:</span><span class="lr-info-val">${r.qty}</span>` : '';
+      lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span>${qtyPart}</span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${unitNote}</span></div>`;
       trailingOps = '';
     } else if (st.key === 'milktea') {
       const notes = [];
@@ -11050,7 +11098,7 @@ function renderDietRecordRows(recs, st) {
     } else {
       lines = `<div class="lr-info-line lr-info-line-head"><span class="lr-info-main"><span class="lr-info-label">${st.key === 'midnight' ? '享用时间' : '吃饭时间'}:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span>${opsHtml}</div><div class="lr-info-line lr-info-full"><span class="lr-info-label">餐食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}</span></div>`;
     }
-    const infoClass = 'lr-record-info lr-record-info-2col' + (st.key === 'snack' ? ' snack-grid' : '');
+    const infoClass = 'lr-record-info lr-record-info-2col';
     return `<div class="lr-record-row">
       <div class="${infoClass}">${lines}</div>${trailingOps}
     </div>`;
@@ -13637,6 +13685,8 @@ function init() {
   repairOcSocialRelationsV862();
   // v863：从历史师门标注补标关系 variant，使反向括号用师门词
   normalizeOcRelationVariantV863();
+  // v865：同门栏的师门标注（原漏处理）也补标 variant
+  normalizeOcFellowShimenV865();
   Sync.load();
   initEvents();
   renderAppLogo();

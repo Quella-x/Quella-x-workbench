@@ -2745,12 +2745,6 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-record-ops .btn{padding:2px 7px;font-size:12px;line-height:1.1;border-radius:var(--radius-sm)}
 .lr-size-note{font-size:11px;color:var(--c-text-light);white-space:normal;word-break:break-word;overflow-wrap:anywhere}
 .lr-info-val .lr-size-note{font-weight:500}
-/* v864：零食记录编辑/删除放进 info 块 flex 首行，与奶茶/午饭首行垂直居中；
-   保留 v834 两列布局（享用时间左、数量右）， Ops 与左侧块保持 10px 间隙 */
-.lr-record-info-2col.snack-grid{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
-.lr-record-info-2col.snack-grid .snack-grid-left{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 40px;flex:1;min-width:0}
-.lr-record-info-2col.snack-grid .lr-info-full{width:100%}
-.lr-record-info-2col.snack-grid .lr-record-ops{margin-top:0;align-self:center}
 /* v810：电脑端每日记录——记录条严格等高
    实测（1440px）：空行 40 → 盒 62；饮食带按钮首行 41.5 → 盒 63.4；睡眠 2×2 两行值 44 → 盒 66。三条都不一样。
    扫描 line-height 14~21 发现：16px 值的行盒恒为 13px 值行盒 +1px，且都按 2px 阶梯跳（16→17/16、18→19/18、20→21/20），
@@ -2897,8 +2891,6 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-empty-row{padding:0;min-height:38px;height:38px;display:flex;align-items:center}
   .lr-record-ops .btn{padding:1px 6px;font-size:11px}
   .lr-size-note{font-size:10px}
-  .lr-record-info-2col.snack-grid{gap:3px 10px}
-  .lr-record-info-2col.snack-grid .snack-grid-left{gap:3px 22px}
   .lr-history-stat-card{padding:8px}
   .lr-hsc-title{font-size:14px}
   .lr-hsc-chart-body{height:324px;margin-top:10px}
@@ -3612,7 +3604,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=864"></script>
+  <script src="app.js?v=865"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
