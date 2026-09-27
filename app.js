@@ -6750,6 +6750,7 @@ let _mmPanY = 0;
 let _mmBasePanX = 0;
 let _mmBasePanY = 0;
 let _mmBaseZoom = 1;
+let _mmFitH = 0;
 let _mmDragging = false;
 let _mmLastX = 0;
 let _mmLastY = 0;
@@ -6759,6 +6760,9 @@ let _mmPinchStartZoom = 1;
 function mmApplyTransform() {
   const inner = $('#mindmapInner');
   if (inner) inner.style.transform = `translate(${_mmPanX}px,${_mmPanY}px) scale(${_mmZoom})`;
+  // v880：缩放时同步调整容器高度，保持紧包图、不撑出大片空白。
+  const canvas = $('#mindmapCanvas');
+  if (canvas && _mmFitH > 0) canvas.style.height = Math.max(360, _mmFitH * (_mmZoom / _mmBaseZoom) + 24) + 'px';
 }
 
 function mmInitDrag() {
@@ -6925,14 +6929,15 @@ function drawMindMap(chars, relations) {
   // 保留放大画布（间距等长、零重叠），但初始按包围盒 zoom-to-fit 居中，整图可见；
   // 用户可滚轮/双指缩放、拖动查看细节（图本就带滚动缩放，不强行塞进固定区域）。
   const _k = isNarrow ? 150 : 175; // 统一边长 k（v877）：所有直接相连边收敛到同一长度；间接相连的才更远
-  const _need = Math.ceil(Math.sqrt(_nConn)) * _k * 1.55; // 画布按 k 与节点数撑大到能装下整图（不被边界夹成重叠）
+  // v880：画布估算从 1.55 降到 1.15，避免力导向把节点散开后外围留下大片空白。
+  const _need = Math.ceil(Math.sqrt(_nConn)) * _k * 1.15;
   const _wrapW = Math.max(containerW - 40, isNarrow ? 300 : 560);
   const _baseH = isNarrow ? Math.max(containerH - 40, 380) : 520;
   const w = Math.max(_wrapW, _need);
   const h = Math.max(_baseH, _need * 0.82);
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的力导向结果，避免重进抖动/重复计算；
   // 仅在签名变化（新增关系）或缓存越界（容器尺寸变化）时重算。
-  const _layoutSig = JSON.stringify({ v: 879, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 880, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = _mmLayoutCache.sig === _layoutSig ? _mmLayoutCache.pos : null;
   if (positions) {
     const _oob = layoutChars.some(c => { const p = positions[c.name]; return !p || p.x < 26 || p.y < 26 || p.x > w - 26 || p.y > h - 26; });
@@ -6956,6 +6961,8 @@ function drawMindMap(chars, relations) {
   _mmPanX = containerW / 2 - _mmZoom * _gcx - (1 - _mmZoom) * (w / 2);
   _mmPanY = containerH / 2 - _mmZoom * _gcy - (1 - _mmZoom) * (h / 2);
   _mmBasePanX = _mmPanX; _mmBasePanY = _mmPanY; _mmBaseZoom = _mmZoom;
+  // v880：记录 fit 后的视觉高度，用于把 canvas wrapper 高度收紧到图实际占用范围，消灭下方空白。
+  _mmFitH = _gH * _mmZoom;
 
   // Wrap everything in a zoomable inner div
   let inner = `<div class="mindmap-inner" id="mindmapInner" style="position:relative;width:${w}px;height:${h}px;transform-origin:center center;transform:translate(${_mmPanX}px,${_mmPanY}px) scale(${_mmZoom});transition:transform .15s">`;
@@ -7053,6 +7060,8 @@ function drawMindMap(chars, relations) {
   });
   inner += '</div>';
   canvas.innerHTML = inner;
+  // v880：把画布容器高度收紧到图实际视觉高度，消灭下方大片空白；保留最小 360px 以免图太小时局促。
+  if (_mmFitH > 0) canvas.style.height = Math.max(360, _mmFitH + 24) + 'px';
   mmInitDrag();
 }
 function mmZoom(factor) {
@@ -7207,6 +7216,30 @@ function computeForceLayoutOnce(chars, connections, w, h, k, rng) {
           rot(a2.o, a2.ang, push);
           moved = true;
         }
+      }
+    });
+    if (!moved) break;
+  }
+  // v880：边长下限后处理——任何直连边若被力导向压得太短，沿连线方向推开到目标长度的 0.9 倍，
+  // 避免用户截图中「两个节点几乎贴在一起」的局部坍缩。
+  const MIN_K = k * 0.9;
+  for (let sweep = 0; sweep < 80; sweep++) {
+    let moved = false;
+    connections.forEach(cn => {
+      const a = pos[cn.a], b = pos[cn.b]; if (!a || !b) return;
+      const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
+      if (d < MIN_K) {
+        const midX = (a.x + b.x) / 2, midY = (a.y + b.y) / 2;
+        const ux = dx / d, uy = dy / d;
+        const half = Math.max(d / 2, MIN_K / 2);
+        let ax2 = midX - ux * half, ay2 = midY - uy * half;
+        let bx2 = midX + ux * half, by2 = midY + uy * half;
+        ax2 = Math.max(NODE_R + 4, Math.min(w - NODE_R - 4, ax2));
+        ay2 = Math.max(NODE_R + 4, Math.min(h - NODE_R - 4, ay2));
+        bx2 = Math.max(NODE_R + 4, Math.min(w - NODE_R - 4, bx2));
+        by2 = Math.max(NODE_R + 4, Math.min(h - NODE_R - 4, by2));
+        a.x = ax2; a.y = ay2; b.x = bx2; b.y = by2;
+        moved = true;
       }
     });
     if (!moved) break;
