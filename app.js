@@ -6920,17 +6920,18 @@ function drawMindMap(chars, relations) {
   // v843：恢复「大节点」观感——画布尺寸随节点数增长（给力导向足够铺开空间、零重叠），
   // 初始缩放恒为 1（节点保持满尺寸 60px），不再自动缩小；人多超出容器时由用户手势缩小/拖动查看
   const _nConn = Math.max(layoutChars.length, 1);
-  const _need = Math.sqrt(_nConn) * (isNarrow ? 95 : 150);
+  // v876：画布随节点数放大（自带滚动/缩放，无需塞进可视区）——节点自然散开，解决「局促/距离近」
+  const _cell = isNarrow ? 165 : 250;
+  const _need = Math.sqrt(_nConn) * _cell;
   const _wrapW = Math.max(containerW - 40, isNarrow ? 300 : 560);
   const _baseH = isNarrow ? Math.max(containerH - 40, 380) : 520;
-  // 16 人以内在可视宽内铺开（初始视图完整不裁切）；再多人多才扩画布，由用户手势缩小查看。
   // 大 N 兜底：星型（一个中心挂很多边）要求相邻节点圆心距 >= 60，反推所需画布边长，避免被夹到同一点而重叠
   const _ringNeed = _nConn > 16 ? (2 * (30 / Math.sin(Math.PI / _nConn)) + 68) : 0;
-  const w = Math.max(_wrapW, _nConn > 16 ? Math.max(_need, _ringNeed) : 0);
-  const h = Math.max(_baseH, Math.min(Math.max(_need, _ringNeed), 900));
+  const w = Math.max(_wrapW, _need, _ringNeed);
+  const h = Math.max(_baseH, _need * 0.82, _ringNeed);
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的力导向结果，避免重进抖动/重复计算；
   // 仅在签名变化（新增关系）或缓存越界（容器尺寸变化）时重算。
-  const _layoutSig = JSON.stringify({ v: 875, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 876, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = _mmLayoutCache.sig === _layoutSig ? _mmLayoutCache.pos : null;
   if (positions) {
     const _oob = layoutChars.some(c => { const p = positions[c.name]; return !p || p.x < 26 || p.y < 26 || p.x > w - 26 || p.y > h - 26; });
@@ -6973,13 +6974,13 @@ function drawMindMap(chars, relations) {
     const dx = bx - ax, dy = by - ay;
     const len = Math.hypot(dx, dy) || 1;
     const nx = -dy / len, ny = dx / len; // 垂直单位向量
-    const off = (conn._pi - (conn._pc - 1) / 2) * 12; // 平行线间距
+    const off = (conn._pi - (conn._pc - 1) / 2) * 18; // v876: 平行线间距 12→18，多关系同对不再挤成一条
     const aox = ax + nx * off, aoy = ay + ny * off;
     const box = bx + nx * off, boy = by + ny * off;
     const opacity = 0.65;
     // v837：用户要求连线用直线，靠力导向+后处理保证不穿节点
     inner += `<line x1="${aox}" y1="${aoy}" x2="${box}" y2="${boy}" stroke="${color}" stroke-width="2" opacity="${opacity}"/>`;
-    const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.20;
+    const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.25;
     let labX = aox + t * (box - aox);
     let labY = aoy + t * (boy - aoy);
     const angle = Math.atan2(Math.abs(dy), Math.abs(dx));
@@ -7005,12 +7006,13 @@ function drawMindMap(chars, relations) {
     const hw = conn.type.length * 5.3 + 8, hh = 9;
     const fits = (x, y) => {
       if (x - hw < 2 || x + hw > w - 2 || y - hh < 2 || y + hh > h - 2) return false;
+      // v876: 节点圆(半径30)外再留 12px 间隙，标签盒至少距节点中心 42px，从源头避免被圆盖住
       for (const nm2 in positions) {
         const p = positions[nm2];
         const qx = Math.max(x - hw, Math.min(p.x, x + hw)), qy = Math.max(y - hh, Math.min(p.y, y + hh));
-        if (Math.hypot(p.x - qx, p.y - qy) < 4) return false;
+        if (Math.hypot(p.x - qx, p.y - qy) < 42) return false;
       }
-      for (const r of _placedLabels) { if (Math.abs(x - r.x) < hw + r.hw - 2 && Math.abs(y - r.y) < hh + r.hh - 2) return false; }
+      for (const r of _placedLabels) { if (Math.abs(x - r.x) < hw + r.hw + 4 && Math.abs(y - r.y) < hh + r.hh + 4) return false; }
       return true;
     };
     let fx = labX, fy = labY;
@@ -7029,13 +7031,10 @@ function drawMindMap(chars, relations) {
     _placedLabels.push({ x: fx, y: fy, hw, hh });
     _labels.push({ x: fx, y: fy, color: color, type: conn.type, hw });
   });
-  // v863：关系词标签最后绘制（覆盖在连线之上），并加白底圆角衬底，确保交叉处不被连线遮挡
-  // v875：衬底宽度按 10.5px 字号实宽算（旧 6.2/字算窄了，词的外沿露在白底外）
+  // v876：去掉实心白底矩形（v863 加的）——它把连线切成缺口，看着像「线断开」。
+  // 改为只描边 halo（paint-order:stroke 白边）压住底下的线，线保持连续，文字清晰可读。
   _labels.forEach(lb => {
-    inner += `<rect x="${lb.x - lb.hw - 3}" y="${lb.y - 9}" width="${lb.hw * 2 + 6}" height="18" rx="4" fill="#ffffff" opacity="0.92"/>`;
-  });
-  _labels.forEach(lb => {
-    inner += `<text x="${lb.x}" y="${lb.y}" text-anchor="middle" dominant-baseline="middle" font-size="10.5" fill="${lb.color}" style="paint-order:stroke;stroke:#fff;stroke-width:3" font-weight="600">${esc(lb.type)}</text>`;
+    inner += `<text x="${lb.x}" y="${lb.y}" text-anchor="middle" dominant-baseline="middle" font-size="10.5" fill="${lb.color}" style="paint-order:stroke;stroke:#fff;stroke-width:3.5" font-weight="600">${esc(lb.type)}</text>`;
   });
   inner += '</svg>';
   // Nodes (circular, text only — no images)
@@ -7186,7 +7185,7 @@ function computeForceLayoutOnce(chars, connections, w, h, rng) {
       const uniq = [...new Set(nbrs)];
       if (uniq.length < 2) return;
       const items = uniq.map(o => ({ o, ang: Math.atan2(pos[o].y - p.y, pos[o].x - p.x) })).sort((u, v) => u.ang - v.ang);
-      const minGap = Math.min((Math.PI * 2) / items.length, Math.PI / 5) * 0.6;
+      const minGap = Math.min((Math.PI * 2) / items.length, Math.PI / 4) * 0.9;
       const rot = (o, ang, delta) => {
         const np = pos[o];
         const r2 = Math.hypot(np.x - p.x, np.y - p.y) || 1;
