@@ -6578,7 +6578,7 @@ function renderRelations() {
     html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1/1.2)" title="缩小">－</button>';
     html += '<button class="mindmap-zoom-btn" onclick="mmZoomReset()" title="重置">⊙</button>';
     html += '</div>';
-    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移</div>';
+    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v884</div>';
     html += '<div class="mindmap-canvas-wrapper" id="mindmapCanvas"></div>';
     html += '</div>';
     // Person buttons (缩略为姓名按钮可展开)
@@ -6943,7 +6943,7 @@ function drawMindMap(chars, relations) {
   const h = Math.max(_baseH, _need * 0.82);
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的力导向结果，避免重进抖动/重复计算；
   // 仅在签名变化（新增关系）或缓存越界（容器尺寸变化）时重算。
-  const _layoutSig = JSON.stringify({ v: 883, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 884, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = _mmLayoutCache.sig === _layoutSig ? _mmLayoutCache.pos : null;
   if (positions) {
     const _oob = layoutChars.some(c => { const p = positions[c.name]; return !p || p.x < 26 || p.y < 26 || p.x > w - 26 || p.y > h - 26; });
@@ -6959,7 +6959,7 @@ function drawMindMap(chars, relations) {
     if (p.y < _minY) _minY = p.y; if (p.y > _maxY) _maxY = p.y;
   });
   if (!isFinite(_minX)) { _minX = _maxX = w / 2; _minY = _maxY = h / 2; }
-  const _PAD = 60; // 留出标签/箭头空间，避免被裁剪
+  const _PAD = 46; // v884：留出标签/箭头空间（原 60，视觉白边太宽），收紧后减少空白占比
   const _gW = (_maxX - _minX) + _PAD * 2, _gH = (_maxY - _minY) + _PAD * 2;
   const _offX = _minX - _PAD, _offY = _minY - _PAD;
   // wrapper 实际可用尺寸 = container 内容区 - padding（容器 padding 20）
@@ -7121,6 +7121,33 @@ function countEdgeCrossings(pos, conns) {
   }
   return n;
 }
+// v884：边长下限（公用函数）——任何直连边短于 k 就沿连线方向推回到 k；
+// 力导向结束、2-opt 交换结束后各跑一次，保证最终结果没有贴在一起的直连节点。
+function mmEnforceMinEdge(pos, connections, k, w, h) {
+  const NODE_R = 30;
+  const MIN_K = k;
+  for (let sweep = 0; sweep < 80; sweep++) {
+    let moved = false;
+    connections.forEach(cn => {
+      const a = pos[cn.a], b = pos[cn.b]; if (!a || !b) return;
+      const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
+      if (d < MIN_K) {
+        const midX = (a.x + b.x) / 2, midY = (a.y + b.y) / 2;
+        const ux = dx / d, uy = dy / d;
+        const half = Math.max(d / 2, MIN_K / 2);
+        let ax2 = midX - ux * half, ay2 = midY - uy * half;
+        let bx2 = midX + ux * half, by2 = midY + uy * half;
+        ax2 = Math.max(NODE_R + 4, Math.min(w - NODE_R - 4, ax2));
+        ay2 = Math.max(NODE_R + 4, Math.min(h - NODE_R - 4, ay2));
+        bx2 = Math.max(NODE_R + 4, Math.min(w - NODE_R - 4, bx2));
+        by2 = Math.max(NODE_R + 4, Math.min(h - NODE_R - 4, by2));
+        a.x = ax2; a.y = ay2; b.x = bx2; b.y = by2;
+        moved = true;
+      }
+    });
+    if (!moved) break;
+  }
+}
 function computeForceLayoutOnce(chars, connections, w, h, k, rng) {
   const NODE_R = 30;
   const names = chars.map(c => c.name).filter(Boolean);
@@ -7233,30 +7260,8 @@ function computeForceLayoutOnce(chars, connections, w, h, k, rng) {
     });
     if (!moved) break;
   }
-  // v882：边长下限后处理——任何直连边若被力导向压得太短，沿连线方向推开到目标长度 k，
-  // 避免用户截图中「两个节点几乎贴在一起」的局部坍缩；间距尽量一致。
-  const MIN_K = k;
-  for (let sweep = 0; sweep < 80; sweep++) {
-    let moved = false;
-    connections.forEach(cn => {
-      const a = pos[cn.a], b = pos[cn.b]; if (!a || !b) return;
-      const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
-      if (d < MIN_K) {
-        const midX = (a.x + b.x) / 2, midY = (a.y + b.y) / 2;
-        const ux = dx / d, uy = dy / d;
-        const half = Math.max(d / 2, MIN_K / 2);
-        let ax2 = midX - ux * half, ay2 = midY - uy * half;
-        let bx2 = midX + ux * half, by2 = midY + uy * half;
-        ax2 = Math.max(NODE_R + 4, Math.min(w - NODE_R - 4, ax2));
-        ay2 = Math.max(NODE_R + 4, Math.min(h - NODE_R - 4, ay2));
-        bx2 = Math.max(NODE_R + 4, Math.min(w - NODE_R - 4, bx2));
-        by2 = Math.max(NODE_R + 4, Math.min(h - NODE_R - 4, by2));
-        a.x = ax2; a.y = ay2; b.x = bx2; b.y = by2;
-        moved = true;
-      }
-    });
-    if (!moved) break;
-  }
+  // v884：边长下限后处理（提为公用 mmEnforceMinEdge，2-opt 之后会再跑一次防交换破坏最小间距）
+  mmEnforceMinEdge(pos, connections, k, w, h);
   return pos;
 }
 function computeForceLayout(chars, connections, w, h, K) {
@@ -7300,6 +7305,7 @@ function computeForceLayout(chars, connections, w, h, K) {
       if (!(nc < curCross && !overlap)) { const t2 = cur[ni]; cur[ni] = cur[nj]; cur[nj] = t2; }
       else curCross = nc;
     }
+    mmEnforceMinEdge(cur, validConns, K, w, h); // v884：2-opt 交换只查了重叠/交叉，会把最小边长破坏掉，交换完重新推回
     best = cur;
   }
   return best || computeForceLayoutOnce(chars, validConns, w, h, K, _mmRand(1));
