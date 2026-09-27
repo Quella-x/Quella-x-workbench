@@ -2735,6 +2735,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-info-line{display:flex;align-items:baseline;gap:4px;min-width:0}
 .lr-info-line-head{grid-column:1 / -1;grid-row:1;display:flex;align-items:center;gap:6px;position:relative} /* v870: 显式钉 row1，避免被显式定位的「数量」(r1c2) 挤到第2行；v872: relative 供零食数量绝对定位 */
 .lr-info-line-head .lr-info-main{flex:1;min-width:0;display:flex;align-items:baseline;gap:4px}
+/* v875: 零食行时间/数量行与 head 同机制——容器垂直居中(确定性,不随字体度量漂移)+内部基线对齐；窄屏容器高=内容高,居中为no-op,渲染与v834一致 */
+.lr-line-ctr{align-items:center}
+.lr-line-ctr .lr-info-main{min-width:0;display:flex;align-items:baseline;gap:4px}
 .lr-info-line-head .lr-record-ops{margin-left:auto;flex-shrink:0;margin-top:4px} /* v866: +2px，按钮文字与「时间」小标题字迹中心对齐（中文字体墨迹偏下）；v873: 零食行不再用 head，此规则仅剩奶茶/餐食 */
 .lr-info-label{font-size:12px;color:var(--c-text-light);font-weight:500;white-space:nowrap}
 .lr-info-val{font-size:16px;color:var(--c-text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -3607,7 +3610,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=874"></script>
+  <script src="app.js?v=875"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

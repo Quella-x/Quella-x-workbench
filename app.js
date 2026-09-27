@@ -6930,7 +6930,7 @@ function drawMindMap(chars, relations) {
   const h = Math.max(_baseH, Math.min(Math.max(_need, _ringNeed), 900));
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的力导向结果，避免重进抖动/重复计算；
   // 仅在签名变化（新增关系）或缓存越界（容器尺寸变化）时重算。
-  const _layoutSig = JSON.stringify({ n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 875, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = _mmLayoutCache.sig === _layoutSig ? _mmLayoutCache.pos : null;
   if (positions) {
     const _oob = layoutChars.some(c => { const p = positions[c.name]; return !p || p.x < 26 || p.y < 26 || p.x > w - 26 || p.y > h - 26; });
@@ -6958,6 +6958,7 @@ function drawMindMap(chars, relations) {
   allConnections.forEach(c => { const k = [c.a, c.b].sort().join('\u0000'); (_pairMap[k] = _pairMap[k] || []).push(c); });
   Object.keys(_pairMap).forEach(k => { _pairMap[k].forEach((c, i) => { c._pi = i; c._pc = _pairMap[k].length; }); });
   const _labels = [];
+  const _placedLabels = [];
   allConnections.forEach(conn => {
     const a = positions[conn.a], b = positions[conn.b];
     if (!a || !b) return;
@@ -6999,12 +7000,39 @@ function drawMindMap(chars, relations) {
     // 标签统一偏移
     labX += nx * labMag * labSign;
     labY += ny * labMag * labSign;
-    _labels.push({ x: labX, y: labY, color: color, type: conn.type });
+    // v875：标签避让——默认位若压到节点圆/已放标签/画布外，沿线方向+垂直方向逐个候选位换位，
+    // 找不到就不动（兜底）。修复标签被节点圆盖住「显示不全」。
+    const hw = conn.type.length * 5.3 + 8, hh = 9;
+    const fits = (x, y) => {
+      if (x - hw < 2 || x + hw > w - 2 || y - hh < 2 || y + hh > h - 2) return false;
+      for (const nm2 in positions) {
+        const p = positions[nm2];
+        const qx = Math.max(x - hw, Math.min(p.x, x + hw)), qy = Math.max(y - hh, Math.min(p.y, y + hh));
+        if (Math.hypot(p.x - qx, p.y - qy) < 4) return false;
+      }
+      for (const r of _placedLabels) { if (Math.abs(x - r.x) < hw + r.hw - 2 && Math.abs(y - r.y) < hh + r.hh - 2) return false; }
+      return true;
+    };
+    let fx = labX, fy = labY;
+    if (!fits(fx, fy)) {
+      const cand = [[0, 0], [0.08, 6], [-0.08, 6], [0.16, 10], [-0.16, 10], [0.24, 14], [-0.24, 14]];
+      for (const [dt, dg] of cand) {
+        let done = false;
+        for (const sg of [1, -1]) {
+          const cx2 = aox + (t + dt) * (box - aox) + nx * (labMag + dg) * labSign * sg;
+          const cy2 = aoy + (t + dt) * (boy - aoy) + ny * (labMag + dg) * labSign * sg;
+          if (fits(cx2, cy2)) { fx = cx2; fy = cy2; done = true; break; }
+        }
+        if (done) break;
+      }
+    }
+    _placedLabels.push({ x: fx, y: fy, hw, hh });
+    _labels.push({ x: fx, y: fy, color: color, type: conn.type, hw });
   });
   // v863：关系词标签最后绘制（覆盖在连线之上），并加白底圆角衬底，确保交叉处不被连线遮挡
+  // v875：衬底宽度按 10.5px 字号实宽算（旧 6.2/字算窄了，词的外沿露在白底外）
   _labels.forEach(lb => {
-    const tw = lb.type.length * 6.2 + 6;
-    inner += `<rect x="${lb.x - tw / 2 - 3}" y="${lb.y - 9}" width="${tw + 6}" height="18" rx="4" fill="#ffffff" opacity="0.92"/>`;
+    inner += `<rect x="${lb.x - lb.hw - 3}" y="${lb.y - 9}" width="${lb.hw * 2 + 6}" height="18" rx="4" fill="#ffffff" opacity="0.92"/>`;
   });
   _labels.forEach(lb => {
     inner += `<text x="${lb.x}" y="${lb.y}" text-anchor="middle" dominant-baseline="middle" font-size="10.5" fill="${lb.color}" style="paint-order:stroke;stroke:#fff;stroke-width:3" font-weight="600">${esc(lb.type)}</text>`;
@@ -7071,10 +7099,10 @@ function computeForceLayoutOnce(chars, connections, w, h, rng) {
   const names = chars.map(c => c.name).filter(Boolean);
   const pos = {};
   const cx = w / 2, cy = h / 2;
-  const R0 = Math.min(w, h) / 3;
+  const R0 = Math.min(w, h) / 2.6; // v875: 初始圈更大(原 /3)，给力导向更充分的散开空间
   names.forEach((n, i) => {
-    const a = (i / Math.max(names.length, 1)) * 2 * Math.PI + (rng() - 0.5) * 0.7;
-    const rr = R0 * (0.78 + rng() * 0.44);
+    const a = (i / Math.max(names.length, 1)) * 2 * Math.PI + (rng() - 0.5) * 0.4; // v875: 角度抖动 0.7→0.4，初始更均匀
+    const rr = R0 * (0.88 + rng() * 0.24); // v875: 半径抖动收窄，初始圈更圆
     pos[n] = { x: cx + rr * Math.cos(a), y: cy + rr * Math.sin(a) };
   });
   if (names.length <= 1) return pos;
@@ -7141,6 +7169,41 @@ function computeForceLayoutOnce(chars, connections, w, h, rng) {
           moved = true;
         }
       });
+    });
+    if (!moved) break;
+  }
+  // v875：角间距后处理——每个节点的邻居绕它按角度均匀散开（星型/枢纽人物的连线不再挤成扇形一坨）
+  for (let sweep = 0; sweep < 60; sweep++) {
+    let moved = false;
+    names.forEach(n => {
+      const p = pos[n];
+      const nbrs = [];
+      connections.forEach(cn => {
+        let o = null;
+        if (cn.a === n) o = cn.b; else if (cn.b === n) o = cn.a;
+        if (o && pos[o] && o !== n) nbrs.push(o);
+      });
+      const uniq = [...new Set(nbrs)];
+      if (uniq.length < 2) return;
+      const items = uniq.map(o => ({ o, ang: Math.atan2(pos[o].y - p.y, pos[o].x - p.x) })).sort((u, v) => u.ang - v.ang);
+      const minGap = Math.min((Math.PI * 2) / items.length, Math.PI / 5) * 0.6;
+      const rot = (o, ang, delta) => {
+        const np = pos[o];
+        const r2 = Math.hypot(np.x - p.x, np.y - p.y) || 1;
+        np.x = Math.max(NODE_R + 4, Math.min(w - NODE_R - 4, p.x + r2 * Math.cos(ang + delta)));
+        np.y = Math.max(NODE_R + 4, Math.min(h - NODE_R - 4, p.y + r2 * Math.sin(ang + delta)));
+      };
+      for (let i = 0; i < items.length; i++) {
+        const a1 = items[i], a2 = items[(i + 1) % items.length];
+        let gap = a2.ang - a1.ang;
+        if (i === items.length - 1) gap += Math.PI * 2;
+        if (gap < minGap) {
+          const push = (minGap - gap) / 2;
+          rot(a1.o, a1.ang, -push);
+          rot(a2.o, a2.ang, push);
+          moved = true;
+        }
+      }
     });
     if (!moved) break;
   }
@@ -11206,8 +11269,10 @@ function renderDietRecordRows(recs, st) {
       // 同一 grid 行同一排版机制，数量与时间的墨迹基线在任何设备上都必然对齐；
       // 弃用 v872 的 lr-snack-qty 绝对定位——绝对定位行与 head 内 flex 居中的时间是两套机制，墨迹随设备字体度量漂移（电脑偏高、手机偏低 ~1px）。
       const unitNote = r.unit ? `<span class="lr-size-note">（${esc(r.unit)}）</span>` : '';
-      const qtyLine = r.qty != null ? `<div class="lr-info-line"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}</span></div>` : '';
-      lines = `<div class="lr-info-line"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${unitNote}</span></div>`;
+      // v875：时间/数量行套 .lr-info-main + 垂直居中容器（与午饭行 head 完全同机制）——
+      // plain 行是基线分组定位（随设备字体度量漂移，她设备上比 head 行低 ~2.5px），head 行是确定性居中；同机制才不漂
+      const qtyLine = r.qty != null ? `<div class="lr-info-line lr-line-ctr"><span class="lr-info-main"><span class="lr-info-label">数量:</span><span class="lr-info-val">${r.qty}</span></span></div>` : '';
+      lines = `<div class="lr-info-line lr-line-ctr"><span class="lr-info-main"><span class="lr-info-label">享用时间:</span><span class="lr-info-val">${r.time || '&nbsp;'}</span></span></div>${qtyLine}<div class="lr-info-line lr-info-full"><span class="lr-info-label">零食记录:</span><span class="lr-info-val">${r.note || '&nbsp;'}${unitNote}</span></div>`;
       trailingOps = opsHtml.replace('class="lr-record-ops"', 'class="lr-record-ops lr-ops-trail"'); // v874: 挂网格外的按钮补上与 head 内联按钮相同的下移对齐(窄4/宽2)，否则比时间标签高1-2px
     } else if (st.key === 'milktea') {
       const notes = [];
