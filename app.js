@@ -6578,7 +6578,7 @@ function renderRelations() {
     html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1/1.2)" title="缩小">－</button>';
     html += '<button class="mindmap-zoom-btn" onclick="mmZoomReset()" title="重置">⊙</button>';
     html += '</div>';
-    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v884</div>';
+    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v885</div>';
     html += '<div class="mindmap-canvas-wrapper" id="mindmapCanvas"></div>';
     html += '</div>';
     // Person buttons (缩略为姓名按钮可展开)
@@ -6764,9 +6764,8 @@ function mmApplyTransform() {
   const inner = $('#mindmapInner');
   const canvas = $('#mindmapCanvas');
   if (canvas) {
-    const _visH = _mmGraphH * _mmZoom;
-    canvas.style.height = Math.min(_mmAvailH, _visH) + 'px'; // 缩放/拖动时同步 canvas 高度，保持紧贴图、无上下白边
-    canvas.style.overflow = _visH > _mmAvailH ? 'auto' : 'hidden';
+    canvas.style.height = _mmAvailH + 'px'; // v885：画布高度固定，缩放/拖动时窗口稳定不变
+    canvas.style.overflow = 'hidden';
   }
   if (inner) inner.style.transform = `translate(${_mmPanX}px,${_mmPanY}px) scale(${_mmZoom})`;
 }
@@ -6943,41 +6942,15 @@ function drawMindMap(chars, relations) {
   const h = Math.max(_baseH, _need * 0.82);
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的力导向结果，避免重进抖动/重复计算；
   // 仅在签名变化（新增关系）或缓存越界（容器尺寸变化）时重算。
-  const _layoutSig = JSON.stringify({ v: 884, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 885, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = _mmLayoutCache.sig === _layoutSig ? _mmLayoutCache.pos : null;
   if (positions) {
     const _oob = layoutChars.some(c => { const p = positions[c.name]; return !p || p.x < 26 || p.y < 26 || p.x > w - 26 || p.y > h - 26; });
     if (_oob) positions = null;
   }
   if (!positions) { positions = computeForceLayout(layoutChars, allConnections, w, h, _k); _mmLayoutCache = { sig: _layoutSig, pos: positions }; }
-  // v882：把渲染区域裁剪到图的实际包围盒（消灭上下白边），初始缩放按容器撑满：
-  // 图小时放大到填满容器；图比容器大时保持 1.0，用户可滚动/拖动/缩放查看。
-  let _minX = Infinity, _maxX = -Infinity, _minY = Infinity, _maxY = -Infinity;
-  layoutChars.forEach(c => {
-    const p = positions[c.name]; if (!p) return;
-    if (p.x < _minX) _minX = p.x; if (p.x > _maxX) _maxX = p.x;
-    if (p.y < _minY) _minY = p.y; if (p.y > _maxY) _maxY = p.y;
-  });
-  if (!isFinite(_minX)) { _minX = _maxX = w / 2; _minY = _maxY = h / 2; }
-  const _PAD = 46; // v884：留出标签/箭头空间（原 60，视觉白边太宽），收紧后减少空白占比
-  const _gW = (_maxX - _minX) + _PAD * 2, _gH = (_maxY - _minY) + _PAD * 2;
-  const _offX = _minX - _PAD, _offY = _minY - _PAD;
-  // wrapper 实际可用尺寸 = container 内容区 - padding（容器 padding 20）
-  // v883：视图定位重写——紧凑无白边 + 节点真实大小 + 可滚动
-  // 坐标模型：inner 局部坐标 = 图 bbox 局部（原点在图左上角），transform-origin: top left，
-  // 屏幕位置 = pan + zoom * localPoint。
-  const _availW = containerW - 40, _availH = containerH - 40;
-  const _fitX = _availW / _gW, _fitY = _availH / _gH;
-  // 图比容器小 → 放大撑满（上限 2x 避免失真）；图比容器大 → 保持 1.0 真实大小，用户滚动/缩放查看
-  _mmZoom = (_fitX >= 1 && _fitY >= 1) ? Math.min(_fitX, _fitY, 2.0) : 1.0;
-  _mmAvailW = _availW; _mmAvailH = _availH; _mmGraphW = _gW; _mmGraphH = _gH;
-  _mmPanX = Math.max(0, (_availW - _gW * _mmZoom) / 2); // 水平居中（图小时左右少量留白，可接受）
-  _mmPanY = 0; // 垂直贴顶：图矮则 inner 占满 canvas 无上下白边；图高则顶部对齐可滚动
-  _mmBasePanX = _mmPanX; _mmBasePanY = _mmPanY; _mmBaseZoom = _mmZoom;
-
-  // Wrap everything in a zoomable inner div clipped to the tight graph bbox
-  let inner = `<div class="mindmap-inner" id="mindmapInner" style="position:relative;width:${_gW}px;height:${_gH}px;overflow:hidden;transform-origin:top left;transform:translate(${_mmPanX}px,${_mmPanY}px) scale(${_mmZoom});transition:transform .15s">`;
-  inner += `<svg class="mindmap-svg" width="${w}" height="${h}" style="position:absolute;left:${-_offX}px;top:${-_offY}px">`;
+  // v885：先画线/标签（svgContent），之后按「节点+标签」的实际包围盒裁剪渲染区——白边只剩节点半径余量
+  let svgContent = '';
   // 同 pair 的多个关系并排多条线（按垂直方向错开控制点）
   const _pairMap = {};
   allConnections.forEach(c => { const k = [c.a, c.b].sort().join('\u0000'); (_pairMap[k] = _pairMap[k] || []).push(c); });
@@ -7003,7 +6976,7 @@ function drawMindMap(chars, relations) {
     const box = bx + nx * off, boy = by + ny * off;
     const opacity = 0.65;
     // v837：用户要求连线用直线，靠力导向+后处理保证不穿节点
-    inner += `<line x1="${aox}" y1="${aoy}" x2="${box}" y2="${boy}" stroke="${color}" stroke-width="2" opacity="${opacity}"/>`;
+    svgContent += `<line x1="${aox}" y1="${aoy}" x2="${box}" y2="${boy}" stroke="${color}" stroke-width="2" opacity="${opacity}"/>`;
     const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.25;
     let labX = aox + t * (box - aox);
     let labY = aoy + t * (boy - aoy);
@@ -7019,7 +6992,7 @@ function drawMindMap(chars, relations) {
       const tipX = box, tipY = boy;
       const bcx = box - aLen * Math.cos(arrowAng), bcy = boy - aLen * Math.sin(arrowAng);
       const px = -Math.sin(arrowAng) * aW, py = Math.cos(arrowAng) * aW;
-      inner += `<polygon points="${tipX},${tipY} ${bcx + px},${bcy + py} ${bcx - px},${bcy - py}" fill="${color}" opacity="${opacity + 0.2}"/>`;
+      svgContent += `<polygon points="${tipX},${tipY} ${bcx + px},${bcy + py} ${bcx - px},${bcy - py}" fill="${color}" opacity="${opacity + 0.2}"/>`;
     }
 
     // 标签统一偏移
@@ -7058,9 +7031,38 @@ function drawMindMap(chars, relations) {
   // v876：去掉实心白底矩形（v863 加的）——它把连线切成缺口，看着像「线断开」。
   // 改为只描边 halo（paint-order:stroke 白边）压住底下的线，线保持连续，文字清晰可读。
   _labels.forEach(lb => {
-    inner += `<text x="${lb.x}" y="${lb.y}" text-anchor="middle" dominant-baseline="middle" font-size="10.5" fill="${lb.color}" style="paint-order:stroke;stroke:#fff;stroke-width:3.5" font-weight="600">${esc(lb.type)}</text>`;
+    svgContent += `<text x="${lb.x}" y="${lb.y}" text-anchor="middle" dominant-baseline="middle" font-size="10.5" fill="${lb.color}" style="paint-order:stroke;stroke:#fff;stroke-width:3.5" font-weight="600">${esc(lb.type)}</text>`;
   });
-  inner += '</svg>';
+  // v885：包围盒 = 节点 + 已放置标签的实际范围；PAD 只留节点半径+箭头余量（标签已计入，白边真正消失）
+  let _minX = Infinity, _maxX = -Infinity, _minY = Infinity, _maxY = -Infinity;
+  layoutChars.forEach(c => {
+    const p = positions[c.name]; if (!p) return;
+    if (p.x < _minX) _minX = p.x; if (p.x > _maxX) _maxX = p.x;
+    if (p.y < _minY) _minY = p.y; if (p.y > _maxY) _maxY = p.y;
+  });
+  _labels.forEach(lb => {
+    if (lb.x - lb.hw < _minX) _minX = lb.x - lb.hw;
+    if (lb.x + lb.hw > _maxX) _maxX = lb.x + lb.hw;
+    if (lb.y - 12 < _minY) _minY = lb.y - 12;
+    if (lb.y + 12 > _maxY) _maxY = lb.y + 12;
+  });
+  if (!isFinite(_minX)) { _minX = _maxX = w / 2; _minY = _maxY = h / 2; }
+  const _PAD = 34; // 节点半径30 + 箭头余量
+  const _gW = (_maxX - _minX) + _PAD * 2, _gH = (_maxY - _minY) + _PAD * 2;
+  const _offX = _minX - _PAD, _offY = _minY - _PAD;
+  const _availW = containerW - 40, _availH = Math.max(containerH - 40, 460); // 容器恢复 min-height 500，画布高度固定不随图变矮
+  const _fitX = _availW / _gW, _fitY = _availH / _gH;
+  // 图比容器小 → 放大撑满（上限 2x 避免失真）；图比容器大 → 保持 1.0 真实大小，拖动/缩放查看
+  _mmZoom = (_fitX >= 1 && _fitY >= 1) ? Math.min(_fitX, _fitY, 2.0) : 1.0;
+  _mmAvailW = _availW; _mmAvailH = _availH; _mmGraphW = _gW; _mmGraphH = _gH;
+  const _visW = _gW * _mmZoom, _visH = _gH * _mmZoom;
+  _mmPanX = (_availW - _visW) / 2; // 水平始终居中（图更宽时为负=显示中部，可拖动）
+  _mmPanY = _visH < _availH ? (_availH - _visH) / 2 : 0; // 图矮垂直居中；图高贴顶，拖动看下方
+  _mmBasePanX = _mmPanX; _mmBasePanY = _mmPanY; _mmBaseZoom = _mmZoom;
+
+  // Wrap everything in a zoomable inner div clipped to the tight graph bbox
+  let inner = `<div class="mindmap-inner" id="mindmapInner" style="position:relative;width:${_gW}px;height:${_gH}px;overflow:hidden;transform-origin:top left;transform:translate(${_mmPanX}px,${_mmPanY}px) scale(${_mmZoom});transition:transform .15s">`;
+  inner += `<svg class="mindmap-svg" width="${w}" height="${h}" style="position:absolute;left:${-_offX}px;top:${-_offY}px">` + svgContent + '</svg>';
   // Nodes (circular, text only — no images)；按 tight bbox 偏移，避免被外层裁剪
   layoutChars.forEach(c => {
     const pos = positions[c.name];
@@ -7071,10 +7073,9 @@ function drawMindMap(chars, relations) {
   });
   inner += '</div>';
   canvas.innerHTML = inner;
-  // v883：canvas 高度紧贴图实际视觉高度——图矮则 = 图高（无上下白边），图高则 = 容器高（出滚动条）
-  const _visH = _gH * _mmZoom;
-  canvas.style.height = Math.min(_availH, _visH) + 'px';
-  canvas.style.overflow = _visH > _availH ? 'auto' : 'hidden';
+  // v885：画布高度固定 = 容器可用高（窗口高度回归旧版 ≥500，不再随图变矮）；图大时拖动/缩放查看
+  canvas.style.height = _availH + 'px';
+  canvas.style.overflow = 'hidden';
   mmInitDrag();
 }
 function mmZoom(factor) {
@@ -7147,6 +7148,36 @@ function mmEnforceMinEdge(pos, connections, k, w, h) {
     });
     if (!moved) break;
   }
+}
+// v885：任意两节点中心最小间距（不限是否直连）——修「萧忘渊-苏枕霜」这类非直连节点贴在一起的兜底
+function mmEnforcePairGap(pos, names, w, h) {
+  const NODE_R = 30;
+  const MIN_GAP = 120; // 节点直径60 + 60间隙
+  for (let sweep = 0; sweep < 80; sweep++) {
+    let moved = false;
+    for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
+      const a = pos[names[i]], b = pos[names[j]];
+      if (!a || !b) continue;
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const d = Math.hypot(dx, dy) || 0.01;
+      if (d < MIN_GAP) {
+        const push = (MIN_GAP - d) / 2;
+        const ux = dx / d, uy = dy / d;
+        a.x = Math.max(NODE_R + 4, Math.min(w - NODE_R - 4, a.x - ux * push));
+        a.y = Math.max(NODE_R + 4, Math.min(h - NODE_R - 4, a.y - uy * push));
+        b.x = Math.max(NODE_R + 4, Math.min(w - NODE_R - 4, b.x + ux * push));
+        b.y = Math.max(NODE_R + 4, Math.min(h - NODE_R - 4, b.y + uy * push));
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+}
+// v885：布局收尾三步——边长下限 → 任意节点对最小间距 → 边长下限再兜底（推开会破坏别的边）
+function mmPolishLayout(pos, names, connections, k, w, h) {
+  mmEnforceMinEdge(pos, connections, k, w, h);
+  mmEnforcePairGap(pos, names, w, h);
+  mmEnforceMinEdge(pos, connections, k, w, h);
 }
 function computeForceLayoutOnce(chars, connections, w, h, k, rng) {
   const NODE_R = 30;
@@ -7260,8 +7291,8 @@ function computeForceLayoutOnce(chars, connections, w, h, k, rng) {
     });
     if (!moved) break;
   }
-  // v884：边长下限后处理（提为公用 mmEnforceMinEdge，2-opt 之后会再跑一次防交换破坏最小间距）
-  mmEnforceMinEdge(pos, connections, k, w, h);
+  // v885：布局收尾（边长下限 + 任意节点对最小间距，见 mmPolishLayout）
+  mmPolishLayout(pos, names, connections, k, w, h);
   return pos;
 }
 function computeForceLayout(chars, connections, w, h, K) {
@@ -7305,7 +7336,7 @@ function computeForceLayout(chars, connections, w, h, K) {
       if (!(nc < curCross && !overlap)) { const t2 = cur[ni]; cur[ni] = cur[nj]; cur[nj] = t2; }
       else curCross = nc;
     }
-    mmEnforceMinEdge(cur, validConns, K, w, h); // v884：2-opt 交换只查了重叠/交叉，会把最小边长破坏掉，交换完重新推回
+    mmPolishLayout(cur, names, validConns, K, w, h); // v885：2-opt 交换后重新收尾（边长下限+节点对间距）
     best = cur;
   }
   return best || computeForceLayoutOnce(chars, validConns, w, h, K, _mmRand(1));
