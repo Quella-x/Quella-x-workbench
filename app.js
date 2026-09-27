@@ -6750,7 +6750,6 @@ let _mmPanY = 0;
 let _mmBasePanX = 0;
 let _mmBasePanY = 0;
 let _mmBaseZoom = 1;
-let _mmFitH = 0;
 let _mmDragging = false;
 let _mmLastX = 0;
 let _mmLastY = 0;
@@ -6934,14 +6933,15 @@ function drawMindMap(chars, relations) {
   const h = Math.max(_baseH, _need * 0.82);
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的力导向结果，避免重进抖动/重复计算；
   // 仅在签名变化（新增关系）或缓存越界（容器尺寸变化）时重算。
-  const _layoutSig = JSON.stringify({ v: 881, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 882, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = _mmLayoutCache.sig === _layoutSig ? _mmLayoutCache.pos : null;
   if (positions) {
     const _oob = layoutChars.some(c => { const p = positions[c.name]; return !p || p.x < 26 || p.y < 26 || p.x > w - 26 || p.y > h - 26; });
     if (_oob) positions = null;
   }
   if (!positions) { positions = computeForceLayout(layoutChars, allConnections, w, h, _k); _mmLayoutCache = { sig: _layoutSig, pos: positions }; }
-  // v881：初始视图保持缩放 1.0，让节点和间距保持真实大小；放不下时用户可滚动/拖动/缩放查看。
+  // v882：把渲染区域裁剪到图的实际包围盒（消灭上下白边），初始缩放按容器撑满：
+  // 图小时放大到填满容器；图比容器大时保持 1.0，用户可滚动/拖动/缩放查看。
   let _minX = Infinity, _maxX = -Infinity, _minY = Infinity, _maxY = -Infinity;
   layoutChars.forEach(c => {
     const p = positions[c.name]; if (!p) return;
@@ -6949,18 +6949,20 @@ function drawMindMap(chars, relations) {
     if (p.y < _minY) _minY = p.y; if (p.y > _maxY) _maxY = p.y;
   });
   if (!isFinite(_minX)) { _minX = _maxX = w / 2; _minY = _maxY = h / 2; }
-  const _PAD = 40;
+  const _PAD = 60; // 留出标签/箭头空间，避免被裁剪
   const _gW = (_maxX - _minX) + _PAD * 2, _gH = (_maxY - _minY) + _PAD * 2;
-  const _gcx = (_minX + _maxX) / 2, _gcy = (_minY + _maxY) / 2;
-  _mmZoom = 1.0;
-  _mmPanX = containerW / 2 - _gcx;
-  _mmPanY = containerH / 2 - _gcy;
-  _mmBasePanX = _mmPanX; _mmBasePanY = _mmPanY; _mmBaseZoom = 1.0;
-  _mmFitH = h;
+  const _offX = _minX - _PAD, _offY = _minY - _PAD;
+  // wrapper 实际可用尺寸 = container 内容区 - padding（容器 padding 20）
+  const _availW = containerW - 40, _availH = containerH - 40;
+  const _fitX = (_availW - 8) / _gW, _fitY = (_availH - 8) / _gH;
+  _mmZoom = Math.max(1.0, Math.min(2.0, _fitX, _fitY)); // 撑满但不放得过大（最大 2x）
+  _mmPanX = (_availW - _gW) / 2;
+  _mmPanY = (_availH - _gH) / 2;
+  _mmBasePanX = _mmPanX; _mmBasePanY = _mmPanY; _mmBaseZoom = _mmZoom;
 
-  // Wrap everything in a zoomable inner div
-  let inner = `<div class="mindmap-inner" id="mindmapInner" style="position:relative;width:${w}px;height:${h}px;transform-origin:center center;transform:translate(${_mmPanX}px,${_mmPanY}px) scale(1);transition:transform .15s">`;
-  inner += `<svg class="mindmap-svg" width="${w}" height="${h}">`;
+  // Wrap everything in a zoomable inner div clipped to the tight graph bbox
+  let inner = `<div class="mindmap-inner" id="mindmapInner" style="position:relative;width:${_gW}px;height:${_gH}px;overflow:hidden;transform-origin:center center;transform:translate(${_mmPanX}px,${_mmPanY}px) scale(${_mmZoom});transition:transform .15s">`;
+  inner += `<svg class="mindmap-svg" width="${w}" height="${h}" style="position:absolute;left:${-_offX}px;top:${-_offY}px">`;
   // 同 pair 的多个关系并排多条线（按垂直方向错开控制点）
   const _pairMap = {};
   allConnections.forEach(c => { const k = [c.a, c.b].sort().join('\u0000'); (_pairMap[k] = _pairMap[k] || []).push(c); });
@@ -7044,20 +7046,20 @@ function drawMindMap(chars, relations) {
     inner += `<text x="${lb.x}" y="${lb.y}" text-anchor="middle" dominant-baseline="middle" font-size="10.5" fill="${lb.color}" style="paint-order:stroke;stroke:#fff;stroke-width:3.5" font-weight="600">${esc(lb.type)}</text>`;
   });
   inner += '</svg>';
-  // Nodes (circular, text only — no images)
+  // Nodes (circular, text only — no images)；按 tight bbox 偏移，避免被外层裁剪
   layoutChars.forEach(c => {
     const pos = positions[c.name];
-    const nodeHTML = `<div class="mindmap-node circular" style="left:${pos.x - 30}px;top:${pos.y - 30}px" onclick="navigate('oc-profiles')" title="${esc(c.name)}">` +
+    const nodeHTML = `<div class="mindmap-node circular" style="left:${pos.x - _offX - 30}px;top:${pos.y - _offY - 30}px" onclick="navigate('oc-profiles')" title="${esc(c.name)}">` +
       `<div style="width:44px;height:44px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:${(c.name||'?').length>3?'9px':'12px'};font-weight:700;color:var(--c-primary-dark);text-align:center;word-break:break-all;overflow:hidden;padding:2px">${esc(c.name || '?')}</div>` +
       '</div>';
     inner += nodeHTML;
   });
   inner += '</div>';
   canvas.innerHTML = inner;
-  // v881：画布容器高度 = 图高 与 容器可用高度 的较小值；图小不撑空白，图大出滚动条。
-  const viewH = Math.min(h, Math.max(360, containerH - 40));
-  canvas.style.height = viewH + 'px';
-  canvas.style.overflow = 'auto';
+  // v882：画布容器高度固定为容器可用高度，tight bbox + 初始撑满缩放消除上下白边；
+  // 图大时被 overflow:hidden 裁剪，用户可拖动/缩放查看。
+  canvas.style.height = (containerH - 40) + 'px';
+  canvas.style.overflow = 'hidden';
   mmInitDrag();
 }
 function mmZoom(factor) {
@@ -7216,9 +7218,9 @@ function computeForceLayoutOnce(chars, connections, w, h, k, rng) {
     });
     if (!moved) break;
   }
-  // v880：边长下限后处理——任何直连边若被力导向压得太短，沿连线方向推开到目标长度的 0.9 倍，
-  // 避免用户截图中「两个节点几乎贴在一起」的局部坍缩。
-  const MIN_K = k * 0.9;
+  // v882：边长下限后处理——任何直连边若被力导向压得太短，沿连线方向推开到目标长度 k，
+  // 避免用户截图中「两个节点几乎贴在一起」的局部坍缩；间距尽量一致。
+  const MIN_K = k;
   for (let sweep = 0; sweep < 80; sweep++) {
     let moved = false;
     connections.forEach(cn => {
