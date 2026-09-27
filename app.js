@@ -6920,24 +6920,22 @@ function drawMindMap(chars, relations) {
   // v843：恢复「大节点」观感——画布尺寸随节点数增长（给力导向足够铺开空间、零重叠），
   // 初始缩放恒为 1（节点保持满尺寸 60px），不再自动缩小；人多超出容器时由用户手势缩小/拖动查看
   const _nConn = Math.max(layoutChars.length, 1);
-  // v876：画布随节点数放大（自带滚动/缩放，无需塞进可视区）——节点自然散开，解决「局促/距离近」
-  const _cell = isNarrow ? 165 : 250;
-  const _need = Math.sqrt(_nConn) * _cell;
+  // v877：恢复 v841「边尽量等长（统一目标长度 k）」——k 固定不随画布浮动，画布按 k 与节点数撑大到能装下
+  const _k = isNarrow ? 150 : 175; // 统一边长：所有直接相连的边收敛到同一长度；只有间接连接的才更远
+  const _need = Math.ceil(Math.sqrt(_nConn)) * _k * 1.55;
   const _wrapW = Math.max(containerW - 40, isNarrow ? 300 : 560);
   const _baseH = isNarrow ? Math.max(containerH - 40, 380) : 520;
-  // 大 N 兜底：星型（一个中心挂很多边）要求相邻节点圆心距 >= 60，反推所需画布边长，避免被夹到同一点而重叠
-  const _ringNeed = _nConn > 16 ? (2 * (30 / Math.sin(Math.PI / _nConn)) + 68) : 0;
-  const w = Math.max(_wrapW, _need, _ringNeed);
-  const h = Math.max(_baseH, _need * 0.82, _ringNeed);
+  const w = Math.max(_wrapW, _need);
+  const h = Math.max(_baseH, _need * 0.82);
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的力导向结果，避免重进抖动/重复计算；
   // 仅在签名变化（新增关系）或缓存越界（容器尺寸变化）时重算。
-  const _layoutSig = JSON.stringify({ v: 876, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 877, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = _mmLayoutCache.sig === _layoutSig ? _mmLayoutCache.pos : null;
   if (positions) {
     const _oob = layoutChars.some(c => { const p = positions[c.name]; return !p || p.x < 26 || p.y < 26 || p.x > w - 26 || p.y > h - 26; });
     if (_oob) positions = null;
   }
-  if (!positions) { positions = computeForceLayout(layoutChars, allConnections, w, h); _mmLayoutCache = { sig: _layoutSig, pos: positions }; }
+  if (!positions) { positions = computeForceLayout(layoutChars, allConnections, w, h, _k); _mmLayoutCache = { sig: _layoutSig, pos: positions }; }
   // 初始视图：把关系图包围盒居中到可视区（避免默认只看到左上角一半）
   let _minX = Infinity, _maxX = -Infinity, _minY = Infinity, _maxY = -Infinity;
   layoutChars.forEach(c => {
@@ -7093,7 +7091,7 @@ function countEdgeCrossings(pos, conns) {
   }
   return n;
 }
-function computeForceLayoutOnce(chars, connections, w, h, rng) {
+function computeForceLayoutOnce(chars, connections, w, h, k, rng) {
   const NODE_R = 30;
   const names = chars.map(c => c.name).filter(Boolean);
   const pos = {};
@@ -7106,9 +7104,8 @@ function computeForceLayoutOnce(chars, connections, w, h, rng) {
   });
   if (names.length <= 1) return pos;
   const area = w * h;
-  const k = Math.max(90, Math.min(Math.sqrt(area / names.length) * 1.15, Math.min(w, h) / 2 - 45));
-  const SPRING = 0.04;
-  const ITER = 900;
+  const SPRING = 0.09; // v877: 加强弹簧(原 0.04)，让每条边快速收敛到统一 k(等长)
+  const ITER = 1500;   // v877: 迭代加足(原 900)，充分收敛
   for (let it = 0; it < ITER; it++) {
     const disp = {};
     names.forEach(n => disp[n] = { x: 0, y: 0 });
@@ -7132,11 +7129,11 @@ function computeForceLayoutOnce(chars, connections, w, h, rng) {
       disp[cn.a].x += fx; disp[cn.a].y += fy;
       disp[cn.b].x -= fx; disp[cn.b].y -= fy;
     });
-    // 3) 轻微向中心引力，防整体漂走
+    // 3) 极弱中心引力，仅防整体漂走（v877: 0.015→0.0015，避免拉坍缩破坏等长）
     names.forEach(n => {
       const p = pos[n];
-      disp[n].x += (cx - p.x) * 0.015;
-      disp[n].y += (cy - p.y) * 0.015;
+      disp[n].x += (cx - p.x) * 0.0015;
+      disp[n].y += (cy - p.y) * 0.0015;
     });
     // 4) 冷却温度限制
     const temp = Math.max(1.5, (Math.min(w, h) / 2) * (1 - it / ITER) + 1.5);
@@ -7208,17 +7205,21 @@ function computeForceLayoutOnce(chars, connections, w, h, rng) {
   }
   return pos;
 }
-function computeForceLayout(chars, connections, w, h) {
+function computeForceLayout(chars, connections, w, h, K) {
   const NODE_R = 30;
   const names = chars.map(c => c.name).filter(Boolean);
-  if (names.length <= 2) return computeForceLayoutOnce(chars, connections, w, h, _mmRand(1));
-  // 多起点：取交叉数最少的解
-  const K = Math.max(3, Math.min(6, 9 - Math.floor(names.length / 5)));
-  let best = null, bestCross = Infinity;
-  for (let s = 0; s < K; s++) {
-    const p = computeForceLayoutOnce(chars, connections, w, h, _mmRand(s * 100003 + 7));
+  if (names.length <= 2) return computeForceLayoutOnce(chars, connections, w, h, K, _mmRand(1));
+  // 多起点：综合评分——少交叉优先，其次边长度均匀(等长)
+  const KSTART = Math.max(3, Math.min(6, 9 - Math.floor(names.length / 5)));
+  let best = null, bestScore = Infinity;
+  for (let s = 0; s < KSTART; s++) {
+    const p = computeForceLayoutOnce(chars, connections, w, h, K, _mmRand(s * 100003 + 7));
     const c = countEdgeCrossings(p, connections);
-    if (c < bestCross) { bestCross = c; best = p; }
+    const xs = connections.map(cn => Math.hypot(p[cn.a].x - p[cn.b].x, p[cn.a].y - p[cn.b].y));
+    const m = xs.reduce((a, b) => a + b, 0) / xs.length;
+    const sd = Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / xs.length);
+    const score = c * 2 + sd; // v877: 交叉优先(权重2)，其次边长度标准差小(等长)
+    if (score < bestScore) { bestScore = score; best = p; }
   }
   // 2-opt：随机交换两节点位置，若减少交叉且不引入重叠则保留
   let cur = best ? JSON.parse(JSON.stringify(best)) : null;
@@ -7235,8 +7236,8 @@ function computeForceLayout(chars, connections, w, h) {
       for (let m = 0; m < names.length && !overlap; m++) {
         const nm = names[m];
         if (nm === ni || nm === nj) continue;
-        if (Math.hypot(cur[ni].x - cur[nm].x, cur[ni].y - cur[nm].y) < 2 * NODE_R - 4) overlap = true;
-        if (Math.hypot(cur[nj].x - cur[nm].x, cur[nj].y - cur[nm].y) < 2 * NODE_R - 4) overlap = true;
+        if (Math.hypot(cur[ni].x - cur[nm].x, cur[ni].y - cur[nm].y) < 60) overlap = true;
+        if (Math.hypot(cur[nj].x - cur[nm].x, cur[nj].y - cur[nm].y) < 60) overlap = true;
       }
       const nc = countEdgeCrossings(cur, connections);
       if (!(nc < curCross && !overlap)) { const t2 = cur[ni]; cur[ni] = cur[nj]; cur[nj] = t2; }
@@ -7244,7 +7245,7 @@ function computeForceLayout(chars, connections, w, h) {
     }
     best = cur;
   }
-  return best || computeForceLayoutOnce(chars, connections, w, h, _mmRand(1));
+  return best || computeForceLayoutOnce(chars, connections, w, h, K, _mmRand(1));
 }
 
 /* ===== Design Quote Calculator (v10: 报价计算器) ===== */
