@@ -6932,7 +6932,7 @@ function drawMindMap(chars, relations) {
   const h = Math.max(_baseH, _need * 0.82);
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的力导向结果，避免重进抖动/重复计算；
   // 仅在签名变化（新增关系）或缓存越界（容器尺寸变化）时重算。
-  const _layoutSig = JSON.stringify({ v: 878, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 879, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = _mmLayoutCache.sig === _layoutSig ? _mmLayoutCache.pos : null;
   if (positions) {
     const _oob = layoutChars.some(c => { const p = positions[c.name]; return !p || p.x < 26 || p.y < 26 || p.x > w - 26 || p.y > h - 26; });
@@ -7216,14 +7216,17 @@ function computeForceLayoutOnce(chars, connections, w, h, k, rng) {
 function computeForceLayout(chars, connections, w, h, K) {
   const NODE_R = 30;
   const names = chars.map(c => c.name).filter(Boolean);
-  if (names.length <= 2) return computeForceLayoutOnce(chars, connections, w, h, K, _mmRand(1));
+  const nameSet = new Set(names);
+  // v879：过滤掉指向已删除/不存在人物的连接，避免 computeForceLayoutOnce 访问 undefined.x
+  const validConns = connections.filter(cn => nameSet.has(cn.a) && nameSet.has(cn.b) && cn.a !== cn.b);
+  if (names.length <= 2) return computeForceLayoutOnce(chars, validConns, w, h, K, _mmRand(1));
   // 多起点：综合评分——少交叉优先，其次边长度均匀(等长)
   const KSTART = Math.max(3, Math.min(6, 9 - Math.floor(names.length / 5)));
   let best = null, bestScore = Infinity;
   for (let s = 0; s < KSTART; s++) {
-    const p = computeForceLayoutOnce(chars, connections, w, h, K, _mmRand(s * 100003 + 7));
-    const c = countEdgeCrossings(p, connections);
-    const xs = connections.map(cn => Math.hypot(p[cn.a].x - p[cn.b].x, p[cn.a].y - p[cn.b].y));
+    const p = computeForceLayoutOnce(chars, validConns, w, h, K, _mmRand(s * 100003 + 7));
+    const c = countEdgeCrossings(p, validConns);
+    const xs = validConns.map(cn => Math.hypot(p[cn.a].x - p[cn.b].x, p[cn.a].y - p[cn.b].y));
     const m = xs.reduce((a, b) => a + b, 0) / xs.length;
     const sd = Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / xs.length);
     const score = c * 2 + sd; // v877: 交叉优先(权重2)，其次边长度标准差小(等长)
@@ -7232,7 +7235,7 @@ function computeForceLayout(chars, connections, w, h, K) {
   // 2-opt：随机交换两节点位置，若减少交叉且不引入重叠则保留
   let cur = best ? JSON.parse(JSON.stringify(best)) : null;
   if (cur) {
-    let curCross = countEdgeCrossings(cur, connections);
+    let curCross = countEdgeCrossings(cur, validConns);
     const attempts = Math.min(300, names.length * 20);
     const rng = _mmRand(99173);
     for (let a = 0; a < attempts; a++) {
@@ -7247,13 +7250,13 @@ function computeForceLayout(chars, connections, w, h, K) {
         if (Math.hypot(cur[ni].x - cur[nm].x, cur[ni].y - cur[nm].y) < 60) overlap = true;
         if (Math.hypot(cur[nj].x - cur[nm].x, cur[nj].y - cur[nm].y) < 60) overlap = true;
       }
-      const nc = countEdgeCrossings(cur, connections);
+      const nc = countEdgeCrossings(cur, validConns);
       if (!(nc < curCross && !overlap)) { const t2 = cur[ni]; cur[ni] = cur[nj]; cur[nj] = t2; }
       else curCross = nc;
     }
     best = cur;
   }
-  return best || computeForceLayoutOnce(chars, connections, w, h, K, _mmRand(1));
+  return best || computeForceLayoutOnce(chars, validConns, w, h, K, _mmRand(1));
 }
 
 /* ===== Design Quote Calculator (v10: 报价计算器) ===== */
