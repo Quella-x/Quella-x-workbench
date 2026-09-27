@@ -6578,7 +6578,7 @@ function renderRelations() {
     html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1/1.2)" title="缩小">－</button>';
     html += '<button class="mindmap-zoom-btn" onclick="mmZoomReset()" title="重置">⊙</button>';
     html += '</div>';
-    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v885</div>';
+    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v886</div>';
     html += '<div class="mindmap-canvas-wrapper" id="mindmapCanvas"></div>';
     html += '</div>';
     // Person buttons (缩略为姓名按钮可展开)
@@ -6764,8 +6764,8 @@ function mmApplyTransform() {
   const inner = $('#mindmapInner');
   const canvas = $('#mindmapCanvas');
   if (canvas) {
-    canvas.style.height = _mmAvailH + 'px'; // v885：画布高度固定，缩放/拖动时窗口稳定不变
-    canvas.style.overflow = 'hidden';
+    canvas.style.height = _mmAvailH + 'px'; // v886：画布高度恒 = 窗口高，缩放/拖动时窗口稳定不变
+    canvas.style.overflow = (_mmGraphH * _mmZoom > _mmAvailH || _mmGraphW * _mmZoom > _mmAvailW) ? 'auto' : 'hidden';
   }
   if (inner) inner.style.transform = `translate(${_mmPanX}px,${_mmPanY}px) scale(${_mmZoom})`;
 }
@@ -6930,25 +6930,56 @@ function drawMindMap(chars, relations) {
   // v843：恢复「大节点」观感——画布尺寸随节点数增长（给力导向足够铺开空间、零重叠），
   // 初始缩放恒为 1（节点保持满尺寸 60px），不再自动缩小；人多超出容器时由用户手势缩小/拖动查看
   const _nConn = Math.max(layoutChars.length, 1);
-  // v878：修复 v877「画布撑大后被 .mindmap-canvas-wrapper overflow:hidden 裁成没了」——
-  // 保留放大画布（间距等长、零重叠），但初始按包围盒 zoom-to-fit 居中，整图可见；
-  // 用户可滚轮/双指缩放、拖动查看细节（图本就带滚动缩放，不强行塞进固定区域）。
-  const _k = isNarrow ? 150 : 175; // 统一边长 k（v877）：所有直接相连边收敛到同一长度；间接相连的才更远
-  // v881：恢复「大画布 + 初始缩放 1.0」，给足散开空间；用户说可以放大/滚动查看，不再 zoom-to-fit 缩小。
-  const _need = Math.ceil(Math.sqrt(_nConn)) * _k * 1.55;
-  const _wrapW = Math.max(containerW - 40, isNarrow ? 300 : 560);
-  const _baseH = isNarrow ? Math.max(containerH - 40, 380) : 520;
-  const w = Math.max(_wrapW, _need);
-  const h = Math.max(_baseH, _need * 0.82);
-  // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的力导向结果，避免重进抖动/重复计算；
-  // 仅在签名变化（新增关系）或缓存越界（容器尺寸变化）时重算。
-  const _layoutSig = JSON.stringify({ v: 885, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  // v886：回归 v843 定下的观感——初始缩放恒 1（节点 60px 满尺寸）、窗口画布高 520（窄屏 400）。
+  // 力导向跑完后按「图高贴合窗口高」等比缩放一次：同比缩放不破坏等长/零重叠，竖向不留白；
+  // 横向放不下时出滚动条（用户原话「放不下就让它滚动查看」）。
+  const _availW = Math.max(containerW - 40, isNarrow ? 300 : 560);
+  const _targetH = isNarrow ? 400 : 520;
+  const _k = isNarrow ? 150 : 175; // 统一目标边长 k（v841 等长要求）
+  const _need = Math.ceil(Math.sqrt(_nConn)) * (isNarrow ? 95 : 150); // v843：画布随节点数增长（95 手机 / 150 电脑）
+  let w = Math.max(_availW, _need);
+  let h = Math.max(_targetH, Math.ceil(_need * 0.6));
+  // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的力导向结果，避免重进抖动/重复计算
+  const _layoutSig = JSON.stringify({ v: 886, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = _mmLayoutCache.sig === _layoutSig ? _mmLayoutCache.pos : null;
+  if (positions && (_mmLayoutCache.w !== w || _mmLayoutCache.h !== h)) positions = null;
   if (positions) {
     const _oob = layoutChars.some(c => { const p = positions[c.name]; return !p || p.x < 26 || p.y < 26 || p.x > w - 26 || p.y > h - 26; });
     if (_oob) positions = null;
   }
-  if (!positions) { positions = computeForceLayout(layoutChars, allConnections, w, h, _k); _mmLayoutCache = { sig: _layoutSig, pos: positions }; }
+  if (!positions) {
+    positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
+    // v886：等比缩放到贴合窗口高度（竖向零白边）
+    let _x0 = Infinity, _y0 = Infinity, _x1 = -Infinity, _y1 = -Infinity;
+    layoutChars.forEach(c => {
+      const p = positions[c.name]; if (!p) return;
+      if (p.x < _x0) _x0 = p.x; if (p.x > _x1) _x1 = p.x;
+      if (p.y < _y0) _y0 = p.y; if (p.y > _y1) _y1 = p.y;
+    });
+    if (isFinite(_x0) && _y1 > _y0) {
+      const _gh = (_y1 - _y0) + 68; // 节点直径 + 标签余量
+      let s = _targetH / _gh;
+      // 缩放后节点不能挤在一起：最小节点间距不小于 110px
+      let _minD = Infinity;
+      const _ns = layoutChars.map(c => c.name);
+      for (let i = 0; i < _ns.length; i++) for (let j = i + 1; j < _ns.length; j++) {
+        const a = positions[_ns[i]], b = positions[_ns[j]]; if (!a || !b) continue;
+        const d = Math.hypot(a.x - b.x, a.y - b.y); if (d < _minD) _minD = d;
+      }
+      if (isFinite(_minD) && _minD > 0 && _minD * s < 110) s = 110 / _minD;
+      s = Math.max(0.35, Math.min(s, 2.2));
+      const _cx = (_x0 + _x1) / 2, _cy = (_y0 + _y1) / 2;
+      layoutChars.forEach(c => {
+        const p = positions[c.name]; if (!p) return;
+        p.x = _cx + (p.x - _cx) * s; p.y = _cy + (p.y - _cy) * s;
+      });
+      // 放大后可能越出原画布，扩大画布避免 SVG 裁掉连线
+      let _mx = 0, _my = 0;
+      layoutChars.forEach(c => { const p = positions[c.name]; if (!p) return; if (p.x > _mx) _mx = p.x; if (p.y > _my) _my = p.y; });
+      w = Math.max(w, Math.ceil(_mx) + 80); h = Math.max(h, Math.ceil(_my) + 80);
+    }
+    _mmLayoutCache = { sig: _layoutSig, pos: positions, w, h };
+  }
   // v885：先画线/标签（svgContent），之后按「节点+标签」的实际包围盒裁剪渲染区——白边只剩节点半径余量
   let svgContent = '';
   // 同 pair 的多个关系并排多条线（按垂直方向错开控制点）
@@ -7050,14 +7081,12 @@ function drawMindMap(chars, relations) {
   const _PAD = 34; // 节点半径30 + 箭头余量
   const _gW = (_maxX - _minX) + _PAD * 2, _gH = (_maxY - _minY) + _PAD * 2;
   const _offX = _minX - _PAD, _offY = _minY - _PAD;
-  const _availW = containerW - 40, _availH = Math.max(containerH - 40, 460); // 容器恢复 min-height 500，画布高度固定不随图变矮
-  const _fitX = _availW / _gW, _fitY = _availH / _gH;
-  // 图比容器小 → 放大撑满（上限 2x 避免失真）；图比容器大 → 保持 1.0 真实大小，拖动/缩放查看
-  _mmZoom = (_fitX >= 1 && _fitY >= 1) ? Math.min(_fitX, _fitY, 2.0) : 1.0;
-  _mmAvailW = _availW; _mmAvailH = _availH; _mmGraphW = _gW; _mmGraphH = _gH;
-  const _visW = _gW * _mmZoom, _visH = _gH * _mmZoom;
-  _mmPanX = (_availW - _visW) / 2; // 水平始终居中（图更宽时为负=显示中部，可拖动）
-  _mmPanY = _visH < _availH ? (_availH - _visH) / 2 : 0; // 图矮垂直居中；图高贴顶，拖动看下方
+  // v886：缩放恒 1（v843：节点 60px 满尺寸，不再自动缩小）；画布高恒 = 窗口高 520/400，
+  // 图已等比缩放贴合，竖向不留白；图更高/更宽时由滚动条查看。
+  _mmZoom = 1.0;
+  _mmAvailW = _availW; _mmAvailH = _targetH; _mmGraphW = _gW; _mmGraphH = _gH;
+  _mmPanX = _gW <= _availW ? (_availW - _gW) / 2 : 0; // 图窄居中；图更宽从左边缘开始，横向可滚
+  _mmPanY = _gH <= _targetH ? (_targetH - _gH) / 2 : 0;
   _mmBasePanX = _mmPanX; _mmBasePanY = _mmPanY; _mmBaseZoom = _mmZoom;
 
   // Wrap everything in a zoomable inner div clipped to the tight graph bbox
@@ -7074,8 +7103,10 @@ function drawMindMap(chars, relations) {
   inner += '</div>';
   canvas.innerHTML = inner;
   // v885：画布高度固定 = 容器可用高（窗口高度回归旧版 ≥500，不再随图变矮）；图大时拖动/缩放查看
-  canvas.style.height = _availH + 'px';
-  canvas.style.overflow = 'hidden';
+  canvas.style.height = _targetH + 'px';
+  canvas.style.overflow = (_gH > _targetH || _gW > _availW) ? 'auto' : 'hidden';
+  // 卡片高度紧贴画布（窗口高度回归旧版，且卡片内部不再留出白边）
+  if (container) container.style.minHeight = (_targetH + 40) + 'px';
   mmInitDrag();
 }
 function mmZoom(factor) {
@@ -7173,9 +7204,38 @@ function mmEnforcePairGap(pos, names, w, h) {
     if (!moved) break;
   }
 }
+// v886：边长上限（等长）——v885 只把「太短」的边推到 k，从不拉回「太长」的边，
+// 实测边长 std=31(15.7%)、最长 265 vs 最短 175，用户眼中就是「间距不一样」。
+// 这里把超过 k*1.15 的边沿连线方向拉回 k（同比收缩，不破坏零重叠与等长）。
+function mmEqualizeEdges(pos, connections, k, w, h) {
+  const NODE_R = 30;
+  const MAX_K = k * 1.15;
+  for (let sweep = 0; sweep < 120; sweep++) {
+    let moved = false;
+    connections.forEach(cn => {
+      const a = pos[cn.a], b = pos[cn.b]; if (!a || !b) return;
+      const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
+      if (d <= MAX_K) return;
+      const ux = dx / d, uy = dy / d;
+      const midX = (a.x + b.x) / 2, midY = (a.y + b.y) / 2;
+      const half = k / 2;
+      let ax2 = midX - ux * half, ay2 = midY - uy * half;
+      let bx2 = midX + ux * half, by2 = midY + uy * half;
+      ax2 = Math.max(NODE_R + 4, Math.min(w - NODE_R - 4, ax2));
+      ay2 = Math.max(NODE_R + 4, Math.min(h - NODE_R - 4, ay2));
+      bx2 = Math.max(NODE_R + 4, Math.min(w - NODE_R - 4, bx2));
+      by2 = Math.max(NODE_R + 4, Math.min(h - NODE_R - 4, by2));
+      a.x = ax2; a.y = ay2; b.x = bx2; b.y = by2;
+      moved = true;
+    });
+    if (!moved) break;
+  }
+}
 // v885：布局收尾三步——边长下限 → 任意节点对最小间距 → 边长下限再兜底（推开会破坏别的边）
+// v886：插入「长边拉回」（等长），顺序：下限 → 等长 → 节点对间距 → 下限兜底
 function mmPolishLayout(pos, names, connections, k, w, h) {
   mmEnforceMinEdge(pos, connections, k, w, h);
+  mmEqualizeEdges(pos, connections, k, w, h);
   mmEnforcePairGap(pos, names, w, h);
   mmEnforceMinEdge(pos, connections, k, w, h);
 }
