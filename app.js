@@ -6749,6 +6749,7 @@ let _mmPanX = 0;
 let _mmPanY = 0;
 let _mmBasePanX = 0;
 let _mmBasePanY = 0;
+let _mmBaseZoom = 1;
 let _mmDragging = false;
 let _mmLastX = 0;
 let _mmLastY = 0;
@@ -6920,23 +6921,25 @@ function drawMindMap(chars, relations) {
   // v843：恢复「大节点」观感——画布尺寸随节点数增长（给力导向足够铺开空间、零重叠），
   // 初始缩放恒为 1（节点保持满尺寸 60px），不再自动缩小；人多超出容器时由用户手势缩小/拖动查看
   const _nConn = Math.max(layoutChars.length, 1);
-  // v877：恢复 v841「边尽量等长（统一目标长度 k）」——k 固定不随画布浮动，画布按 k 与节点数撑大到能装下
-  const _k = isNarrow ? 150 : 175; // 统一边长：所有直接相连的边收敛到同一长度；只有间接连接的才更远
-  const _need = Math.ceil(Math.sqrt(_nConn)) * _k * 1.55;
+  // v878：修复 v877「画布撑大后被 .mindmap-canvas-wrapper overflow:hidden 裁成没了」——
+  // 保留放大画布（间距等长、零重叠），但初始按包围盒 zoom-to-fit 居中，整图可见；
+  // 用户可滚轮/双指缩放、拖动查看细节（图本就带滚动缩放，不强行塞进固定区域）。
+  const _k = isNarrow ? 150 : 175; // 统一边长 k（v877）：所有直接相连边收敛到同一长度；间接相连的才更远
+  const _need = Math.ceil(Math.sqrt(_nConn)) * _k * 1.55; // 画布按 k 与节点数撑大到能装下整图（不被边界夹成重叠）
   const _wrapW = Math.max(containerW - 40, isNarrow ? 300 : 560);
   const _baseH = isNarrow ? Math.max(containerH - 40, 380) : 520;
   const w = Math.max(_wrapW, _need);
   const h = Math.max(_baseH, _need * 0.82);
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的力导向结果，避免重进抖动/重复计算；
   // 仅在签名变化（新增关系）或缓存越界（容器尺寸变化）时重算。
-  const _layoutSig = JSON.stringify({ v: 877, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 878, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = _mmLayoutCache.sig === _layoutSig ? _mmLayoutCache.pos : null;
   if (positions) {
     const _oob = layoutChars.some(c => { const p = positions[c.name]; return !p || p.x < 26 || p.y < 26 || p.x > w - 26 || p.y > h - 26; });
     if (_oob) positions = null;
   }
   if (!positions) { positions = computeForceLayout(layoutChars, allConnections, w, h, _k); _mmLayoutCache = { sig: _layoutSig, pos: positions }; }
-  // 初始视图：把关系图包围盒居中到可视区（避免默认只看到左上角一半）
+  // 初始视图：整图包围盒 zoom-to-fit 居中（修复 v877 只居中图中心、外圈被 overflow:hidden 裁掉「没了」）
   let _minX = Infinity, _maxX = -Infinity, _minY = Infinity, _maxY = -Infinity;
   layoutChars.forEach(c => {
     const p = positions[c.name]; if (!p) return;
@@ -6944,10 +6947,15 @@ function drawMindMap(chars, relations) {
     if (p.y < _minY) _minY = p.y; if (p.y > _maxY) _maxY = p.y;
   });
   if (!isFinite(_minX)) { _minX = _maxX = w / 2; _minY = _maxY = h / 2; }
-  _mmZoom = 1;
-  _mmPanX = _wrapW / 2 - (_minX + _maxX) / 2;
-  _mmPanY = h / 2 - (_minY + _maxY) / 2;
-  _mmBasePanX = _mmPanX; _mmBasePanY = _mmPanY;
+  const _PAD = 40; // 留白：包住标签描边与箭头，避免贴边
+  const _gW = (_maxX - _minX) + _PAD * 2, _gH = (_maxY - _minY) + _PAD * 2;
+  _mmZoom = Math.min(containerW / _gW, containerH / _gH, 1.0); // 整图适配容器；图比容器小则保持 1.0 不放大
+  if (!isFinite(_mmZoom) || _mmZoom <= 0) _mmZoom = 1;
+  const _gcx = (_minX + _maxX) / 2, _gcy = (_minY + _maxY) / 2;
+  // 变换模型：screen = zoom*canvasPoint + pan + (1-zoom)*(w/2,h/2)；令图中心落到容器中心
+  _mmPanX = containerW / 2 - _mmZoom * _gcx - (1 - _mmZoom) * (w / 2);
+  _mmPanY = containerH / 2 - _mmZoom * _gcy - (1 - _mmZoom) * (h / 2);
+  _mmBasePanX = _mmPanX; _mmBasePanY = _mmPanY; _mmBaseZoom = _mmZoom;
 
   // Wrap everything in a zoomable inner div
   let inner = `<div class="mindmap-inner" id="mindmapInner" style="position:relative;width:${w}px;height:${h}px;transform-origin:center center;transform:translate(${_mmPanX}px,${_mmPanY}px) scale(${_mmZoom});transition:transform .15s">`;
@@ -7052,7 +7060,7 @@ function mmZoom(factor) {
   mmApplyTransform();
 }
 function mmZoomReset() {
-  _mmZoom = 1; _mmPanX = _mmBasePanX; _mmPanY = _mmBasePanY;
+  _mmZoom = _mmBaseZoom; _mmPanX = _mmBasePanX; _mmPanY = _mmBasePanY;
   mmApplyTransform();
 }
 // v839：关系图改为同心圆（径向）布局
