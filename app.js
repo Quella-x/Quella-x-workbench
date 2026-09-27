@@ -6760,9 +6760,6 @@ let _mmPinchStartZoom = 1;
 function mmApplyTransform() {
   const inner = $('#mindmapInner');
   if (inner) inner.style.transform = `translate(${_mmPanX}px,${_mmPanY}px) scale(${_mmZoom})`;
-  // v880：缩放时同步调整容器高度，保持紧包图、不撑出大片空白。
-  const canvas = $('#mindmapCanvas');
-  if (canvas && _mmFitH > 0) canvas.style.height = Math.max(360, _mmFitH * (_mmZoom / _mmBaseZoom) + 24) + 'px';
 }
 
 function mmInitDrag() {
@@ -6929,22 +6926,22 @@ function drawMindMap(chars, relations) {
   // 保留放大画布（间距等长、零重叠），但初始按包围盒 zoom-to-fit 居中，整图可见；
   // 用户可滚轮/双指缩放、拖动查看细节（图本就带滚动缩放，不强行塞进固定区域）。
   const _k = isNarrow ? 150 : 175; // 统一边长 k（v877）：所有直接相连边收敛到同一长度；间接相连的才更远
-  // v880：画布估算从 1.55 降到 1.15，避免力导向把节点散开后外围留下大片空白。
-  const _need = Math.ceil(Math.sqrt(_nConn)) * _k * 1.15;
+  // v881：恢复「大画布 + 初始缩放 1.0」，给足散开空间；用户说可以放大/滚动查看，不再 zoom-to-fit 缩小。
+  const _need = Math.ceil(Math.sqrt(_nConn)) * _k * 1.55;
   const _wrapW = Math.max(containerW - 40, isNarrow ? 300 : 560);
   const _baseH = isNarrow ? Math.max(containerH - 40, 380) : 520;
   const w = Math.max(_wrapW, _need);
   const h = Math.max(_baseH, _need * 0.82);
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的力导向结果，避免重进抖动/重复计算；
   // 仅在签名变化（新增关系）或缓存越界（容器尺寸变化）时重算。
-  const _layoutSig = JSON.stringify({ v: 880, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 881, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = _mmLayoutCache.sig === _layoutSig ? _mmLayoutCache.pos : null;
   if (positions) {
     const _oob = layoutChars.some(c => { const p = positions[c.name]; return !p || p.x < 26 || p.y < 26 || p.x > w - 26 || p.y > h - 26; });
     if (_oob) positions = null;
   }
   if (!positions) { positions = computeForceLayout(layoutChars, allConnections, w, h, _k); _mmLayoutCache = { sig: _layoutSig, pos: positions }; }
-  // 初始视图：整图包围盒 zoom-to-fit 居中（修复 v877 只居中图中心、外圈被 overflow:hidden 裁掉「没了」）
+  // v881：初始视图保持缩放 1.0，让节点和间距保持真实大小；放不下时用户可滚动/拖动/缩放查看。
   let _minX = Infinity, _maxX = -Infinity, _minY = Infinity, _maxY = -Infinity;
   layoutChars.forEach(c => {
     const p = positions[c.name]; if (!p) return;
@@ -6952,20 +6949,17 @@ function drawMindMap(chars, relations) {
     if (p.y < _minY) _minY = p.y; if (p.y > _maxY) _maxY = p.y;
   });
   if (!isFinite(_minX)) { _minX = _maxX = w / 2; _minY = _maxY = h / 2; }
-  const _PAD = 40; // 留白：包住标签描边与箭头，避免贴边
+  const _PAD = 40;
   const _gW = (_maxX - _minX) + _PAD * 2, _gH = (_maxY - _minY) + _PAD * 2;
-  _mmZoom = Math.min(containerW / _gW, containerH / _gH, 1.0); // 整图适配容器；图比容器小则保持 1.0 不放大
-  if (!isFinite(_mmZoom) || _mmZoom <= 0) _mmZoom = 1;
   const _gcx = (_minX + _maxX) / 2, _gcy = (_minY + _maxY) / 2;
-  // 变换模型：screen = zoom*canvasPoint + pan + (1-zoom)*(w/2,h/2)；令图中心落到容器中心
-  _mmPanX = containerW / 2 - _mmZoom * _gcx - (1 - _mmZoom) * (w / 2);
-  _mmPanY = containerH / 2 - _mmZoom * _gcy - (1 - _mmZoom) * (h / 2);
-  _mmBasePanX = _mmPanX; _mmBasePanY = _mmPanY; _mmBaseZoom = _mmZoom;
-  // v880：记录 fit 后的视觉高度，用于把 canvas wrapper 高度收紧到图实际占用范围，消灭下方空白。
-  _mmFitH = _gH * _mmZoom;
+  _mmZoom = 1.0;
+  _mmPanX = containerW / 2 - _gcx;
+  _mmPanY = containerH / 2 - _gcy;
+  _mmBasePanX = _mmPanX; _mmBasePanY = _mmPanY; _mmBaseZoom = 1.0;
+  _mmFitH = h;
 
   // Wrap everything in a zoomable inner div
-  let inner = `<div class="mindmap-inner" id="mindmapInner" style="position:relative;width:${w}px;height:${h}px;transform-origin:center center;transform:translate(${_mmPanX}px,${_mmPanY}px) scale(${_mmZoom});transition:transform .15s">`;
+  let inner = `<div class="mindmap-inner" id="mindmapInner" style="position:relative;width:${w}px;height:${h}px;transform-origin:center center;transform:translate(${_mmPanX}px,${_mmPanY}px) scale(1);transition:transform .15s">`;
   inner += `<svg class="mindmap-svg" width="${w}" height="${h}">`;
   // 同 pair 的多个关系并排多条线（按垂直方向错开控制点）
   const _pairMap = {};
@@ -7060,8 +7054,10 @@ function drawMindMap(chars, relations) {
   });
   inner += '</div>';
   canvas.innerHTML = inner;
-  // v880：把画布容器高度收紧到图实际视觉高度，消灭下方大片空白；保留最小 360px 以免图太小时局促。
-  if (_mmFitH > 0) canvas.style.height = Math.max(360, _mmFitH + 24) + 'px';
+  // v881：画布容器高度 = 图高 与 容器可用高度 的较小值；图小不撑空白，图大出滚动条。
+  const viewH = Math.min(h, Math.max(360, containerH - 40));
+  canvas.style.height = viewH + 'px';
+  canvas.style.overflow = 'auto';
   mmInitDrag();
 }
 function mmZoom(factor) {
