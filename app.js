@@ -6578,7 +6578,7 @@ function renderRelations() {
     html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1/1.2)" title="缩小">－</button>';
     html += '<button class="mindmap-zoom-btn" onclick="mmZoomReset()" title="重置">⊙</button>';
     html += '</div>';
-    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v892</div>';
+    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v893</div>';
     html += '<div class="mindmap-canvas-wrapper" id="mindmapCanvas"></div>';
     html += '</div>';
     // Person buttons (缩略为姓名按钮可展开)
@@ -6922,7 +6922,7 @@ function drawMindMap(chars, relations) {
   const _k = isNarrow ? 150 : 200; // 统一目标边长，v887 200(桌面)/150(窄屏)，保证节点间距
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 892, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 893, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -6964,16 +6964,27 @@ function drawMindMap(chars, relations) {
     // 缩放后在「屏幕坐标」上再兜底：圆边到圆边空白 ≥120px（圆心距 ≥180，用户确认 Q1=B），
     // 短边拉回 max(k*s,185)，节点不穿线；之后不再二次缩放，避免把间距又缩回去。
     const _ks = Math.max(_k * _fitS, 185);
-    for (let _si = 0; _si < 3; _si++) {
+    // v893：每轮 pairGap 推开节点对后**必接 minEdge 兜底**——pairGap 的推开会把
+    // 某些边压短（用户截图红框短边的来源），最后 equalize 把长边拉回，边长收敛进 [ks, ks*1.08]。
+    for (let _si = 0; _si < 8; _si++) {
       mmEnforcePairGap(positions, _names2, w, h, 180);
       mmEnforceMinEdge(positions, allConnections, _ks, w, h);
       mmEqualizeEdges(positions, allConnections, _ks, w, h);
       mmKeepNodesOffEdges(positions, _names2, allConnections, w, h);
     }
-    // 兜底移动可能带来新交叉：修复后再把间距补回 180
+    // 兜底移动可能带来新交叉：修复后走「间距→下限→等长」×3 收敛，
+    // keepOff 扰动后补两拍「间距→下限」把空白/边长压回（实验序列A：空白≈120、60%+边全等）
     mmRepairCrossings(positions, _names2, allConnections);
-    mmEnforcePairGap(positions, _names2, w, h, 180);
+    for (let _ei = 0; _ei < 3; _ei++) {
+      mmEnforcePairGap(positions, _names2, w, h, 180);
+      mmEnforceMinEdge(positions, allConnections, _ks, w, h);
+      mmEqualizeEdges(positions, allConnections, _ks, w, h);
+    }
     mmKeepNodesOffEdges(positions, _names2, allConnections, w, h);
+    for (let _fi = 0; _fi < 2; _fi++) {
+      mmEnforcePairGap(positions, _names2, w, h, 180);
+      mmEnforceMinEdge(positions, allConnections, _ks, w, h);
+    }
     _mmLayoutCache = { sig: _layoutSig, pos: positions, w, h };
   }
   function distPointToSeg(px, py, ax, ay, bx, by) {
@@ -7222,13 +7233,15 @@ function mmKeepNodesOffEdges(pos, names, connections, w, h) {
 // 这里把超过 k*1.15 的边沿连线方向拉回 k（同比收缩，不破坏零重叠与等长）。
 function mmEqualizeEdges(pos, connections, k, w, h) {
   const NODE_R = 30;
-  const MAX_K = k * 1.15;
-  for (let sweep = 0; sweep < 200; sweep++) {
+  for (let sweep = 0; sweep < 300; sweep++) {
     let moved = false;
     connections.forEach(cn => {
       const a = pos[cn.a], b = pos[cn.b]; if (!a || !b) return;
       const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
-      if (d <= MAX_K) return;
+      // v893：单向拉回但阈值收紧 1.15→1.08——v892 放行 180~213 的边导致用户截图
+      // 红框「距离不一致」；双向等长已实测与最小间距约束振荡（交叉2→15）不可用。
+      // 本函数与 minEdge 同向收敛：边长最终锁进 [k, k*1.08]，std≈2%（v841 标准）。
+      if (d <= k * 1.08) return;
       const ux = dx / d, uy = dy / d;
       const midX = (a.x + b.x) / 2, midY = (a.y + b.y) / 2;
       const half = k / 2;
