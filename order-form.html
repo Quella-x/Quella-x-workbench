@@ -2751,14 +2751,14 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 /* v875: 零食行时间/数量行与 head 同机制——容器垂直居中(确定性,不随字体度量漂移)+内部基线对齐；窄屏容器高=内容高,居中为no-op,渲染与v834一致 */
 .lr-line-ctr{align-items:center}
 .lr-line-ctr .lr-info-main{min-width:0;display:flex;align-items:baseline;gap:4px}
-.lr-info-line-head .lr-record-ops{margin-left:auto;flex-shrink:0;margin-top:4px} /* v866: +2px，按钮文字与「时间」小标题字迹中心对齐（中文字体墨迹偏下）；v873: 零食行不再用 head，此规则仅剩奶茶/餐食 */
+.lr-info-line-head .lr-record-ops{margin-left:auto;flex-shrink:0;margin-top:3px} /* v866: +2px 按钮与「时间」小标题字迹中心对齐；v905: 她设备实测(v1.1.53截图,按钮墨迹中心比时间标签低~1px)收1px→3px；v873: 零食行不再用 head，此规则仅剩奶茶/餐食 */
 .lr-info-label{font-size:12px;color:var(--c-text-light);font-weight:500;white-space:nowrap}
 .lr-info-val{font-size:16px;color:var(--c-text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lr-info-full{grid-column:1 / -1;white-space:normal;word-break:break-word}
 .lr-info-full .lr-info-val{white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word;font-size:13px}
 /* v849: 还原 v834——按钮随「吃饭时间」标题行垂直居中（与 v1.1.48 一致，不再钉行顶） */
 .lr-record-ops{display:flex;gap:1px;flex-shrink:0;align-items:center;margin-top:2px}
-.lr-ops-trail{margin-top:4px} /* v874: 零食行挂网格外的编辑/删除与 head 内联按钮同值下移(窄4/宽2)，墨迹与时间标签对齐 */
+.lr-ops-trail{margin-top:3px} /* v874: 零食行挂网格外的编辑/删除与 head 内联按钮同值下移；v905: 随 head 收1px(窄3/宽2) */
 .lr-record-ops .btn{padding:2px 7px;font-size:12px;line-height:1.1;border-radius:var(--radius-sm)}
 .lr-size-note{font-size:11px;color:var(--c-text-light);white-space:normal;word-break:break-word;overflow-wrap:anywhere}
 .lr-info-val .lr-size-note{font-weight:500}
@@ -2891,10 +2891,12 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-card-title{font-size:14px}
   .lr-card-body{padding:8px 10px}
   .lr-subtype-box{align-items:center;gap:8px;padding:10px 10px}
-  /* v850: 还原 v843 = v834 原样 + 空/有记录行等高（唯一保留的改动） */
-  /* v899: 「上下间距一致」——标签改结构化居中（align-self:center，不再依赖字体度量的 margin-top 魔法数，
-     任何设备字体下标签盒都数学居中）；内容行去 translateY(-1px)（同因，盒级上下对称） */
-  .lr-subtype-label{width:36px;font-size:16px;align-self:center;margin-top:0}
+  /* v905: 「标签/内容上下间距相等」=跨列相等（v844 原文+2026-09-29 三图红块/青线取证：
+     她手机实测 标签空隙20.6 vs 内容空隙13.8CSS，青线画在内容墨迹顶部=对齐目标）——
+     标签墨迹顶部对齐内容首行墨迹顶部：flex-start+margin-top:2px（结构化，双方都是行盒居中，随字体等比、不依赖雅黑度量）；
+     空记录盒（早餐无记录）单独居中（单行内容垂直居中，centered 即对齐） */
+  .lr-subtype-label{width:36px;font-size:16px;align-self:flex-start;margin-top:2px}
+  .lr-subtype-box.lr-box-empty .lr-subtype-label{align-self:center;margin-top:0}
   .lr-subtype-add{width:24px;height:24px;font-size:16px}
   .lr-empty-row{padding:9.5px 0}
   .lr-record-row{transform:none}
@@ -3624,7 +3626,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=904"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=905"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
