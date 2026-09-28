@@ -6578,7 +6578,7 @@ function renderRelations() {
     html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1/1.2)" title="缩小">－</button>';
     html += '<button class="mindmap-zoom-btn" onclick="mmZoomReset()" title="重置">⊙</button>';
     html += '</div>';
-    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v893</div>';
+    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v894</div>';
     html += '<div class="mindmap-canvas-wrapper" id="mindmapCanvas"></div>';
     html += '</div>';
     // Person buttons (缩略为姓名按钮可展开)
@@ -6922,7 +6922,7 @@ function drawMindMap(chars, relations) {
   const _k = isNarrow ? 150 : 200; // 统一目标边长，v887 200(桌面)/150(窄屏)，保证节点间距
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 893, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 894, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -7045,13 +7045,16 @@ function drawMindMap(chars, relations) {
     const dx1 = box - aox, dy1 = boy - aoy;
     const len1 = Math.hypot(dx1, dy1) || 1;
     const fnx = -dy1 / len1, fny = dx1 / len1;
-    const labMag = 26;
+    // v894：标签偏移按「整个文字盒到线的最小空隙 = 26px」补偿——v891-v893 只保证标签
+    // **中心点**到线 26px，但文字水平、线有斜度：斜线上文字一角几乎贴线（视觉空隙≈5px）、
+    // 另一角很远，用户看到的「各标签离线距离不一样」就是这个。补偿量 = 盒半宽×|法线x分量|
+    // + 盒半高×|法线y分量|，保证四角法线距离都 ≥26 —— 任何斜度的线，视觉空隙完全一致。
+    const hw = conn.type.length * 5.3 + 8, hh = 9;
+    const labMag = 26 + hw * Math.abs(fnx) + hh * Math.abs(fny);
     const side = conn._pc === 1 ? -1 : (conn._pi < conn._pc / 2 ? -1 : 1);
     const mx = (aox + box) / 2, my = (aoy + boy) / 2;
     let labX = mx + fnx * labMag * side;
     let labY = my + fny * labMag * side;
-    // v890：标签默认偏移继续加大，并在避让中严格「不压任何连线」（含自身连线）+ 不压节点/标签。
-    const hw = conn.type.length * 5.3 + 8, hh = 9;
     const fits = (x, y) => {
       if (x - hw < 2 || x + hw > w - 2 || y - hh < 2 || y + hh > h - 2) return false;
       for (const nm2 in positions) {
