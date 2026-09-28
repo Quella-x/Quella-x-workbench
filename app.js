@@ -6580,7 +6580,7 @@ function renderRelations() {
     html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1/1.2)" title="缩小" aria-label="缩小"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="display:block"><path d="M5 12h14"/></svg></button>';
     html += '<button class="mindmap-zoom-btn" onclick="mmZoomReset()" title="重置" aria-label="重置"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" style="display:block"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/></svg></button>';
     html += '</div>';
-    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v901</div>';
+    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v902</div>';
     html += '<div class="mindmap-canvas-wrapper" id="mindmapCanvas"></div>';
     html += '</div>';
     // Person buttons (缩略为姓名按钮可展开)
@@ -6755,7 +6755,8 @@ let _mmLastY = 0;
 let _mmPinchDist = 0;
 let _mmPinchStartZoom = 1;
 let _mmFitZoom = 1; // v899：初始贴合缩放（窄屏画布 600 宽超出屏幕时 = 容器宽/画布宽，整图完整可见）
-let _mmFitPanX = 0; // v899：贴合缩放对应的水平平移 (w·z−w)/2——transform-origin 是自身中心，缩放后需平移回容器内
+let _mmFitPanX = 0; // v899：画布比可视区宽时的水平居中平移
+let _mmFitPanY = 0; // v902：布局空间高于可视框 520 时的垂直居中平移
 
 function mmApplyTransform() {
   const inner = $('#mindmapInner');
@@ -6919,9 +6920,10 @@ function drawMindMap(chars, relations) {
   const connectedSet = new Set();
   allConnections.forEach(c => { connectedSet.add(c.a); connectedSet.add(c.b); });
   const layoutChars = chars.filter(c => connectedSet.has(c.name));
-  // v901：间距固定优先（用户明确标准：圆心距 160/圆边空白 100 不许缩，原话「我说过间距固定吧，你给我缩小？」）
-  // ——初始缩放恒 1:1（节点恒 60px、间距恒 160），画布随人数自动撑大到能容纳固定间距，放不下拖动/滚动查看。
-  // v899 的「缩放贴合整图」会把间距同比缩小（0.52×160=83px）违背固定标准，废除。
+  // v902：间距固定 + 画布框视觉尺寸固定（用户两条铁律）——初始缩放恒 1:1（节点恒 60px、间距恒 160），
+  // 布局空间(inner w×h)随人数按需延伸（v876 原话「放不下就让它滚动查看，不要硬塞固定区」），
+  // 页面上的画布可视框恒 520 高不随人数变（v887 定稿视觉，用户原话「我也说过画布大小不变吧」），
+  // 超出可视框的部分 pan 拖动查看。
   // 需求面积 ≈ 每节点 160²×1.2（实测标定：600×520 恰容 11 人@160 间距；18 人在 600×520 被压到 121，×1.75 面积才够）。
   let w = Math.max(containerW - 40, 600);
   let h = 520;
@@ -6936,7 +6938,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 901, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 902, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -7128,8 +7130,12 @@ function drawMindMap(chars, relations) {
   // 画布比可视区宽时初始水平居中（拖动看两侧），重置按钮回到同一视图。
   const _fitBase = containerW - 40;
   _mmFitZoom = 1;
+  // v902：画布框视觉尺寸固定（v887 定稿：可视框高恒 520，用户原话「v887修复后的大小不是挺好的吗」
+  // 且「我也说过画布大小不变吧」）——布局空间(inner w×h)按需延伸(v876「放不下就滚动查看」)，
+  // 超出可视框的部分由 pan 拖动查看；初始视图在布局空间正中（水平+垂直居中），重置回同一视图。
   _mmFitPanX = (_fitBase > 0 && _fitBase < w) ? Math.round((_fitBase - w) / 2) : 0;
-  _mmZoom = _mmFitZoom; _mmPanX = _mmFitPanX; _mmPanY = 0;
+  _mmFitPanY = (h > 520) ? Math.round((520 - h) / 2) : 0;
+  _mmZoom = _mmFitZoom; _mmPanX = _mmFitPanX; _mmPanY = _mmFitPanY;
   let inner = `<div class="mindmap-inner" id="mindmapInner" style="position:relative;width:${w}px;height:${h}px;transform-origin:center center;transform:translate(${_mmPanX}px,${_mmPanY}px) scale(${_mmZoom});transition:transform .15s">`;
   inner += `<svg class="mindmap-svg" width="${w}" height="${h}">` + svgContent + '</svg>';
   layoutChars.forEach(c => {
