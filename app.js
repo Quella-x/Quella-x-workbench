@@ -6578,7 +6578,7 @@ function renderRelations() {
     html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1/1.2)" title="缩小">－</button>';
     html += '<button class="mindmap-zoom-btn" onclick="mmZoomReset()" title="重置">⊙</button>';
     html += '</div>';
-    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v887</div>';
+    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v888</div>';
     html += '<div class="mindmap-canvas-wrapper" id="mindmapCanvas"></div>';
     html += '</div>';
     // Person buttons (缩略为姓名按钮可展开)
@@ -6915,46 +6915,51 @@ function drawMindMap(chars, relations) {
   const connectedSet = new Set();
   allConnections.forEach(c => { connectedSet.add(c.a); connectedSet.add(c.b); });
   const layoutChars = chars.filter(c => connectedSet.has(c.name));
-  // v887：窗口回归 v834（v1.1.30/v1.1.48 用户认可的观感）——宽=容器-40（≥600）、高固定 520；
-  // 初始缩放恒 1、pan 0,0；无 bbox 裁剪/偏移/滚动条。布局收敛后整体等比缩放平移一次让图
-  // 恰好铺满窗口（同比变换不破坏等长/最小间距/无交叉），无上下空白也不溢出。
+  // v888：节点保持 60px；画布高度随节点数增长，确保 120px 最小间距有空间，放不下就滚动。
+  // 宽=容器-40（≥600）；高=n*90(桌面)/115(窄屏)，最低 520。不再等比缩放铺满，而是居中留白。
   const w = Math.max(containerW - 40, 600);
-  const h = 520;
-  const _k = 200; // 统一目标边长 k（v841 等长要求；画布更大，k 相应放大）
+  const nNodes = layoutChars.length;
+  const _areaFactor = isNarrow ? 115 : 90;
+  const h = Math.max(520, Math.ceil(nNodes * _areaFactor));
+  const _k = isNarrow ? 130 : 170; // 统一目标边长，保持边长一致且 ≥120px
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 887, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 888, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
-    // v887：布局收敛后，「约束收尾 → 交叉修复 → 等比缩放贴合」交替迭代 3 轮——
-    // 让「边长一致 / 节点最小间距一致 / 无交叉」在最终坐标下同时收敛；
-    // 等比变换保比例，图恰好铺满窗口（v834 观感：无上下空白、不溢出、不裁剪）。
+    // v888：布局收敛后，「约束收尾 → 规避穿节点 → 交叉修复」交替迭代 3 轮；
+    // 最后统一平移到画布中心（居中留白），保持节点/边的真实尺寸，不缩放。
     const _names2 = layoutChars.map(c => c.name);
-    const _fit = () => {
+    const _center = () => {
       let _x0 = Infinity, _y0 = Infinity, _x1 = -Infinity, _y1 = -Infinity;
       layoutChars.forEach(c => {
         const p = positions[c.name]; if (!p) return;
-        if (p.x < _x0) _x0 = p.x; if (p.x > _x1) _x1 = p.x;
-        if (p.y < _y0) _y0 = p.y; if (p.y > _y1) _y1 = p.y;
+        _x0 = Math.min(_x0, p.x); _x1 = Math.max(_x1, p.x);
+        _y0 = Math.min(_y0, p.y); _y1 = Math.max(_y1, p.y);
       });
       if (isFinite(_x0) && _x1 > _x0 && _y1 > _y0) {
-        const _M = 46; // 节点半径30 + 标签/箭头余量
-        const _gw = _x1 - _x0, _gh = _y1 - _y0;
-        let s = Math.min((w - _M * 2) / _gw, (h - _M * 2) / _gh);
-        if (s > 1.15) s = 1.15; // 只限制放大倍率；图大时按比例缩小保证完整可见
         const _ccx = (_x0 + _x1) / 2, _ccy = (_y0 + _y1) / 2;
-        layoutChars.forEach(c => {
-          const p = positions[c.name]; if (!p) return;
-          p.x = w / 2 + (p.x - _ccx) * s; p.y = h / 2 + (p.y - _ccy) * s;
-        });
+        const _dx = w / 2 - _ccx, _dy = h / 2 - _ccy;
+        layoutChars.forEach(c => { const p = positions[c.name]; if (p) { p.x += _dx; p.y += _dy; } });
       }
     };
     for (let _it = 0; _it < 3; _it++) {
       mmPolishLayout(positions, _names2, allConnections, _k, w, h);
+      mmKeepNodesOffEdges(positions, _names2, allConnections, w, h);
       mmRepairCrossings(positions, _names2, allConnections);
-      _fit();
+      mmKeepNodesOffEdges(positions, _names2, allConnections, w, h);
     }
+    mmEnforcePairGap(positions, _names2, w, h);
+    mmEnforceMinEdge(positions, allConnections, _k, w, h);
+    mmKeepNodesOffEdges(positions, _names2, allConnections, w, h);
+    _center();
+    // v888：最后再试一次 2-opt，若能把交叉降到 0 且不破坏间距就接受
+    mmRepairCrossings(positions, _names2, allConnections);
+    mmKeepNodesOffEdges(positions, _names2, allConnections, w, h);
+    mmEnforcePairGap(positions, _names2, w, h);
+    mmEnforceMinEdge(positions, allConnections, _k, w, h);
+    _center();
     _mmLayoutCache = { sig: _layoutSig, pos: positions, w, h };
   }
   // v885：先画线/标签（svgContent），之后按「节点+标签」的实际包围盒裁剪渲染区——白边只剩节点半径余量
@@ -7041,9 +7046,8 @@ function drawMindMap(chars, relations) {
   _labels.forEach(lb => {
     svgContent += `<text x="${lb.x}" y="${lb.y}" text-anchor="middle" dominant-baseline="middle" font-size="10.5" fill="${lb.color}" style="paint-order:stroke;stroke:#fff;stroke-width:3.5" font-weight="600">${esc(lb.type)}</text>`;
   });
-  // v887：视图回归 v834 极简模型——SVG 就位 (0,0)、节点 pos-30、初始 zoom=1/pan=0,0、
-  // transform-origin:center center。删除 v885-v886 的 bbox 裁剪/_offX/_offY 偏移/
-  // 画布高度覆写机制（「节点和线断开」「窗口忽矮忽高」的病灶）。
+  // v888：视图回归 v834 极简模型——SVG 就位 (0,0)、节点 pos-30、初始 zoom=1/pan=0,0、
+  // transform-origin:center center。节点填满 60px 圆，线与标签压在圆后。
   _mmZoom = 1; _mmPanX = 0; _mmPanY = 0;
 
   // Wrap everything in a zoomable inner div
@@ -7053,7 +7057,7 @@ function drawMindMap(chars, relations) {
   layoutChars.forEach(c => {
     const pos = positions[c.name];
     const nodeHTML = `<div class="mindmap-node circular" style="left:${pos.x - 30}px;top:${pos.y - 30}px" onclick="navigate('oc-profiles')" title="${esc(c.name)}">` +
-      `<div style="width:44px;height:44px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:${(c.name||'?').length>3?'9px':'12px'};font-weight:700;color:var(--c-primary-dark);text-align:center;word-break:break-all;overflow:hidden;padding:2px">${esc(c.name || '?')}</div>` +
+      `<div style="width:56px;height:56px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:${(c.name||'?').length>3?'9px':'12px'};font-weight:700;color:var(--c-primary-dark);text-align:center;word-break:break-all;overflow:hidden;padding:2px">${esc(c.name || '?')}</div>` +
       '</div>';
     inner += nodeHTML;
   });
@@ -7066,7 +7070,7 @@ function mmZoom(factor) {
   mmApplyTransform();
 }
 function mmZoomReset() {
-  _mmZoom = 1; _mmPanX = 0; _mmPanY = 0; // v887：回归 v834——重置即初始视图
+  _mmZoom = 1; _mmPanX = 0; _mmPanY = 0; // v888：重置即初始视图（居中、zoom=1）
   mmApplyTransform();
 }
 // v839：关系图改为同心圆（径向）布局
@@ -7156,6 +7160,34 @@ function mmEnforcePairGap(pos, names, w, h) {
     if (!moved) break;
   }
 }
+// v888：后处理——任何非端点节点靠近某条边则垂直推开，确保节点（整个 60px 圆）不被连线穿过/压上。
+function mmKeepNodesOffEdges(pos, names, connections, w, h) {
+  const NODE_R = 30;
+  const SAFE = NODE_R + 10; // 节点圆外再留 10px 间隙
+  for (let sweep = 0; sweep < 120; sweep++) {
+    let moved = false;
+    connections.forEach(cn => {
+      const a = pos[cn.a], b = pos[cn.b]; if (!a || !b) return;
+      const abx = b.x - a.x, aby = b.y - a.y, len2 = abx * abx + aby * aby;
+      names.forEach(n => {
+        if (n === cn.a || n === cn.b) return;
+        const p = pos[n];
+        const t = len2 < 1 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * abx + (p.y - a.y) * aby) / len2));
+        const px = a.x + t * abx, py = a.y + t * aby;
+        const dx = p.x - px, dy = p.y - py, dist = Math.hypot(dx, dy);
+        if (dist < SAFE && dist > 0.1) {
+          const push = (SAFE - dist) * 0.75;
+          p.x += (dx / dist) * push;
+          p.y += (dy / dist) * push;
+          p.x = Math.max(NODE_R + 4, Math.min(w - NODE_R - 4, p.x));
+          p.y = Math.max(NODE_R + 4, Math.min(h - NODE_R - 4, p.y));
+          moved = true;
+        }
+      });
+    });
+    if (!moved) break;
+  }
+}
 // v886：边长上限（等长）——v885 只把「太短」的边推到 k，从不拉回「太长」的边，
 // 实测边长 std=31(15.7%)、最长 265 vs 最短 175，用户眼中就是「间距不一样」。
 // 这里把超过 k*1.15 的边沿连线方向拉回 k（同比收缩，不破坏零重叠与等长）。
@@ -7200,7 +7232,7 @@ function mmRepairCrossings(pos, names, connections) {
   if (!cur) return;
   const rng = _mmRand(424243);
   const MIN_GAP = 100; // 交叉修复的间距门槛略低于 MIN_GAP(120)：给修复留出可行空间，节点直径60仍有40px间隙
-  const attempts = Math.min(1000, names.length * 80);
+  const attempts = Math.min(2000, names.length * 120);
   for (let a = 0; a < attempts && cur > 0; a++) {
     const i = Math.floor(rng() * names.length), j = Math.floor(rng() * names.length);
     if (i === j) continue;
