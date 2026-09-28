@@ -6578,7 +6578,7 @@ function renderRelations() {
     html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1/1.2)" title="缩小">－</button>';
     html += '<button class="mindmap-zoom-btn" onclick="mmZoomReset()" title="重置">⊙</button>';
     html += '</div>';
-    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v891</div>';
+    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v892</div>';
     html += '<div class="mindmap-canvas-wrapper" id="mindmapCanvas"></div>';
     html += '</div>';
     // Person buttons (缩略为姓名按钮可展开)
@@ -6922,13 +6922,14 @@ function drawMindMap(chars, relations) {
   const _k = isNarrow ? 150 : 200; // 统一目标边长，v887 200(桌面)/150(窄屏)，保证节点间距
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 891, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 892, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
     // v890：布局收敛后，「约束收尾 → 规避穿节点 → 交叉修复」交替迭代 3 轮；
     // 最后等比缩放贴合窗口（v887 策略：铺满、无白边、不裁剪）。
     const _names2 = layoutChars.map(c => c.name);
+    let _fitS = 1; // v892：记录最后一次贴合缩放比，供屏幕坐标间距兜底用
     const _fit = () => {
       let _x0 = Infinity, _y0 = Infinity, _x1 = -Infinity, _y1 = -Infinity;
       layoutChars.forEach(c => {
@@ -6941,6 +6942,7 @@ function drawMindMap(chars, relations) {
         const _gw = _x1 - _x0, _gh = _y1 - _y0;
         let s = Math.min((w - _M * 2) / _gw, (h - _M * 2) / _gh);
         if (s > 1.15) s = 1.15; // 只限制放大倍率；图大时按比例缩小保证完整可见
+        _fitS = s;
         const _ccx = (_x0 + _x1) / 2, _ccy = (_y0 + _y1) / 2;
         layoutChars.forEach(c => {
           const p = positions[c.name]; if (!p) return;
@@ -6958,12 +6960,20 @@ function drawMindMap(chars, relations) {
     mmEnforceMinEdge(positions, allConnections, _k, w, h);
     mmKeepNodesOffEdges(positions, _names2, allConnections, w, h);
     _fit();
-    // v890：最后再试一次 2-opt，若能把交叉降到 0 且不破坏间距就接受
+    // v892：贴合缩放会把布局坐标里保住的间距同比缩小（用户实测 120px 缩到 ~85px）。
+    // 缩放后在「屏幕坐标」上再兜底：圆边到圆边空白 ≥120px（圆心距 ≥180，用户确认 Q1=B），
+    // 短边拉回 max(k*s,185)，节点不穿线；之后不再二次缩放，避免把间距又缩回去。
+    const _ks = Math.max(_k * _fitS, 185);
+    for (let _si = 0; _si < 3; _si++) {
+      mmEnforcePairGap(positions, _names2, w, h, 180);
+      mmEnforceMinEdge(positions, allConnections, _ks, w, h);
+      mmEqualizeEdges(positions, allConnections, _ks, w, h);
+      mmKeepNodesOffEdges(positions, _names2, allConnections, w, h);
+    }
+    // 兜底移动可能带来新交叉：修复后再把间距补回 180
     mmRepairCrossings(positions, _names2, allConnections);
+    mmEnforcePairGap(positions, _names2, w, h, 180);
     mmKeepNodesOffEdges(positions, _names2, allConnections, w, h);
-    mmEnforcePairGap(positions, _names2, w, h);
-    mmEnforceMinEdge(positions, allConnections, _k, w, h);
-    _fit();
     _mmLayoutCache = { sig: _layoutSig, pos: positions, w, h };
   }
   function distPointToSeg(px, py, ax, ay, bx, by) {
@@ -6985,11 +6995,15 @@ function drawMindMap(chars, relations) {
     if (!a || !b) return;
     const color = RELATION_COLORS[conn.type] || '#b0b8c0';
     // Adjust endpoints to circle edge（节点实际 60px，半径 30；v642 推到圆外避免箭头被节点盖住）
+    // v892：几何方向归一化——永远「从左往右」（同 x 则从上往下）计算平行线偏移与法线，
+    // 平行线的上下顺序与标签侧只由 _pi 决定，不再随布局/数据方向翻转（用户截图「位置直接调换了」）。
     const nodeR = 30;
-    const aDir = Math.atan2(b.y - a.y, b.x - a.x);
-    const bDir = Math.atan2(a.y - b.y, a.x - b.x);
-    const ax = a.x + nodeR * Math.cos(aDir), ay = a.y + nodeR * Math.sin(aDir);
-    const bx = b.x + nodeR * Math.cos(bDir), by = b.y + nodeR * Math.sin(bDir);
+    const flip = (a.x > b.x) || (a.x === b.x && a.y > b.y);
+    const pA = flip ? b : a, pB = flip ? a : b;
+    const aDir = Math.atan2(pB.y - pA.y, pB.x - pA.x);
+    const bDir = aDir + Math.PI;
+    const ax = pA.x + nodeR * Math.cos(aDir), ay = pA.y + nodeR * Math.sin(aDir);
+    const bx = pB.x + nodeR * Math.cos(bDir), by = pB.y + nodeR * Math.sin(bDir);
     const dx = bx - ax, dy = by - ay;
     const len = Math.hypot(dx, dy) || 1;
     const nx = -dy / len, ny = dx / len;
@@ -6997,30 +7011,34 @@ function drawMindMap(chars, relations) {
     let aox = ax + nx * off, aoy = ay + ny * off;
     let box = bx + nx * off, boy = by + ny * off;
     // v891：平行线偏移后端点重新贴回节点圆边——否则端点悬空、与圆之间留缝（用户截图「没连上」）
-    const _aAng = Math.atan2(aoy - a.y, aox - a.x);
-    aox = a.x + nodeR * Math.cos(_aAng); aoy = a.y + nodeR * Math.sin(_aAng);
-    const _bAng = Math.atan2(boy - b.y, box - b.x);
-    box = b.x + nodeR * Math.cos(_bAng); boy = b.y + nodeR * Math.sin(_bAng);
+    const _aAng = Math.atan2(aoy - pA.y, aox - pA.x);
+    aox = pA.x + nodeR * Math.cos(_aAng); aoy = pA.y + nodeR * Math.sin(_aAng);
+    const _bAng = Math.atan2(boy - pB.y, box - pB.x);
+    box = pB.x + nodeR * Math.cos(_bAng); boy = pB.y + nodeR * Math.sin(_bAng);
     const opacity = 0.65;
     svgContent += `<line x1="${aox}" y1="${aoy}" x2="${box}" y2="${boy}" stroke="${color}" stroke-width="2" opacity="${opacity}"/>`;
-    const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.25;
-    let labX = aox + t * (box - aox);
-    let labY = aoy + t * (boy - aoy);
-    // v891：标签到所属线的法线距离统一 26px（v890 单线26/多线20+角度浮动导致「标签离线距离不等」），
-    // 方向统一取线左侧；避让只沿线滑动不改距离，保证任何标签离自己那条线的垂直距离都相等。
-    const labSign = 1, labMag = 26;
-    const arrowAng = Math.atan2(by - ay, bx - ax);
-
+    // v892：单向箭头仍指向原 conn.b（人物2）——几何方向归一化可能翻转 a/b，端点要选回原 b。
     if (conn.status && conn.status.includes('单向')) {
       const aLen = 10, aW = 5;
-      const tipX = box, tipY = boy;
-      const bcx = box - aLen * Math.cos(arrowAng), bcy = boy - aLen * Math.sin(arrowAng);
-      const px = -Math.sin(arrowAng) * aW, py = Math.cos(arrowAng) * aW;
+      const tipX = flip ? aox : box, tipY = flip ? aoy : boy;
+      const frX = flip ? box : aox, frY = flip ? boy : aoy;
+      const aa = Math.atan2(tipY - frY, tipX - frX);
+      const bcx = tipX - aLen * Math.cos(aa), bcy = tipY - aLen * Math.sin(aa);
+      const px = -Math.sin(aa) * aW, py = Math.cos(aa) * aW;
       svgContent += `<polygon points="${tipX},${tipY} ${bcx + px},${bcy + py} ${bcx - px},${bcy - py}" fill="${color}" opacity="${opacity + 0.2}"/>`;
     }
 
-    labX += nx * labMag * labSign;
-    labY += ny * labMag * labSign;
+    // v892：标签放「线段中点」且不压线（用户确认：中点≠线上，交叉时允许移位）——
+    // 沿最终渲染线段的真实法线偏移 26px（v891 用重投影前的法线导致「标签离线距离不等」；
+    // v888 前 t 取 0.25/0.75 导致「没居中」）。多线对标签各在自身线的外侧，顺序恒跟线走。
+    const dx1 = box - aox, dy1 = boy - aoy;
+    const len1 = Math.hypot(dx1, dy1) || 1;
+    const fnx = -dy1 / len1, fny = dx1 / len1;
+    const labMag = 26;
+    const side = conn._pc === 1 ? -1 : (conn._pi < conn._pc / 2 ? -1 : 1);
+    const mx = (aox + box) / 2, my = (aoy + boy) / 2;
+    let labX = mx + fnx * labMag * side;
+    let labY = my + fny * labMag * side;
     // v890：标签默认偏移继续加大，并在避让中严格「不压任何连线」（含自身连线）+ 不压节点/标签。
     const hw = conn.type.length * 5.3 + 8, hh = 9;
     const fits = (x, y) => {
@@ -7040,15 +7058,16 @@ function drawMindMap(chars, relations) {
     };
     let fx = labX, fy = labY;
     if (!fits(fx, fy)) {
-      // v891：避让只沿线滑动（t 限制在 0.2~0.8 中段，防「标签跑远/不居中」），法线距离恒 26 不变；
-      // 同一距离下左右两侧都试，全部失败则保持默认位兜底。
-      const cand = [0, 0.05, -0.05, 0.1, -0.1, 0.15, -0.15, 0.2, -0.2, 0.25, -0.25];
-      for (const dt of cand) {
-        const tt = Math.max(0.2, Math.min(0.8, t + dt));
-        let done = false;
-        for (const sg of [1, -1]) {
-          const cx2 = aox + tt * (box - aox) + nx * labMag * labSign * sg;
-          const cy2 = aoy + tt * (boy - aoy) + ny * labMag * labSign * sg;
+      // v892：避让优先沿线滑动（限中段 0.35~0.65，防「悬空/不居中」，交叉时适当移位），
+      // 法线距离恒 26 不变；单线可换另一侧，多线对只在本侧滑动（换侧会压进平行线之间）。
+      const cand = [0, 0.05, -0.05, 0.1, -0.1, 0.15, -0.15];
+      const sides = conn._pc === 1 ? [side, -side] : [side];
+      let done = false;
+      for (const sg of sides) {
+        for (const dt of cand) {
+          const tt = 0.5 + dt;
+          const cx2 = aox + tt * (box - aox) + fnx * labMag * sg;
+          const cy2 = aoy + tt * (boy - aoy) + fny * labMag * sg;
           if (fits(cx2, cy2)) { fx = cx2; fy = cy2; done = true; break; }
         }
         if (done) break;
@@ -7146,9 +7165,9 @@ function mmEnforceMinEdge(pos, connections, k, w, h) {
   }
 }
 // v885：任意两节点中心最小间距（不限是否直连）——修「萧忘渊-苏枕霜」这类非直连节点贴在一起的兜底
-function mmEnforcePairGap(pos, names, w, h) {
+function mmEnforcePairGap(pos, names, w, h, minGap = 120) {
   const NODE_R = 30;
-  const MIN_GAP = 120; // 节点直径60 + 60间隙
+  const MIN_GAP = minGap; // 默认120（圆心距，布局坐标）；v892 屏幕坐标兜底时传 180（圆边空白≥120）
   for (let sweep = 0; sweep < 80; sweep++) {
     let moved = false;
     for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
