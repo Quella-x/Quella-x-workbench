@@ -6578,7 +6578,7 @@ function renderRelations() {
     html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1/1.2)" title="缩小">－</button>';
     html += '<button class="mindmap-zoom-btn" onclick="mmZoomReset()" title="重置">⊙</button>';
     html += '</div>';
-    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v898</div>';
+    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v899</div>';
     html += '<div class="mindmap-canvas-wrapper" id="mindmapCanvas"></div>';
     html += '</div>';
     // Person buttons (缩略为姓名按钮可展开)
@@ -6752,6 +6752,8 @@ let _mmLastX = 0;
 let _mmLastY = 0;
 let _mmPinchDist = 0;
 let _mmPinchStartZoom = 1;
+let _mmFitZoom = 1; // v899：初始贴合缩放（窄屏画布 600 宽超出屏幕时 = 容器宽/画布宽，整图完整可见）
+let _mmFitPanX = 0; // v899：贴合缩放对应的水平平移 (w·z−w)/2——transform-origin 是自身中心，缩放后需平移回容器内
 
 function mmApplyTransform() {
   const inner = $('#mindmapInner');
@@ -6922,7 +6924,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 898, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 899, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -7008,13 +7010,13 @@ function drawMindMap(chars, relations) {
     // Adjust endpoints to circle edge（节点实际 60px，半径 30；v642 推到圆外避免箭头被节点盖住）
     // v892：几何方向归一化——永远「从左往右」（同 x 则从上往下）计算平行线偏移与法线，
     // 平行线的上下顺序与标签侧只由 _pi 决定，不再随布局/数据方向翻转（用户截图「位置直接调换了」）。
-    const nodeR = 30;
+    const erR = 27; // v899：线端点画进圆内 3px——线层(z1)在节点层(z2)下方，多出的 3px 藏进圆里，任何设备/缩放下线与圆视觉必然相接（用户手机截图「线没接上」，headless 量不出但设备字体/渲染层有微差）
     const flip = (a.x > b.x) || (a.x === b.x && a.y > b.y);
     const pA = flip ? b : a, pB = flip ? a : b;
     const aDir = Math.atan2(pB.y - pA.y, pB.x - pA.x);
     const bDir = aDir + Math.PI;
-    const ax = pA.x + nodeR * Math.cos(aDir), ay = pA.y + nodeR * Math.sin(aDir);
-    const bx = pB.x + nodeR * Math.cos(bDir), by = pB.y + nodeR * Math.sin(bDir);
+    const ax = pA.x + erR * Math.cos(aDir), ay = pA.y + erR * Math.sin(aDir);
+    const bx = pB.x + erR * Math.cos(bDir), by = pB.y + erR * Math.sin(bDir);
     const dx = bx - ax, dy = by - ay;
     const len = Math.hypot(dx, dy) || 1;
     const nx = -dy / len, ny = dx / len;
@@ -7023,9 +7025,9 @@ function drawMindMap(chars, relations) {
     let box = bx + nx * off, boy = by + ny * off;
     // v891：平行线偏移后端点重新贴回节点圆边——否则端点悬空、与圆之间留缝（用户截图「没连上」）
     const _aAng = Math.atan2(aoy - pA.y, aox - pA.x);
-    aox = pA.x + nodeR * Math.cos(_aAng); aoy = pA.y + nodeR * Math.sin(_aAng);
+    aox = pA.x + erR * Math.cos(_aAng); aoy = pA.y + erR * Math.sin(_aAng);
     const _bAng = Math.atan2(boy - pB.y, box - pB.x);
-    box = pB.x + nodeR * Math.cos(_bAng); boy = pB.y + nodeR * Math.sin(_bAng);
+    box = pB.x + erR * Math.cos(_bAng); boy = pB.y + erR * Math.sin(_bAng);
     const opacity = 0.65;
     svgContent += `<line x1="${aox}" y1="${aoy}" x2="${box}" y2="${boy}" stroke="${color}" stroke-width="2" opacity="${opacity}"/>`;
     // v892：单向箭头仍指向原 conn.b（人物2）——几何方向归一化可能翻转 a/b，端点要选回原 b。
@@ -7107,7 +7109,12 @@ function drawMindMap(chars, relations) {
   _labels.forEach(lb => {
     svgContent += `<text x="${lb.x}" y="${lb.y}" text-anchor="middle" dominant-baseline="middle" font-size="10.5" fill="${lb.color}" style="paint-order:stroke;stroke:#fff;stroke-width:4.5" font-weight="600">${esc(lb.type)}</text>`;
   });
-  _mmZoom = 1; _mmPanX = 0; _mmPanY = 0; // v890：重置即初始视图（等比缩放贴合后的铺满视图）
+  // v899：窄屏画布 600 宽超出屏幕（容器 ~350-500px），初始 1:1 只能看到左半部分、显得「更大」，
+  // 用户要手动缩小才看得全（原话：打开后更大一点，缩小后才是想要的样子）→
+  // 初始缩放 = 容器宽/画布宽，整张画布（含整图）完整可见；宽屏容器 ≥ 画布宽时维持 1 不变。
+  _mmFitZoom = (containerW > 0 && containerW < w) ? Math.max(0.3, containerW / w) : 1;
+  _mmFitPanX = (w * _mmFitZoom - w) / 2;
+  _mmZoom = _mmFitZoom; _mmPanX = _mmFitPanX; _mmPanY = 0;
   let inner = `<div class="mindmap-inner" id="mindmapInner" style="position:relative;width:${w}px;height:${h}px;transform-origin:center center;transform:translate(${_mmPanX}px,${_mmPanY}px) scale(${_mmZoom});transition:transform .15s">`;
   inner += `<svg class="mindmap-svg" width="${w}" height="${h}">` + svgContent + '</svg>';
   layoutChars.forEach(c => {
@@ -7125,7 +7132,7 @@ function mmZoom(factor) {
   mmApplyTransform();
 }
 function mmZoomReset() {
-  _mmZoom = 1; _mmPanX = 0; _mmPanY = 0; // v890：重置即初始视图（等比缩放贴合后的铺满视图）
+  _mmZoom = _mmFitZoom || 1; _mmPanX = _mmFitPanX || 0; _mmPanY = 0; // v899：重置即初始视图（窄屏=整图完整可见的贴合缩放+居中平移）
   mmApplyTransform();
 }
 // v839：关系图改为同心圆（径向）布局

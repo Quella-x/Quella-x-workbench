@@ -2892,10 +2892,12 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-card-body{padding:8px 10px}
   .lr-subtype-box{align-items:center;gap:8px;padding:10px 10px}
   /* v850: 还原 v843 = v834 原样 + 空/有记录行等高（唯一保留的改动） */
-  .lr-subtype-label{width:36px;font-size:16px;margin-top:8px}
+  /* v899: 「上下间距一致」——标签改结构化居中（align-self:center，不再依赖字体度量的 margin-top 魔法数，
+     任何设备字体下标签盒都数学居中）；内容行去 translateY(-1px)（同因，盒级上下对称） */
+  .lr-subtype-label{width:36px;font-size:16px;align-self:center;margin-top:0}
   .lr-subtype-add{width:24px;height:24px;font-size:16px}
   .lr-empty-row{padding:9.5px 0}
-  .lr-record-row{transform:translateY(-1px)}
+  .lr-record-row{transform:none}
   .lr-record-row::after{bottom:-1px}
   .lr-record-info-2col{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3px 22px}
   .lr-info-label{font-size:11px}
@@ -3622,7 +3624,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=898"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=899"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
