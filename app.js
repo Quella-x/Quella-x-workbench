@@ -6578,7 +6578,7 @@ function renderRelations() {
     html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1/1.2)" title="缩小">－</button>';
     html += '<button class="mindmap-zoom-btn" onclick="mmZoomReset()" title="重置">⊙</button>';
     html += '</div>';
-    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v897</div>';
+    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v898</div>';
     html += '<div class="mindmap-canvas-wrapper" id="mindmapCanvas"></div>';
     html += '</div>';
     // Person buttons (缩略为姓名按钮可展开)
@@ -6922,7 +6922,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 897, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 898, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -7052,8 +7052,14 @@ function drawMindMap(chars, relations) {
     // 修正后实际视觉空隙收敛到 10~12px，任何角度/字数一致。
     const hw = conn.type.length * 5.25 + 1.5, hh = 6.25;
     const labMag = 10 + hw * Math.abs(fnx) + hh * Math.abs(fny);
-    const side = conn._pc === 1 ? -1 : (conn._pi < conn._pc / 2 ? -1 : 1);
+    // v898：标签放「图的外侧」（用户 #852/#902 原要求「放外侧/外侧远处」，v892 起丢了的）——
+    // side 取法线「背离画布中心」的那一侧；紧凑布局（圆边空白100px）后线的中点都聚在中心
+    // 扇区，固定侧/对称规则会把所有标签堆进中心挤成一坨。多线对各仍在自身线外侧
+    // （换侧会压进平行线之间），仅单线改取外侧。
     const mx = (aox + box) / 2, my = (aoy + boy) / 2;
+    const side = conn._pc === 1
+      ? (((mx - w / 2) * fnx + (my - h / 2) * fny) >= 0 ? 1 : -1)
+      : (conn._pi < conn._pc / 2 ? -1 : 1);
     let labX = mx + fnx * labMag * side;
     let labY = my + fny * labMag * side;
     const fits = (x, y) => {
@@ -7074,16 +7080,22 @@ function drawMindMap(chars, relations) {
     let fx = labX, fy = labY;
     if (!fits(fx, fy)) {
       // v892：避让优先沿线滑动（限中段 0.35~0.65，防「悬空/不居中」，交叉时适当移位），
-      // 法线距离恒 10 不变（v895 随空隙收回）；单线可换另一侧，多线对只在本侧滑动（换侧会压进平行线之间）。
+      // 法线距离恒 10 不变；单线可换另一侧，多线对只在本侧滑动（换侧会压进平行线之间）。
+      // v898：滑不动就沿法线「往外推远」（#852 原话「外侧远处」）——0/12/24/36px 逐级，
+      // 中心扇区拥挤时标签散到外圈，不再堆在一起。
       const cand = [0, 0.05, -0.05, 0.1, -0.1, 0.15, -0.15];
       const sides = conn._pc === 1 ? [side, -side] : [side];
       let done = false;
-      for (const sg of sides) {
-        for (const dt of cand) {
-          const tt = 0.5 + dt;
-          const cx2 = aox + tt * (box - aox) + fnx * labMag * sg;
-          const cy2 = aoy + tt * (boy - aoy) + fny * labMag * sg;
-          if (fits(cx2, cy2)) { fx = cx2; fy = cy2; done = true; break; }
+      for (const bump of [0, 12, 24, 36]) {
+        const lm = labMag + bump;
+        for (const sg of sides) {
+          for (const dt of cand) {
+            const tt = 0.5 + dt;
+            const cx2 = aox + tt * (box - aox) + fnx * lm * sg;
+            const cy2 = aoy + tt * (boy - aoy) + fny * lm * sg;
+            if (fits(cx2, cy2)) { fx = cx2; fy = cy2; done = true; break; }
+          }
+          if (done) break;
         }
         if (done) break;
       }
