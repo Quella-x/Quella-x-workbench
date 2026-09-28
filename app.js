@@ -6574,11 +6574,13 @@ function renderRelations() {
     // Mind map (with zoom controls)
     html += '<div class="mindmap-container" id="mindmapContainer">';
     html += '<div class="mindmap-zoom-controls">';
-    html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1.2)" title="放大">＋</button>';
-    html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1/1.2)" title="缩小">－</button>';
-    html += '<button class="mindmap-zoom-btn" onclick="mmZoomReset()" title="重置">⊙</button>';
+    // v900：＋/－/⊙ 全角字符字形在字体 em-box 里不保证居中（用户设备雅黑偏移明显，headless 也有 0.5~1.5px），
+    // 改内联 SVG 几何图形——几何中心=视觉中心，任何设备/字体像素级居中；currentColor 跟随按钮配色。
+    html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1.2)" title="放大" aria-label="放大"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="display:block"><path d="M12 5v14M5 12h14"/></svg></button>';
+    html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1/1.2)" title="缩小" aria-label="缩小"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="display:block"><path d="M5 12h14"/></svg></button>';
+    html += '<button class="mindmap-zoom-btn" onclick="mmZoomReset()" title="重置" aria-label="重置"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" style="display:block"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/></svg></button>';
     html += '</div>';
-    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v899</div>';
+    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v900</div>';
     html += '<div class="mindmap-canvas-wrapper" id="mindmapCanvas"></div>';
     html += '</div>';
     // Person buttons (缩略为姓名按钮可展开)
@@ -6924,7 +6926,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 899, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 900, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -7111,8 +7113,13 @@ function drawMindMap(chars, relations) {
   });
   // v899：窄屏画布 600 宽超出屏幕（容器 ~350-500px），初始 1:1 只能看到左半部分、显得「更大」，
   // 用户要手动缩小才看得全（原话：打开后更大一点，缩小后才是想要的样子）→
-  // 初始缩放 = 容器宽/画布宽，整张画布（含整图）完整可见；宽屏容器 ≥ 画布宽时维持 1 不变。
-  _mmFitZoom = (containerW > 0 && containerW < w) ? Math.max(0.3, containerW / w) : 1;
+  // 初始缩放 = 可视区宽/画布宽，整张画布（含整图）完整可见；宽屏可视区 ≥ 画布宽时维持 1 不变。
+  // v900：可视区 = .mindmap-canvas-wrapper（容器内容盒 = clientWidth − 2×20 padding）。旧值直接用
+  // clientWidth，手机上渲染宽 352 > 可视 312，右缘被裁 40px（洛桑/谢惊鸿半截出屏）——实测修正。
+  // 注意：该缩放只依赖画布/屏幕尺寸（画布 600 固定、不随人数变），加人后 zoom 恒定、节点大小恒定，
+  // 只会间距变密（实测 11 人=18 人=同 zoom 同节点尺寸），不是「内容越多整体越小」。
+  const _fitBase = containerW - 40;
+  _mmFitZoom = (_fitBase > 0 && _fitBase < w) ? Math.max(0.3, _fitBase / w) : 1;
   _mmFitPanX = (w * _mmFitZoom - w) / 2;
   _mmZoom = _mmFitZoom; _mmPanX = _mmFitPanX; _mmPanY = 0;
   let inner = `<div class="mindmap-inner" id="mindmapInner" style="position:relative;width:${w}px;height:${h}px;transform-origin:center center;transform:translate(${_mmPanX}px,${_mmPanY}px) scale(${_mmZoom});transition:transform .15s">`;
