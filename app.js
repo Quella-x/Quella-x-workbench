@@ -6578,7 +6578,7 @@ function renderRelations() {
     html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1/1.2)" title="缩小">－</button>';
     html += '<button class="mindmap-zoom-btn" onclick="mmZoomReset()" title="重置">⊙</button>';
     html += '</div>';
-    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v888</div>';
+    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v890</div>';
     html += '<div class="mindmap-canvas-wrapper" id="mindmapCanvas"></div>';
     html += '</div>';
     // Person buttons (缩略为姓名按钮可展开)
@@ -6915,23 +6915,21 @@ function drawMindMap(chars, relations) {
   const connectedSet = new Set();
   allConnections.forEach(c => { connectedSet.add(c.a); connectedSet.add(c.b); });
   const layoutChars = chars.filter(c => connectedSet.has(c.name));
-  // v889：节点保持 60px；宽=容器-40（≥600）；临时布局高=n*90(桌面)/115(窄屏)≥520，
-  // 收敛后按实际包围盒裁剪画布高度，只留 40px 边距；放不下就滚动，不缩放铺满。
+  // v890：回归 v887 画布策略——节点保持 60px，画布固定 520×(容器宽-40≥600)；
+  // 布局收敛后整体等比缩放平移一次，让图恰好铺满窗口（s≤1.15），无上下空白、不溢出。
   const w = Math.max(containerW - 40, 600);
-  const nNodes = layoutChars.length;
-  const _areaFactor = isNarrow ? 115 : 90;
-  const h = Math.max(520, Math.ceil(nNodes * _areaFactor));
-  const _k = isNarrow ? 130 : 170; // 统一目标边长，保持边长一致且 ≥120px
+  const h = 520;
+  const _k = isNarrow ? 150 : 200; // 统一目标边长，v887 200(桌面)/150(窄屏)，保证节点间距
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 889, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 890, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
-    // v889：布局收敛后，「约束收尾 → 规避穿节点 → 交叉修复」交替迭代 3 轮；
-    // 最后统一平移到临时画布中心，最终真实画布高度由包围盒裁剪决定。
+    // v890：布局收敛后，「约束收尾 → 规避穿节点 → 交叉修复」交替迭代 3 轮；
+    // 最后等比缩放贴合窗口（v887 策略：铺满、无白边、不裁剪）。
     const _names2 = layoutChars.map(c => c.name);
-    const _center = () => {
+    const _fit = () => {
       let _x0 = Infinity, _y0 = Infinity, _x1 = -Infinity, _y1 = -Infinity;
       layoutChars.forEach(c => {
         const p = positions[c.name]; if (!p) return;
@@ -6939,9 +6937,15 @@ function drawMindMap(chars, relations) {
         _y0 = Math.min(_y0, p.y); _y1 = Math.max(_y1, p.y);
       });
       if (isFinite(_x0) && _x1 > _x0 && _y1 > _y0) {
+        const _M = 46; // 节点半径30 + 标签/箭头余量
+        const _gw = _x1 - _x0, _gh = _y1 - _y0;
+        let s = Math.min((w - _M * 2) / _gw, (h - _M * 2) / _gh);
+        if (s > 1.15) s = 1.15; // 只限制放大倍率；图大时按比例缩小保证完整可见
         const _ccx = (_x0 + _x1) / 2, _ccy = (_y0 + _y1) / 2;
-        const _dx = w / 2 - _ccx, _dy = h / 2 - _ccy;
-        layoutChars.forEach(c => { const p = positions[c.name]; if (p) { p.x += _dx; p.y += _dy; } });
+        layoutChars.forEach(c => {
+          const p = positions[c.name]; if (!p) return;
+          p.x = w / 2 + (p.x - _ccx) * s; p.y = h / 2 + (p.y - _ccy) * s;
+        });
       }
     };
     for (let _it = 0; _it < 3; _it++) {
@@ -6953,18 +6957,15 @@ function drawMindMap(chars, relations) {
     mmEnforcePairGap(positions, _names2, w, h);
     mmEnforceMinEdge(positions, allConnections, _k, w, h);
     mmKeepNodesOffEdges(positions, _names2, allConnections, w, h);
-    _center();
-    // v889：最后再试一次 2-opt，若能把交叉降到 0 且不破坏间距就接受
+    _fit();
+    // v890：最后再试一次 2-opt，若能把交叉降到 0 且不破坏间距就接受
     mmRepairCrossings(positions, _names2, allConnections);
     mmKeepNodesOffEdges(positions, _names2, allConnections, w, h);
     mmEnforcePairGap(positions, _names2, w, h);
     mmEnforceMinEdge(positions, allConnections, _k, w, h);
-    _center();
+    _fit();
     _mmLayoutCache = { sig: _layoutSig, pos: positions, w, h };
   }
-  // v889：先按临时高度 hLayout 完成全部约束收敛，再按实际包围盒裁剪画布高度，
-  // 只留 40px 上下边距；节点/标签/线整体平移后重新渲染，消灭大片空白。
-  const hLayout = h;
   function distPointToSeg(px, py, ax, ay, bx, by) {
     const abx = bx - ax, aby = by - ay;
     const len2 = abx * abx + aby * aby;
@@ -6973,124 +6974,95 @@ function drawMindMap(chars, relations) {
     t = Math.max(0, Math.min(1, t));
     return Math.hypot(px - (ax + t * abx), py - (ay + t * aby));
   }
-  function buildContent(pos, canvasH) {
-    let svgContent = '';
-    const _pairMap = {};
-    allConnections.forEach(c => { const k = [c.a, c.b].sort().join('\u0000'); (_pairMap[k] = _pairMap[k] || []).push(c); });
-    Object.keys(_pairMap).forEach(k => { _pairMap[k].forEach((c, i) => { c._pi = i; c._pc = _pairMap[k].length; }); });
-    const _labels = [];
-    const _placedLabels = [];
-    allConnections.forEach(conn => {
-      const a = pos[conn.a], b = pos[conn.b];
-      if (!a || !b) return;
-      const color = RELATION_COLORS[conn.type] || '#b0b8c0';
-      // Adjust endpoints to circle edge（节点实际 60px，半径 30；v642 推到圆外避免箭头被节点盖住）
-      const nodeR = 30;
-      const aDir = Math.atan2(b.y - a.y, b.x - a.x);
-      const bDir = Math.atan2(a.y - b.y, a.x - b.x);
-      const ax = a.x + nodeR * Math.cos(aDir), ay = a.y + nodeR * Math.sin(aDir);
-      const bx = b.x + nodeR * Math.cos(bDir), by = b.y + nodeR * Math.sin(bDir);
-      const dx = bx - ax, dy = by - ay;
-      const len = Math.hypot(dx, dy) || 1;
-      const nx = -dy / len, ny = dx / len;
-      const off = (conn._pi - (conn._pc - 1) / 2) * 18;
-      const aox = ax + nx * off, aoy = ay + ny * off;
-      const box = bx + nx * off, boy = by + ny * off;
-      const opacity = 0.65;
-      svgContent += `<line x1="${aox}" y1="${aoy}" x2="${box}" y2="${boy}" stroke="${color}" stroke-width="2" opacity="${opacity}"/>`;
-      const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.25;
-      let labX = aox + t * (box - aox);
-      let labY = aoy + t * (boy - aoy);
-      const angle = Math.atan2(Math.abs(dy), Math.abs(dx));
-      let labSign, labMag;
-      if (conn._pc === 1) { labSign = 1; labMag = 22; }
-      else { labSign = (off === 0 ? 1 : Math.sign(off)); labMag = 16 + Math.sin(angle) * 8; }
-      const arrowAng = Math.atan2(by - ay, bx - ax);
+  let svgContent = '';
+  const _pairMap = {};
+  allConnections.forEach(c => { const k = [c.a, c.b].sort().join('\u0000'); (_pairMap[k] = _pairMap[k] || []).push(c); });
+  Object.keys(_pairMap).forEach(k => { _pairMap[k].forEach((c, i) => { c._pi = i; c._pc = _pairMap[k].length; }); });
+  const _labels = [];
+  const _placedLabels = [];
+  allConnections.forEach(conn => {
+    const a = positions[conn.a], b = positions[conn.b];
+    if (!a || !b) return;
+    const color = RELATION_COLORS[conn.type] || '#b0b8c0';
+    // Adjust endpoints to circle edge（节点实际 60px，半径 30；v642 推到圆外避免箭头被节点盖住）
+    const nodeR = 30;
+    const aDir = Math.atan2(b.y - a.y, b.x - a.x);
+    const bDir = Math.atan2(a.y - b.y, a.x - b.x);
+    const ax = a.x + nodeR * Math.cos(aDir), ay = a.y + nodeR * Math.sin(aDir);
+    const bx = b.x + nodeR * Math.cos(bDir), by = b.y + nodeR * Math.sin(bDir);
+    const dx = bx - ax, dy = by - ay;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len, ny = dx / len;
+    const off = (conn._pi - (conn._pc - 1) / 2) * 18;
+    const aox = ax + nx * off, aoy = ay + ny * off;
+    const box = bx + nx * off, boy = by + ny * off;
+    const opacity = 0.65;
+    svgContent += `<line x1="${aox}" y1="${aoy}" x2="${box}" y2="${boy}" stroke="${color}" stroke-width="2" opacity="${opacity}"/>`;
+    const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.25;
+    let labX = aox + t * (box - aox);
+    let labY = aoy + t * (boy - aoy);
+    const angle = Math.atan2(Math.abs(dy), Math.abs(dx));
+    let labSign, labMag;
+    if (conn._pc === 1) { labSign = 1; labMag = 26; }
+    else { labSign = (off === 0 ? 1 : Math.sign(off)); labMag = 20 + Math.sin(angle) * 8; }
+    const arrowAng = Math.atan2(by - ay, bx - ax);
 
-      if (conn.status && conn.status.includes('单向')) {
-        const aLen = 10, aW = 5;
-        const tipX = box, tipY = boy;
-        const bcx = box - aLen * Math.cos(arrowAng), bcy = boy - aLen * Math.sin(arrowAng);
-        const px = -Math.sin(arrowAng) * aW, py = Math.cos(arrowAng) * aW;
-        svgContent += `<polygon points="${tipX},${tipY} ${bcx + px},${bcy + py} ${bcx - px},${bcy - py}" fill="${color}" opacity="${opacity + 0.2}"/>`;
+    if (conn.status && conn.status.includes('单向')) {
+      const aLen = 10, aW = 5;
+      const tipX = box, tipY = boy;
+      const bcx = box - aLen * Math.cos(arrowAng), bcy = boy - aLen * Math.sin(arrowAng);
+      const px = -Math.sin(arrowAng) * aW, py = Math.cos(arrowAng) * aW;
+      svgContent += `<polygon points="${tipX},${tipY} ${bcx + px},${bcy + py} ${bcx - px},${bcy - py}" fill="${color}" opacity="${opacity + 0.2}"/>`;
+    }
+
+    labX += nx * labMag * labSign;
+    labY += ny * labMag * labSign;
+    // v890：标签默认偏移继续加大，并在避让中严格「不压任何连线」（含自身连线）+ 不压节点/标签。
+    const hw = conn.type.length * 5.3 + 8, hh = 9;
+    const fits = (x, y) => {
+      if (x - hw < 2 || x + hw > w - 2 || y - hh < 2 || y + hh > h - 2) return false;
+      for (const nm2 in positions) {
+        const p = positions[nm2];
+        const qx = Math.max(x - hw, Math.min(p.x, x + hw)), qy = Math.max(y - hh, Math.min(p.y, y + hh));
+        if (Math.hypot(p.x - qx, p.y - qy) < 44) return false;
       }
-
-      labX += nx * labMag * labSign;
-      labY += ny * labMag * labSign;
-      // v889：标签默认偏移加大，并在避让中增加「不压连线」约束。
-      const hw = conn.type.length * 5.3 + 8, hh = 9;
-      const fits = (x, y) => {
-        if (x - hw < 2 || x + hw > w - 2 || y - hh < 2 || y + hh > canvasH - 2) return false;
-        for (const nm2 in pos) {
-          const p = pos[nm2];
-          const qx = Math.max(x - hw, Math.min(p.x, x + hw)), qy = Math.max(y - hh, Math.min(p.y, y + hh));
-          if (Math.hypot(p.x - qx, p.y - qy) < 42) return false;
-        }
-        for (const r of _placedLabels) { if (Math.abs(x - r.x) < hw + r.hw + 4 && Math.abs(y - r.y) < hh + r.hh + 4) return false; }
-        for (const cn2 of allConnections) {
-          if (cn2 === conn) continue;
-          const a2 = pos[cn2.a], b2 = pos[cn2.b]; if (!a2 || !b2) continue;
-          const pts = [[x, y], [x - hw * 0.5, y], [x + hw * 0.5, y], [x, y - hh * 0.5], [x, y + hh * 0.5]];
-          for (const [px, py] of pts) { if (distPointToSeg(px, py, a2.x, a2.y, b2.x, b2.y) < 4) return false; }
-        }
-        return true;
-      };
-      let fx = labX, fy = labY;
-      if (!fits(fx, fy)) {
-        const cand = [[0, 0], [0.08, 6], [-0.08, 6], [0.16, 10], [-0.16, 10], [0.24, 14], [-0.24, 14], [0.32, 18], [-0.32, 18]];
-        for (const [dt, dg] of cand) {
-          let done = false;
-          for (const sg of [1, -1]) {
-            const cx2 = aox + (t + dt) * (box - aox) + nx * (labMag + dg) * labSign * sg;
-            const cy2 = aoy + (t + dt) * (boy - aoy) + ny * (labMag + dg) * labSign * sg;
-            if (fits(cx2, cy2)) { fx = cx2; fy = cy2; done = true; break; }
-          }
-          if (done) break;
-        }
+      for (const r of _placedLabels) { if (Math.abs(x - r.x) < hw + r.hw + 6 && Math.abs(y - r.y) < hh + r.hh + 6) return false; }
+      for (const cn2 of allConnections) {
+        const a2 = positions[cn2.a], b2 = positions[cn2.b]; if (!a2 || !b2) continue;
+        const pts = [[x, y], [x - hw * 0.6, y], [x + hw * 0.6, y], [x, y - hh * 0.7], [x, y + hh * 0.7]];
+        for (const [px, py] of pts) { if (distPointToSeg(px, py, a2.x, a2.y, b2.x, b2.y) < 6) return false; }
       }
-      _placedLabels.push({ x: fx, y: fy, hw, hh });
-      _labels.push({ x: fx, y: fy, color: color, type: conn.type, hw });
-    });
-    // v889：标签白边描边加粗到 4.5，压住底下的线更彻底。
-    _labels.forEach(lb => {
-      svgContent += `<text x="${lb.x}" y="${lb.y}" text-anchor="middle" dominant-baseline="middle" font-size="10.5" fill="${lb.color}" style="paint-order:stroke;stroke:#fff;stroke-width:4.5" font-weight="600">${esc(lb.type)}</text>`;
-    });
-    let nodesHTML = '';
-    layoutChars.forEach(c => {
-      const p = pos[c.name];
-      nodesHTML += `<div class="mindmap-node circular" style="left:${p.x - 30}px;top:${p.y - 30}px" onclick="navigate('oc-profiles')" title="${esc(c.name)}">` +
-        `<div style="width:56px;height:56px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:${(c.name||'?').length>3?'9px':'12px'};font-weight:700;color:var(--c-primary-dark);text-align:center;word-break:break-all;overflow:hidden;padding:2px">${esc(c.name || '?')}</div>` +
-        '</div>';
-    });
-    return { svgContent, nodesHTML, labelBoxes: _placedLabels };
-  }
-
-  // 第一次 build：用临时大画布量出实际包围盒
-  const draft = buildContent(positions, hLayout);
-  let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
+      return true;
+    };
+    let fx = labX, fy = labY;
+    if (!fits(fx, fy)) {
+      const cand = [[0, 0], [0.06, 6], [-0.06, 6], [0.12, 10], [-0.12, 10], [0.18, 14], [-0.18, 14], [0.24, 18], [-0.24, 18], [0.32, 22], [-0.32, 22]];
+      for (const [dt, dg] of cand) {
+        let done = false;
+        for (const sg of [1, -1]) {
+          const cx2 = aox + (t + dt) * (box - aox) + nx * (labMag + dg) * labSign * sg;
+          const cy2 = aoy + (t + dt) * (boy - aoy) + ny * (labMag + dg) * labSign * sg;
+          if (fits(cx2, cy2)) { fx = cx2; fy = cy2; done = true; break; }
+        }
+        if (done) break;
+      }
+    }
+    _placedLabels.push({ x: fx, y: fy, hw, hh });
+    _labels.push({ x: fx, y: fy, color: color, type: conn.type, hw });
+  });
+  // v890：标签白边描边保持 4.5，压住底下的线更彻底。
+  _labels.forEach(lb => {
+    svgContent += `<text x="${lb.x}" y="${lb.y}" text-anchor="middle" dominant-baseline="middle" font-size="10.5" fill="${lb.color}" style="paint-order:stroke;stroke:#fff;stroke-width:4.5" font-weight="600">${esc(lb.type)}</text>`;
+  });
+  _mmZoom = 1; _mmPanX = 0; _mmPanY = 0; // v890：重置即初始视图（等比缩放贴合后的铺满视图）
+  let inner = `<div class="mindmap-inner" id="mindmapInner" style="position:relative;width:${w}px;height:${h}px;transform-origin:center center;transform:translate(${_mmPanX}px,${_mmPanY}px) scale(${_mmZoom});transition:transform .15s">`;
+  inner += `<svg class="mindmap-svg" width="${w}" height="${h}">` + svgContent + '</svg>';
   layoutChars.forEach(c => {
     const p = positions[c.name];
-    bx0 = Math.min(bx0, p.x - 30); bx1 = Math.max(bx1, p.x + 30);
-    by0 = Math.min(by0, p.y - 30); by1 = Math.max(by1, p.y + 30);
+    inner += `<div class="mindmap-node circular" style="left:${p.x - 30}px;top:${p.y - 30}px" onclick="navigate('oc-profiles')" title="${esc(c.name)}">` +
+      `<div style="width:56px;height:56px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:${(c.name||'?').length>3?'9px':'12px'};font-weight:700;color:var(--c-primary-dark);text-align:center;word-break:break-all;overflow:hidden;padding:2px">${esc(c.name || '?')}</div>` +
+      '</div>';
   });
-  draft.labelBoxes.forEach(lb => {
-    bx0 = Math.min(bx0, lb.x - lb.hw); bx1 = Math.max(bx1, lb.x + lb.hw);
-    by0 = Math.min(by0, lb.y - lb.hh); by1 = Math.max(by1, lb.y + lb.hh);
-  });
-  const margin = 40;
-  const hCanvas = Math.max(520, Math.ceil((by1 - by0) + margin * 2));
-  const dy = hCanvas / 2 - (by0 + by1) / 2;
-
-  // 整体平移，让图在新画布中垂直居中
-  layoutChars.forEach(c => { if (positions[c.name]) positions[c.name].y += dy; });
-
-  // 第二次 build：按真实画布高度渲染
-  const final = buildContent(positions, hCanvas);
-
-  _mmZoom = 1; _mmPanX = 0; _mmPanY = 0;
-  let inner = `<div class="mindmap-inner" id="mindmapInner" style="position:relative;width:${w}px;height:${hCanvas}px;transform-origin:center center;transform:translate(${_mmPanX}px,${_mmPanY}px) scale(${_mmZoom});transition:transform .15s">`;
-  inner += `<svg class="mindmap-svg" width="${w}" height="${hCanvas}">` + final.svgContent + '</svg>';
-  inner += final.nodesHTML;
   inner += '</div>';
   canvas.innerHTML = inner;
   mmInitDrag();
@@ -7100,7 +7072,7 @@ function mmZoom(factor) {
   mmApplyTransform();
 }
 function mmZoomReset() {
-  _mmZoom = 1; _mmPanX = 0; _mmPanY = 0; // v889：重置即初始视图（居中、zoom=1）
+  _mmZoom = 1; _mmPanX = 0; _mmPanY = 0; // v890：重置即初始视图（等比缩放贴合后的铺满视图）
   mmApplyTransform();
 }
 // v839：关系图改为同心圆（径向）布局
