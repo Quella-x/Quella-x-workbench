@@ -6576,11 +6576,11 @@ function renderRelations() {
     html += '<div class="mindmap-zoom-controls">';
     // v900：＋/－/⊙ 全角字符字形在字体 em-box 里不保证居中（用户设备雅黑偏移明显，headless 也有 0.5~1.5px），
     // 改内联 SVG 几何图形——几何中心=视觉中心，任何设备/字体像素级居中；currentColor 跟随按钮配色。
-    html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1.2)" title="放大" aria-label="放大"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="display:block"><path d="M12 5v14M5 12h14"/></svg></button>';
-    html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1/1.2)" title="缩小" aria-label="缩小"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="display:block"><path d="M5 12h14"/></svg></button>';
-    html += '<button class="mindmap-zoom-btn" onclick="mmZoomReset()" title="重置" aria-label="重置"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" style="display:block"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/></svg></button>';
+    html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1.2)" title="放大" aria-label="放大"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="display:block"><path d="M12 5v14M5 12h14"/></svg></button>';
+    html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1/1.2)" title="缩小" aria-label="缩小"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="display:block"><path d="M5 12h14"/></svg></button>';
+    html += '<button class="mindmap-zoom-btn" onclick="mmZoomReset()" title="重置" aria-label="重置"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" style="display:block"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/></svg></button>';
     html += '</div>';
-    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v902</div>';
+    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移</div>';
     html += '<div class="mindmap-canvas-wrapper" id="mindmapCanvas"></div>';
     html += '</div>';
     // Person buttons (缩略为姓名按钮可展开)
@@ -6938,7 +6938,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 902, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 903, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
