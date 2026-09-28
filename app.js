@@ -6578,7 +6578,7 @@ function renderRelations() {
     html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1/1.2)" title="缩小">－</button>';
     html += '<button class="mindmap-zoom-btn" onclick="mmZoomReset()" title="重置">⊙</button>';
     html += '</div>';
-    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v896</div>';
+    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v897</div>';
     html += '<div class="mindmap-canvas-wrapper" id="mindmapCanvas"></div>';
     html += '</div>';
     // Person buttons (缩略为姓名按钮可展开)
@@ -6919,10 +6919,10 @@ function drawMindMap(chars, relations) {
   // 布局收敛后整体等比缩放平移一次，让图恰好铺满窗口（s≤1.15），无上下空白、不溢出。
   const w = Math.max(containerW - 40, 600);
   const h = 520;
-  const _k = 100; // v896：用户拍板「节点之间的距离改成100px」——目标边长 100（圆心距，圆边空白 40px = v1.1.30 相邻 96px 的紧凑度）
+  const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 896, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 897, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -6960,14 +6960,14 @@ function drawMindMap(chars, relations) {
     mmEnforceMinEdge(positions, allConnections, _k, w, h);
     mmKeepNodesOffEdges(positions, _names2, allConnections, w, h);
     _fit();
-    // v896：贴合缩放后屏幕坐标兜底——用户拍板「节点之间的距离改成100px」：
-    // 圆心距 ≥100（圆边空白 40px，v1.1.30 紧凑度），短边拉回 max(k*s,100)，节点不穿线；
+    // v897：贴合缩放后屏幕坐标兜底——用户澄清 100px 与 120px 标准同口径=圆边空白：
+    // 圆边空白 ≥100px（圆心距 ≥160），短边拉回 max(k*s,160)，节点不穿线；
     // 之后不再二次缩放，避免把间距又缩回去。
-    const _ks = Math.max(_k * _fitS, 100);
+    const _ks = Math.max(_k * _fitS, 160);
     // v893：每轮 pairGap 推开节点对后**必接 minEdge 兜底**——pairGap 的推开会把
     // 某些边压短（用户截图红框短边的来源），最后 equalize 把长边拉回，边长收敛进 [ks, ks*1.08]。
     for (let _si = 0; _si < 8; _si++) {
-      mmEnforcePairGap(positions, _names2, w, h, 100);
+      mmEnforcePairGap(positions, _names2, w, h, 160);
       mmEnforceMinEdge(positions, allConnections, _ks, w, h);
       mmEqualizeEdges(positions, allConnections, _ks, w, h);
       mmKeepNodesOffEdges(positions, _names2, allConnections, w, h);
@@ -6976,13 +6976,13 @@ function drawMindMap(chars, relations) {
     // keepOff 扰动后补两拍「间距→下限」把空白/边长压回（实验序列A：空白≈120、60%+边全等）
     mmRepairCrossings(positions, _names2, allConnections);
     for (let _ei = 0; _ei < 3; _ei++) {
-      mmEnforcePairGap(positions, _names2, w, h, 100);
+      mmEnforcePairGap(positions, _names2, w, h, 160);
       mmEnforceMinEdge(positions, allConnections, _ks, w, h);
       mmEqualizeEdges(positions, allConnections, _ks, w, h);
     }
     mmKeepNodesOffEdges(positions, _names2, allConnections, w, h);
     for (let _fi = 0; _fi < 2; _fi++) {
-      mmEnforcePairGap(positions, _names2, w, h, 100);
+      mmEnforcePairGap(positions, _names2, w, h, 160);
       mmEnforceMinEdge(positions, allConnections, _ks, w, h);
     }
     _mmLayoutCache = { sig: _layoutSig, pos: positions, w, h };
@@ -7180,9 +7180,9 @@ function mmEnforceMinEdge(pos, connections, k, w, h) {
   }
 }
 // v885：任意两节点中心最小间距（不限是否直连）——修「萧忘渊-苏枕霜」这类非直连节点贴在一起的兜底
-function mmEnforcePairGap(pos, names, w, h, minGap = 100) {
+function mmEnforcePairGap(pos, names, w, h, minGap = 160) {
   const NODE_R = 30;
-  const MIN_GAP = minGap; // v896：默认100（圆心距，布局坐标，圆边空白40px）；屏幕坐标兜底也传 100
+  const MIN_GAP = minGap; // v897：默认160（圆心距，圆边空白 100px，用户口径与 120px 标准一致）；屏幕坐标兜底也传 160
   for (let sweep = 0; sweep < 80; sweep++) {
     let moved = false;
     for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
@@ -7279,7 +7279,7 @@ function mmRepairCrossings(pos, names, connections) {
   let cur = countEdgeCrossings(pos, connections);
   if (!cur) return;
   const rng = _mmRand(424243);
-  const MIN_GAP = 85; // v896：交叉修复的间距门槛略低于布局 MIN_GAP(100)（同原 100/120 比例）：给修复留出可行空间，节点直径60仍有25px间隙
+  const MIN_GAP = 135; // v897：交叉修复的间距门槛略低于布局 MIN_GAP(160)（同原 100/120 比例）：给修复留出可行空间，节点直径60仍有75px间隙
   const attempts = Math.min(2000, names.length * 120);
   for (let a = 0; a < attempts && cur > 0; a++) {
     const i = Math.floor(rng() * names.length), j = Math.floor(rng() * names.length);
