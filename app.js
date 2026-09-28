@@ -6578,7 +6578,7 @@ function renderRelations() {
     html += '<button class="mindmap-zoom-btn" onclick="mmZoom(1/1.2)" title="缩小">－</button>';
     html += '<button class="mindmap-zoom-btn" onclick="mmZoomReset()" title="重置">⊙</button>';
     html += '</div>';
-    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v890</div>';
+    html += '<div class="mindmap-hint">双指捏合缩放 · 单指拖动平移 · v891</div>';
     html += '<div class="mindmap-canvas-wrapper" id="mindmapCanvas"></div>';
     html += '</div>';
     // Person buttons (缩略为姓名按钮可展开)
@@ -6922,7 +6922,7 @@ function drawMindMap(chars, relations) {
   const _k = isNarrow ? 150 : 200; // 统一目标边长，v887 200(桌面)/150(窄屏)，保证节点间距
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 890, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 891, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -6994,17 +6994,21 @@ function drawMindMap(chars, relations) {
     const len = Math.hypot(dx, dy) || 1;
     const nx = -dy / len, ny = dx / len;
     const off = (conn._pi - (conn._pc - 1) / 2) * 18;
-    const aox = ax + nx * off, aoy = ay + ny * off;
-    const box = bx + nx * off, boy = by + ny * off;
+    let aox = ax + nx * off, aoy = ay + ny * off;
+    let box = bx + nx * off, boy = by + ny * off;
+    // v891：平行线偏移后端点重新贴回节点圆边——否则端点悬空、与圆之间留缝（用户截图「没连上」）
+    const _aAng = Math.atan2(aoy - a.y, aox - a.x);
+    aox = a.x + nodeR * Math.cos(_aAng); aoy = a.y + nodeR * Math.sin(_aAng);
+    const _bAng = Math.atan2(boy - b.y, box - b.x);
+    box = b.x + nodeR * Math.cos(_bAng); boy = b.y + nodeR * Math.sin(_bAng);
     const opacity = 0.65;
     svgContent += `<line x1="${aox}" y1="${aoy}" x2="${box}" y2="${boy}" stroke="${color}" stroke-width="2" opacity="${opacity}"/>`;
     const t = 0.5 + (conn._pi - (conn._pc - 1) / 2) * 0.25;
     let labX = aox + t * (box - aox);
     let labY = aoy + t * (boy - aoy);
-    const angle = Math.atan2(Math.abs(dy), Math.abs(dx));
-    let labSign, labMag;
-    if (conn._pc === 1) { labSign = 1; labMag = 26; }
-    else { labSign = (off === 0 ? 1 : Math.sign(off)); labMag = 20 + Math.sin(angle) * 8; }
+    // v891：标签到所属线的法线距离统一 26px（v890 单线26/多线20+角度浮动导致「标签离线距离不等」），
+    // 方向统一取线左侧；避让只沿线滑动不改距离，保证任何标签离自己那条线的垂直距离都相等。
+    const labSign = 1, labMag = 26;
     const arrowAng = Math.atan2(by - ay, bx - ax);
 
     if (conn.status && conn.status.includes('单向')) {
@@ -7036,12 +7040,15 @@ function drawMindMap(chars, relations) {
     };
     let fx = labX, fy = labY;
     if (!fits(fx, fy)) {
-      const cand = [[0, 0], [0.06, 6], [-0.06, 6], [0.12, 10], [-0.12, 10], [0.18, 14], [-0.18, 14], [0.24, 18], [-0.24, 18], [0.32, 22], [-0.32, 22]];
-      for (const [dt, dg] of cand) {
+      // v891：避让只沿线滑动（t 限制在 0.2~0.8 中段，防「标签跑远/不居中」），法线距离恒 26 不变；
+      // 同一距离下左右两侧都试，全部失败则保持默认位兜底。
+      const cand = [0, 0.05, -0.05, 0.1, -0.1, 0.15, -0.15, 0.2, -0.2, 0.25, -0.25];
+      for (const dt of cand) {
+        const tt = Math.max(0.2, Math.min(0.8, t + dt));
         let done = false;
         for (const sg of [1, -1]) {
-          const cx2 = aox + (t + dt) * (box - aox) + nx * (labMag + dg) * labSign * sg;
-          const cy2 = aoy + (t + dt) * (boy - aoy) + ny * (labMag + dg) * labSign * sg;
+          const cx2 = aox + tt * (box - aox) + nx * labMag * labSign * sg;
+          const cy2 = aoy + tt * (boy - aoy) + ny * labMag * labSign * sg;
           if (fits(cx2, cy2)) { fx = cx2; fy = cy2; done = true; break; }
         }
         if (done) break;
