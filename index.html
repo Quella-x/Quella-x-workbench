@@ -1131,10 +1131,10 @@ html.apk.modal-lock{overflow:hidden!important}
 .gb-aftersales-remark td .td-wrap{text-align:center}
 /* v923: 流团标签居中微调（-2 偏上、-1 偏下，取中间值） */
 .gb-disbanded-inline{display:inline-block;vertical-align:middle;background:var(--c-red);color:#fff;padding:2px 4px;border-radius:2px;font-size:10px;margin-left:4px;line-height:1;white-space:nowrap;transform:translateY(-1.5px)}
-/* v925: 复制诊断信息按钮回调到 16×16（14 偏小；专用类下图标真实生效 10px） */
-.sync-copy-btn{width:16px;height:16px;padding:0;border:0;border-radius:3px;background:transparent;color:var(--c-text-light);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+/* v926: 复制诊断信息按钮取中间档 18×18（20 偏大、16 偏小），图标 12px 不满格 */
+.sync-copy-btn{width:18px;height:18px;padding:0;border:0;border-radius:3px;background:transparent;color:var(--c-text-light);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 .sync-copy-btn:hover{background:var(--c-primary-bg);color:var(--c-primary)}
-.sync-copy-btn .lucide-icon{width:10px;height:10px}
+.sync-copy-btn .lucide-icon{width:12px;height:12px}
 @media (max-width:768px){
   .detail-table th.gb-remark-col,.detail-table td.gb-remark-col{display:none}
   .gb-remark-row{display:table-row}
@@ -3632,7 +3632,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=925"></script>
+  <script src="app.js?v=926"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
