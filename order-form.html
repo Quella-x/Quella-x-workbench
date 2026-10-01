@@ -1141,8 +1141,8 @@ html.apk.modal-lock{overflow:hidden!important}
 /* v910: 售后备注文字改回正常黑色（与 Excel 风格一致，不再用 muted 灰） */
 .gb-aftersales-remark td{color:var(--c-text);font-size:12px}
 .gb-aftersales-remark td .td-wrap{text-align:center}
-/* v922: 流团标签再往上提 1px */
-.gb-disbanded-inline{display:inline-block;vertical-align:middle;background:var(--c-red);color:#fff;padding:2px 4px;border-radius:2px;font-size:10px;margin-left:4px;line-height:1;white-space:nowrap;transform:translateY(-2px)}
+/* v923: 流团标签居中微调（-2 偏上、-1 偏下，取中间值） */
+.gb-disbanded-inline{display:inline-block;vertical-align:middle;background:var(--c-red);color:#fff;padding:2px 4px;border-radius:2px;font-size:10px;margin-left:4px;line-height:1;white-space:nowrap;transform:translateY(-1.5px)}
 @media (max-width:768px){
   .detail-table th.gb-remark-col,.detail-table td.gb-remark-col{display:none}
   .gb-remark-row{display:table-row}
@@ -3639,7 +3639,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=922"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=923"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
