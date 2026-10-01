@@ -6981,7 +6981,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 918, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 919, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -9651,8 +9651,8 @@ function renderDataSettings(html) {
     const url = (Sync.cfg.url || '').replace(/\/+$/, '');
     const keyTail = (Sync.cfg.anonKey || '').slice(-8);
     html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:6px">分组标识：' + esc(Sync.gkey()) + '</p>';
-    // v918: 「复制诊断信息」按钮紧跟项目/Key 尾文字，不靠到最右侧
-    html += '<div style="display:flex;align-items:center;gap:8px;margin-top:4px;font-size:12px;color:var(--c-text-muted);"><span>项目：' + esc(url.replace(/^https:\/\//,'')) + ' · Key 尾：' + esc(keyTail) + '</span><button class="btn btn-sm btn-ghost" onclick="syncCopyDiag()">' + lucide('copy',12) + ' 复制诊断信息</button></div>';
+    // v919: 复制诊断信息改为正方形图标按钮
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-top:4px;font-size:12px;color:var(--c-text-muted);"><span>项目：' + esc(url.replace(/^https:\/\//,'')) + ' · Key 尾：' + esc(keyTail) + '</span><button class="btn btn-icon btn-ghost" title="复制诊断信息" onclick="syncCopyDiag()">' + lucide('copy',14) + '</button></div>';
     if (Sync.lastError) html += '<p style="font-size:12px;color:var(--c-red);margin-top:6px">最近错误：' + esc(Sync.lastError) + '</p>';
   }
   html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:6px;line-height:1.6">换新 Supabase 项目时：建表 <code>sync_store</code>（字段：group_key text、store text、data jsonb、updated_at timestamptz，主键 group_key+store），并开启 anon 访问策略。</p>';
