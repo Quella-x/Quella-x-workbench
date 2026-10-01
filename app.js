@@ -54,6 +54,7 @@ const Sync = {
   status: 'off',            // off | disconnected | connected | syncing
   lastSync: 0,
   lastError: '',            // v906: 记录最近一次同步错误，方便诊断两端不同步
+  diag: {},                 // v909: 每个 store 的本地/云端数量等诊断信息
   versions: {},             // store -> updated_at(ISO)
   _timer: null,
   _pushTimer: null,
@@ -123,6 +124,7 @@ const Sync = {
     const row = rows.find(x => x.store === store);
     const local = DB.get(store, null);
     const localDels = DB.list(dk);
+    this.diag[store] = { local: Array.isArray(local) ? local.length : (local ? 1 : 0), cloud: (row && Array.isArray(row.data)) ? row.data.length : 0, updated: new Date().toISOString() };
     if (!row) {
       // 云端尚无该 store：本地有内容则首推建行，否则无事可做
       const hasData = Array.isArray(local) ? local.length > 0 : local != null;
@@ -146,6 +148,7 @@ const Sync = {
     const cloudRaw = row.data;
     const cloudDels = (drow && Array.isArray(drow.data)) ? drow.data : [];
 
+    this.diag[store] = { local: local ? 1 : 0, cloud: row ? 1 : 0, updated: new Date().toISOString() };
     if (!Array.isArray(local) && !(local === null && Array.isArray(cloudRaw))) {
       // 非列表数据（appSettings 配置对象等）：以上次同步镜像为基准三方判定——
       // 本地改了云端没改 → 推本地；云端变了 → 拉云端；两边都改 → 云端优先。
@@ -5062,15 +5065,12 @@ function openDetail(pageKey, id) {
           _bParts.forEach(p => {
             if (p.txt) html += `<tr class="gb-remark-row ${p.cls}"><td colspan="${_mainCols.length}"><span class="td-wrap">${p.txt}</span></td></tr>`;
           });
-          // v908: 售后备注单独一行，且仅「售后数量」列显示，其他列空（Excel 风格）
+          // v909: 售后备注单独一行，从「制品名称」列起跨到最后一列居中显示（Excel 风格）
           if (isGb && f.key === 'afterSales' && item.remark) {
-            const qtyIdx = _mainCols.findIndex(c => c.subkey === 'quantity');
-            const before = Math.max(0, qtyIdx);
-            const after = Math.max(0, _mainCols.length - qtyIdx - 1);
+            const nameIdx = Math.max(0, _mainCols.findIndex(c => c.subkey === 'name'));
             html += '<tr class="gb-remark-row gb-aftersales-remark">';
-            if (before) html += `<td colspan="${before}"></td>`;
-            html += `<td><span class="td-wrap">${esc(item.remark)}</span></td>`;
-            if (after) html += `<td colspan="${after}"></td>`;
+            if (nameIdx) html += `<td colspan="${nameIdx}"></td>`;
+            html += `<td colspan="${_mainCols.length - nameIdx}"><span class="td-wrap">${esc(item.remark)}</span></td>`;
             html += '</tr>';
           }
         }
@@ -6972,7 +6972,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 908, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 909, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -9177,6 +9177,31 @@ async function syncNow() {
   if (!syncReadInputs()) { Toast.warning('请先填写完整的 URL、Anon Key 与同步码'); return; }
   await Sync.fullSync();
 }
+function syncCopyDiag() {
+  // v909: 把同步诊断信息复制到剪贴板，方便用户发给开发者排查两端不同步
+  const lines = [];
+  lines.push('分组标识：' + (Sync.enabled() ? Sync.gkey() : '未启用'));
+  lines.push('项目：' + ((Sync.cfg && Sync.cfg.url) || '').replace(/\/+$/, '').replace(/^https:\/\//, ''));
+  lines.push('Key 尾：' + ((Sync.cfg && Sync.cfg.anonKey) || '').slice(-8));
+  lines.push('状态：' + Sync.status + ' · 上次同步：' + (Sync.lastSync ? Sync.fmtAgo(Sync.lastSync) : '无'));
+  lines.push('最近错误：' + (Sync.lastError || '无'));
+  lines.push('');
+  lines.push('Store\t本地\t云端');
+  SYNC_STORES.forEach(s => {
+    const d = Sync.diag[s] || {};
+    const local = d.local ?? DB.list(s).length;
+    const cloud = d.cloud ?? '?';
+    if (local || cloud) lines.push(s + '\t' + local + '\t' + cloud);
+  });
+  const text = lines.join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => Toast.success('诊断信息已复制'), () => Toast.warning('复制失败'));
+  } else {
+    const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); Toast.success('诊断信息已复制'); } catch (e) { Toast.warning('复制失败'); }
+    ta.remove();
+  }
+}
 function renderSettingsModal() {
   const validTabs = ['theme','navicons','fields','display','data'];
   if (!validTabs.includes(_settingsTab)) _settingsTab = 'theme';
@@ -9614,8 +9639,12 @@ function renderDataSettings(html) {
     : '当前：未配置';
   html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:10px">' + st + '</p>';
   if (Sync.enabled()) {
+    const url = (Sync.cfg.url || '').replace(/\/+$/, '');
+    const keyTail = (Sync.cfg.anonKey || '').slice(-8);
     html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:6px">分组标识：' + esc(Sync.gkey()) + '</p>';
+    html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:4px">项目：' + esc(url.replace(/^https:\/\//,'')) + ' · Key 尾：' + esc(keyTail) + '</p>';
     if (Sync.lastError) html += '<p style="font-size:12px;color:var(--c-red);margin-top:6px">最近错误：' + esc(Sync.lastError) + '</p>';
+    html += '<div style="margin-top:8px"><button class="btn btn-sm btn-ghost" onclick="syncCopyDiag()">' + lucide('copy',12) + ' 复制诊断信息</button></div>';
   }
   html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:6px;line-height:1.6">换新 Supabase 项目时：建表 <code>sync_store</code>（字段：group_key text、store text、data jsonb、updated_at timestamptz，主键 group_key+store），并开启 anon 访问策略。</p>';
   // ---- 凭据保险箱 ----

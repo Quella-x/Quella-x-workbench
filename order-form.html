@@ -1138,8 +1138,8 @@ html.apk.modal-lock{overflow:hidden!important}
 /* v907: 售后备注嵌在「售后数量」单元格内；流团标识放在制品名称旁 */
 .gb-aftersales-remark td{color:var(--c-text-muted);font-size:12px}
 .gb-aftersales-remark td .td-wrap{text-align:center}
-/* v908: 流团 inline 标签缩小、对齐文字基线 */
-.gb-disbanded-inline{display:inline-block;background:var(--c-red);color:#fff;padding:0 4px;border-radius:3px;font-size:10px;margin-left:4px;vertical-align:baseline;line-height:1.3;transform:translateY(-1px);white-space:nowrap}
+/* v909: 流团 inline 标签再缩小、严格对齐文字基线 */
+.gb-disbanded-inline{display:inline-block;background:var(--c-red);color:#fff;padding:0 3px;border-radius:2px;font-size:9px;margin-left:4px;vertical-align:middle;line-height:1.2;transform:translateY(0);white-space:nowrap}
 @media (max-width:768px){
   .detail-table th.gb-remark-col,.detail-table td.gb-remark-col{display:none}
   .gb-remark-row{display:table-row}
@@ -3634,7 +3634,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=908"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=909"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
