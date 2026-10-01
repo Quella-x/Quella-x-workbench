@@ -92,15 +92,22 @@ const Sync = {
   async test() {
     if (!this.enabled()) { Toast.warning('请先在设置中填写 Supabase 配置'); return false; }
     try {
+      // v911: 连接测试改为读写测试——只读成功不等于能同步，很多用户 RL S 策略只开了读取
       const r = await fetch(this.table() + '?select=group_key&limit=1', { headers: this.headers() });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
+      if (!r.ok) throw new Error('读取失败 HTTP ' + r.status);
+      const testKey = '__test__' + Date.now();
+      const w = await fetch(this.table(), { method: 'POST', headers: Object.assign(this.headers(), { 'Prefer': 'resolution=merge-duplicates' }), body: JSON.stringify({ group_key: this.gkey(), store: testKey, data: { ok: true }, updated_at: new Date().toISOString() }) });
+      if (!w.ok) throw new Error('写入失败 HTTP ' + w.status);
+      // 写入成功后再删除测试记录；删不掉不影响同步，仅留一条测试垃圾
+      try { await fetch(this.table() + '?group_key=eq.' + encodeURIComponent(this.gkey()) + '&store=eq.' + encodeURIComponent(testKey), { method: 'DELETE', headers: this.headers() }); } catch (e) {}
       this.lastError = '';
       this.setStatus('connected');
+      Toast.success('读写测试通过，可以同步');
       return true;
     } catch (e) {
       this.lastError = e.message;
       this.setStatus('disconnected');
-      Toast.error('连接失败：' + e.message);
+      Toast.error('连接测试失败：' + e.message);
       return false;
     }
   },
@@ -5065,13 +5072,9 @@ function openDetail(pageKey, id) {
           _bParts.forEach(p => {
             if (p.txt) html += `<tr class="gb-remark-row ${p.cls}"><td colspan="${_mainCols.length}"><span class="td-wrap">${p.txt}</span></td></tr>`;
           });
-          // v909: 售后备注单独一行，从「制品名称」列起跨到最后一列居中显示（Excel 风格）
+          // v911: 售后备注单独一行，从「单号」列起跨全部列居中显示（Excel 风格，与第一行等宽）
           if (isGb && f.key === 'afterSales' && item.remark) {
-            const nameIdx = Math.max(0, _mainCols.findIndex(c => c.subkey === 'name'));
-            html += '<tr class="gb-remark-row gb-aftersales-remark">';
-            if (nameIdx) html += `<td colspan="${nameIdx}"></td>`;
-            html += `<td colspan="${_mainCols.length - nameIdx}"><span class="td-wrap">${esc(item.remark)}</span></td>`;
-            html += '</tr>';
+            html += `<tr class="gb-remark-row gb-aftersales-remark"><td colspan="${_mainCols.length}"><span class="td-wrap">${esc(item.remark)}</span></td></tr>`;
           }
         }
       });
