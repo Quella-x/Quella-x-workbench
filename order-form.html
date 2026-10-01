@@ -1132,15 +1132,17 @@ html.apk.modal-lock{overflow:hidden!important}
   .comm-ud-row .cu-done{color:var(--c-green)}
   .comm-ud-row .cu-done input{width:15px;height:15px;accent-color:var(--c-green)}
 }
-/* v842：开团记录售后「备注」——电脑端作为第6列；手机端(<=768px)隐藏该列、改在每行下方显示小字，避免横向滚动 */
+/* v914：开团记录售后「备注」——电脑端作为单号下方跨行备注；手机端(<=768px)仍可在每行下方显示小字 */
 .gb-remark-row{display:none}
+/* v914: 售后备注跨行在桌面端也显示 */
+.gb-remark-row.gb-aftersales-remark{display:table-row}
 .detail-table th.gb-remark-col,.detail-table td.gb-remark-col{white-space:normal;word-break:break-all}
 /* v907: 售后备注嵌在「售后数量」单元格内；流团标识放在制品名称旁 */
 /* v910: 售后备注文字改回正常黑色（与 Excel 风格一致，不再用 muted 灰） */
 .gb-aftersales-remark td{color:var(--c-text);font-size:12px}
 .gb-aftersales-remark td .td-wrap{text-align:center}
-/* v912: 流团标签垂直严格居中 */
-.gb-disbanded-inline{display:inline-flex;align-items:center;justify-content:center;background:var(--c-red);color:#fff;padding:1px 4px;border-radius:2px;font-size:10px;margin-left:4px;vertical-align:middle;line-height:1;white-space:nowrap}
+/* v914: 流团标签贴文字基线，内部文字垂直居中 */
+.gb-disbanded-inline{display:inline-flex;align-items:center;justify-content:center;background:var(--c-red);color:#fff;padding:1px 4px;border-radius:2px;font-size:10px;margin-left:4px;vertical-align:text-bottom;line-height:1;white-space:nowrap}
 @media (max-width:768px){
   .detail-table th.gb-remark-col,.detail-table td.gb-remark-col{display:none}
   .gb-remark-row{display:table-row}
@@ -3635,7 +3637,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=913"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=914"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

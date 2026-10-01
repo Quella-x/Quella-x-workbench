@@ -5005,6 +5005,9 @@ function openDetail(pageKey, id) {
       const items = r[f.key] || [];
       const isCommProd = (pageKey === 'design-commission' && f.key === 'products');
       const cols = (f.columns || []).filter(c => !(isCommProd && c.subkey === 'urgent'));
+      // v914: 售后记录备注不显示为普通列，只作为单号下方的跨行备注行
+      const isAfterSales = (pageKey === 'groupbuy-records' && f.key === 'afterSales');
+      const renderCols = isAfterSales ? cols.filter(c => c.subkey !== 'remark') : cols;
 
       const extraHead = isCommProd ? '<th class="cc-urgent">加急</th><th class="cc-done">完成</th>' : '';
       const extraCell = isCommProd
@@ -5027,8 +5030,8 @@ function openDetail(pageKey, id) {
       };
       const thStyle = c => isCommProd ? commColStyle(c, true) : (isGb ? gbColStyle(c, true) : '');
       // v530：需求①——空列表也展示表头（无信息就空着）
-      const _belowCols = cols.filter(c => c.mobileBelow);
-      const _mainCols = cols.filter(c => !c.mobileBelow);
+      const _belowCols = renderCols.filter(c => c.mobileBelow);
+      const _mainCols = renderCols.filter(c => !c.mobileBelow);
       html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><div class="detail-value"><table class="detail-table"><tr>${_mainCols.map(c => `<th${thStyle(c)}>${isCommProd ? commThLabel(c) : esc(c.label)}</th>`).join('')}${_belowCols.map(c => { const _s = thStyle(c); const _m = /class="([^"]*)"/.exec(_s); const _rest = _s.replace(/ ?class="[^"]*"/, ''); return `<th class="gb-remark-col${_m ? ' ' + _m[1] : ''}"${_rest}>${esc(c.label)}</th>`; }).join('')}${extraHead}</tr>`;
       items.forEach((item, idx) => {
         const hasRemark = isGb && f.key === 'afterSales' && item.remark;
@@ -6975,7 +6978,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 913, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 914, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
