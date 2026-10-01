@@ -1139,6 +1139,9 @@ html.apk.modal-lock{overflow:hidden!important}
   .detail-table th.gb-remark-col,.detail-table td.gb-remark-col{display:none}
   .gb-remark-row{display:table-row}
   .gb-remark-row td{padding:4px 6px;font-size:12px}
+  /* v906: 售后备注去掉「备注：」前缀并居中；流团改红色标签 */
+  .gb-remark-row.gb-remark-only .td-wrap{text-align:center}
+  .gb-remark-row.gb-disbanded-tag .td-wrap{display:inline-block;background:var(--c-red);color:#fff;padding:2px 10px;border-radius:4px;font-size:12px;text-align:center}
 }
 
 /* Empty state */
@@ -3626,7 +3629,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=905"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=906"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

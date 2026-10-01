@@ -53,6 +53,7 @@ const Sync = {
   cfg: null,
   status: 'off',            // off | disconnected | connected | syncing
   lastSync: 0,
+  lastError: '',            // v906: 记录最近一次同步错误，方便诊断两端不同步
   versions: {},             // store -> updated_at(ISO)
   _timer: null,
   _pushTimer: null,
@@ -92,9 +93,11 @@ const Sync = {
     try {
       const r = await fetch(this.table() + '?select=group_key&limit=1', { headers: this.headers() });
       if (!r.ok) throw new Error('HTTP ' + r.status);
+      this.lastError = '';
       this.setStatus('connected');
       return true;
     } catch (e) {
+      this.lastError = e.message;
       this.setStatus('disconnected');
       Toast.error('连接失败：' + e.message);
       return false;
@@ -236,8 +239,9 @@ const Sync = {
     this.setStatus('syncing');
     try {
       for (const store of SYNC_STORES) { await this.syncStore(store); }
+      this.lastError = '';
       this.setStatus('connected');
-    } catch (e) { this.setStatus('disconnected'); }
+    } catch (e) { this.lastError = e.message; this.setStatus('disconnected'); }
     healScrollLock(); // v799
   },
   async pullAll() {
@@ -247,8 +251,9 @@ const Sync = {
       for (const store of SYNC_STORES) { if (await this.syncStore(store)) changed = true; }
       this.lastSync = Date.now();
       DB.set('syncLast', this.lastSync);
+      this.lastError = '';
       this.setStatus('connected');
-    } catch (e) { this.setStatus('disconnected'); }
+    } catch (e) { this.lastError = e.message; this.setStatus('disconnected'); }
     healScrollLock(); // v799
     if (changed) {
       Toast.info('已从云端同步最新数据');
@@ -262,9 +267,9 @@ const Sync = {
     try {
       // v776: 拉取→合并→按需推回已在 syncStore 内统一完成，fullSync 即全量收敛，无覆盖风险。
       await this.pushAll();
-      if (this.status !== 'disconnected') this.setStatus('connected');
+      if (this.status !== 'disconnected') { this.lastError = ''; this.setStatus('connected'); }
       Toast.success('同步完成');
-    } catch (e) { this.setStatus('disconnected'); Toast.error('同步失败：' + e.message); }
+    } catch (e) { this.lastError = e.message; this.setStatus('disconnected'); Toast.error('同步失败：' + e.message); }
     healScrollLock(); // v799: 同步结束后强制自愈滚动锁
   },
   startAuto() {
@@ -5037,8 +5042,18 @@ function openDetail(pageKey, id) {
           + `<span class="cu-done"><label><input type="checkbox" ${item.done ? 'checked' : ''} onclick="commissionToggleProductDone('${id}',${idx},this.checked)">完成</label></span>`
           + `</td></tr>`;
         if (_belowCols.length) {
-          const _bTxt = _belowCols.map(c => { const _v = item[c.subkey]; if (c.mobileBelowOnlyYes && (!_v || _v === '否')) return ''; return _v ? `${esc(c.label)}：${esc(_v)}` : ''; }).filter(Boolean).join('　');
-          if (_bTxt) html += `<tr class="gb-remark-row"><td colspan="${_mainCols.length}"><span class="td-wrap">${_bTxt}</span></td></tr>`;
+          // v906: 备注/是否流团等 mobileBelow 字段改为更干净的整行展示（去掉「备注：」前缀，流团用红色标签）
+          const _bParts = _belowCols.map(c => {
+            const _v = item[c.subkey];
+            if (c.mobileBelowOnlyYes && (!_v || _v === '否')) return null;
+            if (!_v) return null;
+            if (c.subkey === 'remark') return { cls: 'gb-remark-only', txt: esc(_v) };
+            if (c.subkey === 'isDisbanded') return { cls: 'gb-disbanded-tag', txt: '流团' };
+            return { cls: '', txt: `${esc(c.label)}：${esc(_v)}` };
+          }).filter(Boolean);
+          _bParts.forEach(p => {
+            if (p.txt) html += `<tr class="gb-remark-row ${p.cls}"><td colspan="${_mainCols.length}"><span class="td-wrap">${p.txt}</span></td></tr>`;
+          });
         }
       });
       // v856：空列表也展示表头，并加一行带格子的空白占位，避免「光杆表头」或「全白无格」
@@ -6938,7 +6953,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 905, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 906, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -9579,6 +9594,10 @@ function renderDataSettings(html) {
     ? ('当前状态：' + (Sync.status === 'connected' ? lucide('circle-check',14) + ' 已连接' : Sync.status === 'syncing' ? lucide('refresh-cw',14) + ' 同步中' : lucide('circle-x',14) + ' 未连接') + (Sync.lastSync ? '（上次同步：' + Sync.fmtAgo(Sync.lastSync) + '）' : ''))
     : '当前：未配置';
   html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:10px">' + st + '</p>';
+  if (Sync.enabled()) {
+    html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:6px">分组标识：' + esc(Sync.gkey()) + '</p>';
+    if (Sync.lastError) html += '<p style="font-size:12px;color:var(--c-red);margin-top:6px">最近错误：' + esc(Sync.lastError) + '</p>';
+  }
   html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:6px;line-height:1.6">换新 Supabase 项目时：建表 <code>sync_store</code>（字段：group_key text、store text、data jsonb、updated_at timestamptz，主键 group_key+store），并开启 anon 访问策略。</p>';
   // ---- 凭据保险箱 ----
   html += '<h4 style="font-size:14px;margin:24px 0 8px;color:var(--c-primary)">' + lucide('lock',16) + ' 凭据保险箱</h4>';
@@ -10494,7 +10513,8 @@ function lifeCheckinPrevYearView() { lifeCheckinYearView--; renderLifeCheckin();
 function lifeCheckinNextYearView() { lifeCheckinYearView++; renderLifeCheckin(); }
 function lifeCheckinJumpYear(y) { lifeCheckinYearView = y; lifeCheckinPickerOpen = false; renderLifeCheckin(); }
 function lifeYearCheckinCount(typeKey, year) {
-  return DB.list('lifeCheckins').filter(r => r.type === typeKey && (r.date || '').startsWith(String(year))).length;
+  // v906: 按日期去重计数，防止同步合并产生同日期重复记录时累计打卡虚高+1
+  return new Set(DB.list('lifeCheckins').filter(r => r.type === typeKey && (r.date || '').startsWith(String(year))).map(r => r.date)).size;
 }
 function lifeDailyLongestStreak(typeKey, year) {
   const set = new Set(DB.list('lifeCheckins').filter(r => r.type === typeKey && (r.date || '').startsWith(String(year))).map(r => r.date));
@@ -10667,9 +10687,9 @@ function renderGoalCard(t, vy, vm) {
   const recs = DB.list('lifeCheckins').filter(r => r.type === t.key);
   let total, streak, rate, status, statusCls, btnTxt, btnDisabled;
   if (t.period === 'day') {
-    total = recs.length;
+    total = new Set(recs.map(r => r.date)).size; // v906: 按日期去重，避免同步/重复点击导致累计打卡虚高
     streak = lifeDailyStreak(t.key);
-    const first = recs.length ? recs.map(r => r.date).sort()[0] : today;
+    const first = recs.length ? [...new Set(recs.map(r => r.date))].sort()[0] : today;
     const span = Math.max(1, Math.floor((new Date(today) - new Date(first)) / 86400000) + 1);
     rate = Math.round(total / span * 100);
     const done = recs.some(r => r.date === today);
@@ -10694,7 +10714,7 @@ function renderGoalCard(t, vy, vm) {
   let mpDone, mpTotal, mpLabel;
   if (t.period === 'day') {
     mpTotal = daysInMonth;
-    mpDone = DB.list('lifeCheckins').filter(r => r.type === t.key && (r.date || '').startsWith(ms)).length;
+    mpDone = new Set(DB.list('lifeCheckins').filter(r => r.type === t.key && (r.date || '').startsWith(ms)).map(r => r.date)).size;
     mpLabel = '本月';
   } else {
     mpTotal = lifeMonthWeekTotal(vy, vm);
