@@ -5031,8 +5031,9 @@ function openDetail(pageKey, id) {
       const _mainCols = cols.filter(c => !c.mobileBelow);
       html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><div class="detail-value"><table class="detail-table"><tr>${_mainCols.map(c => `<th${thStyle(c)}>${isCommProd ? commThLabel(c) : esc(c.label)}</th>`).join('')}${_belowCols.map(c => { const _s = thStyle(c); const _m = /class="([^"]*)"/.exec(_s); const _rest = _s.replace(/ ?class="[^"]*"/, ''); return `<th class="gb-remark-col${_m ? ' ' + _m[1] : ''}"${_rest}>${esc(c.label)}</th>`; }).join('')}${extraHead}</tr>`;
       items.forEach((item, idx) => {
+        const hasRemark = isGb && f.key === 'afterSales' && item.remark;
         html += `<tr class="${item.done ? 'prod-done' : ''}">`;
-        _mainCols.forEach(c => {
+        _mainCols.forEach((c, cidx) => {
           if (c.type === 'seq') html += `<td style="text-align:center;font-weight:700;color:var(--c-text-light)">${String(idx + 1).padStart(2, '0')}</td>`;
           else if (c.type === 'checkbox') html += `<td style="text-align:center">${item[c.subkey] ? lucide('check',12) : ''}</td>`;
           else {
@@ -5043,7 +5044,9 @@ function openDetail(pageKey, id) {
             if (isGb && f.key === 'products' && c.subkey === 'name' && item.isDisbanded === '是') {
               cellExtra = `<span class="gb-disbanded-inline">流团</span>`;
             }
-            html += `<td><span class="td-wrap">${esc(v || '')}${cellExtra}</span></td>`;
+            // v912: 售后记录有备注时，单号列跨两行，备注行从制品名称列开始跨
+            const rowspan = (hasRemark && cidx === 0) ? ' rowspan="2"' : '';
+            html += `<td${rowspan}><span class="td-wrap">${esc(v || '')}${cellExtra}</span></td>`;
           }
         });
         _belowCols.forEach(c => {
@@ -5052,6 +5055,9 @@ function openDetail(pageKey, id) {
         });
         html += extraCell ? extraCell(item, idx) : '';
         html += `</tr>`;
+        if (hasRemark) {
+          html += `<tr class="gb-remark-row gb-aftersales-remark"><td colspan="${_mainCols.length - 1}"><span class="td-wrap">${esc(item.remark)}</span></td></tr>`;
+        }
         if (isCommProd) html += `<tr class="comm-ud-row"><td colspan="${_mainCols.length}">`
           + `<span class="cu-urgent"><label><input type="checkbox" ${item.urgent ? 'checked' : ''} onclick="commissionToggleProductUrgent('${id}',${idx},this.checked)">加急</label></span>`
           + `<span class="cu-done"><label><input type="checkbox" ${item.done ? 'checked' : ''} onclick="commissionToggleProductDone('${id}',${idx},this.checked)">完成</label></span>`
@@ -5062,8 +5068,6 @@ function openDetail(pageKey, id) {
             const _v = item[c.subkey];
             if (c.mobileBelowOnlyYes && (!_v || _v === '否')) return null;
             if (!_v) return null;
-            // v907: 售后备注已嵌在「售后数量」单元格内；流团标识已放在「制品名称」旁，避免单独占行
-            if (isGb && f.key === 'afterSales' && c.subkey === 'remark') return null;
             if (isGb && f.key === 'products' && c.subkey === 'isDisbanded') return null;
             if (c.subkey === 'remark') return { cls: 'gb-remark-only', txt: esc(_v) };
             if (c.subkey === 'isDisbanded') return { cls: 'gb-disbanded-tag', txt: '流团' };
@@ -5072,10 +5076,6 @@ function openDetail(pageKey, id) {
           _bParts.forEach(p => {
             if (p.txt) html += `<tr class="gb-remark-row ${p.cls}"><td colspan="${_mainCols.length}"><span class="td-wrap">${p.txt}</span></td></tr>`;
           });
-          // v911: 售后备注单独一行，从「单号」列起跨全部列居中显示（Excel 风格，与第一行等宽）
-          if (isGb && f.key === 'afterSales' && item.remark) {
-            html += `<tr class="gb-remark-row gb-aftersales-remark"><td colspan="${_mainCols.length}"><span class="td-wrap">${esc(item.remark)}</span></td></tr>`;
-          }
         }
       });
       // v856：空列表也展示表头，并加一行带格子的空白占位，避免「光杆表头」或「全白无格」
@@ -6975,7 +6975,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 910, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 912, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
