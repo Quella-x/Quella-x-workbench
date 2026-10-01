@@ -155,8 +155,8 @@ const Sync = {
     const cloudRaw = row.data;
     const cloudDels = (drow && Array.isArray(drow.data)) ? drow.data : [];
 
-    this.diag[store] = { local: local ? 1 : 0, cloud: row ? 1 : 0, updated: new Date().toISOString() };
     if (!Array.isArray(local) && !(local === null && Array.isArray(cloudRaw))) {
+      this.diag[store] = { local: local ? 1 : 0, cloud: row ? 1 : 0, updated: new Date().toISOString() };
       // 非列表数据（appSettings 配置对象等）：以上次同步镜像为基准三方判定——
       // 本地改了云端没改 → 推本地；云端变了 → 拉云端；两边都改 → 云端优先。
       const mirror = DB.get('__mirror_' + store, null);
@@ -6975,7 +6975,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 912, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 913, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
