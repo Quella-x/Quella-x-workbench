@@ -1131,8 +1131,8 @@ html.apk.modal-lock{overflow:hidden!important}
 .gb-aftersales-remark td .td-wrap{text-align:center}
 /* v923: 流团标签居中微调（-2 偏上、-1 偏下，取中间值） */
 .gb-disbanded-inline{display:inline-block;vertical-align:middle;background:var(--c-red);color:#fff;padding:2px 4px;border-radius:2px;font-size:10px;margin-left:4px;line-height:1;white-space:nowrap;transform:translateY(-1.5px)}
-/* v927: 复制按钮图标与「连接测试/立即同步」同大 16px，按钮 22×22；状态行小图标整体上移 1px */
-.sync-copy-btn{width:22px;height:22px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--c-text-light);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+/* v928: 复制按钮颜色变浅（与旁边 muted 文字一致）、与文字间距加大 */
+.sync-copy-btn{width:22px;height:22px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--c-text-muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:6px}
 .sync-copy-btn:hover{background:var(--c-primary-bg);color:var(--c-primary)}
 .sync-copy-btn .lucide-icon{width:16px;height:16px}
 .ic-lift{transform:translateY(-1px)}
@@ -3633,7 +3633,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=927"></script>
+  <script src="app.js?v=928"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
