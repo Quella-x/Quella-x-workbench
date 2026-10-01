@@ -1129,8 +1129,8 @@ html.apk.modal-lock{overflow:hidden!important}
 /* v910: 售后备注文字改回正常黑色（与 Excel 风格一致，不再用 muted 灰） */
 .gb-aftersales-remark td{color:var(--c-text);font-size:12px}
 .gb-aftersales-remark td .td-wrap{text-align:center}
-/* v920: 流团标签位置往下回调 1px */
-.gb-disbanded-inline{display:inline-block;vertical-align:middle;background:var(--c-red);color:#fff;padding:2px 4px;border-radius:2px;font-size:10px;margin-left:4px;line-height:1;white-space:nowrap;transform:translateY(-2px)}
+/* v921: 流团标签再往下回调 1px */
+.gb-disbanded-inline{display:inline-block;vertical-align:middle;background:var(--c-red);color:#fff;padding:2px 4px;border-radius:2px;font-size:10px;margin-left:4px;line-height:1;white-space:nowrap;transform:translateY(-1px)}
 @media (max-width:768px){
   .detail-table th.gb-remark-col,.detail-table td.gb-remark-col{display:none}
   .gb-remark-row{display:table-row}
@@ -3139,6 +3139,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-rec-row.cd-rec-cp-row .cd-rec-cp-vals::before{content:'';position:absolute;left:calc(25% + 20px);top:0;bottom:0;width:1px;background:var(--c-border-light)}
 /* v800: detail 视图同款 CP 两列（标签｜第一人｜第二人，中间分隔线） */
 .detail-row.cd-det-cp-row{flex-wrap:nowrap}
+/* v921: 详情页胶囊在 flex 行内垂直居中，避免偏下 */
+.detail-row .tag{align-self:center}
 .detail-row.cd-det-cp-row .detail-label{flex:0 0 96px}
 .detail-row.cd-det-cp-row .cd-det-cp-vals{display:flex;position:relative;min-width:0}
 .detail-row.cd-det-cp-row .cd-det-v1{flex:1;padding-right:10px;font-size:13px;min-width:0}
@@ -3626,7 +3628,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=920"></script>
+  <script src="app.js?v=921"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
