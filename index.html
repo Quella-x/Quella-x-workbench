@@ -1124,10 +1124,11 @@ html.apk.modal-lock{overflow:hidden!important}
 .gb-remark-row{display:none}
 .detail-table th.gb-remark-col,.detail-table td.gb-remark-col{white-space:normal;word-break:break-all}
 /* v907: 售后备注嵌在「售后数量」单元格内；流团标识放在制品名称旁 */
-.gb-aftersales-remark td{color:var(--c-text-muted);font-size:12px}
+/* v910: 售后备注文字改回正常黑色（与 Excel 风格一致，不再用 muted 灰） */
+.gb-aftersales-remark td{color:var(--c-text);font-size:12px}
 .gb-aftersales-remark td .td-wrap{text-align:center}
-/* v909: 流团 inline 标签再缩小、严格对齐文字基线 */
-.gb-disbanded-inline{display:inline-block;background:var(--c-red);color:#fff;padding:0 3px;border-radius:2px;font-size:9px;margin-left:4px;vertical-align:middle;line-height:1.2;transform:translateY(0);white-space:nowrap}
+/* v910: 流团标签恢复到 v908 样式，不再额外缩小 */
+.gb-disbanded-inline{display:inline-block;background:var(--c-red);color:#fff;padding:0 4px;border-radius:3px;font-size:11px;margin-left:4px;vertical-align:middle;line-height:1.4;transform:translateY(-1px);white-space:nowrap}
 @media (max-width:768px){
   .detail-table th.gb-remark-col,.detail-table td.gb-remark-col{display:none}
   .gb-remark-row{display:table-row}
@@ -3623,7 +3624,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=909"></script>
+  <script src="app.js?v=910"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
