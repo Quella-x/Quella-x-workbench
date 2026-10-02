@@ -5058,13 +5058,14 @@ function openDetail(pageKey, id) {
             // v856：calc 列详情展示时计算表达式（如 5+7.5 -> 12.5），保存值仍保留原表达式
             const v = c.calc ? calcExprStr(item[c.subkey]) : item[c.subkey];
             let cellExtra = '';
+            // v929: 流团标识放制品名称最前面（用户要求），右边距与文字隔开
             // v908: 流团标识放在「制品名称」旁不单独占行
             if (isGb && f.key === 'products' && c.subkey === 'name' && item.isDisbanded === '是') {
               cellExtra = `<span class="gb-disbanded-inline">流团</span>`;
             }
             // v912: 售后记录有备注时，单号列跨两行，备注行从制品名称列开始跨
             const rowspan = (hasRemark && cidx === 0) ? ' rowspan="2"' : '';
-            html += `<td${rowspan}><span class="td-wrap">${esc(v || '')}${cellExtra}</span></td>`;
+            html += `<td${rowspan}><span class="td-wrap">${cellExtra}${esc(v || '')}</span></td>`;
           }
         });
         _belowCols.forEach(c => {
@@ -6993,7 +6994,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 928, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 929, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -9664,7 +9665,8 @@ function renderDataSettings(html) {
     const keyTail = (Sync.cfg.anonKey || '').slice(-8);
     html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:6px">分组标识：' + esc(Sync.gkey()) + '</p>';
     // v927: 复制按钮图标与「连接测试/立即同步」按钮图标同大（16px），按钮 22×22
-    html += '<div style="display:flex;align-items:center;gap:8px;margin-top:4px;font-size:12px;color:var(--c-text-muted);"><span>项目：' + esc(url.replace(/^https:\/\//,'')) + ' · Key 尾：' + esc(keyTail) + '</span><button class="sync-copy-btn" title="复制诊断信息" onclick="syncCopyDiag()">' + lucide('copy',16) + '</button></div>';
+    // v929: 复制按钮改 inline 流——手机窄屏「项目/Key尾」折行后按钮紧跟文字尾部，不再被 flex 垂直居中悬在两行中间
+    html += '<div style="margin-top:4px;font-size:12px;line-height:1.8;color:var(--c-text-muted);">项目：' + esc(url.replace(/^https:\/\//,'')) + ' · Key 尾：' + esc(keyTail) + '<button class="sync-copy-btn" style="vertical-align:middle;margin-left:6px" title="复制诊断信息" onclick="syncCopyDiag()">' + lucide('copy',16) + '</button></div>';
     if (Sync.lastError) html += '<p style="font-size:12px;color:var(--c-red);margin-top:6px">最近错误：' + esc(Sync.lastError) + '</p>';
   }
   html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:6px;line-height:1.6">换新 Supabase 项目时：建表 <code>sync_store</code>（字段：group_key text、store text、data jsonb、updated_at timestamptz，主键 group_key+store），并开启 anon 访问策略。</p>';
