@@ -128,10 +128,20 @@ const Sync = {
       return r.json();
     };
     const rows = await getRows();
-    const row = rows.find(x => x.store === store);
+    /* v935 关键修复：同一 (group_key, store) 在云端可能存在**重复行**。
+       旧代码 `rows.find(x => x.store === store)` 只取第一行，而这条查询没有 ORDER BY，
+       返回哪一行由数据库执行计划决定 —— 同一时刻手机可能读到「2 条」那行、电脑读到「1 条」那行，
+       于是两端各自把自己的版本推回去，永远收敛不了（用户诊断实证：两端 group_key/Key/状态/错误全一致，
+       唯一不一致的 inspirations 手机本地2云端2、电脑本地1云端1 —— 同一个云端行不可能既是 2 条又是 1 条）。
+       现在改为把该 store 的所有行按记录级 union 合并（重复行里的记录会并进来，语义等价于单行），
+       并记下多余行 id，推送收敛后清理，保证最终只剩一行。 */
+    const storeRows = rows.filter(x => x.store === store);
+    const delRows = rows.filter(x => x.store === dk);
+    const row = storeRows.length ? storeRows.slice().sort((a, b) => (a.updated_at || '') < (b.updated_at || '') ? 1 : -1)[0] : null;
+    const dupRowIds = storeRows.filter(x => x.id && (!row || x.id !== row.id)).map(x => x.id);
     const local = DB.get(store, null);
     const localDels = DB.list(dk);
-    this.diag[store] = { local: Array.isArray(local) ? local.length : (local ? 1 : 0), cloud: (row && Array.isArray(row.data)) ? row.data.length : 0, updated: new Date().toISOString() };
+    this.diag[store] = { local: Array.isArray(local) ? local.length : (local ? 1 : 0), cloud: storeRows.reduce((n, r) => n + (Array.isArray(r.data) ? r.data.length : 0), 0), dup: dupRowIds.length, updated: new Date().toISOString() };
     if (!row) {
       // 云端尚无该 store：本地有内容则首推建行，否则无事可做
       const hasData = Array.isArray(local) ? local.length > 0 : local != null;
@@ -151,9 +161,11 @@ const Sync = {
       DB.set('syncLast', this.lastSync);
       return false;
     }
-    const drow = rows.find(x => x.store === dk);
-    const cloudRaw = row.data;
-    const cloudDels = (drow && Array.isArray(drow.data)) ? drow.data : [];
+    // v935：云端原始数据改为「所有重复行的 union」，不再只取第一行；墓碑同理。
+    // 非数组数据（appSettings 配置对象）仍取最新一行的原值，不能 flatMap（对象不是数组会被摊平清空）
+    const isListRow = storeRows.length && Array.isArray(storeRows[0].data);
+    const cloudRaw = isListRow ? storeRows.flatMap(r => (Array.isArray(r.data) ? r.data : [])) : (row ? row.data : undefined);
+    const cloudDels = delRows.flatMap(r => (Array.isArray(r.data) ? r.data : []));
 
     if (!Array.isArray(local) && !(local === null && Array.isArray(cloudRaw))) {
       this.diag[store] = { local: local ? 1 : 0, cloud: row ? 1 : 0, updated: new Date().toISOString() };
@@ -230,10 +242,11 @@ const Sync = {
       DB.set('syncVersions', this.versions);
       DB.set('syncLast', this.lastSync);
       const re = await getRows();
-      const nrow = re.find(x => x.store === store);
-      const ndrow = re.find(x => x.store === dk);
-      const ncloud = (nrow && Array.isArray(nrow.data)) ? nrow.data : [];
-      const ncloudDels = (ndrow && Array.isArray(ndrow.data)) ? ndrow.data : [];
+      // v935：复查同样按 union 读，不再 find 第一行
+      const nstoreRows = re.filter(x => x.store === store);
+      const ndelRows = re.filter(x => x.store === dk);
+      const ncloud = nstoreRows.flatMap(r => (Array.isArray(r.data) ? r.data : []));
+      const ncloudDels = ndelRows.flatMap(r => (Array.isArray(r.data) ? r.data : []));
       if (JSON.stringify(ncloud) === JSON.stringify(m.items) && JSON.stringify(ncloudDels) === JSON.stringify(m.dels)) break;
       const m2 = mergeOnce(m.items, m.dels, ncloud, ncloudDels);
       m.items = m2.items; m.dels = m2.dels;
@@ -241,6 +254,13 @@ const Sync = {
       DB.set(store, m.items);
       DB.set(dk, m.dels);
       this._applying = false;
+    }
+    // v935：推送收敛后删除多余的重复行（只留 updated_at 最新的一行），根治「两端读到不同行」的分裂问题。
+    // 失败不抛错——清理只是优化，重复行存在也不会再导致数据不一致（读取已按 union 合并）。
+    if (dupRowIds.length) {
+      try {
+        await fetch(this.table() + '?group_key=eq.' + encodeURIComponent(this.gkey()) + '&store=eq.' + encodeURIComponent(store) + '&id=in.(' + dupRowIds.join(',') + ')', { method: 'DELETE', headers: this.headers() });
+      } catch (e) { /* 忽略清理失败 */ }
     }
     return localChanged;
   },
@@ -3858,9 +3878,9 @@ function renderListPage(pageKey, mod) {
       const cardSelCls = (isCommDual && ps.selectedCommissionId === r.id) ? ' selected' : '';
       html += `<div class="record-card${cardSelCls}" onclick="${cardClick}">`;
       html += '<div class="record-card-header">';
+      /* v935：撤销 v934 的 .rch-spacer 左占位——卡片标题要的是「上下居中」（上下留白相等），不是左右居中，标题恢复贴左 */
       const cardImg = mod.cardImage ? mod.cardImage(r) : null;
       if (cardImg) html += `<img src="${cardImg}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0">`;
-      else html += '<span class="rch-spacer"></span>'; /* v934: 左占位与右侧操作区等宽，标题真居中 */
       const titleText = r.title || r.name || r.theme || r.sampleName || r.artworkName || r.clientInfo || '未命名记录';
       /* v688 修复：逾期图标（lucide 输出的 SVG 字符串）单独拼接，不走 esc()——之前 esc() 会把 SVG 标签转义成实体显示成文字 */
       const overdueIcon = isOverdue ? lucide('alert-triangle',14) + ' ' : '';
@@ -5643,7 +5663,8 @@ function renderPriceCalc() {
   html += '<div class="form-row"><label class="form-label">样品成本</label><input type="number" class="form-input" id="calc_sampleCost" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">元</span></div>';
   html += '<div class="form-row"><label class="form-label">人工成本</label><input type="number" class="form-input" id="calc_laborCost" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">元/件</span></div>';
   html += '<div class="form-row"><label class="form-label">运费</label><input type="number" class="form-input" id="calc_shipping" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">元/件</span></div>';
-  html += '<div class="form-row"><label class="form-label">抽成比例</label><input type="number" class="form-input" id="calc_commissionRate" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">% 平台手续费</span></div>';
+  // v935：平台手续费提示词移到「抽成比例」标签右边（与「成本参数（输入各项成本自动计算）」同一位置样式），不再放输入框下方
+  html += '<div class="form-row"><label class="form-label">抽成比例<span class="calc-card-hint">（平台手续费）</span></label><input type="number" class="form-input" id="calc_commissionRate" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">%</span></div>';
   html += '<div class="form-row"><label class="form-label">预期利润率</label><input type="number" class="form-input" id="calc_profitMargin" value="30" oninput="calcPrice()"><span class="form-hint">%</span></div>';
   html += '<div class="form-row"><label class="form-label">开团数量</label><input type="number" class="form-input" id="calc_quantity" value="100" oninput="calcPrice()"></div>';
   html += '<div class="form-row"><label class="form-label">模板名称</label><input type="text" class="form-input" id="calc_templateName" placeholder="保存为模板便于复用"></div>';
@@ -7072,7 +7093,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 934, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 935, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -11804,18 +11825,20 @@ function renderSleepWeekLineChart(days) {
     const y = yOf(i);
     return `<text x="${LM - 14}" y="${(y + 9).toFixed(1)}" text-anchor="end" font-size="${isDesktop?18:24}" font-weight="600" fill="var(--c-text)">${wdLabels[i]}</text>`;
   }).join('');
-  // v934：夜晚/午间两行数据标签避让——同行两点水平距离 < 90px 时，午间(黄)标签移到点下方，夜晚(橙)保持在上方
+  // v935：夜晚/午间两行数据标签避让——同行两点水平距离 < 90px 时，午间(黄)标签移到点下方，夜晚(橙)保持在上方
+  // v935 追加：数值为 0 的点不再画文字标签（原来一排 "0m" 全落在 x=LM 同一列叠成一团，用户报"数字太乱"），只保留圆点
   const nightXs = nightVals.map(xOf);
   const seriesPoints = (vals, color, avoidXs) => vals.map((v, i) => {
     const x = xOf(v), y = yOf(i);
-    const label = formatSleepDuration(v);
     const anchor = (v / maxV) > 0.78 ? 'end' : 'start';
     const lx = anchor === 'end' ? x - 12 : x + 12;
     const nearOther = avoidXs && avoidXs.length > i && Math.abs(avoidXs[i] - x) < 90;
     let ly;
     if (nearOther) ly = y + 30; // 避让：移到点下方
     else ly = isDesktop ? (anchor === 'end' ? y + 26 : y - 22) : y - 22;
-    return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${label}</text><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/></g>`;
+    const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/>`;
+    if (!v) return `<g class="lr-hsc-point">${dot}</g>`; // 0 值：只画点不画字，避免一列 0m 互相重叠
+    return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${formatSleepDuration(v)}</text>${dot}</g>`;
   }).join('');
   return `<div class="lr-history-stat-card">
     <div class="lr-hsc-row">
@@ -13857,8 +13880,13 @@ function renderTplLibList() {
       '<div class="tpl-empty-hint">在下方「新建约稿模板」里创建一个</div></div>';
     return;
   }
-  list.innerHTML = items.map(t => { const sel = _commTplSelId === t.id; return `<div class="tpl-item ${sel ? 'selected' : ''}" role="option" tabindex="0" aria-selected="${sel}" onclick="selectCommissionTemplate('${t.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectCommissionTemplate('${t.id}')}">
+  list.innerHTML = items.map(t => {
+    const sel = _commTplSelId === t.id;
+    /* v935：模板条目一律标记「不可修改」——库里的每条都是她自己填写后存进来的固定值，
+       与「初始默认」（还没存过任何模板的空分类）区分开；空分类走下面的「还没有模板」提示。 */
+    return `<div class="tpl-item ${sel ? 'selected' : ''}" role="option" tabindex="0" aria-selected="${sel}" onclick="selectCommissionTemplate('${t.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectCommissionTemplate('${t.id}')}">
     <div class="tpl-item-name">${esc(t.name)}</div>
+    <span class="tpl-locked-tag" title="该模板内容为填写后固定，不可修改">${lucide('lock',11)}不可修改</span>
   </div>`; }).join('');
   updateTplActions();
 }

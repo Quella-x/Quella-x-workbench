@@ -299,12 +299,9 @@ html.apk.modal-lock{overflow:hidden!important}
 .record-card:hover{box-shadow:var(--shadow);border-color:var(--c-primary-bg)}
 .record-list.two-col .record-card{min-height:110px}
 .record-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;flex-wrap:wrap}
-.record-card-title{font-size:14px;font-weight:600;color:var(--c-text);flex:1;word-break:break-word;min-width:0;text-align:center}
-/* v934：展示模块（记录卡片）标题居中——左侧占位与右侧操作区（2×26px 图标+4px 间距=56px）等宽，标题真居中 */
-.rch-spacer{width:56px;flex-shrink:0}
-/* v934：卡片标题边距——手机端下边距多一点、电脑端上边距多一点 */
-@media (max-width:768px){ .record-list .record-card-header{margin-bottom:12px} }
-@media (min-width:769px){ .record-list .record-card-header{margin-top:4px} }
+.record-card-title{font-size:14px;font-weight:600;color:var(--c-text);flex:1;word-break:break-word;min-width:0}
+/* v935：撤销 v934 的左右居中（text-align:center + .rch-spacer 左占位）——用户要的是「上下居中」不是左右居中。
+   标题恢复贴左，上下留白相等：上 = .record-card padding-top + header margin-top，下 = padding-bottom + margin-bottom。 */
 /* v452：九大模块列表视图卡片标题底部分割线与接稿排期列表视图右侧接稿详情模块(.cdc-header)统一为同款 1px solid var(--c-border-light) */
 .record-list .record-card-header{border-bottom:1px solid var(--c-border-light);padding-bottom:8px}
 /* v535：接稿排期日历视图卡片标题/编辑/删除/分割线整体下移 1px（累计 -3px） */
@@ -319,7 +316,7 @@ html.apk.modal-lock{overflow:hidden!important}
 .record-card-body:not(.comm-list-style) .field-label::after{content:':'}
 /* v515: 九模块列表字段对齐（与接稿排期左栏一致：64px 右对齐标签 + 1fr 值列），仅内部字段样式，单双列保持原样 */
 .record-card-body.comm-list-style{display:flex;flex-direction:column;gap:2px 0;margin-left:2px;margin-top:1px}
-.record-card-body.comm-list-style .field:not(.comm-products-field){display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:baseline;margin:0}
+.record-card-body.comm-list-style .field:not(.comm-products-field){display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:baseline;margin:0;min-height:20px} /* v935：胶囊标签（padding 2px 8px）比纯文字行高 ~1.5px，导致双列卡片里"标签分类"为空的那张比有标签的矮。给所有字段行统一 20px 下限，两卡等高 */
 .record-card-body.comm-list-style .field:not(.comm-products-field) .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;white-space:nowrap;line-height:1.4}
 .record-card-body.comm-list-style .field:not(.comm-products-field) .field-value{font-size:13px;color:var(--c-text);line-height:1.4;min-width:0;word-break:break-word}
 .record-card-body.comm-list-style .field:not(.comm-products-field) .field-tags{display:flex;flex-wrap:wrap;gap:4px}
@@ -356,7 +353,9 @@ html.apk.modal-lock{overflow:hidden!important}
 .status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px}
 
 /* ===== Stats cards ===== */
+/* v935：minmax(0,1fr) 同上——1fr 的 auto 最小值会被长金额撑开，导致切换「全部/年度」时各小块宽度不一致 */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+.stats-grid{grid-auto-columns:minmax(0,1fr)}
 .stat-card{
   background:var(--c-card);border-radius:var(--radius);
   padding:16px;box-shadow:var(--shadow-sm);
@@ -1008,12 +1007,24 @@ html.apk.modal-lock{overflow:hidden!important}
 /* v795: 窄桌面（约 769-900px 视口）弹窗被压窄后容器 < 列最小总宽 716px，表头/字段两个 flex 容器可用宽一旦不一致整列漂移——
    统一给表头和行 716px 最小宽 + 容器横向滚动（两者同宽、同步滚动），任何桌面宽度下逐列严格对齐；宽屏（≥734 容器）无滚动条不受影响 */
 @media (min-width:769px){
-  .dynamic-list-container{overflow-x:auto}
-  /* v934：min 总宽 716→679（制品列下限 147→110，容器足够时制品列仍吸收富余，实际渲染宽度不变），
-     给 780px 弹窗留出 ~50px 冗余，缩放取整不再触发横向滚动条 */
-  /* 表头 border-box 含左右各 8px 内边距，min-width 须 = 行 679 + 16，两容器内容区才等宽 */
-  .dynamic-list-header{min-width:695px}
-  .dynamic-list-row{min-width:679px}
+  /* v935：不再给行/表头设 min-width 强制横向滚动——780px 弹窗内容区 732px，
+     行可用宽 = 732 - 2*8(padding) - 2*1(border) = 714px，而列下限合计 732px 会溢出 18px。
+     ① 删除按钮 40→56px（「删除」两字在 40px 里被折成上下两行并被容器裁掉）
+     ② 柄图标识 80→72、同模 110→96（省 22px > 18px 缺口，且这两列内容较短，足够显示）
+     ③ 容器不再横向滚动，彻底消除横向滚动条。表头 span:last-child 同步 56px 保证「操作」列与删除按钮对齐。*/
+  .dynamic-list-container{overflow-x:visible}
+  .dynamic-list-row button,
+  .dynamic-list-header span:last-child{flex:0 0 56px;min-width:56px}
+  .dynamic-list-row button{white-space:nowrap}
+  /* ② 柄图标识 80→72 */
+  .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="patternId"],
+  .dynamic-list-container[data-key="products"][data-module="design-commission"] .form-input[data-subkey="patternId"]{flex:0 0 72px;min-width:0}
+  .dynamic-list-container[data-key="products"][data-module="design-commission"] .combobox-wrapper[data-subkey="patternId"]{flex:0 0 72px!important;min-width:0!important}
+  /* ② 同模 110→96（表头 + 下拉格同步） */
+  .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="sameModel"],
+  .dynamic-list-container[data-key="products"][data-module="design-commission"] .combobox-wrapper[data-subkey="sameModel"],
+  .dynamic-list-container[data-key="products"][data-module="design-commission"] .form-input[data-subkey="sameModel"]{flex:0 0 96px!important;min-width:0!important}
+  .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="sameModel"]{flex:0 0 96px}
 }
 .dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-row .combobox-input{padding:8px 26px 8px 8px!important}
 .dynamic-list-row .combobox-toggle{right:2px;width:18px;font-size:10px}
@@ -1146,7 +1157,7 @@ html.apk.modal-lock{overflow:hidden!important}
 /* v932: 未流团（否）显示绿色「成团」小签，与红色「流团」同尺寸同基线 */
 .gb-formed-inline{display:inline-block;vertical-align:middle;background:var(--c-green);color:#fff;padding:2px 4px;border-radius:2px;font-size:10px;margin-right:4px;line-height:1;white-space:nowrap;transform:translateY(-1.5px)}
 /* v928: 复制按钮颜色变浅（与旁边 muted 文字一致）、与文字间距加大 */
-.sync-copy-btn{width:22px;height:22px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--c-text-muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:6px}
+.sync-copy-btn{width:22px;height:22px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--c-text-muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:6px;position:relative;top:-1px} /* v935：用户要求复制按钮上移 1px */
 .sync-copy-btn:hover{background:var(--c-primary-bg);color:var(--c-primary)}
 .sync-copy-btn .lucide-icon{width:16px;height:16px}
 .ic-lift{transform:translateY(-1px)}
@@ -1656,7 +1667,11 @@ html.apk.modal-lock{overflow:hidden!important}
 .stats-scope-toggle{display:flex;gap:4px;flex-shrink:0;align-items:stretch}
 .stats-scope-toggle .btn-xs{padding:3px 14px;font-size:11px;min-height:28px;display:inline-flex;align-items:center}
 .stats-section .stats-grid{
-  grid-template-columns:repeat(3,1fr);margin:0;gap:10px;
+  /* v935：1fr → minmax(0,1fr)。1fr 的最小尺寸是 auto（=min-content），
+     「¥48464.40」比「¥33152.75」宽，min-content 会把那一列撑开，导致同一屏内三列宽度不等
+     （用户截图实测：全部模式 231/232/241px，年度模式 236/235/234px，切换后整块宽度都在变）。
+     minmax(0,1fr) 强制三列严格等分，切换全部/年度时列宽不再跳动。 */
+  grid-template-columns:repeat(3,minmax(0,1fr));margin:0;gap:10px;
   flex:1;align-items:stretch;
 }
 .stats-section .stat-card{
@@ -2004,6 +2019,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .calc-card-title{font-size:14px;font-weight:600;color:var(--c-text);margin-bottom:10px;display:flex;align-items:center;gap:3px}
 .price-calc-title{margin-bottom:16px}
 .calc-card-hint{font-size:11px;font-weight:400;color:var(--c-text-muted)}
+/* v935：标签内嵌提示词（「抽成比例（平台手续费）」）——与 calc-card-hint 同色同字号，label 本身是 flex 列容器故内联 span 需自带间距 */
+.form-label .calc-card-hint{margin-left:4px}
 .calc-mode-tabs{display:flex;gap:0;margin-bottom:8px}
 .calc-mode-tab{flex:1;padding:8px 12px;border:1px solid var(--c-border);background:var(--c-bg);font-size:13px;cursor:pointer;color:var(--c-text);transition:all .15s}
 .calc-mode-tab:first-child{border-radius:6px 0 0 6px}
@@ -3004,7 +3021,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-tab-nav:hover:not(:disabled){background:var(--c-primary-bg);border-radius:4px}
 .tpl-tab-nav:disabled{opacity:.4;cursor:default}
 .tpl-white-card{background:#fff;border:1px solid #dde4ec;border-radius:0 0 6px 6px;padding:0;box-shadow:0 1px 4px rgba(20,40,60,.06);overflow:hidden}
-.tpl-folder-list{display:flex;flex-direction:column;min-height:160px;overflow-y:auto;overflow-x:hidden;padding:0 0 4px;scroll-snap-type:y proximity} /* v934：scroll-snap 防半行停在边缘 */
+.tpl-folder-list{display:flex;flex-direction:column;min-height:160px;overflow-y:auto;overflow-x:hidden;padding:0;scroll-snap-type:y proximity} /* v935：撤销 v934 的 padding-bottom:4px——它让列表底部多出一条空白（用户截图红框）；滚动到底时最后一条贴齐容器底缘 */
 /* v767：列表行间 1px 浅灰分隔线（首行无） */
 .tpl-folder-list>*+*{border-top:1px solid #eef1f5}
 /* v762：两库底部统一操作栏（无分隔线） */
@@ -3027,6 +3044,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-item.selected:hover{background:#cfe8fb}
 .tpl-item:focus-visible,.tpl-snippet:focus-visible{outline:2px solid var(--c-primary);outline-offset:-2px}
 .tpl-item-name{font-size:12px;font-weight:400;color:var(--c-text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.4}
+/* v935：约稿模板库条目右侧「不可修改」标记（灰色小胶囊 + 锁图标），与空分类的「初始默认」提示区分 */
+.tpl-locked-tag{display:inline-flex;align-items:center;gap:3px;flex-shrink:0;padding:1px 7px;border-radius:9px;background:#f1f3f6;color:var(--c-text-muted);font-size:10px;font-weight:500;line-height:1.6;white-space:nowrap}
+.tpl-locked-tag .lucide-icon{width:11px;height:11px}
 .tpl-new{background:transparent;border:none;border-radius:var(--radius-sm);padding:12px 16px 14px;display:flex;flex-direction:column}
 .tpl-new>*{margin-bottom:10px}
 .tpl-new>*:last-child{margin-bottom:0}
@@ -3034,7 +3054,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-new-title{font-size:14px;font-weight:700;color:var(--c-text);margin:0 0 10px}
 .tpl-new-tip-box{font-size:12px;color:var(--c-text-muted);line-height:1.6;background:var(--c-primary-bg);padding:10px 12px;border-radius:8px;margin:0 0 10px;width:auto;box-sizing:border-box}
 .tpl-new-hint{font-size:12px;color:var(--c-text-muted)}
-.tpl-snippet{display:flex;align-items:center;gap:8px;min-height:33px;padding:6px 16px;background:transparent;border:none;border-radius:0;cursor:pointer;transition:background .2s;overflow:hidden;scroll-snap-align:end} /* v934：贴齐底边，最后一行不裁半 */
+.tpl-snippet{display:flex;align-items:center;gap:8px;min-height:33px;padding:6px 16px;background:transparent;border:none;border-radius:0;cursor:pointer;transition:background .2s;overflow:hidden;scroll-snap-align:start} /* v935：start 对齐（end 会让末行只露半条）；末行完整 = 靠 min-height 固定行高，不靠容器留白 */
 .tpl-snippet:hover{background:#eaf4fd}
 .tpl-snippet.selected{background:var(--c-primary-bg);margin:0 -16px;padding:6px 32px}
 .tpl-snippet.selected:hover{background:#cfe8fb}
@@ -3653,7 +3673,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=934"></script>
+  <script src="app.js?v=935"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
