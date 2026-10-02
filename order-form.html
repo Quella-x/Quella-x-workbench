@@ -621,8 +621,13 @@ html.apk.modal-lock{overflow:hidden!important}
 .modal.tpl-lib-modal{height:min(780px,92vh)} /* v934：文案库整体加高 */
 .modal.tpl-lib-modal .modal-body{padding:8px 0 0 0;display:flex;flex-direction:column}
 .modal.tpl-lib-modal .tpl-lib-folder{flex:1.4;min-height:0;display:flex;flex-direction:column} /* v934：库列表区占比加大 */
-.modal.tpl-lib-modal .tpl-white-card{flex:1;min-height:0;display:flex;flex-direction:column}
-.modal.tpl-lib-modal .tpl-folder-list{flex:1;min-height:160px;max-height:none}
+/* v935：文案库列表底部那条空白（用户截图红框）根因是双层 flex 拉伸——
+   .tpl-white-card{flex:1} 把白卡撑满，.tpl-folder-list{flex:1} 又把列表撑满，
+   6 条文案撑不满容器高度，底部就露出一条白带（且滚动到底时最后一条也停在半行）。
+   改法：白卡改为按内容自适应（flex:0 1 auto + max-height），列表 flex:1 保留（内部滚动），
+   容器高度 = 列表内容高度（上限受 modal 高度约束），既无底部空白、末条也完整显示。 */
+.modal.tpl-lib-modal .tpl-white-card{flex:0 1 auto;min-height:0;max-height:100%;display:flex;flex-direction:column}
+.modal.tpl-lib-modal .tpl-folder-list{flex:1 1 auto;min-height:0;max-height:none}
 .modal.tpl-lib-modal .tpl-new{flex:1;min-height:0}
 .modal.tpl-lib-modal .tpl-new .cd-import-actions{margin-top:auto}
 .modal.tpl-lib-modal .tpl-new .form-textarea{flex:1;min-height:64px;margin-bottom:10px} /* v934：新增文案输入框压矮 */
@@ -1028,6 +1033,19 @@ html.apk.modal-lock{overflow:hidden!important}
   .dynamic-list-row button,
   .dynamic-list-header span:last-child{flex:0 0 56px;min-width:56px}
   .dynamic-list-row button{white-space:nowrap}
+  /* v935：表头原 margin:-8px -8px 6px（左右各负 8px）比行内元素宽 16px，使「操作」表头与「删除」按钮错位 8px（用户截图）。
+     负边距归零后表头与行同为容器内容区宽。表头 span 的 1px transparent border 改用 box-shadow 绘制（不占布局宽度），
+     padding-left 回到 8px（与行内输入框一致）—— 逐列起点严格对齐，末列中心差 0。 */
+  .dynamic-list-header{margin-left:0;margin-right:0;padding-left:0;padding-right:0}
+  .dynamic-list-header span{border:none;padding-left:8px}
+  /* v935：表头「同模+加急」合并对（与行内 .dl-model-urgent-pair 结构一致）：
+     外层占两者总宽（96+50+4gap=150），内层各持原 flex 值，列起点与行内严格对齐。 */
+  .dynamic-list-header .dl-model-urgent-pair{flex:0 0 150px;display:flex;gap:4px;min-width:0;padding-left:0}
+  .dynamic-list-header .dl-model-urgent-pair > span{padding-left:8px}
+  .dynamic-list-header .dl-model-urgent-pair > span[data-subkey="sameModel"]{flex:0 0 96px}
+  .dynamic-list-header .dl-model-urgent-pair > span[data-subkey="urgent"]{flex:0 0 50px;text-align:center;padding-left:0}
+  /* 「操作」列：不再依赖 span:last-child（外层 pair 会改变末位判定），显式用 op-col 标记 */
+  .dynamic-list-header span.op-col{flex:0 0 56px;min-width:56px;text-align:center;padding-left:0}
   /* ② 柄图标识 80→72 */
   .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="patternId"],
   .dynamic-list-container[data-key="products"][data-module="design-commission"] .form-input[data-subkey="patternId"]{flex:0 0 72px;min-width:0}
@@ -2847,7 +2865,11 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 /* History view */
 .lr-history-stat-card{background:var(--c-card);border-radius:var(--radius);padding:10px;margin-bottom:8px;box-shadow:var(--shadow-sm)}
-.lr-hsc-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-top:10px}
+/* v935：日均行上下留白严格对称。
+   上 = .lr-history-stat-card padding-top(10) + row padding-top(26) = 36
+   下 = row margin-bottom(16) + .lr-hsc-chart-body margin-top(0) = 16 → 差 20，再把 row padding-top 提到 16 + chart-body margin-top 提到 20 使两边都 = 36。
+   最终口径：上 = 10(卡片padding) + 26(row padding-top) = 36；下 = 16(row margin-bottom) + 20(chart-body margin-top) = 36。 */
+.lr-hsc-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-top:26px}
 .lr-hsc-title{font-size:14px;font-weight:800;color:var(--c-text)}
 .lr-hsc-sub{font-size:13px;font-weight:600;color:var(--c-text-light)}
 .lr-hsc-avgs{display:flex;flex-wrap:wrap;justify-content:space-around;width:100%;gap:8px;margin:0}
@@ -2856,7 +2878,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-hsc-avg.night{color:#ff9a3c}
 .lr-hsc-avg.nap{color:#FFDE75}
 .lr-hsc-avg.wake{color:var(--c-text)}
-.lr-hsc-chart-body{height:394px;position:relative;margin-top:16px}
+.lr-hsc-chart-body{height:394px;position:relative;margin-top:20px} /* v935：与 row padding-top(26)+卡片padding(10)=36 对称 */
 .lr-hsc-chart-body svg{width:100%;height:100%;overflow:visible}
 .lr-hsc-x{display:flex;justify-content:space-between;padding:8px 5.9% 0;font-size:12px;color:var(--c-text-light)}
 .lr-hsc-point text{pointer-events:none}
@@ -2968,7 +2990,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-size-note{font-size:10px}
   .lr-history-stat-card{padding:8px}
   .lr-hsc-title{font-size:14px}
-  .lr-hsc-chart-body{height:324px;margin-top:34px} /* v934：手机端小时刻度画在 svg 上方约 25px，加大 margin 让「日均」行上下留白相等 */
+  /* v935：移动端同桌面口径——stat-card padding-top 8 + row padding-top 28 = 36；margin-bottom 16 + chart-body margin-top 20 = 36 */
+  .lr-hsc-row{margin-bottom:16px;padding-top:28px}
+  .lr-hsc-chart-body{height:324px;margin-top:20px}
   .lr-hsc-metrics{gap:6px;padding:6px 2px 2px}
   .lr-hsc-metric-val{font-size:18px}
   .lr-hsc-metric-val small{font-size:11px}
@@ -3365,6 +3389,12 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-standalone #mainBody{width:100% !important;max-width:720px !important;margin:0 auto !important}
 .cd-client-standalone{max-width:720px !important;width:100% !important;margin:0 auto;padding:0}
 .cd-client-head{font-size:18px;font-weight:700;color:var(--c-primary-dark);text-align:center;margin-bottom:16px}
+/* v935：约稿模板「已填写锁定项」——单主填写页里被模板预设的字段显示为只读（灰底 + 不可聚焦），
+   并在顶部提示哪些项不可改，让单主知道要填的是"其余空白项"。 */
+.cd-locked-tip{display:flex;align-items:center;gap:5px;margin:0 0 14px;padding:7px 11px;border-radius:8px;background:#fff8e6;border:1px solid #ffe0a3;color:#a06a00;font-size:12px;line-height:1.5}
+.cd-locked-tip .lucide-icon{width:12px;height:12px;flex-shrink:0}
+.form-input.cd-field-locked,.form-textarea.cd-field-locked,.form-select.cd-field-locked{background:#f3f4f6!important;color:#6b7280!important;cursor:not-allowed;border-color:#e5e7eb!important}
+.form-input.cd-field-locked:hover,.form-textarea.cd-field-locked:hover{border-color:#e5e7eb!important}
 .cd-client-form{background:#fff;border:1px solid var(--c-border-light);border-radius:12px;padding:20px}
 .cd-client-submit{text-align:center;margin-top:16px}
 .cd-client-submit .btn{padding:10px 40px;font-size:14px}
@@ -3684,7 +3714,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=935"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=936"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

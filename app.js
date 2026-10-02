@@ -1861,7 +1861,13 @@ function buildDynamicListHTML(field, data, moduleKey) {
     columns.forEach(col => {
       html += `<span data-subkey="${esc(col.subkey)}">${esc(col.label)}</span>`;
     });
-    html += `<span>操作</span></div>`;
+    html += `<span class="op-col">操作</span></div>`;
+    /* v935：行内「同模 + 加急」被 groupSameModelUrgentRow 合并成一个 span（v789），
+       但表头仍是两个独立 span → 表头与行的列结构不一致，「操作」表头与「删除」按钮错位。
+       这里同步把表头的 sameModel + urgent 也包进一个 dl-model-urgent-pair，使两者结构完全一致。 */
+    if (field.key === 'products' && moduleKey === 'design-commission') {
+      html = html.replace(/(<span data-subkey="sameModel">[^<]*<\/span>)(<span data-subkey="urgent">[^<]*<\/span>)/, '<span class="dl-model-urgent-pair">$1$2</span>');
+    }
   }
   html += `<div class="dynamic-list-rows" id="${field.key}_rows">`;
   const rows = items.length > 0 ? items : [{}];
@@ -7093,7 +7099,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 935, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 936, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -11825,16 +11831,18 @@ function renderSleepWeekLineChart(days) {
     const y = yOf(i);
     return `<text x="${LM - 14}" y="${(y + 9).toFixed(1)}" text-anchor="end" font-size="${isDesktop?18:24}" font-weight="600" fill="var(--c-text)">${wdLabels[i]}</text>`;
   }).join('');
-  // v935：夜晚/午间两行数据标签避让——同行两点水平距离 < 90px 时，午间(黄)标签移到点下方，夜晚(橙)保持在上方
-  // v935 追加：数值为 0 的点不再画文字标签（原来一排 "0m" 全落在 x=LM 同一列叠成一团，用户报"数字太乱"），只保留圆点
+  // v935：夜晚/午间两行数据标签避让——同行两点水平距离 < 90px 时，午间(黄)标签移到点下方，
+  // 夜晚(橙)保持在上方。v935 加大下移量 30→40 并给夜晚加 -26 上移量：
+  // 原 30px 下移后 2h12m 仍压在折线上（用户截图"还是不太清晰"），两标签各朝相反方向拉开才彻底分离。
   const nightXs = nightVals.map(xOf);
-  const seriesPoints = (vals, color, avoidXs) => vals.map((v, i) => {
+  const napXs = napVals.map(xOf); // v935：两个系列互相知道对方 x，才能双向拉开（原来只有单方向）
+  const seriesPoints = (vals, color, avoidXs, isNight) => vals.map((v, i) => {
     const x = xOf(v), y = yOf(i);
     const anchor = (v / maxV) > 0.78 ? 'end' : 'start';
     const lx = anchor === 'end' ? x - 12 : x + 12;
     const nearOther = avoidXs && avoidXs.length > i && Math.abs(avoidXs[i] - x) < 90;
     let ly;
-    if (nearOther) ly = y + 30; // 避让：移到点下方
+    if (nearOther) ly = isNight ? y - 26 : y + 40; // 双向拉开：夜晚上移 26、午间下移 40
     else ly = isDesktop ? (anchor === 'end' ? y + 26 : y - 22) : y - 22;
     const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/>`;
     if (!v) return `<g class="lr-hsc-point">${dot}</g>`; // 0 值：只画点不画字，避免一列 0m 互相重叠
@@ -11857,8 +11865,8 @@ function renderSleepWeekLineChart(days) {
         <polyline fill="none" stroke="${napColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${linePath(napVals)}"/>
         <polyline fill="none" stroke="${nightColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${linePath(nightVals)}"/>
         ${dayLabels}
-        ${seriesPoints(napVals, napColor, nightXs)}
-      ${seriesPoints(nightVals, nightColor, null)}
+        ${seriesPoints(napVals, napColor, nightXs, false)}
+      ${seriesPoints(nightVals, nightColor, napXs, true)}
     </svg>
   </div>
 </div>`;
@@ -13621,19 +13629,28 @@ function cdShowClientLinkInline(catKey) {
 // 链接内携带 Supabase 地址 / anon key / 分组键，单主提交的数据直接进云端，接稿详情自动拉取汇入。
 // 域名自适应：网页端（电脑/手机浏览器/预览）用当前访问域名；APK WebView 内为虚拟域名，兜底用发布域名。
 function CD_PUBLIC_BASE() {
+  // v935 修复：原来用 location.origin，GitHub Pages 项目页 origin 只是域名
+  // （https://quella-x.github.io）不含 /Quella-x-workbench 段 → 生成的约稿链接 404（用户截图 Page not found）。
+  // 改为从当前页面 URL 去掉文件名取目录：项目页得到 https://…/Quella-x-workbench，
+  // 自定义域/根部署得到 origin，APK WebView 仍走下面的兜底。
   try {
-    const o = window.location.origin || '';
-    if (/^https?:\/\//.test(o) && o.indexOf('appassets.androidplatform.net') === -1) return o.replace(/\/+$/, '');
+    const href = window.location.href || '';
+    if (/^https?:\/\//.test(href) && href.indexOf('appassets.androidplatform.net') === -1) {
+      const dir = href.split('#')[0].split('?')[0].replace(/[^/]*$/, '').replace(/\/+$/, '');
+      if (dir) return dir;
+    }
   } catch (e) {}
   // v798: 沙盒反复停机（错误 12809）且不再救——APK 兜底永久改用 GitHub Pages（用户确认，旧沙盒链接作废）
   return 'https://quella-x.github.io/Quella-x-workbench';
 }
-function buildCdClientUrl(catKey, preset, au) {
+function buildCdClientUrl(catKey, preset, au, filled) {
   let link = CD_PUBLIC_BASE() + '/order-form.html?cd_client=1&standalone=1&cat=' + encodeURIComponent(catKey);
   if (Sync.enabled()) {
     link += '&su=' + encodeURIComponent(Sync.cfg.url) + '&sk=' + encodeURIComponent(Sync.cfg.anonKey) + '&g=' + encodeURIComponent(Sync.gkey());
   }
   if (preset) { try { link += '&preset=' + encodeURIComponent(JSON.stringify(preset)); } catch (e) {} }
+  // v935：把「哪些字段是模板方手填的」传给单主页面，这些字段在单主侧渲染为只读
+  if (filled && filled.length) { try { link += '&locked=' + encodeURIComponent(JSON.stringify(filled)); } catch (e) {} }
   if (au) link += '&au=1';
   link += '&_t=' + Date.now();
   return link;
@@ -13664,12 +13681,14 @@ function runCdClientForm() {
   cdShowClientLink(catKey);
 }
 // v757：可选 preset（约稿模板的固定值）编入链接，单主打开即看到预填内容
-function cdShowClientLink(catKey, preset, au) {
+// v935：新增 filled —— 模板方手填的字段名清单，编入链接后单主侧渲染为只读
+function cdShowClientLink(catKey, preset, au, filled) {
   const mod = MODULES[catKey];
-  const link = buildCdClientUrl(catKey, preset, au);
+  const link = buildCdClientUrl(catKey, preset, au, filled);
   let html = '<div class="cd-import-modal">';
   html += `<div class="cd-link-box"><textarea class="form-input" id="cdClientLink" readonly>${esc(link)}</textarea></div>`;
   if (!Sync.enabled()) html += '<div class="cd-import-tip" style="color:var(--c-orange);margin-top:8px">尚未配置同步：单主提交的数据暂时无法自动传回，请先到「设置-数据管理」配置同步后再发链接。</div>';
+  if (filled && filled.length) html += `<div class="cd-import-tip" style="margin-top:8px">其中 ${filled.length} 项为已填写的固定内容（${esc(filled.join('、'))}），单主打开后不可修改，只能填写其余空白项。</div>`;
   html += `<div class="cd-import-actions"><button class="btn btn-outline" onclick="closeModal()">关闭</button><button class="btn btn-primary" onclick="copyCdClientLink()">复制链接</button></div>`;
   html += '</div>';
   openModal('单主填写链接', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'link-narrow');
@@ -13737,16 +13756,32 @@ function collectCdFormData(catKey) {
 function saveAsCommissionTemplate(catKey) {
   const data = collectCdFormData(catKey);
   const mod = MODULES[catKey];
+  /* v935：记录「哪些字段是用户手填的」——只有手填值在单主页面才设为不可修改，
+     字段自带的 default（RGB/百度网盘等）不算手填，保持可改。
+     判定：模板值与字段 default 不同，或该字段无 default 但有非空值 → 算手填。 */
+  const filled = [];
+  const defByKey = {};
+  (mod.fields || []).forEach(f => { if (f && f.key) defByKey[f.key] = f.default; });
+  Object.keys(data).forEach(k => {
+    if (k === 'category' || k === 'extraProducts' || k === 'allowUrgent') return;
+    const v = data[k];
+    const empty = v == null || v === '' || (Array.isArray(v) && !v.length);
+    if (empty) return; // 没填的不算
+    const def = defByKey[k];
+    const isSameAsDefault = def !== undefined && String(def) === String(Array.isArray(v) ? v.join(',') : v);
+    if (!isSameAsDefault) filled.push(k);
+  });
   let html = '<div class="cd-import-modal">';
   html += `<div class="tpl-new-hint">此模板将存放至「${esc(mod.category)}」分类，后续可根据命名直接选择并给单主使用此模板</div>`;
   html += `<div style="margin-top:10px"><label class="form-label" style="display:block;margin-bottom:6px">模板名称</label><input class="form-input" id="tplNameInput"></div>`;
+  html += filled.length ? `<div class="cd-import-tip" style="margin-top:10px">已填写的 ${filled.length} 项（${esc(filled.join('、'))}）在发给单主的页面上会锁定为不可修改，未填写的保持可改。</div>` : '<div class="cd-import-tip" style="margin-top:10px">本次未检测到手动填写的内容，单主页面所有字段均可填写。</div>';
   html += '</div>';
   openModal('存为约稿模板', html, [
     { label: '取消', class: 'btn-ghost', action: closeModal },
     { label: '保存', class: 'btn-primary', action: () => {
       const name = ($('#tplNameInput').value || '').trim();
       if (!name) { Toast.warning('请填写模板名称'); return; }
-      DB.add('commissionTemplates', { name, catKey, data, allowUrgent: !!window.__tplPendingAllowUrgent });
+      DB.add('commissionTemplates', { name, catKey, data, filled, allowUrgent: !!window.__tplPendingAllowUrgent });
       window.__tplPendingAllowUrgent = false;
       Toast.success('已保存模板：' + name);
       closeModal();
@@ -13882,11 +13917,14 @@ function renderTplLibList() {
   }
   list.innerHTML = items.map(t => {
     const sel = _commTplSelId === t.id;
-    /* v935：模板条目一律标记「不可修改」——库里的每条都是她自己填写后存进来的固定值，
-       与「初始默认」（还没存过任何模板的空分类）区分开；空分类走下面的「还没有模板」提示。 */
+    /* v935：标签改为显示「N 项已锁定」——指该模板里用户手填、单主打开后不可改的字段数
+       （v935 之前误做成笼统的「不可修改」标签，已改） */
+    const n = Array.isArray(t.filled) ? t.filled.length : 0;
+    const tag = n > 0
+      ? `<span class="tpl-locked-tag" title="单主打开时这 ${n} 项不可修改：${esc((t.filled || []).join('、'))}">${lucide('lock',11)}${n} 项不可修改</span>`
+      : '<span class="tpl-locked-tag tpl-locked-none" title="该模板未填写固定内容，单主可全部填写">全部可填写</span>';
     return `<div class="tpl-item ${sel ? 'selected' : ''}" role="option" tabindex="0" aria-selected="${sel}" onclick="selectCommissionTemplate('${t.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectCommissionTemplate('${t.id}')}">
-    <div class="tpl-item-name">${esc(t.name)}</div>
-    <span class="tpl-locked-tag" title="该模板内容为填写后固定，不可修改">${lucide('lock',11)}不可修改</span>
+    <div class="tpl-item-name">${esc(t.name)}</div>${tag}
   </div>`; }).join('');
   updateTplActions();
 }
@@ -13907,7 +13945,8 @@ function applySelectedCommissionTemplate() {
   if (!_commTplSelId) return;
   const t = DB.getById('commissionTemplates', _commTplSelId);
   if (!t) return;
-  cdShowClientLink(t.catKey, t.data, t.allowUrgent);
+  // v935：把模板记录的「手填字段清单」一起传下去，单主页面据此锁定
+  cdShowClientLink(t.catKey, t.data, t.allowUrgent, t.filled || []);
 }
 async function delSelectedCommissionTemplate() {
   if (!_commTplSelId) return;
@@ -14068,6 +14107,9 @@ function renderTxtTplList() {
     <div class="tpl-snippet-text">${esc(t.text)}</div>
   </div>`; }).join('');
   updateTxtTplActions();
+  /* v935：v935 撤掉 scroll-snap 后滚动位置可能停在半行（用户报"不要一条就一半"）——
+     渲染完把滚动位置归零（顶部对齐，行高固定 33px 不会切半）。 */
+  list.scrollTop = 0;
 }
 // v762：空状态用的文件夹图标
 function folderEmptySvg() {
@@ -14182,6 +14224,11 @@ function cdCheckClientFormFromUrl() {
     let preset = null;
     const p = params.get('preset');
     if (p) { try { preset = JSON.parse(decodeURIComponent(p)); } catch (e) { preset = null; } }
+    // v935：模板方手填的字段名清单（locked 参数）→ 单主侧这些字段渲染为只读
+    let locked = [];
+    const lk = params.get('locked');
+    if (lk) { try { const a = JSON.parse(decodeURIComponent(lk)); if (Array.isArray(a)) locked = a; } catch (e) { locked = []; } }
+    window.__cdLockedFields = locked;
     // v777: 独立页提交/数据联动所需配置（提交前先捕获，replaceState 之后 search 就没了）
     window.__cdClientCfg = { su: params.get('su') || '', sk: params.get('sk') || '', g: params.get('g') || '', allowUrgent: params.get('au') === '1' };
     // order-form.html 独立页保留参数（单主刷新不丢表单）；工作台内打开时清理地址栏
@@ -14189,13 +14236,13 @@ function cdCheckClientFormFromUrl() {
       history.replaceState({}, '', window.location.pathname || window.location.href.split('?')[0]);
     }
     // 单主专用：打开干净独立填写页（不暴露用户工作台），模板预设值带入预填
-    if (params.get('standalone') === '1') { cdRenderClientStandalone(catKey, preset); return; }
-    cdOpenClientFormFromLink(catKey, preset ? { preset } : undefined);
+    if (params.get('standalone') === '1') { cdRenderClientStandalone(catKey, preset, locked); return; }
+    cdOpenClientFormFromLink(catKey, preset ? { preset, locked } : undefined);
   } catch (e) {}
 }
 // 单主专用独立填写页：仅渲染表单，隐藏侧边栏/顶栏，提交后显示致谢
 // v777: 渲染前先从云端预取价目表/文案库（带 5 秒超时兜底），保证表单选项联动与文案库可用
-async function cdRenderClientStandalone(catKey, preset) {
+async function cdRenderClientStandalone(catKey, preset, locked) {
   const mod = MODULES[catKey];
   if (!mod) return;
   try { await Promise.race([cdClientSeedCloudData(), new Promise(res => setTimeout(res, 5000))]); } catch (e) {}
@@ -14211,16 +14258,19 @@ async function cdRenderClientStandalone(catKey, preset) {
   if (_cfg.allowUrgent) data.allowUrgent = true;
   const body = $('#mainBody');
   if (!body) return;
+  const lockedList = Array.isArray(locked) ? locked : (Array.isArray(window.__cdLockedFields) ? window.__cdLockedFields : []);
   let html = '<div class="cd-client-standalone">';
   html += `<div class="cd-client-head">${esc(mod.category)}约稿单</div>`;
+  if (lockedList.length) html += `<div class="cd-locked-tip">${lucide('lock',12)}以下 ${lockedList.length} 项为约稿方已填写的固定内容，不可修改；请填写其余空白项。</div>`;
   // v799: 独立填写页同样注入「文案库」按钮（与弹窗内路径一致）
   html += '<div class="cd-client-form">';
-  html += cdInjectTplBtn(cdFormShell(buildCdClientForm(catKey, data)));
+  // v935：locked 字段渲染为只读（灰底 + 只读态），单主无法改动
+  html += cdInjectTplBtn(cdFormShell(buildCdClientForm(catKey, data, lockedList)));
   html += '</div>';
   html += `<div class="cd-client-submit"><button class="btn btn-primary" onclick="saveCdClientForm('${catKey}', true)">提交</button></div>`;
   html += '</div>';
   body.innerHTML = html;
-  setTimeout(() => { setupFormInteractions(catKey); }, 50);
+  setTimeout(() => { setupFormInteractions(catKey); cdApplyLockedFields(lockedList); }, 50);
 }
 // v777: 独立填写页从云端预取价目表/文案库，注入本地 DB 供表单选项与文案库弹窗使用
 async function cdClientSeedCloudData() {
@@ -14236,12 +14286,16 @@ async function cdClientSeedCloudData() {
     if (row.store === 'textTemplates' && Array.isArray(row.data)) DB.set('textTemplates', row.data);
   });
 }
-function buildCdClientForm(pageKey, data) {
+function buildCdClientForm(pageKey, data, locked) {
   const mod = MODULES[pageKey];
   const fields = prepareFields(pageKey, mod.fields).filter(f => !f.localOnly);
   const deliveryIdx = fields.findIndex(f => f.section === '交付规范');
   const hasExtra = cdSupportsExtra(pageKey);
+  // v935：locked 里的 key 换成当前真实字段 key（土味等模块的 style-color-box 用 data-key 不用字段 key）
+  const lockedKeys = cdResolveLockedKeys(pageKey, locked);
   let html = '';
+  // v935：locked 只读在渲染后由 cdApplyLockedFields 统一处理（按 data-key 定位元素），
+  // 不改 buildForm 签名，避免影响其它所有调用方
   if (deliveryIdx > -1) {
     // v829：是否加急跟制品走——初始制品加急按 fields 自然顺序渲染，不再搬运
     html += buildForm(fields.slice(0, deliveryIdx), data, pageKey);
@@ -14252,6 +14306,40 @@ function buildCdClientForm(pageKey, data) {
     if (hasExtra) html += buildCdExtraProductsHTML(pageKey, data.extraProducts || [], data);
   }
   return html;
+}
+/* v935：把模板方保存的「手填字段名」映射到实际表单元素的 data-key。
+   土味等模块的「制品信息」是 custom html 一整块，模板里存的是 product/layout/size/bleed 四个 data-key，
+   而 fields 里没有对应项 —— 这里按 data-key 直接匹配元素，匹配不到就按字段 label 文本兜底。 */
+function cdResolveLockedKeys(pageKey, locked) {
+  if (!Array.isArray(locked) || !locked.length) return [];
+  const mod = MODULES[pageKey];
+  const out = [];
+  (mod.fields || []).forEach(f => {
+    if (!f || !f.key || !f.label) return;
+    if (locked.indexOf(f.key) !== -1) out.push(f.key);
+    else if (locked.some(l => l.indexOf(f.label) === 0 || f.label.indexOf(l) === 0)) out.push(f.key);
+  });
+  // custom html 里的 data-key（product/layout/size/bleed 等）直接沿用
+  locked.forEach(l => { if (out.indexOf(l) === -1 && /^[a-zA-Z][\w-]*$/.test(l)) out.push(l); });
+  return out;
+}
+/* v935：把 lockedKeys 指定的表单元素设为只读 + 加只读态样式（灰底、禁止聚焦编辑、角标提示）。 */
+function cdApplyLockedFields(lockedKeys) {
+  if (!Array.isArray(lockedKeys) || !lockedKeys.length) return;
+  const root = document.querySelector('.cd-client-standalone') || document;
+  lockedKeys.forEach(k => {
+    $$('[data-key="' + k + '"]', root).forEach(el => {
+      const tag = (el.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') {
+        el.setAttribute('readonly', 'readonly');
+        el.setAttribute('aria-readonly', 'true');
+        el.classList.add('cd-field-locked');
+        if (el.dataset) el.dataset.locked = '1';
+      } else {
+        el.classList.add('cd-field-locked-box');
+      }
+    });
+  });
 }
 function saveCdClientForm(pageKey, standalone) {
   const mod = MODULES[pageKey];
