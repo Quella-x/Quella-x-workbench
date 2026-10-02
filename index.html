@@ -2899,7 +2899,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
      她手机实测 标签空隙20.6 vs 内容空隙13.8CSS，青线画在内容墨迹顶部=对齐目标）——
      标签墨迹顶部对齐内容首行墨迹顶部：flex-start+margin-top:2px（结构化，双方都是行盒居中，随字体等比、不依赖雅黑度量）；
      空记录盒（早餐无记录）单独居中（单行内容垂直居中，centered 即对齐） */
-  .lr-subtype-label{width:36px;font-size:16px;align-self:center;margin-top:0}
+  /* v931: 标签恢复 v834(v1.1.48 基准)观感——顶对齐+8px 下沉（v905 的 2px 比 v834 高 6px 故她报"飞了"，
+     v930 的盒居中在多行/多条/空盒间与首行相对位置漂移故她报"不一致"）；空记录盒保持居中与提示文字同行 */
+  .lr-subtype-label{width:36px;font-size:16px;align-self:flex-start;margin-top:8px}
   .lr-subtype-box.lr-box-empty .lr-subtype-label{align-self:center;margin-top:0}
   .lr-subtype-add{width:24px;height:24px;font-size:16px}
   .lr-empty-row{padding:9.5px 0}
@@ -3633,7 +3635,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=930"></script>
+  <script src="app.js?v=931"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
