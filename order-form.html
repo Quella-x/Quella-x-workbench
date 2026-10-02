@@ -185,13 +185,6 @@ html.apk.modal-lock{overflow:hidden!important}
   flex-shrink:0;box-shadow:var(--shadow-sm);z-index:10;
 }
 .main-header .page-title{font-size:16px;font-weight:600;flex:1}
-/* v932：模块顶部标题水平居中。用绝对定位而不是 flex:1 + text-align:center——
-   左侧汉堡按钮(36px)与右侧同步徽标+设置按钮(约 110px)宽度不等，靠 flex 居中会整体偏左约 35px。 */
-.main-header{position:relative}
-.main .main-header .page-title{position:absolute;left:50%;transform:translateX(-50%);text-align:center;white-space:nowrap;max-width:calc(100% - 130px);overflow:hidden;text-overflow:ellipsis}
-/* v932：手机端下边距多一点、电脑端上边距多一点（标题随之微移，视觉更贴设备） */
-@media (max-width:768px){ .main .main-header{padding-top:8px;padding-bottom:12px} }
-@media (min-width:769px){ .main .main-header{padding-top:12px;padding-bottom:8px} }
 .main-header .header-settings-btn{
   width:36px;height:36px;border-radius:6px;
   background:var(--c-primary-bg);color:var(--c-primary);
@@ -318,7 +311,12 @@ html.apk.modal-lock{overflow:hidden!important}
 .record-card:hover{box-shadow:var(--shadow);border-color:var(--c-primary-bg)}
 .record-list.two-col .record-card{min-height:110px}
 .record-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;flex-wrap:wrap}
-.record-card-title{font-size:14px;font-weight:600;color:var(--c-text);flex:1;word-break:break-word;min-width:0}
+.record-card-title{font-size:14px;font-weight:600;color:var(--c-text);flex:1;word-break:break-word;min-width:0;text-align:center}
+/* v934：展示模块（记录卡片）标题居中——左侧占位与右侧操作区（2×26px 图标+4px 间距=56px）等宽，标题真居中 */
+.rch-spacer{width:56px;flex-shrink:0}
+/* v934：卡片标题边距——手机端下边距多一点、电脑端上边距多一点 */
+@media (max-width:768px){ .record-list .record-card-header{margin-bottom:12px} }
+@media (min-width:769px){ .record-list .record-card-header{margin-top:4px} }
 /* v452：九大模块列表视图卡片标题底部分割线与接稿排期列表视图右侧接稿详情模块(.cdc-header)统一为同款 1px solid var(--c-border-light) */
 .record-list .record-card-header{border-bottom:1px solid var(--c-border-light);padding-bottom:8px}
 /* v535：接稿排期日历视图卡片标题/编辑/删除/分割线整体下移 1px（累计 -3px） */
@@ -621,14 +619,14 @@ html.apk.modal-lock{overflow:hidden!important}
 .modal.notes-sm .pricelist-notes-grid{grid-template-columns:1fr;gap:0}
 .modal.notes-sm .pricelist-notes-header{padding-bottom:16px;margin-bottom:8px}
 .modal.notes-sm .pricelist-note-item{padding:12px 12px}
-.modal.tpl-lib-modal{height:min(680px,90vh)}
+.modal.tpl-lib-modal{height:min(780px,92vh)} /* v934：文案库整体加高 */
 .modal.tpl-lib-modal .modal-body{padding:8px 0 0 0;display:flex;flex-direction:column}
-.modal.tpl-lib-modal .tpl-lib-folder{flex:1;min-height:0;display:flex;flex-direction:column}
+.modal.tpl-lib-modal .tpl-lib-folder{flex:1.4;min-height:0;display:flex;flex-direction:column} /* v934：库列表区占比加大 */
 .modal.tpl-lib-modal .tpl-white-card{flex:1;min-height:0;display:flex;flex-direction:column}
 .modal.tpl-lib-modal .tpl-folder-list{flex:1;min-height:160px;max-height:none}
 .modal.tpl-lib-modal .tpl-new{flex:1;min-height:0}
 .modal.tpl-lib-modal .tpl-new .cd-import-actions{margin-top:auto}
-.modal.tpl-lib-modal .tpl-new .form-textarea{flex:1;min-height:92px;margin-bottom:14px}
+.modal.tpl-lib-modal .tpl-new .form-textarea{flex:1;min-height:64px;margin-bottom:10px} /* v934：新增文案输入框压矮 */
 .modal.tpl-lib-modal .tpl-lib-folder>.tpl-new-title{font-size:14px;font-weight:700;margin:0 0 8px}
 /* v751：编辑其他说明弹窗与「其他说明」查看弹窗等高（JS 传入查看弹窗实测高度），输入框拉满剩余空间 */
 .modal.notes-equal{display:flex;flex-direction:column}
@@ -1023,9 +1021,11 @@ html.apk.modal-lock{overflow:hidden!important}
    统一给表头和行 716px 最小宽 + 容器横向滚动（两者同宽、同步滚动），任何桌面宽度下逐列严格对齐；宽屏（≥734 容器）无滚动条不受影响 */
 @media (min-width:769px){
   .dynamic-list-container{overflow-x:auto}
-  /* 表头 border-box 含左右各 8px 内边距，min-width 须 = 行 716 + 16，两容器内容区才等宽 */
-  .dynamic-list-header{min-width:732px}
-  .dynamic-list-row{min-width:716px}
+  /* v934：min 总宽 716→679（制品列下限 147→110，容器足够时制品列仍吸收富余，实际渲染宽度不变），
+     给 780px 弹窗留出 ~50px 冗余，缩放取整不再触发横向滚动条 */
+  /* 表头 border-box 含左右各 8px 内边距，min-width 须 = 行 679 + 16，两容器内容区才等宽 */
+  .dynamic-list-header{min-width:695px}
+  .dynamic-list-row{min-width:679px}
 }
 .dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-row .combobox-input{padding:8px 26px 8px 8px!important}
 .dynamic-list-row .combobox-toggle{right:2px;width:18px;font-size:10px}
@@ -2397,6 +2397,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lbt-btn{
   border:1px solid var(--c-primary-light);background:var(--c-card);color:var(--c-primary);box-shadow:none;
   font-size:12px;font-weight:600;padding:5px 12px;border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;
+  min-width:36px;text-align:center;
 }
 .lbt-btn:hover{border-color:var(--c-primary)}
 .lbt-btn.active{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
@@ -2737,6 +2738,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-date-nav .cd-month-btn{border:none;background:transparent;color:var(--c-text-light);font-size:14px;padding:4px 10px;box-shadow:none;cursor:pointer}
 .lr-date-nav .cd-month-btn:hover{color:var(--c-primary);background:transparent}
 .lr-date-nav .cd-month-btn:disabled{opacity:.35;cursor:not-allowed;color:var(--c-text-light);background:transparent}
+/* v934：日期标签固定宽度（容纳最长「2026年12月28日 ▾」），切换日期时导航整体不再移动/缩放 */
+.lr-date-nav .life-monthbar-txt{width:136px;min-width:136px}
 .lmp-back{font-size:12px;color:var(--c-primary);text-align:center;padding:4px 0 8px;cursor:pointer}
 .lr-toggle-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--c-card);border:1px solid transparent;border-radius:var(--radius-sm);padding:0 12px;font-size:13px;font-weight:600;color:var(--c-text);cursor:pointer;transition:.15s;line-height:1;height:var(--pill-h);min-height:var(--pill-h);box-shadow:var(--shadow-sm)}
 .lr-toggle-btn:hover{color:var(--c-primary);box-shadow:var(--shadow)}
@@ -2880,7 +2883,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-week-nav .btn{border:none;background:transparent;color:var(--c-text-light);font-size:14px;padding:4px 8px;box-shadow:none}
 .lr-week-nav .btn:hover{color:var(--c-primary);background:transparent}
 .lr-week-nav .btn:disabled{opacity:.35;cursor:not-allowed;color:var(--c-text-light);background:transparent}
-.lr-week-nav .life-monthbar-txt{font-size:14px;font-weight:700;color:var(--c-text);min-width:120px;text-align:center;cursor:pointer;user-select:none}
+.lr-week-nav .life-monthbar-txt{font-size:14px;font-weight:700;color:var(--c-text);width:132px;min-width:132px;text-align:center;cursor:pointer;user-select:none}
 .lr-week-nav .life-monthbar-txt:hover{color:var(--c-primary)}
 
 @media (max-width:640px){
@@ -2948,7 +2951,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-size-note{font-size:10px}
   .lr-history-stat-card{padding:8px}
   .lr-hsc-title{font-size:14px}
-  .lr-hsc-chart-body{height:324px;margin-top:10px}
+  .lr-hsc-chart-body{height:324px;margin-top:34px} /* v934：手机端小时刻度画在 svg 上方约 25px，加大 margin 让「日均」行上下留白相等 */
   .lr-hsc-metrics{gap:6px;padding:6px 2px 2px}
   .lr-hsc-metric-val{font-size:18px}
   .lr-hsc-metric-val small{font-size:11px}
@@ -3013,7 +3016,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-tab-nav:hover:not(:disabled){background:var(--c-primary-bg);border-radius:4px}
 .tpl-tab-nav:disabled{opacity:.4;cursor:default}
 .tpl-white-card{background:#fff;border:1px solid #dde4ec;border-radius:0 0 6px 6px;padding:0;box-shadow:0 1px 4px rgba(20,40,60,.06);overflow:hidden}
-.tpl-folder-list{display:flex;flex-direction:column;min-height:160px;overflow-y:auto;overflow-x:hidden;padding:0}
+.tpl-folder-list{display:flex;flex-direction:column;min-height:160px;overflow-y:auto;overflow-x:hidden;padding:0 0 4px;scroll-snap-type:y proximity} /* v934：scroll-snap 防半行停在边缘 */
 /* v767：列表行间 1px 浅灰分隔线（首行无） */
 .tpl-folder-list>*+*{border-top:1px solid #eef1f5}
 /* v762：两库底部统一操作栏（无分隔线） */
@@ -3043,7 +3046,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-new-title{font-size:14px;font-weight:700;color:var(--c-text);margin:0 0 10px}
 .tpl-new-tip-box{font-size:12px;color:var(--c-text-muted);line-height:1.6;background:var(--c-primary-bg);padding:10px 12px;border-radius:8px;margin:0 0 10px;width:auto;box-sizing:border-box}
 .tpl-new-hint{font-size:12px;color:var(--c-text-muted)}
-.tpl-snippet{display:flex;align-items:center;gap:8px;min-height:33px;padding:6px 16px;background:transparent;border:none;border-radius:0;cursor:pointer;transition:background .2s;overflow:hidden}
+.tpl-snippet{display:flex;align-items:center;gap:8px;min-height:33px;padding:6px 16px;background:transparent;border:none;border-radius:0;cursor:pointer;transition:background .2s;overflow:hidden;scroll-snap-align:end} /* v934：贴齐底边，最后一行不裁半 */
 .tpl-snippet:hover{background:#eaf4fd}
 .tpl-snippet.selected{background:var(--c-primary-bg);margin:0 -16px;padding:6px 32px}
 .tpl-snippet.selected:hover{background:#cfe8fb}
@@ -3137,7 +3140,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-rec-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
 .cd-rec-head:hover{background:var(--c-primary-bg)}
 /* v932: 三角折叠按钮放大（12px/14px → 16px/18px），并改成 inline-flex 居中，避免字形在 em-box 里偏移 */
-.cd-rec-toggle{font-size:16px;color:var(--c-primary);width:18px;height:18px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.cd-rec-toggle{font-size:22px;color:var(--c-primary);width:24px;height:24px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0} /* v934：16→22px 再加大 */
 /* v456：单主标题字色与顶部品类按钮默认文字色(var(--c-text))一致 */
 .cd-rec-title{font-size:14px;font-weight:700;color:var(--c-text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* v452：约稿单卡片品类/单主展示块字色与四个品类按钮内文字色(var(--c-text))统一 */
@@ -3661,7 +3664,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=933"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=934"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

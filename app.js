@@ -2666,6 +2666,8 @@ MODULES['groupbuy-factories'] = {
     ];
   },
   statsTitle: '厂家统计',
+  // v934：年度统计归年字段（此前缺失导致「全部/年度」切换无效；与图表 yearField 同源）
+  statsYearField: 'firstContactTime',
   detailExtra: (r) => '',
 };
 
@@ -3675,6 +3677,14 @@ function renderListPage(pageKey, mod) {
       if (at !== bt) return bt.localeCompare(at);
       return (b._ct || 0) - (a._ct || 0);
     });
+  } else if (pageKey === 'groupbuy-samples') {
+    // v934：打样记录按「打样时间」(sampleTime) 降序，最新打样在前；同日期按创建时间兜底
+    records.sort((a, b) => {
+      const at = (a.sampleTime || '').replace(/-/g, '');
+      const bt = (b.sampleTime || '').replace(/-/g, '');
+      if (at !== bt) return bt.localeCompare(at);
+      return (b._ct || 0) - (a._ct || 0);
+    });
   } else if (pageKey === 'oc-profiles') {
     records.sort((a, b) => {
       const ao = a.order != null ? a.order : 999999;
@@ -3850,6 +3860,7 @@ function renderListPage(pageKey, mod) {
       html += '<div class="record-card-header">';
       const cardImg = mod.cardImage ? mod.cardImage(r) : null;
       if (cardImg) html += `<img src="${cardImg}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0">`;
+      else html += '<span class="rch-spacer"></span>'; /* v934: 左占位与右侧操作区等宽，标题真居中 */
       const titleText = r.title || r.name || r.theme || r.sampleName || r.artworkName || r.clientInfo || '未命名记录';
       /* v688 修复：逾期图标（lucide 输出的 SVG 字符串）单独拼接，不走 esc()——之前 esc() 会把 SVG 标签转义成实体显示成文字 */
       const overdueIcon = isOverdue ? lucide('alert-triangle',14) + ' ' : '';
@@ -5632,7 +5643,7 @@ function renderPriceCalc() {
   html += '<div class="form-row"><label class="form-label">样品成本</label><input type="number" class="form-input" id="calc_sampleCost" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">元</span></div>';
   html += '<div class="form-row"><label class="form-label">人工成本</label><input type="number" class="form-input" id="calc_laborCost" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">元/件</span></div>';
   html += '<div class="form-row"><label class="form-label">运费</label><input type="number" class="form-input" id="calc_shipping" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">元/件</span></div>';
-  html += '<div class="form-row"><label class="form-label">抽成比例</label><input type="number" class="form-input" id="calc_commissionRate" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">%</span></div>';
+  html += '<div class="form-row"><label class="form-label">抽成比例</label><input type="number" class="form-input" id="calc_commissionRate" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">% 平台手续费</span></div>';
   html += '<div class="form-row"><label class="form-label">预期利润率</label><input type="number" class="form-input" id="calc_profitMargin" value="30" oninput="calcPrice()"><span class="form-hint">%</span></div>';
   html += '<div class="form-row"><label class="form-label">开团数量</label><input type="number" class="form-input" id="calc_quantity" value="100" oninput="calcPrice()"></div>';
   html += '<div class="form-row"><label class="form-label">模板名称</label><input type="text" class="form-input" id="calc_templateName" placeholder="保存为模板便于复用"></div>';
@@ -7061,7 +7072,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 933, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 934, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -11757,7 +11768,7 @@ function renderDietRecordCard(date) {
 }
 function renderSleepWeekLineChart(days) {
   const all = DB.list('lifeRecords');
-  const wdLabels = ['周日','周六','周五','周四','周三','周二','周一']; // days已倒序（周日->周一），与下方日卡片对齐
+  const wdLabels = ['周一','周二','周三','周四','周五','周六','周日']; // v934：周一→周日正序（用户要求）
   // v373：夜晚时长(橙) / 午睡时长(黄) 分两条折线；清醒次数按夜晚记录统计
   // v548：duration缺失时从sleepTime/wakeTime自动计算，避免旧记录显示0m
   const nightVals = days.map(d => all.filter(r => r.type === 'sleep' && r.date === d && r.subtype === 'night').reduce((s, r) => s + getSleepDuration(r), 0));
@@ -11770,7 +11781,7 @@ function renderSleepWeekLineChart(days) {
   // v555：恢复 v550 压缩居中方案，viewBox 720×568，桌面端收紧边距、移动端保持原样，避免全部挤在左边且字体过大
   const isDesktop = window.innerWidth > 768;
   const W = 720, H = 568;
-  const LM = isDesktop ? 45 : 80, RM = isDesktop ? 15 : 40, TM = isDesktop ? 70 : 46, BM = isDesktop ? 40 : 4;
+  const LM = isDesktop ? 45 : 80, RM = isDesktop ? 15 : 40, TM = isDesktop ? 70 : 46, BM = isDesktop ? 40 : 10; // v934：手机端 BM 4→10，周日到底部留白与「日均」行上边距相等
   const hourLabelY = isDesktop ? TM - 52 : TM - 55; // v707：桌面 v704(TM-52)；手机端回 v1.1.28(TM-55)，因 .lr-hsc-chart-body svg{overflow:visible} 刻度画在 viewBox 上方仍可见且不压数据
   const CW = W - LM - RM, CH = H - TM - BM;
   const xOf = v => LM + (maxV > 0 ? v / maxV * CW : 0);
@@ -11793,13 +11804,17 @@ function renderSleepWeekLineChart(days) {
     const y = yOf(i);
     return `<text x="${LM - 14}" y="${(y + 9).toFixed(1)}" text-anchor="end" font-size="${isDesktop?18:24}" font-weight="600" fill="var(--c-text)">${wdLabels[i]}</text>`;
   }).join('');
-  const seriesPoints = (vals, color) => vals.map((v, i) => {
+  // v934：夜晚/午间两行数据标签避让——同行两点水平距离 < 90px 时，午间(黄)标签移到点下方，夜晚(橙)保持在上方
+  const nightXs = nightVals.map(xOf);
+  const seriesPoints = (vals, color, avoidXs) => vals.map((v, i) => {
     const x = xOf(v), y = yOf(i);
     const label = formatSleepDuration(v);
     const anchor = (v / maxV) > 0.78 ? 'end' : 'start';
     const lx = anchor === 'end' ? x - 12 : x + 12;
-    // v706：恢复 v1.1.28 数据标签位置（上方），行0 也走 y-22
-    const ly = isDesktop ? (anchor === 'end' ? y + 26 : y - 22) : y - 22;
+    const nearOther = avoidXs && avoidXs.length > i && Math.abs(avoidXs[i] - x) < 90;
+    let ly;
+    if (nearOther) ly = y + 30; // 避让：移到点下方
+    else ly = isDesktop ? (anchor === 'end' ? y + 26 : y - 22) : y - 22;
     return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${label}</text><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/></g>`;
   }).join('');
   return `<div class="lr-history-stat-card">
@@ -11819,8 +11834,8 @@ function renderSleepWeekLineChart(days) {
         <polyline fill="none" stroke="${napColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${linePath(napVals)}"/>
         <polyline fill="none" stroke="${nightColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${linePath(nightVals)}"/>
         ${dayLabels}
-        ${seriesPoints(napVals, napColor)}
-      ${seriesPoints(nightVals, nightColor)}
+        ${seriesPoints(napVals, napColor, nightXs)}
+      ${seriesPoints(nightVals, nightColor, null)}
     </svg>
   </div>
 </div>`;
@@ -11885,7 +11900,7 @@ function renderLifeRecordHistory(typeKey) {
     <div class="life-month-picker ${lifeRecordHistoryWeekPickerOpen ? 'show' : ''}" id="lrHistoryWeekPicker">${lifeRecordHistoryWeekPickerInner()}</div>
     <div class="life-picker-backdrop" id="lrHistoryWeekBackdrop" onclick="lifeRecordHistoryToggleWeekPicker()" style="display:${lifeRecordHistoryWeekPickerOpen ? 'block' : 'none'}"></div>
   </div>`;
-  if (typeKey === 'sleep') navChart += renderSleepWeekLineChart(daysRev);
+  if (typeKey === 'sleep') navChart += renderSleepWeekLineChart(days); // v934：折线图按周一→周日正序
   else navChart += renderDietWeekStats(daysRev);
   let dayCards = '';
   daysRev.forEach((d, i) => { dayCards += renderLifeRecordHistoryDayCard(typeKey, d, wdRev[i]); });
