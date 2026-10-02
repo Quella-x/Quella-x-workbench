@@ -247,23 +247,36 @@ const Sync = {
   async pushAll() {
     if (!this.enabled()) return;
     this.setStatus('syncing');
-    try {
-      for (const store of SYNC_STORES) { await this.syncStore(store); }
-      this.lastError = '';
-      this.setStatus('connected');
-    } catch (e) { this.lastError = e.message; this.setStatus('disconnected'); }
+    // v933：单个 store 失败不再中断整轮——旧逻辑把 for 循环整体包在一个 try 里，
+    // 只要有一个 store 抛错（如 413 单条过大），排在它后面的 store 全都推不上去，表现就是「手机改了电脑不变」。
+    const errs = [];
+    let okCount = 0;
+    for (const store of SYNC_STORES) {
+      try { await this.syncStore(store); okCount++; }
+      catch (e) {
+        this.diag[store] = Object.assign(this.diag[store] || {}, { error: e.message });
+        errs.push(store + ':' + e.message);
+      }
+    }
+    this.lastError = errs.length ? errs.join(' | ') : '';
+    this.setStatus(okCount ? 'connected' : 'disconnected');
     healScrollLock(); // v799
   },
   async pullAll() {
     if (!this.enabled()) return;
     let changed = false;
-    try {
-      for (const store of SYNC_STORES) { if (await this.syncStore(store)) changed = true; }
-      this.lastSync = Date.now();
-      DB.set('syncLast', this.lastSync);
-      this.lastError = '';
-      this.setStatus('connected');
-    } catch (e) { this.lastError = e.message; this.setStatus('disconnected'); }
+    const errs = [];
+    let okCount = 0;
+    for (const store of SYNC_STORES) {
+      try { if (await this.syncStore(store)) changed = true; okCount++; }
+      catch (e) { // v933：同上，逐个隔离，失败的 store 记进诊断
+        this.diag[store] = Object.assign(this.diag[store] || {}, { error: e.message });
+        errs.push(store + ':' + e.message);
+      }
+    }
+    if (okCount) { this.lastSync = Date.now(); DB.set('syncLast', this.lastSync); }
+    this.lastError = errs.length ? errs.join(' | ') : '';
+    this.setStatus(okCount ? 'connected' : 'disconnected');
     healScrollLock(); // v799
     if (changed) {
       Toast.info('已从云端同步最新数据');
@@ -277,8 +290,10 @@ const Sync = {
     try {
       // v776: 拉取→合并→按需推回已在 syncStore 内统一完成，fullSync 即全量收敛，无覆盖风险。
       await this.pushAll();
-      if (this.status !== 'disconnected') { this.lastError = ''; this.setStatus('connected'); }
-      Toast.success('同步完成');
+      if (this.status !== 'disconnected') this.setStatus('connected');
+      // v933: 有部分失败的 store 时提示出来，不再用 success 掩盖
+      if (this.lastError) Toast.warning('同步完成（部分失败）：' + this.lastError);
+      else Toast.success('同步完成');
     } catch (e) { this.lastError = e.message; this.setStatus('disconnected'); Toast.error('同步失败：' + e.message); }
     healScrollLock(); // v799: 同步结束后强制自愈滚动锁
   },
@@ -7046,7 +7061,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 932, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 933, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -9260,12 +9275,12 @@ function syncCopyDiag() {
   lines.push('状态：' + Sync.status + ' · 上次同步：' + (Sync.lastSync ? Sync.fmtAgo(Sync.lastSync) : '无'));
   lines.push('最近错误：' + (Sync.lastError || '无'));
   lines.push('');
-  lines.push('Store\t本地\t云端');
+  lines.push('Store\t本地\t云端\t错误');
   SYNC_STORES.forEach(s => {
     const d = Sync.diag[s] || {};
     const local = d.local ?? DB.list(s).length;
     const cloud = d.cloud ?? '?';
-    if (local || cloud) lines.push(s + '\t' + local + '\t' + cloud);
+    if (local || cloud || d.error) lines.push(s + '\t' + local + '\t' + cloud + '\t' + (d.error || ''));
   });
   const text = lines.join('\n');
   if (navigator.clipboard && navigator.clipboard.writeText) {
