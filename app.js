@@ -2764,7 +2764,7 @@ MODULES['design-commission'] = {
       { subkey: 'price', label: '价格', type: 'number' },
     ]},
     { key: 'isUrgent', label: '是否加急', type: 'multiselect', single: true, default: '否', options: [{ value: '是', label: '是' }, { value: '否', label: '否' }] },
-    { key: 'quoteAmount', label: '报价金额', type: 'number', hint: '元（手动输入）' },
+    { key: 'quoteAmount', label: '报价金额', type: 'number', hint: '元（自动：制品+加价项目，可手改）', hintInline: true },
     { key: 'deposit', label: '定金', type: 'readonly', row: 'depositBalance', hint: '自动计算（报价金额50%）' },
     { key: 'balance', label: '尾款', type: 'readonly', row: 'depositBalance', hint: '自动计算' },
     // v652：支付状态改纯多选（去掉 single:true），允许同时记录定金+尾款等组合
@@ -2778,7 +2778,7 @@ MODULES['design-commission'] = {
       { subkey: 'note', label: '备注', type: 'text' },
     ]},
 
-    { key: 'amount', label: '最终金额', type: 'number', hint: '元（手动输入）' },
+    { key: 'amount', label: '最终金额', type: 'number', hint: '元（自动：报价金额+修改项目，可手改）', hintInline: true },
     { key: 'notes', label: '备注', type: 'textarea' },
   ],
   filters: [
@@ -4733,20 +4733,41 @@ function setupFormInteractions(pageKey) {
   if ($('#imgUpload')) initImageUpload('#imgUpload');
   if (pageKey === 'design-commission') {
     const modalBody = $('#modalBody');
+    // v932：报价金额/最终金额改为「自动跟随明细」——
+    //   报价金额 = Σ制品(价格×数量) + Σ加价项目(价格×数量)
+    //   最终金额 = 报价金额 + Σ修改项目(次数×价格)
+    // 旧逻辑只在 amount 为空时同步一次：先敲「4」时 amount 被填成 4，再敲成「40」就再也不更新（两位数只剩 4）。
+    // 现在用 autoQ/autoA 标记「是否被手工改写过」：没手工改写就一直跟随明细重算，手工改写过则尊重手填值。
+    let autoQ = true, autoA = true;
+    const qInput = $('[data-key="quoteAmount"]', modalBody);
+    const aInput = $('[data-key="amount"]', modalBody);
+    const r2 = n => Math.round((Number(n) || 0) * 100) / 100;
     const recalc = () => {
       const data = readForm(modalBody);
-      calcCommissionPrice(data);
+      const listSum = r2(commissionListSum(data));
+      const modSum = r2(commissionModSum(data));
+      if (autoQ && qInput) qInput.value = listSum;
+      const quoteVal = parseFloat(qInput && qInput.value) || 0;
+      if (autoA && aInput) aInput.value = r2(quoteVal + modSum);
       const depositInput = $('[data-key="deposit"]', modalBody);
-      if (depositInput) depositInput.value = data.deposit || 0;
+      if (depositInput) depositInput.value = r2(quoteVal * 0.5);
       const balanceInput = $('[data-key="balance"]', modalBody);
-      if (balanceInput) balanceInput.value = data.balance || 0;
-      // Auto-sync amount field in real-time if it's 0 or empty
-      const amountInput = $('[data-key="amount"]', modalBody);
-      if (amountInput && !parseFloat(amountInput.value)) amountInput.value = data.quoteAmount || 0;
+      if (balanceInput) balanceInput.value = r2(quoteVal * 0.5);
     };
-    modalBody.addEventListener('input', (e) => {
-      if (e.target.dataset.key === 'quoteAmount') recalc();
-    });
+    // 打开表单时判定初始是否处于「自动」状态：已存的金额若与明细算出来的不一致，视为手工值，不覆盖
+    const initAuto = () => {
+      const d0 = readForm(modalBody);
+      const ls = commissionListSum(d0), ms = commissionModSum(d0);
+      const q0 = parseFloat(d0.quoteAmount), a0 = parseFloat(d0.amount);
+      autoQ = !(isFinite(q0) && Math.abs(q0 - ls) > 0.005);
+      autoA = !(isFinite(a0) && Math.abs(a0 - (isFinite(q0) ? q0 : 0) - ms) > 0.005);
+    };
+    modalBody.addEventListener('input', () => recalc());
+    modalBody.addEventListener('change', () => recalc());
+    modalBody.addEventListener('click', () => setTimeout(recalc, 0)); // 增删明细行后重算
+    if (qInput) qInput.addEventListener('input', () => { autoQ = (qInput.value === ''); });
+    if (aInput) aInput.addEventListener('input', () => { autoA = (aInput.value === ''); });
+    initAuto();
     setTimeout(recalc, 100);
   }
   // 约稿单：平台昵称填完自动同步到单主（单主为空时填充）
@@ -4848,6 +4869,18 @@ function saveForm(pageKey, mod, id) {
 }
 
 /* ===== Commission Price Calculation (v15: 定金尾款两位小数) ===== */
+/* v932：金额自动计算口径
+   报价金额 = Σ制品(价格×数量) + Σ加价项目(价格×数量)
+   最终金额 = 报价金额 + Σ修改项目(次数×价格)
+   与报价计算器一致（报价金额=最终报价、最终金额=最终报价+修改加价）。 */
+function commissionListSum(data) {
+  const prod = (data && data.products || []).reduce((s, p) => s + (parseFloat(p.price) || 0) * (parseInt(p.quantity) || 1), 0);
+  const extra = (data && data.extraItems || []).reduce((s, x) => s + (parseFloat(x.price) || 0) * (parseInt(x.quantity) || 1), 0);
+  return prod + extra;
+}
+function commissionModSum(data) {
+  return (data && data.modifications || []).reduce((s, m) => s + (parseInt(m.modifyCount) || 0) * (parseFloat(m.modifyPrice) || 0), 0);
+}
 function calcCommissionPrice(data) {
   const quoteAmount = parseFloat(data.quoteAmount) || 0;
   data.deposit = Math.round(quoteAmount * 0.5 * 100) / 100;
@@ -5016,6 +5049,9 @@ function openDetail(pageKey, id) {
     if (f.type === 'dynamic-list' || f.type === 'dynamic-products') {
       const items = r[f.key] || [];
       const isCommProd = (pageKey === 'design-commission' && f.key === 'products');
+      // v932: 只有窄屏(<=768px)才让序号占两行——桌面端第二行(comm-ud-row)是 display:none，
+      // rowspan 跨到隐藏行会让 table 自动布局把各列宽度算乱。
+      const _isNarrow = (typeof window !== 'undefined' && window.matchMedia) ? window.matchMedia('(max-width:768px)').matches : false;
       const cols = (f.columns || []).filter(c => !(isCommProd && c.subkey === 'urgent'));
       // v914: 售后记录备注不显示为普通列，只作为单号下方的跨行备注行
       // v931: 开团记录制品列表恢复「是否流团」为表格普通列（v915 曾移出表格改 inline 标签，用户要求回到最初表格样式）
@@ -5032,6 +5068,11 @@ function openDetail(pageKey, id) {
         const _cc = { _seq: 'cc-seq', patternId: 'cc-pat', price: 'cc-price', size: 'cc-size', quantity: 'cc-qty', sameModel: 'cc-model' }[c.subkey];
         const ws = forTh ? '' : ' style="white-space:nowrap;"';
         return _cc ? ` class="${_cc}"${ws}` : '';
+      };
+      // v932: td 也要带同名 class，手机端才能把「柄图标识/同模」整列隐藏（挪到第二行展示）
+      const commTdClass = c => {
+        const _cc = { _seq: 'cc-seq', patternId: 'cc-pat', price: 'cc-price', size: 'cc-size', quantity: 'cc-qty', sameModel: 'cc-model' }[c.subkey];
+        return _cc ? ` class="${_cc}"` : '';
       };
       const commThLabel = c => esc(c.label);
       const isGb = (pageKey === 'groupbuy-records');
@@ -5050,23 +5091,27 @@ function openDetail(pageKey, id) {
       const _mainCols = renderCols.filter(c => !c.mobileBelow || _isGbDisbMain(c));
       html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><div class="detail-value"><table class="detail-table"><tr>${_mainCols.map(c => `<th${thStyle(c)}>${isCommProd ? commThLabel(c) : esc(c.label)}</th>`).join('')}${_belowCols.map(c => { const _s = thStyle(c); const _m = /class="([^"]*)"/.exec(_s); const _rest = _s.replace(/ ?class="[^"]*"/, ''); return `<th class="gb-remark-col${_m ? ' ' + _m[1] : ''}"${_rest}>${esc(c.label)}</th>`; }).join('')}${extraHead}</tr>`;
       items.forEach((item, idx) => {
+        // v932: 接稿排期制品列表——序号像售后「单号」一样占两行（第二行放 柄图标识/同模/加急/完成）
         const hasRemark = isGb && f.key === 'afterSales' && item.remark;
         html += `<tr class="${item.done ? 'prod-done' : ''}">`;
         _mainCols.forEach((c, cidx) => {
-          if (c.type === 'seq') html += `<td style="text-align:center;font-weight:700;color:var(--c-text-light)">${String(idx + 1).padStart(2, '0')}</td>`;
-          else if (c.type === 'checkbox') html += `<td style="text-align:center">${item[c.subkey] ? lucide('check',12) : ''}</td>`;
+          if (c.type === 'seq') html += isCommProd && _isNarrow
+            ? `<td class="cc-seq" rowspan="2" style="text-align:center;font-weight:700;color:var(--c-text-light);vertical-align:middle">${String(idx + 1).padStart(2, '0')}</td>`
+            : `<td style="text-align:center;font-weight:700;color:var(--c-text-light)">${String(idx + 1).padStart(2, '0')}</td>`;
+          else if (c.type === 'checkbox') html += `<td${isCommProd ? commTdClass(c) : ''} style="text-align:center">${item[c.subkey] ? lucide('check',12) : ''}</td>`;
           else {
             // v856：calc 列详情展示时计算表达式（如 5+7.5 -> 12.5），保存值仍保留原表达式
             let v = c.calc ? calcExprStr(item[c.subkey]) : item[c.subkey];
             let cellExtra = '';
-            // v931: 「是否流团」列内显示红签（是→红色「流团」小签，否→普通文字）；制品名称旁的 inline 标签取消（v929 曾放最前面）
-            if (isGb && f.key === 'products' && c.subkey === 'isDisbanded' && item.isDisbanded === '是') {
-              cellExtra = `<span class="gb-disbanded-inline">流团</span>`;
+            // v932: 「是否流团」列——是→红色「流团」小签，否（默认成团）→绿色「成团」小签
+            if (isGb && f.key === 'products' && c.subkey === 'isDisbanded') {
+              if (item.isDisbanded === '是') cellExtra = `<span class="gb-disbanded-inline">流团</span>`;
+              else cellExtra = `<span class="gb-formed-inline">成团</span>`;
               v = '';
             }
             // v912: 售后记录有备注时，单号列跨两行，备注行从制品名称列开始跨
             const rowspan = (hasRemark && cidx === 0) ? ' rowspan="2"' : '';
-            html += `<td${rowspan}><span class="td-wrap">${cellExtra}${esc(v || '')}</span></td>`;
+            html += `<td${rowspan}${isCommProd ? commTdClass(c) : ''}><span class="td-wrap">${cellExtra}${esc(v || '')}</span></td>`;
           }
         });
         _belowCols.forEach(c => {
@@ -5078,7 +5123,11 @@ function openDetail(pageKey, id) {
         if (hasRemark) {
           html += `<tr class="gb-remark-row gb-aftersales-remark"><td colspan="${_mainCols.length - 1}"><span class="td-wrap">${esc(item.remark)}</span></td></tr>`;
         }
-        if (isCommProd) html += `<tr class="comm-ud-row"><td colspan="${_mainCols.length}">`
+        // v932: 手机端第二行 = 柄图标识 + 同模 + 加急 + 完成（一排，居中，上下留白相等）；
+        // 序号已 rowspan=2，所以这里 colspan 少一列
+        if (isCommProd) html += `<tr class="comm-ud-row"><td colspan="${_mainCols.length - 1}">`
+          + (item.patternId ? `<span class="cu-pat">柄图标识：${esc(item.patternId)}</span>` : '')
+          + (item.sameModel ? `<span class="cu-model">同模：${esc(item.sameModel)}</span>` : '')
           + `<span class="cu-urgent"><label><input type="checkbox" ${item.urgent ? 'checked' : ''} onclick="commissionToggleProductUrgent('${id}',${idx},this.checked)">加急</label></span>`
           + `<span class="cu-done"><label><input type="checkbox" ${item.done ? 'checked' : ''} onclick="commissionToggleProductDone('${id}',${idx},this.checked)">完成</label></span>`
           + `</td></tr>`;
@@ -5118,7 +5167,9 @@ function openDetail(pageKey, id) {
   // v868：详情弹窗标题显示记录自身的名称（姓名/名称/标题/样品名称等），不再一律「记录详情」——
   // 否则同时开几条记录根本分不清哪条是谁。按模块字段 key 匹配 name/title，取不到回落「记录详情」。
   const _nameField = mod.fields.find(f => f.key && /name|title/i.test(String(f.key)) && f.type !== 'dynamic-list' && f.type !== 'image');
-  const _recTitle = (_nameField && r[_nameField.key]) ? esc(String(r[_nameField.key]).trim()) : '';
+  let _recTitle = (_nameField && r[_nameField.key]) ? esc(String(r[_nameField.key]).trim()) : '';
+  // v932：接稿排期没有 name/title 字段，标题回落到「单主」(clientInfo)，不再一律显示「记录详情」
+  if (!_recTitle && r.clientInfo) _recTitle = esc(String(r.clientInfo).trim());
   openModal(_recTitle || '记录详情', html, [
     { label: '关闭', class: 'btn-ghost', action: closeModal },
     { label: '编辑', class: 'btn-primary', action: () => { closeModal(); openEditForm(pageKey, id); } },
@@ -6995,7 +7046,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 931, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 932, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);

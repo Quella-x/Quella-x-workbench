@@ -173,6 +173,13 @@ html.apk.modal-lock{overflow:hidden!important}
   flex-shrink:0;box-shadow:var(--shadow-sm);z-index:10;
 }
 .main-header .page-title{font-size:16px;font-weight:600;flex:1}
+/* v932：模块顶部标题水平居中。用绝对定位而不是 flex:1 + text-align:center——
+   左侧汉堡按钮(36px)与右侧同步徽标+设置按钮(约 110px)宽度不等，靠 flex 居中会整体偏左约 35px。 */
+.main-header{position:relative}
+.main .main-header .page-title{position:absolute;left:50%;transform:translateX(-50%);text-align:center;white-space:nowrap;max-width:calc(100% - 130px);overflow:hidden;text-overflow:ellipsis}
+/* v932：手机端下边距多一点、电脑端上边距多一点（标题随之微移，视觉更贴设备） */
+@media (max-width:768px){ .main .main-header{padding-top:8px;padding-bottom:12px} }
+@media (min-width:769px){ .main .main-header{padding-top:12px;padding-bottom:8px} }
 .main-header .header-settings-btn{
   width:36px;height:36px;border-radius:6px;
   background:var(--c-primary-bg);color:var(--c-primary);
@@ -1110,11 +1117,16 @@ html.apk.modal-lock{overflow:hidden!important}
   .detail-table th.cc-urgent,.detail-table th.cc-done{width:48px}
   .detail-table th.cc-pat,.detail-table th.cc-model{width:100px}
 }
+/* v932: 手机端「柄图标识/同模」整列隐藏（移到第二行与加急/完成同排），序号 rowspan=2 占两行 */
+.comm-ud-row .cu-pat,.comm-ud-row .cu-model{display:none}
 @media (max-width:768px){
   .detail-table th.cc-urgent,.detail-table td.comm-prod-urgent,.detail-table th.cc-done,.detail-table td.comm-prod-done{display:none}
+  .detail-table th.cc-pat,.detail-table td.cc-pat,.detail-table th.cc-model,.detail-table td.cc-model{display:none}
   .detail-table tr.comm-ud-row{display:table-row}
-  .comm-ud-row td{padding:4px 6px;font-size:12px;text-align:left;white-space:nowrap}
-  .comm-ud-row label{display:inline-flex;align-items:center;gap:3px;cursor:pointer;font-size:12px;margin-right:10px}
+  /* v932: 第二行四个元素（柄图标识/同模/加急/完成）一排居中，上下留白相等 */
+  .comm-ud-row td{padding:6px 6px;font-size:12px;text-align:center;white-space:normal}
+  .comm-ud-row .cu-pat,.comm-ud-row .cu-model{display:inline-flex;align-items:center;gap:3px;margin:0 5px;color:var(--c-text-light);font-size:12px}
+  .comm-ud-row label{display:inline-flex;align-items:center;gap:3px;cursor:pointer;font-size:12px;margin:0 5px}
   .comm-ud-row .cu-urgent{color:var(--c-red)}
   .comm-ud-row .cu-urgent input{width:15px;height:15px;accent-color:var(--c-red)}
   .comm-ud-row .cu-done{color:var(--c-green)}
@@ -1131,6 +1143,8 @@ html.apk.modal-lock{overflow:hidden!important}
 .gb-aftersales-remark td .td-wrap{text-align:center}
 /* v923: 流团标签居中微调（-2 偏上、-1 偏下，取中间值） */
 .gb-disbanded-inline{display:inline-block;vertical-align:middle;background:var(--c-red);color:#fff;padding:2px 4px;border-radius:2px;font-size:10px;margin-right:4px;line-height:1;white-space:nowrap;transform:translateY(-1.5px)}
+/* v932: 未流团（否）显示绿色「成团」小签，与红色「流团」同尺寸同基线 */
+.gb-formed-inline{display:inline-block;vertical-align:middle;background:var(--c-green);color:#fff;padding:2px 4px;border-radius:2px;font-size:10px;margin-right:4px;line-height:1;white-space:nowrap;transform:translateY(-1.5px)}
 /* v928: 复制按钮颜色变浅（与旁边 muted 文字一致）、与文字间距加大 */
 .sync-copy-btn{width:22px;height:22px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--c-text-muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:6px}
 .sync-copy-btn:hover{background:var(--c-primary-bg);color:var(--c-primary)}
@@ -3110,7 +3124,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 }
 .cd-rec-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
 .cd-rec-head:hover{background:var(--c-primary-bg)}
-.cd-rec-toggle{font-size:12px;color:var(--c-primary);width:14px}
+/* v932: 三角折叠按钮放大（12px/14px → 16px/18px），并改成 inline-flex 居中，避免字形在 em-box 里偏移 */
+.cd-rec-toggle{font-size:16px;color:var(--c-primary);width:18px;height:18px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 /* v456：单主标题字色与顶部品类按钮默认文字色(var(--c-text))一致 */
 .cd-rec-title{font-size:14px;font-weight:700;color:var(--c-text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* v452：约稿单卡片品类/单主展示块字色与四个品类按钮内文字色(var(--c-text))统一 */
@@ -3635,7 +3650,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=931"></script>
+  <script src="app.js?v=932"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
