@@ -326,6 +326,9 @@ html.apk.modal-lock{overflow:hidden!important}
 .record-list .record-card-header{border-bottom:1px solid var(--c-border-light);padding-bottom:8px}
 /* v535：接稿排期日历视图卡片标题/编辑/删除/分割线整体下移 1px（累计 -3px） */
 .record-list.cal-view .record-card-header{margin-top:-3px}
+/* v941：撤销 v940 的误删——v939 的 margin-bottom:-1px 她没让动（"我什么时候说过要改了？"）。
+   cal-view 卡片有 border(1)，-1px 把内容上提 1px 抵掉 border，分割线到下面内容的间距恢复 v939 的样子。 */
+.record-list.cal-view .record-card-header{margin-bottom:-1px}
 /* v534：接稿排期日历视图展示模块盒子 padding-top 再减 2px（13->11）*/
 .record-list.cal-view .record-card{padding-top:11px}
 .record-card-body{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--c-text-light)}
@@ -3750,7 +3753,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=940"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=941"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

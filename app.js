@@ -7099,7 +7099,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 940, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 941, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -11853,33 +11853,26 @@ function renderSleepWeekLineChart(days) {
   const napXs = napVals.map(xOf); // 两个系列互相知道对方 x，才能双向拉开
   const seriesPoints = (vals, color, avoidXs, isNight) => vals.map((v, i) => {
     const x = xOf(v), y = yOf(i);
-    /* v940：标签带星期前缀（「三 2h30m」），占位宽 82（汉字16+空格4+「12h30m」6字×9.6）、高 24。
-       避让判定改成「矩形相交」而非固定像素阈值 —— 加星期后标签变长，跨行相邻标签仍会撞
-       （实测「一 2h12m」与「二 2h」dx22 dy9）。 */
-    const TXT_W = 82, TXT_H = 24;
-    const anchor = (v / maxV) > 0.72 ? 'end' : 'start';
+    /* v941：撤销 v940 的星期前缀（她："不要在前面加数字，更乱了"——一/二/三 看着像数字）。
+       数字放点后面（右侧），与点同一行垂直居中（基线 = 点心 +6）——最上面的标签贴着自己的点，
+       不再飘到点上方去撞顶部小时刻度（v940 手机端 ly=y-22 把周一的标签顶到「4h」边上）。
+       只有快到右缘放不下时才改到点左侧（anchor end）。 */
+    const TXT_W = 68, TXT_H = 24;
+    const anchor = (x + 12 + TXT_W > W - 4) ? 'end' : 'start';
     const lx = anchor === 'end' ? x - 12 : x + 12;
-    let ly = isDesktop ? (anchor === 'end' ? y + 26 : y - 22) : y - 22;
+    let ly = y + 6;
     if (avoidXs && avoidXs.length > i) {
       const ox = avoidXs[i];
-      // 对方标签默认在点右侧 12px：占 [ox+12, ox+12+82]
+      // 对方标签默认也在点右侧 12px：占 [ox+12, ox+12+TXT_W]
       const oL = ox + 12, oR = oL + TXT_W;
       const myL = anchor === 'end' ? lx - TXT_W : lx, myR = myL + TXT_W;
-      // 同行（夜晚/午间共用 yOf(i)）：横向矩形相交就必须错开
+      // 同行（夜晚/午间共用 yOf(i)）：横向矩形相交 → 午间(黄)在本行内下移 28，夜晚保持点旁
       const hOverlap = myL < oR && oL < myR;
-      if (hOverlap) ly = isNight ? y - 24 : y + 24; // v940：不越行边界(行高76/标签24 → 最多±26)，纵向大幅拉开反而会侵入相邻行
+      if (hOverlap) ly = isNight ? y + 6 : y + 34;
     }
     const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/>`;
     if (!v) return `<g class="lr-hsc-point">${dot}</g>`; // 0 值：只画点不画字，避免一列 0m 互相重叠
-    /* v938：撤销 v937 加的白底衬 rect（用户："不要加这种白底"）。
-       回到 v936 的纯文字标签，只靠 `stroke="#fff" stroke-width="3" paint-order="stroke"` 白描边。 */
-    /* v940：标签加星期前缀（她："还是很乱，谁知道是哪一天啊"）。
-       根因：星期标签在**最左侧**（x = LM-14），数据标签在**点右侧**；某天数值小 → 点靠左 →
-       标签飞到左边与星期标签区混在一起，两类标签互相干扰，看不出某个数值属于哪天。
-       方案：数据标签自带星期（如「周三 2h30m」），星期缩写单字（周三→「三」）控制宽度。
-       星期标签仍保留在左侧作为行首标识。 */
-    const wdShort = wdLabels[i].slice(1); // 周一→一, 周二→二 …（单字，控制标签宽度）
-    return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${wdShort} ${formatSleepDuration(v)}</text>${dot}</g>`;
+    return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${formatSleepDuration(v)}</text>${dot}</g>`;
   }).join('');
   return `<div class="lr-history-stat-card">
     <div class="lr-hsc-row">
