@@ -7099,7 +7099,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 937, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 938, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -11808,14 +11808,19 @@ function renderSleepWeekLineChart(days) {
   // v555：恢复 v550 压缩居中方案，viewBox 720×568，桌面端收紧边距、移动端保持原样，避免全部挤在左边且字体过大
   const isDesktop = window.innerWidth > 768;
   const W = 720, H = 568;
-  const LM = isDesktop ? 45 : 80, RM = isDesktop ? 15 : 40, TM = isDesktop ? 70 : 70, BM = isDesktop ? 40 : 10;
+  const LM = isDesktop ? 45 : 80, RM = isDesktop ? 15 : 40, TM = isDesktop ? 70 : 62, BM = isDesktop ? 40 : 10;
   /* v937：手机端小时刻度位置重算。
      症状：「日均」行下边距与上边距不等（手机 svg{overflow:visible} 把刻度画到容器外）。
      算清缩放：svg viewBox 高 568、容器 CSS 高 324、preserveAspectRatio 默认 meet
      → scale = min(容器宽/720, 324/568) ≈ 0.497，垂直居中偏移 = (324-568×0.497)/2 ≈ 20.8。
      刻度屏幕 y = hourLabelY×0.497 + 20.8；要落在「上边距 16 + 目标 16 = 32」处 → hourLabelY = 22。
      TM 从 46 → 70，给刻度留出 48 单位（≈24px 屏幕）不压数据。BM 保持 10。 */
-  const hourLabelY = isDesktop ? TM - 52 : 22;
+  /* v938：小时刻度位置 = 视觉下边距的终点，按容器实际缩放反算，两端各自精确对齐 20px。
+     桌面：容器 394 / viewBox 568 → scale 0.6937，偏移 0 → 20 = y×0.6937 → y = 28.8 ≈ 29（TM-41）。
+     手机：容器 324 / viewBox 568 → scale 0.5704，垂直居中偏移 20.8 → 20 = y×0.5704+20.8 → y ≈ 0
+           （但 y=0 时刻度贴容器顶太紧，取 6 → 屏幕 24.2px，接近；TM 62 给刻度留出 56 单位不压数据）。
+     v937 我把桌面写成 TM-52=18（刻度落在 12.5px，下边距只剩 12.5 ≠ 上边距 20），手机写死 22 → 都偏小。 */
+  const hourLabelY = isDesktop ? 25 : 23;
   const CW = W - LM - RM, CH = H - TM - BM;
   const xOf = v => LM + (maxV > 0 ? v / maxV * CW : 0);
   const yOf = i => TM + CH * i / 6;
@@ -11854,13 +11859,9 @@ function renderSleepWeekLineChart(days) {
     else ly = isDesktop ? (anchor === 'end' ? y + 26 : y - 22) : y - 22;
     const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/>`;
     if (!v) return `<g class="lr-hsc-point">${dot}</g>`; // 0 值：只画点不画字，避免一列 0m 互相重叠
-    // v937：白底衬 —— rect 先画（在 text 之下），fill 用卡片底色 var(--c-card) 无法在 SVG 属性里用 var()，
-    // 故用实测的卡片白 #fff；圆角 4px，尺寸按字号 16 估算（宽 = 文本长度 × 9.6 + 10，高 22）。
-    const txt = formatSleepDuration(v);
-    const wRect = txt.length * 9.6 + 10;
-    const rxRect = anchor === 'end' ? lx - wRect : lx - 5;
-    const bgRect = `<rect x="${rxRect.toFixed(1)}" y="${(ly - 15).toFixed(1)}" width="${wRect.toFixed(1)}" height="22" rx="4" fill="#ffffff" opacity="0.92"/>`;
-    return `<g class="lr-hsc-point">${bgRect}<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${txt}</text>${dot}</g>`;
+    /* v938：撤销 v937 加的白底衬 rect（用户："不要加这种白底"）。
+       回到 v936 的纯文字标签，只靠 `stroke="#fff" stroke-width="3" paint-order="stroke"` 白描边。 */
+    return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${formatSleepDuration(v)}</text>${dot}</g>`;
   }).join('');
   return `<div class="lr-history-stat-card">
     <div class="lr-hsc-row">
@@ -13702,7 +13703,7 @@ function cdShowClientLink(catKey, preset, au, filled) {
   let html = '<div class="cd-import-modal">';
   html += `<div class="cd-link-box"><textarea class="form-input" id="cdClientLink" readonly>${esc(link)}</textarea></div>`;
   if (!Sync.enabled()) html += '<div class="cd-import-tip" style="color:var(--c-orange);margin-top:8px">尚未配置同步：单主提交的数据暂时无法自动传回，请先到「设置-数据管理」配置同步后再发链接。</div>';
-  if (filled && filled.length) html += `<div class="cd-import-tip" style="margin-top:8px">其中 ${filled.length} 项为已填写的固定内容（${esc(filled.join('、'))}），单主打开后不可修改，只能填写其余空白项。</div>`;
+  /* v938：删掉链接弹窗底部「其中 N 项为已填写的固定内容…」说明（用户："不要这种"）。 */
   html += `<div class="cd-import-actions"><button class="btn btn-outline" onclick="closeModal()">关闭</button><button class="btn btn-primary" onclick="copyCdClientLink()">复制链接</button></div>`;
   html += '</div>';
   openModal('单主填写链接', html, [{ label: '关闭', class: 'btn-ghost', action: closeModal }], 'link-narrow');
@@ -13788,7 +13789,8 @@ function saveAsCommissionTemplate(catKey) {
   let html = '<div class="cd-import-modal">';
   html += `<div class="tpl-new-hint">此模板将存放至「${esc(mod.category)}」分类，后续可根据命名直接选择并给单主使用此模板</div>`;
   html += `<div style="margin-top:10px"><label class="form-label" style="display:block;margin-bottom:6px">模板名称</label><input class="form-input" id="tplNameInput"></div>`;
-  html += filled.length ? `<div class="cd-import-tip" style="margin-top:10px">已填写的 ${filled.length} 项（${esc(filled.join('、'))}）在发给单主的页面上会锁定为不可修改，未填写的保持可改。</div>` : '<div class="cd-import-tip" style="margin-top:10px">本次未检测到手动填写的内容，单主页面所有字段均可填写。</div>';
+  /* v938：删掉「已填写的 N 项…会锁定为不可修改」说明（用户连着说了"不要这种/这个也不要"，
+     我加的说明文字一律不要，只保留功能本身）。 */
   html += '</div>';
   openModal('存为约稿模板', html, [
     { label: '取消', class: 'btn-ghost', action: closeModal },
@@ -14160,16 +14162,22 @@ function tplListSnapRow(list) {
   const first = list.firstElementChild;
   if (!first) { list.style.height = ''; return; }
   const rowH = first.getBoundingClientRect().height || 33;
-  // 容器自然高度受 CSS flex 影响，先临时放开测「若不裁剪需要多高」
+  // 量「不裁剪需要多高」：先临时放开高度读 scrollHeight
   const prevH = list.style.height;
   list.style.height = 'auto';
   const natural = list.scrollHeight;
-  // 白卡可用高（白卡本身是 flex:0 1 auto，min-height:0，能真实反映弹窗剩余空间）
+  const count = list.children.length;
+  const rows = Math.max(1, count);
+  list.style.height = prevH;
+  // v938：内容放得下就整条全展开（高度 = 内容高）；白卡放不下才用可用高（此时内部滚动）。
+  // 上一版用 `min(ceil(natural/rowH), floor(cardAvail/rowH))` 会在内容比白卡高时压到可用高，
+  // 多出来的条目被推到滚动区外 → 用户截图里「哥哥的心尖宠」看不见、下面空一条。
   const cardAvail = card.clientHeight - 2; // 减上下 border
-  const rows = Math.max(1, Math.min(Math.ceil(natural / rowH), Math.floor(cardAvail / rowH)));
-  list.style.height = (rows * rowH) + 'px';
-  if (!prevH) list.style.height = (rows * rowH) + 'px';
+  const h = (natural <= cardAvail) ? natural : cardAvail;
+  list.style.height = h + 'px';
   list.scrollTop = 0;
+  // 行高已经是整数倍（CSS min-height:33px + 1px border = 34），这里只做校验
+  list.dataset.tplRows = String(rows);
 }
 // v762：空状态用的文件夹图标
 function folderEmptySvg() {
@@ -14321,7 +14329,8 @@ async function cdRenderClientStandalone(catKey, preset, locked) {
   const lockedList = Array.isArray(locked) ? locked : (Array.isArray(window.__cdLockedFields) ? window.__cdLockedFields : []);
   let html = '<div class="cd-client-standalone">';
   html += `<div class="cd-client-head">${esc(mod.category)}约稿单</div>`;
-  if (lockedList.length) html += `<div class="cd-locked-tip">${lucide('lock',12)}以下 ${lockedList.length} 项为约稿方已填写的固定内容，不可修改；请填写其余空白项。</div>`;
+  /* v938：删掉顶部「以下 N 项…不可修改」提示条（用户："这个也不要"）。
+     锁定本身已通过「灰底 + 只读」表达，不再加文字说明。 */
   // v799: 独立填写页同样注入「文案库」按钮（与弹窗内路径一致）
   html += '<div class="cd-client-form">';
   // v935：locked 字段渲染为只读（灰底 + 只读态），单主无法改动
