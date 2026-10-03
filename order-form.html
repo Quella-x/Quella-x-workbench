@@ -339,7 +339,10 @@ html.apk.modal-lock{overflow:hidden!important}
 .record-card-body:not(.comm-list-style) .field-label::after{content:':'}
 /* v515: 九模块列表字段对齐（与接稿排期左栏一致：64px 右对齐标签 + 1fr 值列），仅内部字段样式，单双列保持原样 */
 .record-card-body.comm-list-style{display:flex;flex-direction:column;gap:2px 0;margin-left:2px;margin-top:1px}
-.record-card-body.comm-list-style .field:not(.comm-products-field){display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:baseline;margin:0;min-height:20px} /* v935：胶囊标签（padding 2px 8px）比纯文字行高 ~1.5px，导致双列卡片里"标签分类"为空的那张比有标签的矮。给所有字段行统一 20px 下限，两卡等高 */
+/* v942：撤销 v935 对**所有** comm-list-style 卡片的 min-height:20px——开团记录等单列模块要回到 v1.1.48(v834) 的自然行高（她："改回v1.1.48版本，你净瞎改"）。
+   v935 这条本来是给双列卡片（灵感/人物档案）等高用的，误伤了全部 9 个模块；现在收窄到 .record-list.two-col 才生效。 */
+.record-list.two-col .record-card-body.comm-list-style .field:not(.comm-products-field){min-height:20px}
+.record-card-body.comm-list-style .field:not(.comm-products-field){display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:baseline;margin:0} /* v935：胶囊标签（padding 2px 8px）比纯文字行高 ~1.5px，导致双列卡片里"标签分类"为空的那张比有标签的矮。给所有字段行统一 20px 下限，两卡等高 */
 .record-card-body.comm-list-style .field:not(.comm-products-field) .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;white-space:nowrap;line-height:1.4}
 .record-card-body.comm-list-style .field:not(.comm-products-field) .field-value{font-size:13px;color:var(--c-text);line-height:1.4;min-width:0;word-break:break-word}
 .record-card-body.comm-list-style .field:not(.comm-products-field) .field-tags{display:flex;flex-wrap:wrap;gap:4px}
@@ -3753,7 +3756,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=941"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=942"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

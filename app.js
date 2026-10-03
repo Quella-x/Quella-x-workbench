@@ -7099,7 +7099,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 941, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 942, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -14421,6 +14421,22 @@ function cdApplyLockedFields(lockedKeys) {
         el.setAttribute('aria-readonly', 'true');
         el.classList.add('cd-field-locked');
         if (el.dataset) el.dataset.locked = '1';
+        /* v942：只读必须连「交互」一起锁——她实测："这不还是能改，哪里锁死了"。
+           readonly 只挡键盘输入，挡不住三条改值路径：
+           ① 点输入框 onfocus/onclick 弹出下拉 ② 点 ▼ 按钮弹出下拉 ③ 弹层里点选项直接改值。
+           锁法：拆掉输入框上的弹层入口 + ▼ disabled + wrapper 捕获阶段拦截一切点击（双保险）。 */
+        el.removeAttribute('onclick');
+        el.removeAttribute('onfocus');
+        el.removeAttribute('oninput');
+        const _cbBox = el.closest('.combobox-wrapper');
+        if (_cbBox) {
+          const _tgl = _cbBox.querySelector('.combobox-toggle');
+          if (_tgl) _tgl.disabled = true;
+          if (!_cbBox._cdLockGuard) {
+            _cbBox._cdLockGuard = true;
+            _cbBox.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); }, true);
+          }
+        }
         /* v939：加「不可修改」标识——她要"标识"（v938 只做了灰底样式，删掉提示条后就没标识了）。
            在字段框内右侧绝对定位一个小锁图标，不占布局、不影响对齐。 */
         if (!el.parentElement || !el.parentElement.querySelector('.cd-lock-badge')) {
