@@ -7099,7 +7099,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 942, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 943, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -13940,6 +13940,9 @@ function renderTplLibList() {
     list.innerHTML = '<div class="tpl-empty">' + folderEmptySvg() +
       '<div class="tpl-empty-title">「' + esc((COMM_DETAIL_CATS.find(c => c.key === _tplLibCat) || {}).label || '') + '」还没有模板</div>' +
       '<div class="tpl-empty-hint">在下方「新建约稿模板」里创建一个</div></div>';
+    list.style.height = '';
+    const _ec = list.closest('.tpl-white-card');
+    if (_ec) { _ec.style.height = ''; _ec.style.flex = ''; }
     return;
   }
   list.innerHTML = items.map(t => {
@@ -13954,7 +13957,12 @@ function renderTplLibList() {
     <div class="tpl-item-name">${esc(t.name)}</div>${tag}
   </div>`; }).join('');
   updateTplActions();
-  tplListSnapRow(list); // v937：高度收成行高整数倍，末行不出现半条
+  /* v943：约稿模板库白卡恢复 v1.1.48 行为——白卡 flex:1 填满弹窗、列表自然高度。
+     根因：v940 的 tplListSnapRow 把白卡钉成「列表高+2px」，约稿库模板少时整卡塌成一条
+     （她："库怎么又没了？"）。文案库（txtTplList）保留收口不动——那是她 v940 要的"底下多了"修复。 */
+  list.style.height = '';
+  const _libCard = list.closest('.tpl-white-card');
+  if (_libCard) { _libCard.style.height = ''; _libCard.style.flex = ''; }
 }
 function selectCommissionTemplate(id) {
   _commTplSelId = (_commTplSelId === id ? null : id);
