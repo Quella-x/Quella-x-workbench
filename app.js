@@ -7099,7 +7099,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 936, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 937, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -11808,8 +11808,14 @@ function renderSleepWeekLineChart(days) {
   // v555：恢复 v550 压缩居中方案，viewBox 720×568，桌面端收紧边距、移动端保持原样，避免全部挤在左边且字体过大
   const isDesktop = window.innerWidth > 768;
   const W = 720, H = 568;
-  const LM = isDesktop ? 45 : 80, RM = isDesktop ? 15 : 40, TM = isDesktop ? 70 : 46, BM = isDesktop ? 40 : 10; // v934：手机端 BM 4→10，周日到底部留白与「日均」行上边距相等
-  const hourLabelY = isDesktop ? TM - 52 : TM - 55; // v707：桌面 v704(TM-52)；手机端回 v1.1.28(TM-55)，因 .lr-hsc-chart-body svg{overflow:visible} 刻度画在 viewBox 上方仍可见且不压数据
+  const LM = isDesktop ? 45 : 80, RM = isDesktop ? 15 : 40, TM = isDesktop ? 70 : 70, BM = isDesktop ? 40 : 10;
+  /* v937：手机端小时刻度位置重算。
+     症状：「日均」行下边距与上边距不等（手机 svg{overflow:visible} 把刻度画到容器外）。
+     算清缩放：svg viewBox 高 568、容器 CSS 高 324、preserveAspectRatio 默认 meet
+     → scale = min(容器宽/720, 324/568) ≈ 0.497，垂直居中偏移 = (324-568×0.497)/2 ≈ 20.8。
+     刻度屏幕 y = hourLabelY×0.497 + 20.8；要落在「上边距 16 + 目标 16 = 32」处 → hourLabelY = 22。
+     TM 从 46 → 70，给刻度留出 48 单位（≈24px 屏幕）不压数据。BM 保持 10。 */
+  const hourLabelY = isDesktop ? TM - 52 : 22;
   const CW = W - LM - RM, CH = H - TM - BM;
   const xOf = v => LM + (maxV > 0 ? v / maxV * CW : 0);
   const yOf = i => TM + CH * i / 6;
@@ -11832,10 +11838,12 @@ function renderSleepWeekLineChart(days) {
     return `<text x="${LM - 14}" y="${(y + 9).toFixed(1)}" text-anchor="end" font-size="${isDesktop?18:24}" font-weight="600" fill="var(--c-text)">${wdLabels[i]}</text>`;
   }).join('');
   // v935：夜晚/午间两行数据标签避让——同行两点水平距离 < 90px 时，午间(黄)标签移到点下方，
-  // 夜晚(橙)保持在上方。v935 加大下移量 30→40 并给夜晚加 -26 上移量：
-  // 原 30px 下移后 2h12m 仍压在折线上（用户截图"还是不太清晰"），两标签各朝相反方向拉开才彻底分离。
+  // 夜晚(橙)保持在上方。v935 加大下移量 30→40 并给夜晚加 -26 上移量。
+  // v937：「还是不太清晰」的真正原因不是重叠，而是**标签压在折线上**——
+  // 放大截图里 4h12m 的黄字横穿橙色折线，stroke 白描边挡不住 3px 橙线。
+  // 修法：标签下方垫一层与画布同色的圆角矩形（白底衬），任何折线/渐变穿过都不可见。
   const nightXs = nightVals.map(xOf);
-  const napXs = napVals.map(xOf); // v935：两个系列互相知道对方 x，才能双向拉开（原来只有单方向）
+  const napXs = napVals.map(xOf); // 两个系列互相知道对方 x，才能双向拉开
   const seriesPoints = (vals, color, avoidXs, isNight) => vals.map((v, i) => {
     const x = xOf(v), y = yOf(i);
     const anchor = (v / maxV) > 0.78 ? 'end' : 'start';
@@ -11846,7 +11854,13 @@ function renderSleepWeekLineChart(days) {
     else ly = isDesktop ? (anchor === 'end' ? y + 26 : y - 22) : y - 22;
     const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/>`;
     if (!v) return `<g class="lr-hsc-point">${dot}</g>`; // 0 值：只画点不画字，避免一列 0m 互相重叠
-    return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${formatSleepDuration(v)}</text>${dot}</g>`;
+    // v937：白底衬 —— rect 先画（在 text 之下），fill 用卡片底色 var(--c-card) 无法在 SVG 属性里用 var()，
+    // 故用实测的卡片白 #fff；圆角 4px，尺寸按字号 16 估算（宽 = 文本长度 × 9.6 + 10，高 22）。
+    const txt = formatSleepDuration(v);
+    const wRect = txt.length * 9.6 + 10;
+    const rxRect = anchor === 'end' ? lx - wRect : lx - 5;
+    const bgRect = `<rect x="${rxRect.toFixed(1)}" y="${(ly - 15).toFixed(1)}" width="${wRect.toFixed(1)}" height="22" rx="4" fill="#ffffff" opacity="0.92"/>`;
+    return `<g class="lr-hsc-point">${bgRect}<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${txt}</text>${dot}</g>`;
   }).join('');
   return `<div class="lr-history-stat-card">
     <div class="lr-hsc-row">
@@ -13917,16 +13931,17 @@ function renderTplLibList() {
   }
   list.innerHTML = items.map(t => {
     const sel = _commTplSelId === t.id;
-    /* v935：标签改为显示「N 项已锁定」——指该模板里用户手填、单主打开后不可改的字段数
-       （v935 之前误做成笼统的「不可修改」标签，已改） */
+    /* v937：删掉「全部可填写」标签（用户："谁让你加这个了？"）。
+       只在该模板确实有锁定字段时显示「N 项不可修改」，没有则完全不加标签。 */
     const n = Array.isArray(t.filled) ? t.filled.length : 0;
     const tag = n > 0
       ? `<span class="tpl-locked-tag" title="单主打开时这 ${n} 项不可修改：${esc((t.filled || []).join('、'))}">${lucide('lock',11)}${n} 项不可修改</span>`
-      : '<span class="tpl-locked-tag tpl-locked-none" title="该模板未填写固定内容，单主可全部填写">全部可填写</span>';
+      : '';
     return `<div class="tpl-item ${sel ? 'selected' : ''}" role="option" tabindex="0" aria-selected="${sel}" onclick="selectCommissionTemplate('${t.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectCommissionTemplate('${t.id}')}">
     <div class="tpl-item-name">${esc(t.name)}</div>${tag}
   </div>`; }).join('');
   updateTplActions();
+  tplListSnapRow(list); // v937：高度收成行高整数倍，末行不出现半条
 }
 function selectCommissionTemplate(id) {
   _commTplSelId = (_commTplSelId === id ? null : id);
@@ -13945,8 +13960,29 @@ function applySelectedCommissionTemplate() {
   if (!_commTplSelId) return;
   const t = DB.getById('commissionTemplates', _commTplSelId);
   if (!t) return;
+  // v937：旧模板（v936 之前存的）没有 filled 字段 → 实时按「值 ≠ 字段默认值」推算一遍，
+  // 否则她保存过的模板生成的链接不带 locked，单主那边完全没锁定（用户截图"还是可以改啊"）。
+  const filled = Array.isArray(t.filled) ? t.filled : cdComputeFilledKeys(t.catKey, t.data);
   // v935：把模板记录的「手填字段清单」一起传下去，单主页面据此锁定
-  cdShowClientLink(t.catKey, t.data, t.allowUrgent, t.filled || []);
+  cdShowClientLink(t.catKey, t.data, t.allowUrgent, filled);
+}
+/* v937：从模板 data 反推「哪些字段是手填的」（值 ≠ 字段 default 且非空），
+   口径必须与 saveAsCommissionTemplate 里写 filled 时完全一致。 */
+function cdComputeFilledKeys(catKey, data) {
+  const mod = MODULES[catKey];
+  const out = [];
+  if (!mod || !data) return out;
+  const defByKey = {};
+  (mod.fields || []).forEach(f => { if (f && f.key) defByKey[f.key] = f.default; });
+  Object.keys(data).forEach(k => {
+    if (k === 'category' || k === 'extraProducts' || k === 'allowUrgent') return;
+    const v = data[k];
+    if (v == null || v === '' || (Array.isArray(v) && !v.length)) return;
+    const def = defByKey[k];
+    const isSameAsDefault = def !== undefined && String(def) === String(Array.isArray(v) ? v.join(',') : v);
+    if (!isSameAsDefault) out.push(k);
+  });
+  return out;
 }
 async function delSelectedCommissionTemplate() {
   if (!_commTplSelId) return;
@@ -14107,8 +14143,32 @@ function renderTxtTplList() {
     <div class="tpl-snippet-text">${esc(t.text)}</div>
   </div>`; }).join('');
   updateTxtTplActions();
-  /* v935：v935 撤掉 scroll-snap 后滚动位置可能停在半行（用户报"不要一条就一半"）——
-     渲染完把滚动位置归零（顶部对齐，行高固定 33px 不会切半）。 */
+  /* v937：滚动位置归零 + 列表高度收成行高整数倍（末行要么全露、要么全收，不留半行）。 */
+  tplListSnapRow(list);
+}
+
+/* v937：模板库列表高度收口。
+   症状（用户截图）：列表容器高度不是行高(33px)的整数倍，滚到底时最后一条只露一半（实测末行可见 28/33px）。
+   根因：容器 flex 拉伸到任意高度（如 226px = 6.85 行），末行被切成半条。
+   修法：渲染后按「实际可用高」算出能放几整行，再把容器高度钉成 rows×33px——
+         放得下就全露，放不下就滚动到能看整行，绝不出现半行。 */
+function tplListSnapRow(list) {
+  if (!list) return;
+  list.scrollTop = 0;
+  const card = list.closest('.tpl-white-card');
+  if (!card) return;
+  const first = list.firstElementChild;
+  if (!first) { list.style.height = ''; return; }
+  const rowH = first.getBoundingClientRect().height || 33;
+  // 容器自然高度受 CSS flex 影响，先临时放开测「若不裁剪需要多高」
+  const prevH = list.style.height;
+  list.style.height = 'auto';
+  const natural = list.scrollHeight;
+  // 白卡可用高（白卡本身是 flex:0 1 auto，min-height:0，能真实反映弹窗剩余空间）
+  const cardAvail = card.clientHeight - 2; // 减上下 border
+  const rows = Math.max(1, Math.min(Math.ceil(natural / rowH), Math.floor(cardAvail / rowH)));
+  list.style.height = (rows * rowH) + 'px';
+  if (!prevH) list.style.height = (rows * rowH) + 'px';
   list.scrollTop = 0;
 }
 // v762：空状态用的文件夹图标

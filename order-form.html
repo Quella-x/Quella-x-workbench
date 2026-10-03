@@ -315,7 +315,12 @@ html.apk.modal-lock{overflow:hidden!important}
 /* v935：撤销 v934 的左右居中（text-align:center + .rch-spacer 左占位）——用户要的是「上下居中」不是左右居中。
    标题恢复贴左，上下留白相等：上 = .record-card padding-top + header margin-top，下 = padding-bottom + margin-bottom。 */
 /* v452：九大模块列表视图卡片标题底部分割线与接稿排期列表视图右侧接稿详情模块(.cdc-header)统一为同款 1px solid var(--c-border-light) */
-.record-list .record-card-header{border-bottom:1px solid var(--c-border-light);padding-bottom:8px}
+/* v937：展示卡片标题上下留白对称。
+   ⚠️ v935/v936 我只改了通用 .record-list .record-card-header 的 margin，但双列卡（.comm-dual）
+   另有 `margin-top:-7px;margin-bottom:2px` 覆盖，且真正决定视觉留白的是 header 的 margin-bottom(8) + padding-bottom(8)。
+   实测 title 上留白 12 / 下留白 21（差 9px，她截图红框标注的就是这个）。
+   v937：把 header margin-bottom 归零 → 下 = 8(padding-bottom)+1(border) = 9…实测 13，与上 12 基本相等。*/
+.record-list .record-card-header{border-bottom:1px solid var(--c-border-light);padding-bottom:8px;margin-bottom:0}
 /* v535：接稿排期日历视图卡片标题/编辑/删除/分割线整体下移 1px（累计 -3px） */
 .record-list.cal-view .record-card-header{margin-top:-3px}
 /* v534：接稿排期日历视图展示模块盒子 padding-top 再减 2px（13->11）*/
@@ -621,13 +626,13 @@ html.apk.modal-lock{overflow:hidden!important}
 .modal.tpl-lib-modal{height:min(780px,92vh)} /* v934：文案库整体加高 */
 .modal.tpl-lib-modal .modal-body{padding:8px 0 0 0;display:flex;flex-direction:column}
 .modal.tpl-lib-modal .tpl-lib-folder{flex:1.4;min-height:0;display:flex;flex-direction:column} /* v934：库列表区占比加大 */
-/* v935：文案库列表底部那条空白（用户截图红框）根因是双层 flex 拉伸——
-   .tpl-white-card{flex:1} 把白卡撑满，.tpl-folder-list{flex:1} 又把列表撑满，
-   6 条文案撑不满容器高度，底部就露出一条白带（且滚动到底时最后一条也停在半行）。
-   改法：白卡改为按内容自适应（flex:0 1 auto + max-height），列表 flex:1 保留（内部滚动），
-   容器高度 = 列表内容高度（上限受 modal 高度约束），既无底部空白、末条也完整显示。 */
-.modal.tpl-lib-modal .tpl-white-card{flex:0 1 auto;min-height:0;max-height:100%;display:flex;flex-direction:column}
-.modal.tpl-lib-modal .tpl-folder-list{flex:1 1 auto;min-height:0;max-height:none}
+/* v937：模板库列表区高度口径（这段注释合并了 v935/v936 的错误尝试，勿再回退）
+   v935/v936 曾把白卡改成 flex:0 1 auto 想消除「底部露白」，结果约稿模板库只有 1 条时白卡塌成 1 行高，
+   下方露出大片弹窗背景（用户截图："模板库呢？怎么没了就一行了？"）。
+   v937 口径：白卡「flex:1 1 0」完全占满 folder 剩余高度（v936 的 flex:1 1 auto 只占 75%，下方露 45px 弹窗背景）；
+   列表自身高度由 JS tplListSnapRow 钉成「行高 33px 的整数倍」，多出的空间留在白卡内部（白色），末行绝不出现半行。 */
+.modal.tpl-lib-modal .tpl-white-card{flex:1 1 0;min-height:0;max-height:none;display:flex;flex-direction:column}
+.modal.tpl-lib-modal .tpl-folder-list{flex:0 0 auto;min-height:0;max-height:none;overflow-y:auto}
 .modal.tpl-lib-modal .tpl-new{flex:1;min-height:0}
 .modal.tpl-lib-modal .tpl-new .cd-import-actions{margin-top:auto}
 .modal.tpl-lib-modal .tpl-new .form-textarea{flex:1;min-height:64px;margin-bottom:10px} /* v934：新增文案输入框压矮 */
@@ -1055,6 +1060,12 @@ html.apk.modal-lock{overflow:hidden!important}
   .dynamic-list-container[data-key="products"][data-module="design-commission"] .combobox-wrapper[data-subkey="sameModel"],
   .dynamic-list-container[data-key="products"][data-module="design-commission"] .form-input[data-subkey="sameModel"]{flex:0 0 96px!important;min-width:0!important}
   .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="sameModel"]{flex:0 0 96px}
+  /* v937：末列（操作/删除）统一留 8px 内边距，不再贴着容器右缘。
+     制品列表 8 列、加价项目 5 列，列宽分配不同 → 同一个 flex 值在制品列表里被挤到贴边裁切，
+     在加价项目里却有留白（用户截图两个红框对比）。
+     做法：末列宽度 56→62（56+8 右内边距，宽度不变只是内容内缩），两侧列表视觉留白一致且不新增溢出。*/
+  .dynamic-list-header span.op-col{padding-right:8px;flex:0 0 62px;min-width:62px}
+  .dynamic-list-row button{flex:0 0 62px!important;min-width:62px;padding-right:8px}
 }
 .dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-row .combobox-input{padding:8px 26px 8px 8px!important}
 .dynamic-list-row .combobox-toggle{right:2px;width:18px;font-size:10px}
@@ -2865,11 +2876,11 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 /* History view */
 .lr-history-stat-card{background:var(--c-card);border-radius:var(--radius);padding:10px;margin-bottom:8px;box-shadow:var(--shadow-sm)}
-/* v935：日均行上下留白严格对称。
-   上 = .lr-history-stat-card padding-top(10) + row padding-top(26) = 36
-   下 = row margin-bottom(16) + .lr-hsc-chart-body margin-top(0) = 16 → 差 20，再把 row padding-top 提到 16 + chart-body margin-top 提到 20 使两边都 = 36。
-   最终口径：上 = 10(卡片padding) + 26(row padding-top) = 36；下 = 16(row margin-bottom) + 20(chart-body margin-top) = 36。 */
-.lr-hsc-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-top:26px}
+/* v937：日均行上下留白。
+   ⚠️ v935/v936 我把上边距越调越大（padding-top 10→26/28），方向完全搞反了——
+   她要的是「下边距近了」→ 加大下边距，我却把上边距拉大（截图里上边距明显更大）。
+   v937 口径：上边距 = card padding 10 + row padding-top 6 = 16；下边距 = row margin-bottom 16 + chart-body 0 = 16。严格相等。*/
+.lr-hsc-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-top:6px}
 .lr-hsc-title{font-size:14px;font-weight:800;color:var(--c-text)}
 .lr-hsc-sub{font-size:13px;font-weight:600;color:var(--c-text-light)}
 .lr-hsc-avgs{display:flex;flex-wrap:wrap;justify-content:space-around;width:100%;gap:8px;margin:0}
@@ -2878,7 +2889,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-hsc-avg.night{color:#ff9a3c}
 .lr-hsc-avg.nap{color:#FFDE75}
 .lr-hsc-avg.wake{color:var(--c-text)}
-.lr-hsc-chart-body{height:394px;position:relative;margin-top:20px} /* v935：与 row padding-top(26)+卡片padding(10)=36 对称 */
+.lr-hsc-chart-body{height:394px;position:relative;margin-top:0} /* v937：margin-top 4→0，下边距 = row margin-bottom 16 + 0 = 16；上 = card 10 + row padding-top 6 = 16 */
 .lr-hsc-chart-body svg{width:100%;height:100%;overflow:visible}
 .lr-hsc-x{display:flex;justify-content:space-between;padding:8px 5.9% 0;font-size:12px;color:var(--c-text-light)}
 .lr-hsc-point text{pointer-events:none}
@@ -2990,9 +3001,10 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-size-note{font-size:10px}
   .lr-history-stat-card{padding:8px}
   .lr-hsc-title{font-size:14px}
-  /* v935：移动端同桌面口径——stat-card padding-top 8 + row padding-top 28 = 36；margin-bottom 16 + chart-body margin-top 20 = 36 */
-  .lr-hsc-row{margin-bottom:16px;padding-top:28px}
-  .lr-hsc-chart-body{height:324px;margin-top:20px}
+  /* v937：移动端同桌面 v937 口径——上 = stat-card padding 8 + row padding-top 8 = 16；下 = margin-bottom 16 + chart-body 0 = 16。
+     手机 svg{overflow:visible} 的越界问题已在 app.js 侧修（TM 46→62、hourLabelY 改 TM-16），CSS 这边归零。 */
+  .lr-hsc-row{margin-bottom:16px;padding-top:8px}
+  .lr-hsc-chart-body{height:324px;margin-top:0}
   .lr-hsc-metrics{gap:6px;padding:6px 2px 2px}
   .lr-hsc-metric-val{font-size:18px}
   .lr-hsc-metric-val small{font-size:11px}
@@ -3714,7 +3726,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=936"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=937"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
