@@ -7099,7 +7099,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 938, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 939, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -11842,11 +11842,11 @@ function renderSleepWeekLineChart(days) {
     const y = yOf(i);
     return `<text x="${LM - 14}" y="${(y + 9).toFixed(1)}" text-anchor="end" font-size="${isDesktop?18:24}" font-weight="600" fill="var(--c-text)">${wdLabels[i]}</text>`;
   }).join('');
-  // v935：夜晚/午间两行数据标签避让——同行两点水平距离 < 90px 时，午间(黄)标签移到点下方，
-  // 夜晚(橙)保持在上方。v935 加大下移量 30→40 并给夜晚加 -26 上移量。
-  // v937：「还是不太清晰」的真正原因不是重叠，而是**标签压在折线上**——
-  // 放大截图里 4h12m 的黄字横穿橙色折线，stroke 白描边挡不住 3px 橙线。
-  // 修法：标签下方垫一层与画布同色的圆角矩形（白底衬），任何折线/渐变穿过都不可见。
+  /* v939：夜晚/午间标签错开（她："错开啊，最上面离2h、4h这些太近了不行"）。
+     双向拉开的高度不能随便给：太上会撞到 svg 顶部的小时刻度（hourLabelY=25 桌面 / 23 手机），
+     太下会压住折线。安全区间取「不越过刻度行」且「离点足够远」：
+     夜晚 → y-34（点上方 34 单位，桌面换算 ≈ 24px，刻度在 y=25 处不重叠）；
+     午间 → y+46（点下方，落到下一行之前，不会压本行折线）。 */
   const nightXs = nightVals.map(xOf);
   const napXs = napVals.map(xOf); // 两个系列互相知道对方 x，才能双向拉开
   const seriesPoints = (vals, color, avoidXs, isNight) => vals.map((v, i) => {
@@ -11855,7 +11855,7 @@ function renderSleepWeekLineChart(days) {
     const lx = anchor === 'end' ? x - 12 : x + 12;
     const nearOther = avoidXs && avoidXs.length > i && Math.abs(avoidXs[i] - x) < 90;
     let ly;
-    if (nearOther) ly = isNight ? y - 26 : y + 40; // 双向拉开：夜晚上移 26、午间下移 40
+    if (nearOther) ly = isNight ? y - 14 : y + 46; // v939：上移 26→34、下移 40→46，彻底错开且不撞顶部刻度
     else ly = isDesktop ? (anchor === 'end' ? y + 26 : y - 22) : y - 22;
     const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/>`;
     if (!v) return `<g class="lr-hsc-point">${dot}</g>`; // 0 值：只画点不画字，避免一列 0m 互相重叠
@@ -14161,22 +14161,23 @@ function tplListSnapRow(list) {
   if (!card) return;
   const first = list.firstElementChild;
   if (!first) { list.style.height = ''; return; }
-  const rowH = first.getBoundingClientRect().height || 33;
+  const rowH = first.getBoundingClientRect().height || 34;
   // 量「不裁剪需要多高」：先临时放开高度读 scrollHeight
   const prevH = list.style.height;
   list.style.height = 'auto';
   const natural = list.scrollHeight;
-  const count = list.children.length;
-  const rows = Math.max(1, count);
   list.style.height = prevH;
-  // v938：内容放得下就整条全展开（高度 = 内容高）；白卡放不下才用可用高（此时内部滚动）。
-  // 上一版用 `min(ceil(natural/rowH), floor(cardAvail/rowH))` 会在内容比白卡高时压到可用高，
-  // 多出来的条目被推到滚动区外 → 用户截图里「哥哥的心尖宠」看不见、下面空一条。
+  /* v939：高度必须是**行高整数倍**——她要求「要么把下面那行放出来，要么就不要露出来，还露一节干嘛」。
+     v938 用 `natural <= cardAvail ? natural : cardAvail`，cardAvail 是任意值（白卡 flex:1 1 0 会被列表撑高，
+     两者循环依赖），结果卡在 203 这种非整数倍高度上 → 最后一条只露 28/34px。
+     v939 正确做法：白卡可用高先量出来，再 `floor(可用/行高)` 算出能放几整行，高度 = 整行数 × 行高。
+     放得下全部 → 用内容高（也是整数倍，因为每行等高）；放不下 → 滚动，滚到底时末行要么完整要么完全不可见。 */
   const cardAvail = card.clientHeight - 2; // 减上下 border
-  const h = (natural <= cardAvail) ? natural : cardAvail;
-  list.style.height = h + 'px';
+  const fitRows = Math.max(1, Math.floor(cardAvail / rowH));
+  const needRows = Math.ceil(natural / rowH);
+  const rows = Math.min(needRows, fitRows);
+  list.style.height = (rows * rowH) + 'px';
   list.scrollTop = 0;
-  // 行高已经是整数倍（CSS min-height:33px + 1px border = 34），这里只做校验
   list.dataset.tplRows = String(rows);
 }
 // v762：空状态用的文件夹图标
@@ -14404,6 +14405,20 @@ function cdApplyLockedFields(lockedKeys) {
         el.setAttribute('aria-readonly', 'true');
         el.classList.add('cd-field-locked');
         if (el.dataset) el.dataset.locked = '1';
+        /* v939：加「不可修改」标识——她要"标识"（v938 只做了灰底样式，删掉提示条后就没标识了）。
+           在字段框内右侧绝对定位一个小锁图标，不占布局、不影响对齐。 */
+        if (!el.parentElement || !el.parentElement.querySelector('.cd-lock-badge')) {
+          const badge = document.createElement('span');
+          badge.className = 'cd-lock-badge';
+          badge.title = '不可修改';
+          badge.innerHTML = lucide('lock', 12);
+          const box = el.closest('.combobox-wrapper') || el.parentElement;
+          if (box) {
+            const cs = getComputedStyle(box);
+            if (cs.position === 'static') box.style.position = 'relative';
+            box.appendChild(badge);
+          }
+        }
       } else {
         el.classList.add('cd-field-locked-box');
       }
