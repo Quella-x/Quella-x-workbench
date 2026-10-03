@@ -7099,7 +7099,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 939, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 940, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -11808,7 +11808,9 @@ function renderSleepWeekLineChart(days) {
   // v555：恢复 v550 压缩居中方案，viewBox 720×568，桌面端收紧边距、移动端保持原样，避免全部挤在左边且字体过大
   const isDesktop = window.innerWidth > 768;
   const W = 720, H = 568;
-  const LM = isDesktop ? 45 : 80, RM = isDesktop ? 15 : 40, TM = isDesktop ? 70 : 62, BM = isDesktop ? 40 : 10;
+  /* v940：RM 右侧留白 15→56（桌面）/ 40→56（手机）——数据标签加了星期前缀（「三 2h30m」）后变长，
+     最右侧满值点的标签若还按 RM=15 贴边会超出 viewBox 被裁掉。56 够放「三 12h30m」。 */
+  const LM = isDesktop ? 45 : 80, RM = 56, TM = isDesktop ? 70 : 62, BM = isDesktop ? 40 : 10;
   /* v937：手机端小时刻度位置重算。
      症状：「日均」行下边距与上边距不等（手机 svg{overflow:visible} 把刻度画到容器外）。
      算清缩放：svg viewBox 高 568、容器 CSS 高 324、preserveAspectRatio 默认 meet
@@ -11851,17 +11853,33 @@ function renderSleepWeekLineChart(days) {
   const napXs = napVals.map(xOf); // 两个系列互相知道对方 x，才能双向拉开
   const seriesPoints = (vals, color, avoidXs, isNight) => vals.map((v, i) => {
     const x = xOf(v), y = yOf(i);
-    const anchor = (v / maxV) > 0.78 ? 'end' : 'start';
+    /* v940：标签带星期前缀（「三 2h30m」），占位宽 82（汉字16+空格4+「12h30m」6字×9.6）、高 24。
+       避让判定改成「矩形相交」而非固定像素阈值 —— 加星期后标签变长，跨行相邻标签仍会撞
+       （实测「一 2h12m」与「二 2h」dx22 dy9）。 */
+    const TXT_W = 82, TXT_H = 24;
+    const anchor = (v / maxV) > 0.72 ? 'end' : 'start';
     const lx = anchor === 'end' ? x - 12 : x + 12;
-    const nearOther = avoidXs && avoidXs.length > i && Math.abs(avoidXs[i] - x) < 90;
-    let ly;
-    if (nearOther) ly = isNight ? y - 14 : y + 46; // v939：上移 26→34、下移 40→46，彻底错开且不撞顶部刻度
-    else ly = isDesktop ? (anchor === 'end' ? y + 26 : y - 22) : y - 22;
+    let ly = isDesktop ? (anchor === 'end' ? y + 26 : y - 22) : y - 22;
+    if (avoidXs && avoidXs.length > i) {
+      const ox = avoidXs[i];
+      // 对方标签默认在点右侧 12px：占 [ox+12, ox+12+82]
+      const oL = ox + 12, oR = oL + TXT_W;
+      const myL = anchor === 'end' ? lx - TXT_W : lx, myR = myL + TXT_W;
+      // 同行（夜晚/午间共用 yOf(i)）：横向矩形相交就必须错开
+      const hOverlap = myL < oR && oL < myR;
+      if (hOverlap) ly = isNight ? y - 24 : y + 24; // v940：不越行边界(行高76/标签24 → 最多±26)，纵向大幅拉开反而会侵入相邻行
+    }
     const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/>`;
     if (!v) return `<g class="lr-hsc-point">${dot}</g>`; // 0 值：只画点不画字，避免一列 0m 互相重叠
     /* v938：撤销 v937 加的白底衬 rect（用户："不要加这种白底"）。
        回到 v936 的纯文字标签，只靠 `stroke="#fff" stroke-width="3" paint-order="stroke"` 白描边。 */
-    return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${formatSleepDuration(v)}</text>${dot}</g>`;
+    /* v940：标签加星期前缀（她："还是很乱，谁知道是哪一天啊"）。
+       根因：星期标签在**最左侧**（x = LM-14），数据标签在**点右侧**；某天数值小 → 点靠左 →
+       标签飞到左边与星期标签区混在一起，两类标签互相干扰，看不出某个数值属于哪天。
+       方案：数据标签自带星期（如「周三 2h30m」），星期缩写单字（周三→「三」）控制宽度。
+       星期标签仍保留在左侧作为行首标识。 */
+    const wdShort = wdLabels[i].slice(1); // 周一→一, 周二→二 …（单字，控制标签宽度）
+    return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${wdShort} ${formatSleepDuration(v)}</text>${dot}</g>`;
   }).join('');
   return `<div class="lr-history-stat-card">
     <div class="lr-hsc-row">
@@ -14176,7 +14194,12 @@ function tplListSnapRow(list) {
   const fitRows = Math.max(1, Math.floor(cardAvail / rowH));
   const needRows = Math.ceil(natural / rowH);
   const rows = Math.min(needRows, fitRows);
-  list.style.height = (rows * rowH) + 'px';
+  const h = rows * rowH;
+  list.style.height = h + 'px';
+  /* v940：白卡高度也跟着收成「列表高 + 上下 border」——之前白卡 flex:1 1 0 撑到 228px 而列表只有 198px，
+     白卡底部留 30px 空白（她截图里"底下多了"）。让白卡贴合列表，空白就没有了。 */
+  card.style.height = (h + 2) + 'px';
+  card.style.flex = '0 0 auto';
   list.scrollTop = 0;
   list.dataset.tplRows = String(rows);
 }

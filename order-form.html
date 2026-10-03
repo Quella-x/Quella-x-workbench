@@ -315,19 +315,19 @@ html.apk.modal-lock{overflow:hidden!important}
 /* v935：撤销 v934 的左右居中（text-align:center + .rch-spacer 左占位）——用户要的是「上下居中」不是左右居中。
    标题恢复贴左，上下留白相等：上 = .record-card padding-top + header margin-top，下 = padding-bottom + margin-bottom。 */
 /* v452：九大模块列表视图卡片标题底部分割线与接稿排期列表视图右侧接稿详情模块(.cdc-header)统一为同款 1px solid var(--c-border-light) */
-/* v939：把「留白」和「分割线」拆开——v938 我把整条规则从 `.record-list` 限定挪到通用 `.record-card-header`，
-   结果原本**没有分割线**的卡片（平台记录 home 等）也被加了一条（她："谁让你动我分割线的？"）。
-   现在：padding-bottom + margin-bottom 走通用（她要上下留白一致，所有卡片都要）；
-        **border-bottom 回到 .record-list 限定**（谁原来有分割线谁才有，v935 的行为）。 */
-.record-card-header{padding-bottom:8px;margin-bottom:7px}
-.record-list .record-card-header{border-bottom:1px solid var(--c-border-light)}
+/* v940：完全还原 v1.1.30 基线（她："没改回去啊"）。
+   v1.1.30 原样：
+     .record-list .record-card-header{border-bottom:1px solid var(--c-border-light);padding-bottom:8px}
+   —— 只有 border + padding-bottom，**没有 margin-bottom**（继承基础规则 8px）。
+   v938 我把 margin-bottom:7px 加到了通用 `.record-card-header` 上 → 所有卡片多出 7px 下边距；
+   v939 又拆成"留白通用 + 边框限定"，仍与 v1.1.30 不一致。
+   v940：`.record-list` 限定那条**原样还原**（border + padding-bottom，无 margin），
+   通用 `.record-card-header` 的 margin/padding 全部撤掉 → 回到 v1.1.30 的行为。 */
+.record-list .record-card-header{border-bottom:1px solid var(--c-border-light);padding-bottom:8px}
 /* v535：接稿排期日历视图卡片标题/编辑/删除/分割线整体下移 1px（累计 -3px） */
 .record-list.cal-view .record-card-header{margin-top:-3px}
 /* v534：接稿排期日历视图展示模块盒子 padding-top 再减 2px（13->11）*/
 .record-list.cal-view .record-card{padding-top:11px}
-/* v939：cal-view 卡片（上 = padding-top 11 + margin-top -3 = 8）比通用卡片（上 16）少 8px。
-   它在 .record-list 内、有 border(1)，故 margin-bottom 令 8 = 8(padding) + 1(border) + X → X = -1。 */
-.record-list.cal-view .record-card-header{margin-bottom:-1px}
 .record-card-body{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--c-text-light)}
 .record-card-body .field{display:flex;gap:4px}
 .record-card-body .field-label{color:var(--c-text-muted)}
@@ -1055,7 +1055,7 @@ html.apk.modal-lock{overflow:hidden!important}
      修法：表头与行内都改成 flex:0 0 auto，由内容撑开，两边自然同宽。 */
   /* v938：pair 宽度显式钉死 150px（= 行内 96 + 50 + gap4），不用 flex:0 0 auto。
      auto 会被内容（「同模」两字 + padding）撑到 156px，比行内宽 6px → 末列整列错位 6px（实测 hdrScroll=6）。*/
-  .dynamic-list-header .dl-model-urgent-pair{flex:0 0 150px;display:flex;gap:4px;min-width:0;padding-left:0;overflow:hidden}
+  .dynamic-list-header .dl-model-urgent-pair{flex:0 0 150px;display:flex;gap:4px;min-width:0;padding-left:0}
   /* v938：pair 内两个 span 显式固定 96 / 50（与行内 .combobox-wrapper[data-subkey=sameModel] 96px、
      .dl-urgent-cell 50px 完全一致），并清掉通用规则带来的 padding-left:8px（box-sizing:border-box 下
      这 8px 挤在 96/50 里，导致 pair 比行内窄 6px，末列整列错位 6px —— 实测 leftDelta=-6、hdrScroll=6）。*/
@@ -1077,18 +1077,16 @@ html.apk.modal-lock{overflow:hidden!important}
   /* v939：末列（操作/删除）完全照「加价项目」那列的样式摆——她要求"加价项目删除什么样，制品列表就照着来"。
      两列表统一 `flex:0 0 62px`（56 装不下「删除」两字会折行）+ `padding-right:8px`（内容内缩，不贴容器右缘）。
      v938 恢复表头负边距后表头比行内宽 16px，制品列表 8 列会溢出 → 同模 96→88、柄图 72→64、尺寸 75→68 各让出 22px。 */
-  .dynamic-list-header span.op-col{padding-right:8px;flex:0 0 62px;min-width:62px}
-  .dynamic-list-row button{flex:0 0 62px!important;min-width:62px;padding-right:8px}
+  .dynamic-list-header span.op-col{padding-right:0;padding-left:0;flex:0 0 56px!important;min-width:56px!important;text-align:center}
+  .dynamic-list-row button{flex:0 0 56px!important;min-width:56px!important;padding-right:0;justify-content:center}
   /* v939：负边距恢复后腾出的宽度让给 8 列（否则表头总宽超出容器 16px → 横向溢出） */
   .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="patternId"],
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .form-input[data-subkey="patternId"]{flex:0 0 64px;min-width:0}
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .combobox-wrapper[data-subkey="patternId"]{flex:0 0 64px!important;min-width:0!important}
+  .dynamic-list-container[data-key="products"][data-module="design-commission"] .form-input[data-subkey="patternId"]{flex:0 0 72px;min-width:0}
+  .dynamic-list-container[data-key="products"][data-module="design-commission"] .combobox-wrapper[data-subkey="patternId"]{flex:0 0 72px!important;min-width:0!important}
   .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="sameModel"],
   .dynamic-list-container[data-key="products"][data-module="design-commission"] .combobox-wrapper[data-subkey="sameModel"],
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .form-input[data-subkey="sameModel"]{flex:0 0 88px!important;min-width:0!important}
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="sameModel"]{flex:0 0 88px}
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header .dl-model-urgent-pair{flex:0 0 142px}
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header .dl-model-urgent-pair > span[data-subkey="sameModel"]{flex:0 0 88px}
+  .dynamic-list-container[data-key="products"][data-module="design-commission"] .form-input[data-subkey="sameModel"]{flex:0 0 96px!important;min-width:0!important}
+  .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="sameModel"]{flex:0 0 96px}
 }
 .dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-row .combobox-input{padding:8px 26px 8px 8px!important}
 .dynamic-list-row .combobox-toggle{right:2px;width:18px;font-size:10px}
@@ -2903,7 +2901,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
    ⚠️ 走过的弯路：v935/v936 我把上边距越调越大（10→26/28），她说"我说下边距近了，你把上边距拉更大"；
    v937 我为了凑相等把上边距压到 6（原值 10），她说"上边距少了，初始是这个值吗？"——问得对，6 根本不是原始值。
    v938 定稿：padding-top 恢复原始 10，上 = 卡片padding 10 + 10 = 20；下 = margin-bottom 16 + chart-body margin-top 4 = 20。严格相等。 */
-.lr-hsc-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;padding-top:10px}
+.lr-hsc-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-top:10px}
 .lr-hsc-title{font-size:14px;font-weight:800;color:var(--c-text)}
 .lr-hsc-sub{font-size:13px;font-weight:600;color:var(--c-text-light)}
 .lr-hsc-avgs{display:flex;flex-wrap:wrap;justify-content:space-around;width:100%;gap:8px;margin:0}
@@ -3026,7 +3024,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-hsc-title{font-size:14px}
   /* v937：移动端同桌面 v937 口径——上 = stat-card padding 8 + row padding-top 8 = 16；下 = margin-bottom 16 + chart-body 0 = 16。
      手机 svg{overflow:visible} 的越界问题已在 app.js 侧修（TM 46→62、hourLabelY 改 TM-16），CSS 这边归零。 */
-  .lr-hsc-row{margin-bottom:28px;padding-top:8px}
+  .lr-hsc-row{margin-bottom:20px;padding-top:8px}
   .lr-hsc-chart-body{height:324px;margin-top:4px}
   .lr-hsc-metrics{gap:6px;padding:6px 2px 2px}
   .lr-hsc-metric-val{font-size:18px}
@@ -3752,7 +3750,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=939"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=940"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
