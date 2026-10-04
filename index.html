@@ -604,19 +604,19 @@ html.apk.modal-lock{overflow:hidden!important}
 .modal.notes-sm .pricelist-notes-grid{grid-template-columns:1fr;gap:0}
 .modal.notes-sm .pricelist-notes-header{padding-bottom:16px;margin-bottom:8px}
 .modal.notes-sm .pricelist-note-item{padding:12px 12px}
-.modal.tpl-lib-modal{height:min(680px,90vh)}
+.modal.tpl-lib-modal{height:min(780px,92vh)} /* v934：文案库整体加高 */
 .modal.tpl-lib-modal .modal-body{padding:8px 0 0 0;display:flex;flex-direction:column}
-.modal.tpl-lib-modal .tpl-lib-folder{flex:1;min-height:0;display:flex;flex-direction:column}
+.modal.tpl-lib-modal .tpl-lib-folder{flex:1.4;min-height:0;display:flex;flex-direction:column} /* v934：库列表区占比加大 */
 /* v937：模板库列表区高度口径（这段注释合并了 v935/v936 的错误尝试，勿再回退）
    v935/v936 曾把白卡改成 flex:0 1 auto 想消除「底部露白」，结果约稿模板库只有 1 条时白卡塌成 1 行高，
    下方露出大片弹窗背景（用户截图："模板库呢？怎么没了就一行了？"）。
    v937 口径：白卡「flex:1 1 0」完全占满 folder 剩余高度（v936 的 flex:1 1 auto 只占 75%，下方露 45px 弹窗背景）；
    列表自身高度由 JS tplListSnapRow 钉成「行高 33px 的整数倍」，多出的空间留在白卡内部（白色），末行绝不出现半行。 */
-.modal.tpl-lib-modal .tpl-white-card{flex:1;min-height:0;display:flex;flex-direction:column}
-.modal.tpl-lib-modal .tpl-folder-list{flex:1;min-height:160px;max-height:none;overflow-y:auto}
+.modal.tpl-lib-modal .tpl-white-card{flex:1 1 0;min-height:0;max-height:none;display:flex;flex-direction:column}
+.modal.tpl-lib-modal .tpl-folder-list{flex:0 0 auto;min-height:0;max-height:none;overflow-y:auto}
 .modal.tpl-lib-modal .tpl-new{flex:1;min-height:0}
 .modal.tpl-lib-modal .tpl-new .cd-import-actions{margin-top:auto}
-.modal.tpl-lib-modal .tpl-new .form-textarea{flex:1;min-height:92px;margin-bottom:14px}
+.modal.tpl-lib-modal .tpl-new .form-textarea{flex:1;min-height:64px;margin-bottom:10px} /* v934：新增文案输入框压矮 */
 .modal.tpl-lib-modal .tpl-lib-folder>.tpl-new-title{font-size:14px;font-weight:700;margin:0 0 8px}
 /* v751：编辑其他说明弹窗与「其他说明」查看弹窗等高（JS 传入查看弹窗实测高度），输入框拉满剩余空间 */
 .modal.notes-equal{display:flex;flex-direction:column}
@@ -3671,7 +3671,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=944"></script>
+  <script src="app.js?v=945"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
