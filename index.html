@@ -843,7 +843,7 @@ html.apk.modal-lock{overflow:hidden!important}
   border-bottom:1px dashed var(--c-border);
 }
 .dynamic-list-header span{box-sizing:border-box;text-align:left;min-width:0;border:1px solid transparent;padding-left:8px}
-.dynamic-list-header span:last-child{flex:0 0 40px;text-align:center;padding-left:0}
+.dynamic-list-header span:last-child{flex:0 0 40px;text-align:left;padding-left:0}
 /* === 标题列宽精确控制（v22 标准列宽） === */
 .dynamic-list-header span[data-subkey="name"]{flex:1.5 1 0;min-width:90px}
 .dynamic-list-header span[data-subkey="project"]{flex:1.5 1 0;min-width:90px}
@@ -859,7 +859,7 @@ html.apk.modal-lock{overflow:hidden!important}
 .dynamic-list-header span[data-subkey="sameModel"]{flex:0 0 110px}
 .dynamic-list-header span[data-subkey="date"]{flex:0 0 110px}
 .dynamic-list-header span[data-subkey="note"]{flex:1 1 0;min-width:80px}
-.dynamic-list-header span:last-child{flex:0 0 40px;text-align:center;padding-left:0}
+.dynamic-list-header span:last-child{flex:0 0 40px;text-align:left;padding-left:0}
 /* v22: 厂家记录合作记录——日期缩、备注 flex，操作/删除贴左对齐 */
 /* v791: 合作记录列宽对齐——日期格固定168px(内含日历按钮)，表头同步168px；格内间距统一4px，日期输入框撑满(覆盖834行110px锁宽，占位词完整显示) */
 .dynamic-list-container[data-key="cooperationRecords"] .date-field-wrap{flex:0 0 168px;min-width:0;padding-right:0}
@@ -1018,6 +1018,8 @@ html.apk.modal-lock{overflow:hidden!important}
   transition:background .15s;
 }
 .dynamic-list-row button:hover{background:#fff0f0;color:var(--c-danger)}
+/* v948：删除按钮与“操作”表头左边缘对齐（表头已 text-align:left） */
+.dynamic-list-row button.dl-remove-btn{justify-content:flex-start}
 /* v805: 拔掉下拉箭头红色按压态根源——触屏点击后 :hover 粘滞，行内 button:hover 的粉底红箭头(#fff0f0/--c-danger)
    会一直留在 combobox-toggle 上（日历小按钮同类问题）；箭头改由下方专用 active/open 蓝色态接管 */
 .dynamic-list-row button.combobox-toggle:hover,.dynamic-list-row button.combobox-toggle:active{background:transparent;color:var(--c-text-muted)}
@@ -3671,7 +3673,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=948"></script>
+  <script src="app.js?v=949"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
