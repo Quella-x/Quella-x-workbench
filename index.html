@@ -300,24 +300,10 @@ html.apk.modal-lock{overflow:hidden!important}
 .record-list.two-col .record-card{min-height:110px}
 .record-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;flex-wrap:wrap}
 .record-card-title{font-size:14px;font-weight:600;color:var(--c-text);flex:1;word-break:break-word;min-width:0}
-/* v935：撤销 v934 的左右居中（text-align:center + .rch-spacer 左占位）——用户要的是「上下居中」不是左右居中。
-   标题恢复贴左，上下留白相等：上 = .record-card padding-top + header margin-top，下 = padding-bottom + margin-bottom。 */
 /* v452：九大模块列表视图卡片标题底部分割线与接稿排期列表视图右侧接稿详情模块(.cdc-header)统一为同款 1px solid var(--c-border-light) */
-/* v940：完全还原 v1.1.30 基线（她："没改回去啊"）。
-   v1.1.30 原样：
-     .record-list .record-card-header{border-bottom:1px solid var(--c-border-light);padding-bottom:8px}
-   —— 只有 border + padding-bottom，**没有 margin-bottom**（继承基础规则 8px）。
-   v938 我把 margin-bottom:7px 加到了通用 `.record-card-header` 上 → 所有卡片多出 7px 下边距；
-   v939 又拆成"留白通用 + 边框限定"，仍与 v1.1.30 不一致。
-   v940：`.record-list` 限定那条**原样还原**（border + padding-bottom，无 margin），
-   通用 `.record-card-header` 的 margin/padding 全部撤掉 → 回到 v1.1.30 的行为。 */
 .record-list .record-card-header{border-bottom:1px solid var(--c-border-light);padding-bottom:8px}
 /* v535：接稿排期日历视图卡片标题/编辑/删除/分割线整体下移 1px（累计 -3px） */
 .record-list.cal-view .record-card-header{margin-top:-3px}
-/* v943：删除 v939 发明的 margin-bottom:-1px（她："改回v1.1.48版本，你净瞎改"）。
-   v1.1.48(v834) 的 cal-view 卡片头部**没有**这条规则——基础 .record-card-header 的 margin-bottom:8px
-   就是分割线到内容的间距。这条 -1px 把 8px 整个覆盖成 -1px，内容整体上移 9px（探针实测 body y 236 vs 244）。
-   v941 我误以为她要这条，实际她当轮说的"分割线下边距"不是 cal-view——开团卡片从此与 v1.1.48 逐像素一致。 */
 /* v534：接稿排期日历视图展示模块盒子 padding-top 再减 2px（13->11）*/
 .record-list.cal-view .record-card{padding-top:11px}
 .record-card-body{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--c-text-light)}
@@ -328,10 +314,7 @@ html.apk.modal-lock{overflow:hidden!important}
 .record-card-body:not(.comm-list-style) .field-label::after{content:':'}
 /* v515: 九模块列表字段对齐（与接稿排期左栏一致：64px 右对齐标签 + 1fr 值列），仅内部字段样式，单双列保持原样 */
 .record-card-body.comm-list-style{display:flex;flex-direction:column;gap:2px 0;margin-left:2px;margin-top:1px}
-/* v942：撤销 v935 对**所有** comm-list-style 卡片的 min-height:20px——开团记录等单列模块要回到 v1.1.48(v834) 的自然行高（她："改回v1.1.48版本，你净瞎改"）。
-   v935 这条本来是给双列卡片（灵感/人物档案）等高用的，误伤了全部 9 个模块；现在收窄到 .record-list.two-col 才生效。 */
-.record-list.two-col .record-card-body.comm-list-style .field:not(.comm-products-field){min-height:20px}
-.record-card-body.comm-list-style .field:not(.comm-products-field){display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:baseline;margin:0} /* v935：胶囊标签（padding 2px 8px）比纯文字行高 ~1.5px，导致双列卡片里"标签分类"为空的那张比有标签的矮。给所有字段行统一 20px 下限，两卡等高 */
+.record-card-body.comm-list-style .field:not(.comm-products-field){display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:baseline;margin:0}
 .record-card-body.comm-list-style .field:not(.comm-products-field) .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;white-space:nowrap;line-height:1.4}
 .record-card-body.comm-list-style .field:not(.comm-products-field) .field-value{font-size:13px;color:var(--c-text);line-height:1.4;min-width:0;word-break:break-word}
 .record-card-body.comm-list-style .field:not(.comm-products-field) .field-tags{display:flex;flex-wrap:wrap;gap:4px}
@@ -621,19 +604,19 @@ html.apk.modal-lock{overflow:hidden!important}
 .modal.notes-sm .pricelist-notes-grid{grid-template-columns:1fr;gap:0}
 .modal.notes-sm .pricelist-notes-header{padding-bottom:16px;margin-bottom:8px}
 .modal.notes-sm .pricelist-note-item{padding:12px 12px}
-.modal.tpl-lib-modal{height:min(780px,92vh)} /* v934：文案库整体加高 */
+.modal.tpl-lib-modal{height:min(680px,90vh)}
 .modal.tpl-lib-modal .modal-body{padding:8px 0 0 0;display:flex;flex-direction:column}
-.modal.tpl-lib-modal .tpl-lib-folder{flex:1.4;min-height:0;display:flex;flex-direction:column} /* v934：库列表区占比加大 */
+.modal.tpl-lib-modal .tpl-lib-folder{flex:1;min-height:0;display:flex;flex-direction:column}
 /* v937：模板库列表区高度口径（这段注释合并了 v935/v936 的错误尝试，勿再回退）
    v935/v936 曾把白卡改成 flex:0 1 auto 想消除「底部露白」，结果约稿模板库只有 1 条时白卡塌成 1 行高，
    下方露出大片弹窗背景（用户截图："模板库呢？怎么没了就一行了？"）。
    v937 口径：白卡「flex:1 1 0」完全占满 folder 剩余高度（v936 的 flex:1 1 auto 只占 75%，下方露 45px 弹窗背景）；
    列表自身高度由 JS tplListSnapRow 钉成「行高 33px 的整数倍」，多出的空间留在白卡内部（白色），末行绝不出现半行。 */
-.modal.tpl-lib-modal .tpl-white-card{flex:1 1 0;min-height:0;max-height:none;display:flex;flex-direction:column}
-.modal.tpl-lib-modal .tpl-folder-list{flex:0 0 auto;min-height:0;max-height:none;overflow-y:auto}
+.modal.tpl-lib-modal .tpl-white-card{flex:1;min-height:0;display:flex;flex-direction:column}
+.modal.tpl-lib-modal .tpl-folder-list{flex:1;min-height:160px;max-height:none;overflow-y:auto}
 .modal.tpl-lib-modal .tpl-new{flex:1;min-height:0}
 .modal.tpl-lib-modal .tpl-new .cd-import-actions{margin-top:auto}
-.modal.tpl-lib-modal .tpl-new .form-textarea{flex:1;min-height:64px;margin-bottom:10px} /* v934：新增文案输入框压矮 */
+.modal.tpl-lib-modal .tpl-new .form-textarea{flex:1;min-height:92px;margin-bottom:14px}
 .modal.tpl-lib-modal .tpl-lib-folder>.tpl-new-title{font-size:14px;font-weight:700;margin:0 0 8px}
 /* v751：编辑其他说明弹窗与「其他说明」查看弹窗等高（JS 传入查看弹窗实测高度），输入框拉满剩余空间 */
 .modal.notes-equal{display:flex;flex-direction:column}
@@ -919,7 +902,6 @@ html.apk.modal-lock{overflow:hidden!important}
 .dynamic-list-row .form-input[data-subkey="factory"]{flex:1 1 0;min-width:80px}
 .dynamic-list-row .form-input[data-subkey="type"]{flex:0 0 70px}
 .dynamic-list-row .form-input[data-subkey="amount"]{flex:0 0 70px}
-.dynamic-list-row .form-input[data-subkey="remark"]{flex:1 1 0;min-width:0}
 .dynamic-list-row .form-input[data-subkey="sameModel"]{flex:0 0 110px}
 .dynamic-list-row .form-input[data-subkey="date"]{flex:0 0 110px}
 .dynamic-list-row .form-input[data-subkey="note"]{flex:1 1 0;min-width:80px}
@@ -999,19 +981,13 @@ html.apk.modal-lock{overflow:hidden!important}
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .form-input[data-subkey="price"]{flex:0 0 80px}
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .dynamic-list-header span[data-subkey="isDisbanded"],
 .dynamic-list-container[data-key="products"][data-module="groupbuy-records"] .combobox-wrapper[data-subkey="isDisbanded"]{flex:0 0 80px!important;min-width:0!important}
-/* v856：开团售后记录编辑表——取消写死 208px（横向滚动条主因），改为固定列 + name/备注自适应；name 加宽、remark 收窄 */
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="orderNo"],
-.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="orderNo"]{flex:0 0 64px}
-.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="quantity"],
-.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="quantity"]{flex:0 0 64px}
-.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="amount"],
-.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="amount"]{flex:0 0 76px}
-.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="name"]{flex:2 1 0;min-width:90px}
-.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="name"]{flex:2 1 0;width:auto!important;min-width:90px!important}
-.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="type"]{flex:0 0 96px}
-.dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="type"]{flex:0 0 96px!important;width:96px!important;min-width:0!important}
-.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="remark"],
-.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="remark"]{flex:1.2 1 0;min-width:90px}
+.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="orderNo"]{flex:0 0 80px}
+.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="name"],
+.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="type"]{flex:0 0 208px}
+.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="name"]{flex:0 0 208px!important;width:208px!important;min-width:0!important}
+.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="type"],
+.dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="type"]{flex:0 0 208px!important;width:208px!important;min-width:0!important}
 }
 /* v794: 手机端接稿排期制品列表完全还原 v1.1.30（wk_130 APK 实测提取）——撤销 v793 的「一行连排」收窄：
    尺寸70/数量60/同模110/加急50（v22 移动基准，即 v1.1.30 原值），删除按钮 flex-shrink:0 min-width:40px 自然换行到第三行——
@@ -1027,61 +1003,10 @@ html.apk.modal-lock{overflow:hidden!important}
 /* v795: 窄桌面（约 769-900px 视口）弹窗被压窄后容器 < 列最小总宽 716px，表头/字段两个 flex 容器可用宽一旦不一致整列漂移——
    统一给表头和行 716px 最小宽 + 容器横向滚动（两者同宽、同步滚动），任何桌面宽度下逐列严格对齐；宽屏（≥734 容器）无滚动条不受影响 */
 @media (min-width:769px){
-  /* v935：不再给行/表头设 min-width 强制横向滚动——780px 弹窗内容区 732px，
-     行可用宽 = 732 - 2*8(padding) - 2*1(border) = 714px，而列下限合计 732px 会溢出 18px。
-     ① 删除按钮 40→56px（「删除」两字在 40px 里被折成上下两行并被容器裁掉）
-     ② 柄图标识 80→72、同模 110→96（省 22px > 18px 缺口，且这两列内容较短，足够显示）
-     ③ 容器不再横向滚动，彻底消除横向滚动条。表头 span:last-child 同步 56px 保证「操作」列与删除按钮对齐。*/
-  .dynamic-list-container{overflow-x:visible}
-  .dynamic-list-row button,
-  .dynamic-list-header span:last-child{flex:0 0 56px;min-width:56px}
-  .dynamic-list-row button{white-space:nowrap}
-  /* v939：恢复表头负边距（蓝底铺满容器），v935 我为修「错位 8px」把它归零 → 蓝底缩进且铺不满，
-     她截图里表头蓝底在「操作」后就断了、「删除」有一半落在蓝底外。
-     负边距恢复后表头比行内元素宽 16px（左右各 8px），用等量 padding 抵消，使列起点仍与行内一致：
-     margin -8/-8 + padding 8/8 → 内容区起点与行内相同，背景仍铺满。 */
-  .dynamic-list-header{margin-left:-8px;margin-right:-8px;padding-left:8px;padding-right:8px}
-  /* span 的 1px transparent border 改用 box-shadow 绘制（不占布局宽度，否则每列宽 2px，8 列累积 16px） */
-  .dynamic-list-header span{border:none;padding-left:8px}
-  /* v935：表头「同模+加急」合并对（与行内 .dl-model-urgent-pair 结构一致）。
-     ⚠️ v937 修正：原来表头写 `flex:0 0 150px`，而行内 .dl-model-urgent-pair 是 `flex:0 0 auto`
-     （宽度由内容决定，实际比 150 窄）→ 两边宽度不同，末列「操作/删除」整列错位（用户截图：
-     表头「操作」在蓝底内、数据行「删除」跑到蓝底外白底上，差了一整列）。
-     修法：表头与行内都改成 flex:0 0 auto，由内容撑开，两边自然同宽。 */
-  /* v938：pair 宽度显式钉死 150px（= 行内 96 + 50 + gap4），不用 flex:0 0 auto。
-     auto 会被内容（「同模」两字 + padding）撑到 156px，比行内宽 6px → 末列整列错位 6px（实测 hdrScroll=6）。*/
-  .dynamic-list-header .dl-model-urgent-pair{flex:0 0 150px;display:flex;gap:4px;min-width:0;padding-left:0}
-  /* v938：pair 内两个 span 显式固定 96 / 50（与行内 .combobox-wrapper[data-subkey=sameModel] 96px、
-     .dl-urgent-cell 50px 完全一致），并清掉通用规则带来的 padding-left:8px（box-sizing:border-box 下
-     这 8px 挤在 96/50 里，导致 pair 比行内窄 6px，末列整列错位 6px —— 实测 leftDelta=-6、hdrScroll=6）。*/
-  .dynamic-list-header .dl-model-urgent-pair > span{padding-left:0}
-  .dynamic-list-header .dl-model-urgent-pair > span[data-subkey="sameModel"]{flex:0 0 96px;padding-left:8px}
-  .dynamic-list-header .dl-model-urgent-pair > span[data-subkey="urgent"]{flex:0 0 50px;text-align:center;padding-left:0}
-  /* 「操作」列：不依赖 span:last-child（外层 pair 会改变末位判定），显式用 op-col 标记。
-     宽度在下方 v937 段统一设 62px + padding-right:8px（内容内缩，两类列表视觉留白一致），此处不再设宽度。 */
-  .dynamic-list-header span.op-col{text-align:center;padding-left:0}
-  /* ② 柄图标识 80→72 */
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="patternId"],
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .form-input[data-subkey="patternId"]{flex:0 0 72px;min-width:0}
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .combobox-wrapper[data-subkey="patternId"]{flex:0 0 72px!important;min-width:0!important}
-  /* ② 同模 110→96（表头 + 下拉格同步） */
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="sameModel"],
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .combobox-wrapper[data-subkey="sameModel"],
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .form-input[data-subkey="sameModel"]{flex:0 0 96px!important;min-width:0!important}
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="sameModel"]{flex:0 0 96px}
-  /* v939：末列（操作/删除）完全照「加价项目」那列的样式摆——她要求"加价项目删除什么样，制品列表就照着来"。
-     两列表统一 `flex:0 0 62px`（56 装不下「删除」两字会折行）+ `padding-right:8px`（内容内缩，不贴容器右缘）。
-     v938 恢复表头负边距后表头比行内宽 16px，制品列表 8 列会溢出 → 同模 96→88、柄图 72→64、尺寸 75→68 各让出 22px。 */
-  .dynamic-list-header span.op-col{padding-right:0;padding-left:0;flex:0 0 56px!important;min-width:56px!important;text-align:center}
-  .dynamic-list-row button{flex:0 0 56px!important;min-width:56px!important;padding-right:0;justify-content:center}
-  /* v939：负边距恢复后腾出的宽度让给 8 列（否则表头总宽超出容器 16px → 横向溢出） */
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="patternId"],
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .form-input[data-subkey="patternId"]{flex:0 0 72px;min-width:0}
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .combobox-wrapper[data-subkey="patternId"]{flex:0 0 72px!important;min-width:0!important}
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="sameModel"],
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .combobox-wrapper[data-subkey="sameModel"],
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .form-input[data-subkey="sameModel"]{flex:0 0 96px!important;min-width:0!important}
-  .dynamic-list-container[data-key="products"][data-module="design-commission"] .dynamic-list-header span[data-subkey="sameModel"]{flex:0 0 96px}
+  .dynamic-list-container{overflow-x:auto}
+  /* 表头 border-box 含左右各 8px 内边距，min-width 须 = 行 716 + 16，两容器内容区才等宽 */
+  .dynamic-list-header{min-width:732px}
+  .dynamic-list-row{min-width:716px}
 }
 .dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-row .combobox-input{padding:8px 26px 8px 8px!important}
 .dynamic-list-row .combobox-toggle{right:2px;width:18px;font-size:10px}
@@ -1402,7 +1327,7 @@ html.apk.modal-lock{overflow:hidden!important}
   .dynamic-list-row{flex-wrap:wrap;gap:4px}
   .dynamic-list-row .form-input{min-width:60px}
   /* v787: 手机端合作记录——日期+备注同行（日期占位词完整显示），备注缩短不再独占整行 */
-  .dynamic-list-container[data-key="cooperationRecords"] .date-field-wrap{flex:1 1 170px;min-width:170px;padding-right:8px}
+  .dynamic-list-container[data-key="cooperationRecords"] .date-field-wrap{flex:1 1 168px;min-width:168px;padding-right:8px}
   .dynamic-list-container[data-key="cooperationRecords"] .date-field-wrap .form-input{min-width:0;width:auto;flex:1 1 auto}
   .dynamic-list-container[data-key="cooperationRecords"] .form-input[data-subkey="note"]{flex:1 1 100px;min-width:0}
   /* v22 mobile 列宽（与 header 保持一致） */
@@ -3746,7 +3671,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=943"></script>
+  <script src="app.js?v=944"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

@@ -7099,7 +7099,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 943, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 944, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -11795,7 +11795,7 @@ function renderDietRecordCard(date) {
 }
 function renderSleepWeekLineChart(days) {
   const all = DB.list('lifeRecords');
-  const wdLabels = ['周一','周二','周三','周四','周五','周六','周日']; // v934：周一→周日正序（用户要求）
+  const wdLabels = ['周一','周二','周三','周四','周五','周六','周日']; // v934：周一→周日正序（保留）
   // v373：夜晚时长(橙) / 午睡时长(黄) 分两条折线；清醒次数按夜晚记录统计
   // v548：duration缺失时从sleepTime/wakeTime自动计算，避免旧记录显示0m
   const nightVals = days.map(d => all.filter(r => r.type === 'sleep' && r.date === d && r.subtype === 'night').reduce((s, r) => s + getSleepDuration(r), 0));
@@ -11808,21 +11808,8 @@ function renderSleepWeekLineChart(days) {
   // v555：恢复 v550 压缩居中方案，viewBox 720×568，桌面端收紧边距、移动端保持原样，避免全部挤在左边且字体过大
   const isDesktop = window.innerWidth > 768;
   const W = 720, H = 568;
-  /* v940：RM 右侧留白 15→56（桌面）/ 40→56（手机）——数据标签加了星期前缀（「三 2h30m」）后变长，
-     最右侧满值点的标签若还按 RM=15 贴边会超出 viewBox 被裁掉。56 够放「三 12h30m」。 */
-  const LM = isDesktop ? 45 : 80, RM = 56, TM = isDesktop ? 70 : 62, BM = isDesktop ? 40 : 10;
-  /* v937：手机端小时刻度位置重算。
-     症状：「日均」行下边距与上边距不等（手机 svg{overflow:visible} 把刻度画到容器外）。
-     算清缩放：svg viewBox 高 568、容器 CSS 高 324、preserveAspectRatio 默认 meet
-     → scale = min(容器宽/720, 324/568) ≈ 0.497，垂直居中偏移 = (324-568×0.497)/2 ≈ 20.8。
-     刻度屏幕 y = hourLabelY×0.497 + 20.8；要落在「上边距 16 + 目标 16 = 32」处 → hourLabelY = 22。
-     TM 从 46 → 70，给刻度留出 48 单位（≈24px 屏幕）不压数据。BM 保持 10。 */
-  /* v938：小时刻度位置 = 视觉下边距的终点，按容器实际缩放反算，两端各自精确对齐 20px。
-     桌面：容器 394 / viewBox 568 → scale 0.6937，偏移 0 → 20 = y×0.6937 → y = 28.8 ≈ 29（TM-41）。
-     手机：容器 324 / viewBox 568 → scale 0.5704，垂直居中偏移 20.8 → 20 = y×0.5704+20.8 → y ≈ 0
-           （但 y=0 时刻度贴容器顶太紧，取 6 → 屏幕 24.2px，接近；TM 62 给刻度留出 56 单位不压数据）。
-     v937 我把桌面写成 TM-52=18（刻度落在 12.5px，下边距只剩 12.5 ≠ 上边距 20），手机写死 22 → 都偏小。 */
-  const hourLabelY = isDesktop ? 25 : 23;
+  const LM = isDesktop ? 45 : 80, RM = isDesktop ? 15 : 40, TM = isDesktop ? 70 : 46, BM = isDesktop ? 40 : 4;
+  const hourLabelY = isDesktop ? TM - 52 : TM - 55;
   const CW = W - LM - RM, CH = H - TM - BM;
   const xOf = v => LM + (maxV > 0 ? v / maxV * CW : 0);
   const yOf = i => TM + CH * i / 6;
@@ -11844,35 +11831,13 @@ function renderSleepWeekLineChart(days) {
     const y = yOf(i);
     return `<text x="${LM - 14}" y="${(y + 9).toFixed(1)}" text-anchor="end" font-size="${isDesktop?18:24}" font-weight="600" fill="var(--c-text)">${wdLabels[i]}</text>`;
   }).join('');
-  /* v939：夜晚/午间标签错开（她："错开啊，最上面离2h、4h这些太近了不行"）。
-     双向拉开的高度不能随便给：太上会撞到 svg 顶部的小时刻度（hourLabelY=25 桌面 / 23 手机），
-     太下会压住折线。安全区间取「不越过刻度行」且「离点足够远」：
-     夜晚 → y-34（点上方 34 单位，桌面换算 ≈ 24px，刻度在 y=25 处不重叠）；
-     午间 → y+46（点下方，落到下一行之前，不会压本行折线）。 */
-  const nightXs = nightVals.map(xOf);
-  const napXs = napVals.map(xOf); // 两个系列互相知道对方 x，才能双向拉开
-  const seriesPoints = (vals, color, avoidXs, isNight) => vals.map((v, i) => {
+  const seriesPoints = (vals, color) => vals.map((v, i) => {
     const x = xOf(v), y = yOf(i);
-    /* v941：撤销 v940 的星期前缀（她："不要在前面加数字，更乱了"——一/二/三 看着像数字）。
-       数字放点后面（右侧），与点同一行垂直居中（基线 = 点心 +6）——最上面的标签贴着自己的点，
-       不再飘到点上方去撞顶部小时刻度（v940 手机端 ly=y-22 把周一的标签顶到「4h」边上）。
-       只有快到右缘放不下时才改到点左侧（anchor end）。 */
-    const TXT_W = 68, TXT_H = 24;
-    const anchor = (x + 12 + TXT_W > W - 4) ? 'end' : 'start';
+    const label = formatSleepDuration(v);
+    const anchor = (v / maxV) > 0.78 ? 'end' : 'start';
     const lx = anchor === 'end' ? x - 12 : x + 12;
-    let ly = y + 6;
-    if (avoidXs && avoidXs.length > i) {
-      const ox = avoidXs[i];
-      // 对方标签默认也在点右侧 12px：占 [ox+12, ox+12+TXT_W]
-      const oL = ox + 12, oR = oL + TXT_W;
-      const myL = anchor === 'end' ? lx - TXT_W : lx, myR = myL + TXT_W;
-      // 同行（夜晚/午间共用 yOf(i)）：横向矩形相交 → 午间(黄)在本行内下移 28，夜晚保持点旁
-      const hOverlap = myL < oR && oL < myR;
-      if (hOverlap) ly = isNight ? y + 6 : y + 34;
-    }
-    const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/>`;
-    if (!v) return `<g class="lr-hsc-point">${dot}</g>`; // 0 值：只画点不画字，避免一列 0m 互相重叠
-    return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${formatSleepDuration(v)}</text>${dot}</g>`;
+    const ly = isDesktop ? (anchor === 'end' ? y + 26 : y - 22) : y - 22;
+    return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${label}</text><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/></g>`;
   }).join('');
   return `<div class="lr-history-stat-card">
     <div class="lr-hsc-row">
@@ -11891,8 +11856,8 @@ function renderSleepWeekLineChart(days) {
         <polyline fill="none" stroke="${napColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${linePath(napVals)}"/>
         <polyline fill="none" stroke="${nightColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${linePath(nightVals)}"/>
         ${dayLabels}
-        ${seriesPoints(napVals, napColor, nightXs, false)}
-      ${seriesPoints(nightVals, nightColor, napXs, true)}
+        ${seriesPoints(napVals, napColor)}
+      ${seriesPoints(nightVals, nightColor)}
     </svg>
   </div>
 </div>`;
