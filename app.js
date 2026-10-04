@@ -485,6 +485,8 @@ let _txtTplSelId = null;  // v762：文本模板库当前选中项
 function applyModalEqualHeight(h) {
   const m = $('#modal');
   if (!m) return;
+  // v946：文案/约稿模板库自身有固定高度口径（.tpl-lib-modal），不复用外部小弹窗高度，避免"切换一次缩一次"
+  if (m.classList.contains('tpl-lib-modal')) return;
   m.classList.add('notes-equal');
   m.style.height = h ? h + 'px' : '90vh';
 }
@@ -1861,7 +1863,7 @@ function buildDynamicListHTML(field, data, moduleKey) {
     columns.forEach(col => {
       html += `<span data-subkey="${esc(col.subkey)}">${esc(col.label)}</span>`;
     });
-    html += `<span class="op-col">操作</span></div>`;
+    html += `<span>操作</span></div>`;
     /* v935：行内「同模 + 加急」被 groupSameModelUrgentRow 合并成一个 span（v789），
        但表头仍是两个独立 span → 表头与行的列结构不一致，「操作」表头与「删除」按钮错位。
        这里同步把表头的 sameModel + urgent 也包进一个 dl-model-urgent-pair，使两者结构完全一致。 */
@@ -7099,7 +7101,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 945, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 946, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -11810,7 +11812,8 @@ function renderSleepWeekLineChart(days) {
   const W = 720, H = 568;
   /* v940：RM 右侧留白 15→56（桌面）/ 40→56（手机）——数据标签加了星期前缀（「三 2h30m」）后变长，
      最右侧满值点的标签若还按 RM=15 贴边会超出 viewBox 被裁掉。56 够放「三 12h30m」。 */
-  const LM = isDesktop ? 45 : 80, RM = 56, TM = isDesktop ? 70 : 62, BM = isDesktop ? 40 : 10;
+  /* v946：TM 减小，使折线/面积整体上移、贴近顶部 2h/4h/6h 时间刻度 */
+  const LM = isDesktop ? 45 : 80, RM = 56, TM = isDesktop ? 40 : 36, BM = isDesktop ? 40 : 10;
   /* v937：手机端小时刻度位置重算。
      症状：「日均」行下边距与上边距不等（手机 svg{overflow:visible} 把刻度画到容器外）。
      算清缩放：svg viewBox 高 568、容器 CSS 高 324、preserveAspectRatio 默认 meet
@@ -11844,11 +11847,8 @@ function renderSleepWeekLineChart(days) {
     const y = yOf(i);
     return `<text x="${LM - 14}" y="${(y + 9).toFixed(1)}" text-anchor="end" font-size="${isDesktop?18:24}" font-weight="600" fill="var(--c-text)">${wdLabels[i]}</text>`;
   }).join('');
-  /* v939：夜晚/午间标签错开（她："错开啊，最上面离2h、4h这些太近了不行"）。
-     双向拉开的高度不能随便给：太上会撞到 svg 顶部的小时刻度（hourLabelY=25 桌面 / 23 手机），
-     太下会压住折线。安全区间取「不越过刻度行」且「离点足够远」：
-     夜晚 → y-34（点上方 34 单位，桌面换算 ≈ 24px，刻度在 y=25 处不重叠）；
-     午间 → y+46（点下方，落到下一行之前，不会压本行折线）。 */
+  /* v946：夜晚/午间标签错开加大——同排两值都小（都在左侧）时标签会重叠，
+     午间标签下移更多（y+52），与夜晚标签保持约 46px 净间距，避免截图里的重叠。 */
   const nightXs = nightVals.map(xOf);
   const napXs = napVals.map(xOf); // 两个系列互相知道对方 x，才能双向拉开
   const seriesPoints = (vals, color, avoidXs, isNight) => vals.map((v, i) => {
@@ -11866,9 +11866,9 @@ function renderSleepWeekLineChart(days) {
       // 对方标签默认也在点右侧 12px：占 [ox+12, ox+12+TXT_W]
       const oL = ox + 12, oR = oL + TXT_W;
       const myL = anchor === 'end' ? lx - TXT_W : lx, myR = myL + TXT_W;
-      // 同行（夜晚/午间共用 yOf(i)）：横向矩形相交 → 午间(黄)在本行内下移 28，夜晚保持点旁
+      // 同行（夜晚/午间共用 yOf(i)）：横向矩形相交 → 午间(黄)下移 46，夜晚保持点旁
       const hOverlap = myL < oR && oL < myR;
-      if (hOverlap) ly = isNight ? y + 6 : y + 34;
+      if (hOverlap) ly = isNight ? y + 6 : y + 52;
     }
     const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/>`;
     if (!v) return `<g class="lr-hsc-point">${dot}</g>`; // 0 值：只画点不画字，避免一列 0m 互相重叠
@@ -11888,7 +11888,7 @@ function renderSleepWeekLineChart(days) {
         ${gridLines}
         <path d="${areaPath(napVals)}" fill="url(#${gradNap})" stroke="none"/>
         <path d="${areaPath(nightVals)}" fill="url(#${gradNight})" stroke="none"/>
-        <polyline fill="none" stroke="${napColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${linePath(napVals)}"/>
+        <polyline fill="none" stroke="${napColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6,4" points="${linePath(napVals)}"/>
         <polyline fill="none" stroke="${nightColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${linePath(nightVals)}"/>
         ${dayLabels}
         ${seriesPoints(napVals, napColor, nightXs, false)}
