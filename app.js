@@ -7095,7 +7095,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 947, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 948, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -11806,7 +11806,7 @@ function renderSleepWeekLineChart(days) {
   const W = 720, H = 568;
   /* v940：RM 右侧留白 15→56（桌面）/ 40→56（手机）——数据标签加了星期前缀（「三 2h30m」）后变长，
      最右侧满值点的标签若还按 RM=15 贴边会超出 viewBox 被裁掉。56 够放「三 12h30m」。 */
-  /* v947：TM 回退到 v945，不整体往上；hourLabelY 下移让时间刻度靠近折线 */
+  /* v948：时间刻度回到 v943 基线位置；折线/点视觉尺寸恢复 v943 */
   const LM = isDesktop ? 45 : 80, RM = 56, TM = isDesktop ? 70 : 62, BM = isDesktop ? 40 : 10;
   /* v937：手机端小时刻度位置重算。
      症状：「日均」行下边距与上边距不等（手机 svg{overflow:visible} 把刻度画到容器外）。
@@ -11819,8 +11819,8 @@ function renderSleepWeekLineChart(days) {
      手机：容器 324 / viewBox 568 → scale 0.5704，垂直居中偏移 20.8 → 20 = y×0.5704+20.8 → y ≈ 0
            （但 y=0 时刻度贴容器顶太紧，取 6 → 屏幕 24.2px，接近；TM 62 给刻度留出 56 单位不压数据）。
      v937 我把桌面写成 TM-52=18（刻度落在 12.5px，下边距只剩 12.5 ≠ 上边距 20），手机写死 22 → 都偏小。 */
-  /* v947：时间刻度下移到折线附近（桌面 45/手机 42），保持图表整体不往上 */
-  const hourLabelY = isDesktop ? 45 : 42;
+  /* v948：小时刻度回到 v943 位置（桌面25/手机23），不人为下移 */
+  const hourLabelY = isDesktop ? 25 : 23;
   const CW = W - LM - RM, CH = H - TM - BM;
   const xOf = v => LM + (maxV > 0 ? v / maxV * CW : 0);
   const yOf = i => TM + CH * i / 6;
@@ -11846,9 +11846,9 @@ function renderSleepWeekLineChart(days) {
      午间标签下移更多（y+52），与夜晚标签保持约 46px 净间距，避免截图里的重叠。 */
   const nightXs = nightVals.map(xOf);
   const napXs = napVals.map(xOf); // 两个系列互相知道对方 x，才能双向拉开
-  const desktopStrokeW = isDesktop ? 2 : 3;
-  const desktopDotR = isDesktop ? 5 : 7;
-  const desktopDotStrokeW = isDesktop ? 2 : 2.5;
+  const desktopStrokeW = 3;
+  const desktopDotR = 7;
+  const desktopDotStrokeW = 2.5;
   const seriesPoints = (vals, color, avoidXs, isNight) => vals.map((v, i) => {
     const x = xOf(v), y = yOf(i);
     /* v941：撤销 v940 的星期前缀（她："不要在前面加数字，更乱了"——一/二/三 看着像数字）。
