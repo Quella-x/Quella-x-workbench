@@ -7095,7 +7095,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 949, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 950, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -14172,24 +14172,22 @@ function tplListSnapRow(list) {
   list.scrollTop = 0;
   const card = list.closest('.tpl-white-card');
   if (!card) return;
+  /* v950：先还原白卡到 flex 拉伸状态再量可用高——
+     v940 把 card.style.height/flex 钉死成「列表高+border」后，下次切换分类时
+     card.clientHeight 已经是上一次的矮值，fitRows 越算越小，表现就是「切换一次缩一次」。 */
+  card.style.height = '';
+  card.style.flex = '';
+  list.style.height = 'auto';
   const first = list.firstElementChild;
   if (!first) { list.style.height = ''; return; }
   const rowH = first.getBoundingClientRect().height || 34;
-  // 量「不裁剪需要多高」：先临时放开高度读 scrollHeight
-  const prevH = list.style.height;
-  list.style.height = 'auto';
-  const natural = list.scrollHeight;
-  list.style.height = prevH;
-  /* v939：高度必须是**行高整数倍**——她要求「要么把下面那行放出来，要么就不要露出来，还露一节干嘛」。
-     v938 用 `natural <= cardAvail ? natural : cardAvail`，cardAvail 是任意值（白卡 flex:1 1 0 会被列表撑高，
-     两者循环依赖），结果卡在 203 这种非整数倍高度上 → 最后一条只露 28/34px。
-     v939 正确做法：白卡可用高先量出来，再 `floor(可用/行高)` 算出能放几整行，高度 = 整行数 × 行高。
-     放得下全部 → 用内容高（也是整数倍，因为每行等高）；放不下 → 滚动，滚到底时末行要么完整要么完全不可见。 */
   const cardAvail = card.clientHeight - 2; // 减上下 border
-  const fitRows = Math.max(1, Math.floor(cardAvail / rowH));
-  const needRows = Math.ceil(natural / rowH);
-  const rows = Math.min(needRows, fitRows);
-  const h = rows * rowH;
+  /* v950：库区高度固定为「可用空间能放下的整行数」，不再随当前分类的文案条数变化——
+     切换分类高度恒定（初始打开多高，之后就多高）；内容不足时留白，超出时滚动，
+     末行始终整行（不露半条）。 */
+  const isEmpty = list.children.length === 1 && first.classList.contains('tpl-empty');
+  const rows = isEmpty ? 1 : Math.max(1, Math.floor(cardAvail / rowH));
+  const h = isEmpty ? cardAvail : rows * rowH;
   list.style.height = h + 'px';
   /* v940：白卡高度也跟着收成「列表高 + 上下 border」——之前白卡 flex:1 1 0 撑到 228px 而列表只有 198px，
      白卡底部留 30px 空白（她截图里"底下多了"）。让白卡贴合列表，空白就没有了。 */
