@@ -604,7 +604,7 @@ html.apk.modal-lock{overflow:hidden!important}
 .modal.notes-sm .pricelist-notes-grid{grid-template-columns:1fr;gap:0}
 .modal.notes-sm .pricelist-notes-header{padding-bottom:16px;margin-bottom:8px}
 .modal.notes-sm .pricelist-note-item{padding:12px 12px}
-.modal.tpl-lib-modal{height:min(780px,92vh)} /* v934：文案库整体加高 */
+.modal.tpl-lib-modal{height:min(780px,92vh)!important;min-height:min(780px,92vh)!important} /* v934：文案库整体加高 */
 .modal.tpl-lib-modal .modal-body{padding:8px 0 0 0;display:flex;flex-direction:column}
 .modal.tpl-lib-modal .tpl-lib-folder{flex:1.4;min-height:0;display:flex;flex-direction:column} /* v934：库列表区占比加大 */
 /* v937：模板库列表区高度口径（这段注释合并了 v935/v936 的错误尝试，勿再回退）
@@ -3363,14 +3363,14 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-client-fail{background:#FFF4F0}
 /* v778: 键盘弹出（视口变矮）时压缩文案库弹窗的输入区，保证文件夹标签与空状态提示完整可见 */
 @media (max-height:600px){
-  .modal.tpl-lib-modal{height:min(680px,94vh)}
+  .modal.tpl-lib-modal{height:min(680px,94vh)!important;min-height:min(680px,94vh)!important}
   .modal.tpl-lib-modal .tpl-new .form-textarea{min-height:44px;flex:0 0 auto;margin-bottom:8px}
   .modal.tpl-lib-modal .tpl-folder-list{min-height:110px}
   .modal.tpl-lib-modal .tpl-new-title{margin:0 0 6px}
   .tpl-newtip,.tpl-new-tip-box{margin:4px 0 6px}
 }
 /* v778: JS 键盘检测兜底（kb-open 类，媒体查询未触发的环境同样生效） */
-.kb-open .modal.tpl-lib-modal{height:min(680px,94vh)}
+.kb-open .modal.tpl-lib-modal{height:min(680px,94vh)!important;min-height:min(680px,94vh)!important}
 .kb-open .modal.tpl-lib-modal .tpl-new .form-textarea{min-height:44px;flex:0 0 auto;margin-bottom:8px}
 .kb-open .modal.tpl-lib-modal .tpl-folder-list{min-height:110px}
 .kb-open .modal.tpl-lib-modal .tpl-new-title{margin:0 0 6px}
@@ -3671,7 +3671,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=946"></script>
+  <script src="app.js?v=947"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
