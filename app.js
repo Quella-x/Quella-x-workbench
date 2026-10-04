@@ -7095,7 +7095,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 950, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 951, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -11846,9 +11846,11 @@ function renderSleepWeekLineChart(days) {
      午间标签下移更多（y+52），与夜晚标签保持约 46px 净间距，避免截图里的重叠。 */
   const nightXs = nightVals.map(xOf);
   const napXs = napVals.map(xOf); // 两个系列互相知道对方 x，才能双向拉开
+  /* v951：线宽 3（她确认的粗细），点回 v947 的小点 r5/描边2——只点小、线不细；
+     手机端锁定 v943 原值 3/7/2.5 一直没动过，今后也不随电脑端变。 */
   const desktopStrokeW = 3;
-  const desktopDotR = 7;
-  const desktopDotStrokeW = 2.5;
+  const desktopDotR = isDesktop ? 5 : 7;
+  const desktopDotStrokeW = isDesktop ? 2 : 2.5;
   const seriesPoints = (vals, color, avoidXs, isNight) => vals.map((v, i) => {
     const x = xOf(v), y = yOf(i);
     /* v941：撤销 v940 的星期前缀（她："不要在前面加数字，更乱了"——一/二/三 看着像数字）。
@@ -14180,14 +14182,25 @@ function tplListSnapRow(list) {
   list.style.height = 'auto';
   const first = list.firstElementChild;
   if (!first) { list.style.height = ''; return; }
-  const rowH = first.getBoundingClientRect().height || 34;
+  /* v951：行高必须从「真实行」量出。空分类量不到行 → 造一个隐藏样本行量完即删，
+     保证打开时（哪怕当前分类是空的）与切换后用的是同一个行高 → rows 恒定 →
+     库区高度从打开那一刻起就不再变，彻底消灭「首切缩一下」。 */
+  let rowH = Number(list.dataset.rowH) || 0;
+  if (!rowH) {
+    const probeRow = document.createElement('div');
+    probeRow.className = 'tpl-snippet';
+    probeRow.style.cssText = 'position:absolute;visibility:hidden;left:-9999px;top:0';
+    probeRow.innerHTML = '<div class="tpl-snippet-text">高</div>';
+    list.appendChild(probeRow);
+    rowH = probeRow.getBoundingClientRect().height || 34;
+    probeRow.remove();
+    list.dataset.rowH = String(rowH);
+  }
   const cardAvail = card.clientHeight - 2; // 减上下 border
-  /* v950：库区高度固定为「可用空间能放下的整行数」，不再随当前分类的文案条数变化——
-     切换分类高度恒定（初始打开多高，之后就多高）；内容不足时留白，超出时滚动，
-     末行始终整行（不露半条）。 */
-  const isEmpty = list.children.length === 1 && first.classList.contains('tpl-empty');
-  const rows = isEmpty ? 1 : Math.max(1, Math.floor(cardAvail / rowH));
-  const h = isEmpty ? cardAvail : rows * rowH;
+  /* v950/v951：库区高度固定为「可用空间能放下的整行数」，与当前分类文案条数无关——
+     内容不足时留白，超出时滚动，末行始终整行（不露半条）。 */
+  const rows = Math.max(1, Math.floor(cardAvail / rowH));
+  const h = rows * rowH;
   list.style.height = h + 'px';
   /* v940：白卡高度也跟着收成「列表高 + 上下 border」——之前白卡 flex:1 1 0 撑到 228px 而列表只有 198px，
      白卡底部留 30px 空白（她截图里"底下多了"）。让白卡贴合列表，空白就没有了。 */
