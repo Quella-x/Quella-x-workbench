@@ -7095,7 +7095,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 956, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 957, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -11831,9 +11831,15 @@ function renderSleepWeekLineChart(days) {
   const gradNap = 'sleepNapGrad' + Math.random().toString(36).slice(2, 7);
   const gridHours = [];
   for (let h = 2; h <= maxV; h += 2) gridHours.push(h);
+  /* v957：竖网格线上下两端同时延长——上端到时间刻度下方留 10 单位距离（她："不用完全到刻度，
+     跟 2h、4h 这些还要有一点距离"），下端向下延长的尺寸与上端相等；
+     viewBox 底部放不下时收到 H-2，避免画出图表容器外。 */
+  const gridTop = hourLabelY + 10;
+  const gridExt = TM - gridTop;
+  const gridBottom = Math.min(TM + CH + gridExt, H - 2);
   const gridLines = gridHours.map(h => {
     const x = xOf(h);
-    return `<line x1="${x.toFixed(1)}" y1="${TM}" x2="${x.toFixed(1)}" y2="${TM + CH}" stroke="var(--c-border-light)" stroke-width="0.8"/>` +
+    return `<line x1="${x.toFixed(1)}" y1="${gridTop.toFixed(1)}" x2="${x.toFixed(1)}" y2="${gridBottom.toFixed(1)}" stroke="var(--c-border-light)" stroke-width="0.8"/>` +
            `<text x="${x.toFixed(1)}" y="${hourLabelY}" text-anchor="middle" font-size="${isDesktop?18:20}" font-weight="700" fill="var(--c-text-muted)">${h}h</text>`;
   }).join('');
   const dayLabels = nightVals.map((v, i) => {
@@ -11866,7 +11872,8 @@ function renderSleepWeekLineChart(days) {
       const hOverlap = myL < oR && oL < myR;
       if (hOverlap) ly = isNight ? y + 6 : y + 34;
     }
-    const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/>`;
+    /* v957：圆点改小只动电脑端（r7→r5、白边 2.5→2），手机端维持 v943 的 r7/2.5 不动 */
+    const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${isDesktop?5:7}" fill="${color}" stroke="#fff" stroke-width="${isDesktop?2:2.5}"/>`;
     if (!v) return `<g class="lr-hsc-point">${dot}</g>`; // 0 值：只画点不画字，避免一列 0m 互相重叠
     return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${formatSleepDuration(v)}</text>${dot}</g>`;
   }).join('');
@@ -11884,7 +11891,7 @@ function renderSleepWeekLineChart(days) {
         ${gridLines}
         <path d="${areaPath(napVals)}" fill="url(#${gradNap})" stroke="none"/>
         <path d="${areaPath(nightVals)}" fill="url(#${gradNight})" stroke="none"/>
-        <polyline fill="none" stroke="${napColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${linePath(napVals)}"/>
+        <polyline fill="none" stroke="${napColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6,4" points="${linePath(napVals)}"/>
         <polyline fill="none" stroke="${nightColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${linePath(nightVals)}"/>
         ${dayLabels}
         ${seriesPoints(napVals, napColor, nightXs, false)}
