@@ -7095,7 +7095,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 957, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 958, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -11859,21 +11859,28 @@ function renderSleepWeekLineChart(days) {
        数字放点后面（右侧），与点同一行垂直居中（基线 = 点心 +6）——最上面的标签贴着自己的点，
        不再飘到点上方去撞顶部小时刻度（v940 手机端 ly=y-22 把周一的标签顶到「4h」边上）。
        只有快到右缘放不下时才改到点左侧（anchor end）。 */
+    /* v958 方案2「左右错开」：两值相近挤一坨时，午间标签翻到点的左侧（anchor end），
+       夜晚保持点右侧不动——横向彻底分开，同一行不叠。
+       兜底（她圈的周六 22m）：点太靠左、左侧放不下整条标签（x-12-TXT_W 会越过左轴）时，
+       午间标签改为放到点的正下方（anchor middle、y+30），仍是错开状态不会压点。 */
     const TXT_W = 68, TXT_H = 24;
-    const anchor = (x + 12 + TXT_W > W - 4) ? 'end' : 'start';
-    const lx = anchor === 'end' ? x - 12 : x + 12;
+    let anchor = (x + 12 + TXT_W > W - 4) ? 'end' : 'start';
+    let lx = anchor === 'end' ? x - 12 : x + 12;
     let ly = y + 6;
     if (avoidXs && avoidXs.length > i) {
       const ox = avoidXs[i];
-      // 对方标签默认也在点右侧 12px：占 [ox+12, ox+12+TXT_W]
+      // 对方（夜晚）标签默认在点右侧 12px：占 [ox+12, ox+12+TXT_W]
       const oL = ox + 12, oR = oL + TXT_W;
       const myL = anchor === 'end' ? lx - TXT_W : lx, myR = myL + TXT_W;
-      // 同行（夜晚/午间共用 yOf(i)）：横向矩形相交 → 午间(黄)在本行内下移 28，夜晚保持点旁
       const hOverlap = myL < oR && oL < myR;
-      if (hOverlap) ly = isNight ? y + 6 : y + 34;
+      if (hOverlap && !isNight) {
+        if (x - 12 - TXT_W >= LM - 6) { anchor = 'end'; lx = x - 12; }
+        else { anchor = 'middle'; lx = x; ly = y + 30; }
+      }
     }
-    /* v957：圆点改小只动电脑端（r7→r5、白边 2.5→2），手机端维持 v943 的 r7/2.5 不动 */
-    const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${isDesktop?5:7}" fill="${color}" stroke="#fff" stroke-width="${isDesktop?2:2.5}"/>`;
+    /* v958：圆点再小一档——电脑端 r5→r4、白边 2（她 v957 后："这个圆好像还是大了点"）；
+       手机端维持 v943 的 r7/2.5 不动 */
+    const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${isDesktop?4:7}" fill="${color}" stroke="#fff" stroke-width="${isDesktop?2:2.5}"/>`;
     if (!v) return `<g class="lr-hsc-point">${dot}</g>`; // 0 值：只画点不画字，避免一列 0m 互相重叠
     return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${formatSleepDuration(v)}</text>${dot}</g>`;
   }).join('');
