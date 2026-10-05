@@ -7095,7 +7095,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 953, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 954, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -11835,7 +11835,9 @@ function renderSleepWeekLineChart(days) {
   for (let h = 2; h <= maxV; h += 2) gridHours.push(h);
   const gridLines = gridHours.map(h => {
     const x = xOf(h);
-    return `<line x1="${x.toFixed(1)}" y1="${TM}" x2="${x.toFixed(1)}" y2="${TM + CH}" stroke="var(--c-border-light)" stroke-width="0.8"/>` +
+    /* v954：竖向网格线向上延伸到时间刻度正下方（此前从 TM 起，与刻度隔一段空隙，
+       她说的「线往上延伸、离时间太远、没有连贯性」就是这个断口）。 */
+    return `<line x1="${x.toFixed(1)}" y1="${(hourLabelY + 8).toFixed(1)}" x2="${x.toFixed(1)}" y2="${TM + CH}" stroke="var(--c-border-light)" stroke-width="0.8"/>` +
            `<text x="${x.toFixed(1)}" y="${hourLabelY}" text-anchor="middle" font-size="${isDesktop?18:20}" font-weight="700" fill="var(--c-text-muted)">${h}h</text>`;
   }).join('');
   const dayLabels = nightVals.map((v, i) => {
@@ -11866,9 +11868,9 @@ function renderSleepWeekLineChart(days) {
       // 对方标签默认也在点右侧 12px：占 [ox+12, ox+12+TXT_W]
       const oL = ox + 12, oR = oL + TXT_W;
       const myL = anchor === 'end' ? lx - TXT_W : lx, myR = myL + TXT_W;
-      // 同行（夜晚/午间共用 yOf(i)）：横向矩形相交 → 午间(黄)下移 36，减少错落感
+      // 同行（夜晚/午间共用 yOf(i)）：横向矩形相交 → 午间(黄)下移 52（v954 回退 v952 的 36——36 不够分开，她截图里两行数值仍挤在一起）
       const hOverlap = myL < oR && oL < myR;
-      if (hOverlap) ly = isNight ? y + 6 : y + 36;
+      if (hOverlap) ly = isNight ? y + 6 : y + 52;
     }
     const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${desktopDotR}" fill="${color}" stroke="#fff" stroke-width="${desktopDotStrokeW}"/>`;
     if (!v) return `<g class="lr-hsc-point">${dot}</g>`; // 0 值：只画点不画字，避免一列 0m 互相重叠
@@ -14154,6 +14156,9 @@ function renderTxtTplList() {
     list.innerHTML = '<div class="tpl-empty">' + folderEmptySvg() +
       '<div class="tpl-empty-title">「' + esc(_txtTplCat) + '」下还没有文案</div>' +
       '<div class="tpl-empty-hint">在下方输入框添加第一条</div></div>';
+    /* v954：空分类也必须走钉高逻辑——之前这里直接 return，空分类时白卡保持 flex 拉伸的
+       大高度，切到有内容分类才第一次钉高 → 表现就是「切一次缩一下」。 */
+    tplListSnapRow(list);
     return;
   }
   list.innerHTML = items.map(t => { const sel = _txtTplSelId === t.id; return `<div class="tpl-snippet ${sel ? 'selected' : ''}" role="option" tabindex="0" aria-selected="${sel}" onclick="selectTextTemplate('${t.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectTextTemplate('${t.id}')}">
