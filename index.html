@@ -1009,17 +1009,16 @@ html.apk.modal-lock{overflow:hidden!important}
   .dynamic-list-row{min-width:716px}
 }
 .dynamic-list-container[data-key="cooperationRecords"] .dynamic-list-row .combobox-input{padding:8px 26px 8px 8px!important}
-.dynamic-list-row .combobox-toggle{right:2px;width:18px;font-size:10px}
+.dynamic-list-row .combobox-toggle{right:2px;width:18px;font-size:10px;justify-content:center}
 .dynamic-list-row button{
   flex:0 0 40px;padding:0;font-size:14px;
-  display:inline-flex;align-items:center;justify-content:center;
+  display:inline-flex;align-items:center;justify-content:flex-start;
   background:transparent;color:var(--c-text-light);
   border:none;border-radius:6px;height:30px;
   transition:background .15s;
 }
 .dynamic-list-row button:hover{background:#fff0f0;color:var(--c-danger)}
-/* v948：删除按钮与“操作”表头左边缘对齐（表头已 text-align:left） */
-.dynamic-list-row button.dl-remove-btn{justify-content:flex-start}
+/* v952：删除按钮与“操作”表头左边缘对齐（行内按钮默认 flex-start，下拉箭头由下方专用规则覆盖回居中） */
 /* v805: 拔掉下拉箭头红色按压态根源——触屏点击后 :hover 粘滞，行内 button:hover 的粉底红箭头(#fff0f0/--c-danger)
    会一直留在 combobox-toggle 上（日历小按钮同类问题）；箭头改由下方专用 active/open 蓝色态接管 */
 .dynamic-list-row button.combobox-toggle:hover,.dynamic-list-row button.combobox-toggle:active{background:transparent;color:var(--c-text-muted)}
@@ -3673,7 +3672,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=951"></script>
+  <script src="app.js?v=952"></script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

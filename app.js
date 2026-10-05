@@ -1974,7 +1974,7 @@ function addDynamicRow(key) {
       html += `<input type="${inputType}" class="form-input" data-subkey="${col.subkey}" value="${esc(defVal)}" placeholder="${esc(col.label)}">`;
     }
   });
-  html += `<button type="button" class="btn btn-ghost btn-sm" onclick="removeDynamicRow(this)">删除</button>`;
+  html += `<button type="button" class="btn btn-ghost btn-sm dl-remove-btn" onclick="removeDynamicRow(this)">删除</button>`;
   row.innerHTML = html;
   container.appendChild(row);
   groupSameModelUrgentRow(row); // v789：新增行同样绑「无同模+加急」组合
@@ -7095,7 +7095,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 951, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 952, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -11806,8 +11806,8 @@ function renderSleepWeekLineChart(days) {
   const W = 720, H = 568;
   /* v940：RM 右侧留白 15→56（桌面）/ 40→56（手机）——数据标签加了星期前缀（「三 2h30m」）后变长，
      最右侧满值点的标签若还按 RM=15 贴边会超出 viewBox 被裁掉。56 够放「三 12h30m」。 */
-  /* v948：时间刻度回到 v943 基线位置；折线/点视觉尺寸恢复 v943 */
-  const LM = isDesktop ? 45 : 80, RM = 56, TM = isDesktop ? 70 : 62, BM = isDesktop ? 40 : 10;
+  /* v952：折线整体上移靠近时间刻度（桌面 TM 70→50，手机不变）；时间刻度保持 v943 位置 */
+  const LM = isDesktop ? 45 : 80, RM = 56, TM = isDesktop ? 50 : 62, BM = isDesktop ? 40 : 10;
   /* v937：手机端小时刻度位置重算。
      症状：「日均」行下边距与上边距不等（手机 svg{overflow:visible} 把刻度画到容器外）。
      算清缩放：svg viewBox 高 568、容器 CSS 高 324、preserveAspectRatio 默认 meet
@@ -11866,9 +11866,9 @@ function renderSleepWeekLineChart(days) {
       // 对方标签默认也在点右侧 12px：占 [ox+12, ox+12+TXT_W]
       const oL = ox + 12, oR = oL + TXT_W;
       const myL = anchor === 'end' ? lx - TXT_W : lx, myR = myL + TXT_W;
-      // 同行（夜晚/午间共用 yOf(i)）：横向矩形相交 → 午间(黄)下移 46，夜晚保持点旁
+      // 同行（夜晚/午间共用 yOf(i)）：横向矩形相交 → 午间(黄)下移 36，减少错落感
       const hOverlap = myL < oR && oL < myR;
-      if (hOverlap) ly = isNight ? y + 6 : y + 52;
+      if (hOverlap) ly = isNight ? y + 6 : y + 36;
     }
     const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${desktopDotR}" fill="${color}" stroke="#fff" stroke-width="${desktopDotStrokeW}"/>`;
     if (!v) return `<g class="lr-hsc-point">${dot}</g>`; // 0 值：只画点不画字，避免一列 0m 互相重叠
@@ -14174,40 +14174,44 @@ function tplListSnapRow(list) {
   list.scrollTop = 0;
   const card = list.closest('.tpl-white-card');
   if (!card) return;
-  /* v950：先还原白卡到 flex 拉伸状态再量可用高——
-     v940 把 card.style.height/flex 钉死成「列表高+border」后，下次切换分类时
-     card.clientHeight 已经是上一次的矮值，fitRows 越算越小，表现就是「切换一次缩一次」。 */
-  card.style.height = '';
-  card.style.flex = '';
-  list.style.height = 'auto';
-  const first = list.firstElementChild;
-  if (!first) { list.style.height = ''; return; }
-  /* v951：行高必须从「真实行」量出。空分类量不到行 → 造一个隐藏样本行量完即删，
-     保证打开时（哪怕当前分类是空的）与切换后用的是同一个行高 → rows 恒定 →
-     库区高度从打开那一刻起就不再变，彻底消灭「首切缩一下」。 */
-  let rowH = Number(list.dataset.rowH) || 0;
-  if (!rowH) {
-    const probeRow = document.createElement('div');
-    probeRow.className = 'tpl-snippet';
-    probeRow.style.cssText = 'position:absolute;visibility:hidden;left:-9999px;top:0';
-    probeRow.innerHTML = '<div class="tpl-snippet-text">高</div>';
-    list.appendChild(probeRow);
-    rowH = probeRow.getBoundingClientRect().height || 34;
-    probeRow.remove();
-    list.dataset.rowH = String(rowH);
+  /* v952：库区高度首次打开即钉死，切换分类不再重算——
+     彻底解决「切一次缩一次/胀一次」。 */
+  if (card.dataset.fixedH) {
+    const h = parseInt(card.dataset.fixedH, 10);
+    list.style.height = h + 'px';
+    card.style.height = (h + 2) + 'px';
+    card.style.flex = '0 0 auto';
+    list.scrollTop = 0;
+    return;
   }
-  const cardAvail = card.clientHeight - 2; // 减上下 border
-  /* v950/v951：库区高度固定为「可用空间能放下的整行数」，与当前分类文案条数无关——
-     内容不足时留白，超出时滚动，末行始终整行（不露半条）。 */
-  const rows = Math.max(1, Math.floor(cardAvail / rowH));
-  const h = rows * rowH;
-  list.style.height = h + 'px';
-  /* v940：白卡高度也跟着收成「列表高 + 上下 border」——之前白卡 flex:1 1 0 撑到 228px 而列表只有 198px，
-     白卡底部留 30px 空白（她截图里"底下多了"）。让白卡贴合列表，空白就没有了。 */
-  card.style.height = (h + 2) + 'px';
-  card.style.flex = '0 0 auto';
-  list.scrollTop = 0;
-  list.dataset.tplRows = String(rows);
+  /* 首次：等浏览器 flex 布局稳定后再量，避免 DOM 刚插入时 clientHeight 不准。 */
+  requestAnimationFrame(() => {
+    card.style.height = '';
+    card.style.flex = '';
+    list.style.height = 'auto';
+    const first = list.firstElementChild;
+    if (!first) { list.style.height = ''; return; }
+    let rowH = Number(list.dataset.rowH) || 0;
+    if (!rowH) {
+      const probeRow = document.createElement('div');
+      probeRow.className = 'tpl-snippet';
+      probeRow.style.cssText = 'position:absolute;visibility:hidden;left:-9999px;top:0';
+      probeRow.innerHTML = '<div class="tpl-snippet-text">高</div>';
+      list.appendChild(probeRow);
+      rowH = probeRow.getBoundingClientRect().height || 34;
+      probeRow.remove();
+      list.dataset.rowH = String(rowH);
+    }
+    const cardAvail = card.clientHeight - 2; // 减上下 border
+    const rows = Math.max(1, Math.floor(cardAvail / rowH));
+    const h = rows * rowH;
+    list.style.height = h + 'px';
+    card.style.height = (h + 2) + 'px';
+    card.style.flex = '0 0 auto';
+    card.dataset.fixedH = String(h);
+    list.scrollTop = 0;
+    list.dataset.tplRows = String(rows);
+  });
 }
 // v762：空状态用的文件夹图标
 function folderEmptySvg() {
