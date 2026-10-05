@@ -922,7 +922,10 @@ html.apk.modal-lock{overflow:hidden!important}
 .dynamic-list-row .dl-urgent-cell{flex:0 0 50px;display:flex;align-items:center;justify-content:center}
 .dynamic-list-row .dl-urgent-cell input{width:16px;height:16px;cursor:pointer}
 /* v789:「无同模+加急」组合——内部4px、作为整体参与换行，任何宽度下勾选框都与无同模同行 */
-.dynamic-list-row .dl-model-urgent-pair{display:flex;gap:4px;align-items:center;flex:0 0 auto}
+/* v955：pair 宽度必须钉成与表头两列之和一致(110+50=160)——此前 flex:0 0 auto 按内容算
+   (110+4gap+50=164)，比表头宽 4px，把后面的「删除」按钮整体推右，表现为“删除没对齐操作”。
+   去掉内部 4px 间隙（v1.1.30 基线两列本就紧挨），v789 的“不拆行”作用不变。 */
+.dynamic-list-row .dl-model-urgent-pair{display:flex;align-items:center;flex:0 0 160px}
 /* DP轮：接稿排期制品「序号」列（格式与报价计算 dc-prod-seq 一致：String(i+1).padStart(2,'0')） */
 .dynamic-list-header span[data-subkey="_seq"],
 .dynamic-list-row [data-subkey="_seq"]{flex:0 0 42px;text-align:center;justify-content:center;padding-left:0}
@@ -3672,8 +3675,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=954"></script>
-<script>console.log('[小筱工作台] 当前版本 v954 —— 若这里不是 953 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=955"></script>
+<script>console.log('[小筱工作台] 当前版本 v955 —— 若这里不是 953 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
