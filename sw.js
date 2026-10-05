@@ -1,5 +1,5 @@
 /* Service Worker — 小筱工作台 PWA 离线壳 */
-const CACHE = 'xiao-workbench-v952';
+const CACHE = 'xiao-workbench-v953';
 const ASSETS = [
   './',
   'index.html',
@@ -46,13 +46,18 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // 页面导航：网络优先（cache:'reload' 绕过 HTTP 缓存，刷新必拿最新版），失败回退到离线首页
+  /* v953：页面导航——带时间戳 + no-store 双重绕过。
+     只加 cache:'reload' 仍可能被 CDN 边缘节点返回旧副本，表现为「代码已上线但她刷新还是旧界面」；
+     URL 上补 _sw=<时间戳> 后每次都是全新请求，CDN 无法命中缓存。失败才回退离线首页。 */
   if (req.mode === 'navigate') {
-    e.respondWith(fetch(req, { cache: 'reload' }).catch(() => caches.match('index.html')));
+    const navUrl = new URL(req.url);
+    navUrl.searchParams.set('_sw', Date.now());
+    e.respondWith(fetch(navUrl.toString(), { cache: 'no-store' }).catch(() => caches.match('index.html')));
     return;
   }
 
   // 同源静态资源：网络优先（cache:'reload' 绕过 HTTP 缓存），失败回退缓存
+  // 注：app.js 等带 ?v=N 版本号，版本一变参数就变，CDN 必然回源，无需再加时间戳
   e.respondWith(
     fetch(req, { cache: 'reload' }).then(res => {
       const copy = res.clone();

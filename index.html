@@ -3672,13 +3672,27 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=952"></script>
+  <script src="app.js?v=953"></script>
+<script>console.log('[小筱工作台] 当前版本 v953 —— 若这里不是 953 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
     if (!isPreview && 'serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('sw.js').catch(function () {});
+        /* v953：updateViaCache:'none' —— 默认 'all' 会让 sw.js 自己也被 HTTP 缓存，
+           导致新 SW 迟迟装不上；设为 none 后每次注册都直接回源取最新 sw.js。 */
+        navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (reg) {
+          /* v953：注册后立即检查更新；一旦新 SW 装好就自动重载一次，
+             确保拿到的永远是最新界面，不再出现「JS 新 CSS 旧」的混合态。 */
+          reg.update();
+          reg.addEventListener('updatefound', function () {
+            var nw = reg.installing;
+            if (!nw) return;
+            nw.addEventListener('statechange', function () {
+              if (nw.state === 'installed' && navigator.serviceWorker.controller) location.reload();
+            });
+          });
+        }).catch(function () {});
       });
     }
   })();
