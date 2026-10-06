@@ -2600,20 +2600,20 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 /* ② 底部日卡目标卡·汇总统计块底（周卡统计块底保持原版 rgba(250,140,22,.12)） */
 .life-goal-card:not(.week-card) .lgc-stat{background:#e7f5ff}
 /* ③ 底部周卡·汇总数字/进度数字/进度条 橙 */
-.life-goal-card.week-card .lgc-num{color:#f6ad5c}
-.life-goal-card.week-card .lgc-mp-num.week{color:#f6ad5c}
-.life-goal-card.week-card .lgc-mp-fill.week{background:#f6ad5c}
+.life-goal-card.week-card .lgc-num{color:#ff9e4f}
+.life-goal-card.week-card .lgc-mp-num.week{color:#ff9e4f}
+.life-goal-card.week-card .lgc-mp-fill.week{background:#ff9e4f}
 /* ④ 弹窗热图里的进度数字（周卡）和外面保持一致 */
-.life-modal-prog .lmp-num.week{color:#f6ad5c}
+.life-modal-prog .lmp-num.week{color:#ff9e4f}
 /* ⑤ 热图·日卡未完成（弹窗 + 底部小热图，不含 other-month） */
 .life-modal-heatmap:not(.week) .life-heatmap .hm-day:not(.done):not(.other-month){background:#eef7ff}
 .life-goal-card:not(.week-card) .life-heatmap .hm-day:not(.done):not(.other-month){background:#eef7ff}
 /* ⑥ 热图·日卡选中当日(已打卡) */
 .life-modal-heatmap:not(.week) .life-heatmap .hm-day.selected.done{background:#c6e4ff}
 /* ⑦ 热图·周卡已打卡（底部小热图 + 弹窗 + 周视图） */
-.life-goal-card.week-card .life-heatmap .hm-day.week{background:#f6ad5c}
-.life-modal-heatmap.week .life-heatmap .hm-day.week{background:#f6ad5c}
-.lwm-cell.week.done{background:#f6ad5c;border-color:#f6ad5c}
+.life-goal-card.week-card .life-heatmap .hm-day.week{background:#ff9e4f}
+.life-modal-heatmap.week .life-heatmap .hm-day.week{background:#ff9e4f}
+.lwm-cell.week.done{background:#ff9e4f;border-color:#ff9e4f}
 /* ===== /v627 每日打卡配色局部调整 ===== */
 
 /* 本周概览（主页面大模块） */
@@ -2831,7 +2831,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-hsc-avgs{display:flex;flex-wrap:wrap;justify-content:space-around;width:100%;gap:8px;margin:0}
 .lr-hsc-avg{flex:1;text-align:center;font-size:13px;font-weight:600;color:var(--c-text-light);white-space:nowrap}
 .lr-hsc-avg b{font-weight:700;margin-left:3px}
-.lr-hsc-avg.night{color:#ff9a3c}
+.lr-hsc-avg.night{color:#f6ad5c}
 .lr-hsc-avg.nap{color:#FFDE75}
 .lr-hsc-avg.wake{color:var(--c-text)}
 .lr-hsc-chart-body{height:394px;position:relative;margin-top:4px} /* v939：下 = margin-bottom 28 + 4 = 32（上 20 不动，她只要求加下边距） */
@@ -3675,7 +3675,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=964"></script>
+  <script src="app.js?v=965"></script>
 <script>console.log('[小筱工作台] 当前版本 v963 —— 若这里不是 953 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
