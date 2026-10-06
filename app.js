@@ -2674,7 +2674,7 @@ MODULES['groupbuy-factories'] = {
   chart: (records) => {
     const coopRows = [];
     (records || []).forEach(r => (r.cooperationRecords || []).forEach(c => { if (c && c.date) coopRows.push({ date: c.date }); }));
-    return renderAnnualChart(coopRows, 'date', { title: '合作次数', isCount: true, color: '#ff9e4f', year: getChartYear('groupbuy-factories') }, 'groupbuy-factories');
+    return renderAnnualChart(coopRows, 'date', { title: '合作次数', isCount: true, color: '#f6ad5c', year: getChartYear('groupbuy-factories') }, 'groupbuy-factories');
   },
   stats: (records) => {
     const totalCoop = records.reduce((s, r) => s + (r.cooperationRecords || []).length, 0);
@@ -2725,7 +2725,7 @@ MODULES['groupbuy-samples'] = {
     ];
   },
   statsTitle: '打样统计',
-  chart: (records) => renderAnnualChart(records, 'sampleTime', { title: '打样费用', valueField: 'cost', color: '#ff9e4f', year: getChartYear('groupbuy-samples') }, 'groupbuy-samples'),
+  chart: (records) => renderAnnualChart(records, 'sampleTime', { title: '打样费用', valueField: 'cost', color: '#f6ad5c', year: getChartYear('groupbuy-samples') }, 'groupbuy-samples'),
   statsYearField: 'sampleTime',
 };
 
@@ -2848,7 +2848,7 @@ MODULES['design-commission'] = {
   chart: (records) => {
     const processed = records.map(r => ({ ...r, acceptTime: r.acceptTime || r.startTime || r.deadline || '' }));
     return renderAnnualChart(processed, 'acceptTime', { title: '接稿收入', series: [
-      { name: '最终金额', compute: r => parseNum(r.quoteAmount) || parseNum(r.amount) || 0, color: '#ff9e4f' },
+      { name: '最终金额', compute: r => parseNum(r.quoteAmount) || parseNum(r.amount) || 0, color: '#f6ad5c' },
     ], year: getChartYear('design-commission') }, 'design-commission');
   },
   isOverdue: (r) => { const now = todayStr(); return r.deadline && r.deadline < now && !valIncludes(r.progress, '已交付'); },
@@ -3262,7 +3262,7 @@ MODULES['design-auth'] = {
     return [{ label: '本月授权数', value: monthAuth, unit: '条' }, { label: '授权总数', value: records.length, unit: '条' }, { label: '授权总收入', value: '¥' + totalFee.toLocaleString(), sub: '' }];
   },
   statsTitle: '授权统计',
-  chart: (records) => renderAnnualChart(records, 'authDate', { title: '授权收入', valueField: 'authFee', color: '#ff9e4f', year: getChartYear('design-auth') }, 'design-auth'),
+  chart: (records) => renderAnnualChart(records, 'authDate', { title: '授权收入', valueField: 'authFee', color: '#f6ad5c', year: getChartYear('design-auth') }, 'design-auth'),
   statsYearField: 'authDate',
 };
 
@@ -3444,7 +3444,7 @@ MODULES['oc-commission'] = {
     ];
   },
   statsTitle: '约稿统计',
-  chart: (records) => renderAnnualChart(records, 'commissionTime', { title: '约稿花费', valueField: 'fee', color: '#ff9e4f', year: getChartYear('oc-commission') }, 'oc-commission'),
+  chart: (records) => renderAnnualChart(records, 'commissionTime', { title: '约稿花费', valueField: 'fee', color: '#f6ad5c', year: getChartYear('oc-commission') }, 'oc-commission'),
   statsYearField: 'commissionTime',
   personFilterField: 'oc',
 };
@@ -7095,7 +7095,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 963, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 964, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -11367,7 +11367,7 @@ function renderSleepRing(totalHours) {
   const pct = Math.min(totalHours / 8, 1);
   const offset = circumference * (1 - pct);
   const reached = totalHours >= 8;
-  const color = '#ff9e4f'; // v963：与打卡基准橙一致（CSS .sleep-ring-fill 同色，此处原为残留的 #620712 深红死值）
+  const color = '#f6ad5c'; // v963：与打卡基准橙一致（CSS .sleep-ring-fill 同色，此处原为残留的 #620712 深红死值）
   const statusText = reached ? '睡眠达到8小时' : '睡眠未达到8小时';
   const timeText = totalHours > 0 ? formatSleepDurationHTML(totalHours) : '&nbsp;';
   return `<div class="sleep-ring-col">
@@ -11822,7 +11822,7 @@ function renderSleepWeekLineChart(days) {
   const CW = W - LM - RM, CH = H - TM - BM;
   const xOf = v => LM + (maxV > 0 ? v / maxV * CW : 0);
   const yOf = i => TM + CH * i / 6;
-  const nightColor = '#ff9e4f'; // 每日记录睡眠图「夜晚」橙色（v962：改用打卡基准橙 #ff9e4f，她指定"改成打卡那个橙"=调浅一档）
+  const nightColor = '#f6ad5c'; // 每日记录睡眠图「夜晚」橙色（v962：改用打卡基准橙 #f6ad5c，她指定"改成打卡那个橙"=调浅一档）
   const napColor = '#FFDE75'; // 每日记录睡眠图「午间」黄色
   const mkGrad = (id, color) => `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${color}" stop-opacity="0.05"/><stop offset="100%" stop-color="${color}" stop-opacity="0.30"/></linearGradient>`;
   const linePath = vals => vals.map((v, i) => `${xOf(v).toFixed(1)} ${yOf(i).toFixed(1)}`).join(' ');
