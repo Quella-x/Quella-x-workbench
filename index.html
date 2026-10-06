@@ -3038,7 +3038,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-item{display:flex;align-items:center;gap:8px;min-height:33px;padding:6px 16px;background:transparent;border:none;border-radius:0;cursor:pointer;transition:background .2s;overflow:hidden}
 .tpl-item:hover{background:#eaf4fd}
 .tpl-item.selected{background:var(--c-primary-bg);margin:0 -16px;padding:6px 32px}
-.tpl-item.selected:hover{background:#cfe8fb}
+/* v967：选中条目上悬停不再加深一档（原 #cfe8fb），保持与选中态同色 */
+.tpl-item.selected:hover{background:var(--c-primary-bg)}
 .tpl-item:focus-visible,.tpl-snippet:focus-visible{outline:2px solid var(--c-primary);outline-offset:-2px}
 .tpl-item-name{font-size:12px;font-weight:400;color:var(--c-text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.4}
 /* v935：约稿模板库条目右侧「不可修改」标记（灰色小胶囊 + 锁图标），与空分类的「初始默认」提示区分 */
@@ -3054,7 +3055,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-snippet{display:flex;align-items:center;gap:8px;min-height:33px;padding:6px 16px;background:transparent;border:none;border-radius:0;cursor:pointer;transition:background .2s;overflow:hidden;scroll-snap-align:start} /* v935：start 对齐（end 会让末行只露半条）；末行完整 = 靠 min-height 固定行高，不靠容器留白 */
 .tpl-snippet:hover{background:#eaf4fd}
 .tpl-snippet.selected{background:var(--c-primary-bg);margin:0 -16px;padding:6px 32px}
-.tpl-snippet.selected:hover{background:#cfe8fb}
+.tpl-snippet.selected:hover{background:var(--c-primary-bg)}
 .tpl-snippet-text{flex:1;min-width:0;font-size:12px;font-weight:400;color:#374151;white-space:pre-wrap;word-break:break-all;line-height:1.4}
 /* v774：分割线重新生效（.tpl-item/.tpl-snippet 的 border:none 定义在后会覆盖上面的分隔线，这里按同特异性后置补回）；hover 底色 = 选中底色 */
 .tpl-folder-list>*+*{border-top:1px solid #e8ecf1}
@@ -3679,7 +3680,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=966"></script>
+  <script src="app.js?v=967"></script>
 <script>console.log('[小筱工作台] 当前版本 v963 —— 若这里不是 953 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
