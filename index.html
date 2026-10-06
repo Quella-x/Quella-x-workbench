@@ -1882,6 +1882,9 @@ html.apk.modal-lock{overflow:hidden!important}
 }
 .combobox-group+.combobox-group .combobox-group-title{border-top:1px solid var(--c-border)}
 .combobox-group-title:hover{background:var(--c-primary-bg);color:var(--c-text-light)}
+/* v966：约稿单（cd-form）内下拉 ▼ 箭头字号对齐排序 ▲▼ 的 12px；外框尺寸不动（基础 20×20 / 列表行 18px 保持） */
+.cd-form .combobox-toggle{font-size:12px}
+.cd-form .dynamic-list-row .combobox-toggle{font-size:12px}
 /* v817: 约稿单关联状态提示 */
 .dc-import-link-hint{margin-top:6px;font-size:12px;line-height:1.5;color:var(--c-text-light)}
 .dc-import-link-hint b{color:var(--c-text);font-weight:600}
@@ -3006,7 +3009,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .tpl-folder-tabs .tpl-tab.active .tpl-tab-label{color:#5b6b7c}
 .tpl-folder-tabs .tpl-tab:not(.active) .tpl-tab-inner{bottom:1px;background:var(--c-primary-bg)}
 .tpl-folder-tabs .tpl-tab:not(.active) .tpl-tab-bg{background:#c9def5}
-.tpl-folder-tabs .tpl-tab:not(.active):hover .tpl-tab-inner{background:#c9def5}
+/* v966：分类 tab 悬停/点击瞬间不再变深色（原 #c9def5），保持与常态一致的浅蓝；选中后的白底不受影响 */
+.tpl-folder-tabs .tpl-tab:not(.active):hover .tpl-tab-inner{background:var(--c-primary-bg)}
 .tpl-folder-tabs .tpl-tab:focus-visible{outline:2px solid var(--c-primary-dark);outline-offset:1px}
 .tpl-tab-nav{flex:none;align-self:center;margin-left:auto;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;padding:0;background:transparent;border:none;color:#3a4a5a;cursor:pointer;font-family:inherit}
 .tpl-tab-nav + .tpl-tab-nav{margin-left:2px}
@@ -3675,7 +3679,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=965"></script>
+  <script src="app.js?v=966"></script>
 <script>console.log('[小筱工作台] 当前版本 v963 —— 若这里不是 953 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
