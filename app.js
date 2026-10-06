@@ -7095,7 +7095,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 959, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 960, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -11829,6 +11829,10 @@ function renderSleepWeekLineChart(days) {
   const areaPath = vals => `M ${LM} ${yOf(0)} L ${vals.map((v, i) => `${xOf(v).toFixed(1)} ${yOf(i).toFixed(1)}`).join(' L ')} L ${LM} ${yOf(6)} Z`;
   const gradNight = 'sleepNightGrad' + Math.random().toString(36).slice(2, 7);
   const gradNap = 'sleepNapGrad' + Math.random().toString(36).slice(2, 7);
+  /* v960：把午间区域从夜晚渐变里抠掉的遮罩——白=显示、黑=隐藏。
+     这样重叠处底下不再垫一层橙色渐变，黄区只剩自己的半透明黄，两块仍都是半透明、网格线照常透出。 */
+  const napArea = areaPath(napVals);
+  const napMask = 'sleepNapMask' + Math.random().toString(36).slice(2, 7);
   const gridHours = [];
   for (let h = 2; h <= maxV; h += 2) gridHours.push(h);
   /* v957：竖网格线上下两端同时延长——上端到时间刻度下方留 10 单位距离（她："不用完全到刻度，
@@ -11859,23 +11863,30 @@ function renderSleepWeekLineChart(days) {
        数字放点后面（右侧），与点同一行垂直居中（基线 = 点心 +6）——最上面的标签贴着自己的点，
        不再飘到点上方去撞顶部小时刻度（v940 手机端 ly=y-22 把周一的标签顶到「4h」边上）。
        只有快到右缘放不下时才改到点左侧（anchor end）。 */
-    /* v959 方案2改方向（她："夜晚的在左边，午间的在右边比较好"）：两值相近挤一坨时，
-       夜晚(橙)标签翻到点的左侧（anchor end），午间(黄)保持点右侧不动。
-       兜底：点太靠左、左侧放不下整条标签（x-12-TXT_W 会越过左轴）时，
-       夜晚标签改为放到点的正下方（anchor middle、y+30），仍是错开状态不会压点。 */
+    /* v960 错开方向「看点在哪」（她的口径）：
+       - 两个时间相等 → 午间(黄)在左、夜晚(橙)在右（固定兜底）；
+       - 其余情况：谁的点靠左，谁的标签就放自己点的左侧；谁的点靠右，谁的标签放右侧（向外分开）。
+         例：夜晚3h55m / 午间4h12m → 夜晚点更靠左 → 夜晚标签在左、午间在右；
+             午间2h10m / 夜晚3h48m → 午间点更靠左 → 午间标签在左、夜晚在右。
+       兜底：点太靠左、左侧放不下整条标签时 → 标签落到点的正下方（anchor middle、y+30），仍不叠。 */
     const TXT_W = 68, TXT_H = 24;
     let anchor = (x + 12 + TXT_W > W - 4) ? 'end' : 'start';
     let lx = anchor === 'end' ? x - 12 : x + 12;
     let ly = y + 6;
     if (avoidXs && avoidXs.length > i) {
       const ox = avoidXs[i];
-      // 对方（午间）标签默认在点右侧 12px：占 [ox+12, ox+12+TXT_W]
+      // 对方标签默认在点右侧 12px：占 [ox+12, ox+12+TXT_W]
       const oL = ox + 12, oR = oL + TXT_W;
       const myL = anchor === 'end' ? lx - TXT_W : lx, myR = myL + TXT_W;
       const hOverlap = myL < oR && oL < myR;
-      if (hOverlap && isNight) {
-        if (x - 12 - TXT_W >= LM - 6) { anchor = 'end'; lx = x - 12; }
-        else { anchor = 'middle'; lx = x; ly = y + 30; }
+      if (hOverlap) {
+        const d = x - ox;                    // <0：我的点在对方左边
+        const equal = Math.abs(d) < 0.5;     // 时间相等
+        const goLeft = equal ? !isNight : (d < 0);
+        if (goLeft) {
+          if (x - 12 - TXT_W >= LM - 6) { anchor = 'end'; lx = x - 12; }
+          else { anchor = 'middle'; lx = x; ly = y + 30; }
+        }
       }
     }
     /* v959：圆点回 r5（v958 的 r4 她说"又太小了"）、白边 2；手机端维持 v943 的 r7/2.5 不动 */
@@ -11893,10 +11904,17 @@ function renderSleepWeekLineChart(days) {
     </div>
     <div class="lr-hsc-chart-body">
       <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
-        <defs>${mkGrad(gradNight, nightColor)}${mkGrad(gradNap, napColor)}</defs>
+        <defs>${mkGrad(gradNight, nightColor)}${mkGrad(gradNap, napColor)}
+          <mask id="${napMask}" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}">
+            <rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>
+            <path d="${napArea}" fill="#000"/>
+          </mask>
+        </defs>
         ${gridLines}
-        <path d="${areaPath(napVals)}" fill="url(#${gradNap})" stroke="none"/>
-        <path d="${areaPath(nightVals)}" fill="url(#${gradNight})" stroke="none"/>
+        <!-- v960：夜晚橙渐变用遮罩挖掉午间黄区域 → 重叠处底下不再垫橙，只剩黄自己的半透明；
+             两块仍都是半透明渐变，网格线照常透出来 -->
+        <path d="${areaPath(nightVals)}" fill="url(#${gradNight})" stroke="none" mask="url(#${napMask})"/>
+        <path d="${napArea}" fill="url(#${gradNap})" stroke="none"/>
         <polyline fill="none" stroke="${napColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6,4" points="${linePath(napVals)}"/>
         <polyline fill="none" stroke="${nightColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${linePath(nightVals)}"/>
         ${dayLabels}
