@@ -3146,7 +3146,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-rec-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
 .cd-rec-head:hover{background:var(--c-primary-bg)}
 /* v932: 三角折叠按钮放大（12px/14px → 16px/18px），并改成 inline-flex 居中，避免字形在 em-box 里偏移 */
-.cd-rec-toggle{font-size:22px;color:var(--c-primary);width:24px;height:24px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0} /* v934：16→22px 再加大 */
+/* v970: 字形 ▾/▸(U+25BE/25B5 小三角) → ▼/▶(U+25BC/25B6 常规大三角，同排序按钮)，字号 22px→12px 对齐排序 .df-sort-btn；
+   此前"怎么加大都显小"的根因是小三角字形本身只占 em 的一小部分 */
+.cd-rec-toggle{font-size:12px;color:var(--c-primary);width:24px;height:24px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 /* v456：单主标题字色与顶部品类按钮默认文字色(var(--c-text))一致 */
 .cd-rec-title{font-size:14px;font-weight:700;color:var(--c-text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* v452：约稿单卡片品类/单主展示块字色与四个品类按钮内文字色(var(--c-text))统一 */
@@ -3680,8 +3682,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=969"></script>
-<script>console.log('[小筱工作台] 当前版本 v963 —— 若这里不是 953 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=970"></script>
+<script>console.log('[小筱工作台] 当前版本 v970 —— 若这里不是 970 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
