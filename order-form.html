@@ -3183,7 +3183,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .txt-tpl-grp{font-size:12px;font-weight:700;color:var(--c-primary-dark);margin:10px 0 4px}
 .txt-tpl-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:transparent;border:none;border-bottom:1px solid #eef1f5;border-radius:0;margin-bottom:0}
 .txt-tpl-row:last-child{border-bottom:none}
-.txt-tpl-row:hover{background:var(--c-primary-bg)}
+/* v972: 触屏上点完分类后 :hover 会粘滞在列表某一行，看起来像"自动选中了一条文案"——触屏设备禁用 hover 高亮 */
+@media(hover:hover){.txt-tpl-row:hover{background:var(--c-primary-bg)}}
 .txt-tpl-row-text{flex:1;font-size:13px;color:var(--c-text);white-space:pre-wrap;word-break:break-all;line-height:1.5}
 .txt-tpl-choose{padding:4px 12px;font-size:12px;flex:none;border:none;background:var(--c-primary);color:#fff;border-radius:999px;cursor:pointer}
 /* 品类切换按钮（四个并排均分，与首页平台按钮同款均分布局） */
@@ -3443,7 +3444,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-client-submit .btn{padding:10px 40px;font-size:14px}
 /* v777: 提交成功页——浅蓝底色铺满全屏（全出血）、内容居中 */
 /* v799: 改 fixed 全屏铺满（原 100vw/负边距方案在滚动容器变化后只铺一半、内容偏下），浅蓝沿用 --c-primary-bg 不加新色 */
-.cd-client-done{position:fixed;inset:0;z-index:1200;text-align:center;padding:60px 20px;background:var(--c-primary-bg);display:flex;flex-direction:column;justify-content:center;align-items:center;box-sizing:border-box}
+/* v972: 单主在 QQ/微信内置浏览器打开时顶部有浏览器标题栏，原 padding(60px 上下对称)使内容落在"网页可视区"中心，
+   视觉上比手机屏幕中心偏下 ~50px；底部加 100px 让内容在整屏视觉居中 */
+.cd-client-done{position:fixed;inset:0;z-index:1200;text-align:center;padding:60px 20px 160px;background:var(--c-primary-bg);display:flex;flex-direction:column;justify-content:center;align-items:center;box-sizing:border-box}
 .cd-client-done-icon{font-size:56px;margin-bottom:12px;color:var(--c-primary-dark)}
 .cd-client-done-title{font-size:18px;font-weight:700;color:var(--c-primary-dark)}
 .cd-client-done-sub{font-size:13px;color:var(--c-text-muted);margin-top:8px}
@@ -3757,7 +3760,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=971"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=972"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

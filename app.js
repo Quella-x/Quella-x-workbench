@@ -2917,14 +2917,14 @@ function cdFormShell(html) {
 // 饭圈/二次：制品下拉框 HTML（从价目表读取制品列表，支持选择后自动回填默认尺寸/出血）
 function cdProductComboboxHTML(id, value) {
   const priceList = DB.list('priceList');
-  const products = [...new Set(priceList.filter(p => PRODUCT_CATEGORIES.includes(p.category) && p.product).map(p => p.product))];
+  const products = [...new Set(priceList.filter(p => PRODUCT_CATEGORIES.includes(p.category) && p.product).map(p => p.product))].sort((a,b)=>a.localeCompare(b,'zh-Hans-CN')); /* v972: A-Z 拼音排序 */
   const opts = products.map(n => `<div class="combobox-option" onclick="selectComboboxOption('${id}',this)" data-value="${esc(n)}">${esc(n)}</div>`).join('');
   return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-key="product" value="${esc(value || '')}" placeholder="请输入或选择制品" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${opts}</div><input type="hidden" class="combobox-value" data-key="product" value="${esc(value || '')}"></div>`;
 }
 // 追加制品专用：制品下拉框（使用 data-ep 命名空间，与初始制品信息大框一致）
 function cdProductComboboxHTMLForEp(id, value) {
   const priceList = DB.list('priceList');
-  const products = [...new Set(priceList.filter(p => PRODUCT_CATEGORIES.includes(p.category) && p.product).map(p => p.product))];
+  const products = [...new Set(priceList.filter(p => PRODUCT_CATEGORIES.includes(p.category) && p.product).map(p => p.product))].sort((a,b)=>a.localeCompare(b,'zh-Hans-CN')); /* v972: A-Z 拼音排序 */
   const opts = products.map(n => `<div class="combobox-option" onclick="selectComboboxOption('${id}',this)" data-value="${esc(n)}">${esc(n)}</div>`).join('');
   return `<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" data-ep="product" value="${esc(value || '')}" placeholder="请输入或选择制品" oninput="filterComboboxDropdown('${id}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${id}')">▼</button><div class="combobox-dropdown" id="${id}">${opts}</div><input type="hidden" class="combobox-value" data-ep="product" value="${esc(value || '')}"></div>`;
 }
@@ -4820,7 +4820,9 @@ function setupFormInteractions(pageKey) {
   }
   // 约稿单：平台昵称填完自动同步到单主（单主为空时填充）
   if (pageKey.indexOf('design-commission-detail') === 0) {
-    const container = $('#modalBody') || $('#mainBody');
+    // v972: 独立填写页(order-form.html)的 #modalBody 是空壳，原 `modalBody||mainBody` 会绑到空容器，
+    // 导致制品→尺寸/出血联动、平台昵称同步、条件字段显示在单主页全部失效；改为取有内容的容器
+    const container = [$('#modalBody'), $('#mainBody')].find(el => el && el.children.length) || $('#modalBody') || $('#mainBody');
     const pn = $('[data-key="platformNick"]', container);
     const ci = $('[data-key="clientInfo"]', container);
     // 初始同步（导入/回填场景：平台昵称已填充但单主为空）
@@ -4857,7 +4859,8 @@ function setupFormInteractions(pageKey) {
   }
   // 价目表：分类为纸片类/其他材质类时，默认出血空值自动填 3mm（仅默认值，不影响手动输入）
   if (pageKey === 'design-pricelist') {
-    const container = $('#modalBody') || $('#mainBody');
+    // v972: 同上，容器取有内容者（价目表页在 mainBody，弹窗编辑时在 modalBody）
+    const container = [$('#modalBody'), $('#mainBody')].find(el => el && el.children.length) || $('#modalBody') || $('#mainBody');
     if (container) {
       const cat = $('[data-key="category"]', container);
       const bleed = $('[data-key="defaultBleed"]', container);
@@ -7095,7 +7098,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 971, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 972, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -14562,7 +14565,7 @@ async function cdSubmitClientOrder(data) {
     const body = $('#mainBody');
     if (body) {
       // v777: 提交成功页——置顶显示、浅蓝底色填满、文案按需求更新
-      body.innerHTML = `<div class="cd-client-done"><div class="cd-client-done-icon">${lucide('circle-check-big',36)}</div><div class="cd-client-done-title">提交成功，需求已传送至美工</div><div class="cd-client-done-sub">您可关闭本页面，等待美工核对后联系。</div></div>`;
+      body.innerHTML = `<div class="cd-client-done"><div class="cd-client-done-icon">${lucide('circle-check-big',36)}</div><div class="cd-client-done-title">提交成功，需求已传送至美工</div><div class="cd-client-done-sub">您可关闭本页面，等待美工核对后联系</div></div>`;
       window.scrollTo(0, 0);
     }
   } catch (e) {
