@@ -7105,7 +7105,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 973, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 974, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -13468,6 +13468,8 @@ function runCdChatParse() {
     elementsRequired: ['元素必用', '元素-必用', '元素必要', '元素必备', '必用元素', '必带元素', '必要元素', '必备元素', '必用', '必带', '必要', '必备'],
     elementsOptional: ['元素可选', '元素-可选', '元素可用', '元素·可用', '元素备选', '元素可加', '可选元素', '备选元素', '可加元素', '可选', '可以加'],
     elementsAvoid: ['元素避雷', '元素-避雷', '元素避免', '元素禁用', '元素忌', '避雷元素', '避免元素', '禁用元素', '忌元素', '避雷', '避免', '禁用', '忌'],
+    // v974：新增「是否可以展示」识别（原 aliasMap 完全没有该字段，导致「是否可以展示：否」整行被丢弃）
+    displayPermission: ['是否可以展示', '可否展示', '能否展示', '是否展示', '展示权限', '可展示'],
   };
   const norm = (s) => String(s).toLowerCase().replace(/[\s　\/·•・、，,。.!！?？~*★☆#@\-_()（）0-9]/g, '');
   let hit = 0;
@@ -13489,6 +13491,16 @@ function runCdChatParse() {
     if (key === 'product') { b.products.push(val); return; }
     if (key === 'size') { b.sizes.push(val); return; }
     if (!b.fields[key] || isJunkVal(b.fields[key])) { b.fields[key] = val; hit++; }
+  };
+  // v974：多行文本续接——「文案：xxx」后面紧跟的无标签行要并入同一字段（保留换行），否则整段丢失
+  const MULTILINE_KEYS = { copyText:1, note:1, other:1, style:1, color:1, bookName:1, theme:1, elementsRequired:1, elementsOptional:1, elementsAvoid:1 };
+  let lastKey = null;   // 上一个成功识别的字段（供无标签续行挂载）
+  const appendLast = (val) => {
+    if (!lastKey || !MULTILINE_KEYS[lastKey]) return false;
+    const b = curBlock();
+    if (!b.fields[lastKey]) return false;
+    b.fields[lastKey] = b.fields[lastKey] + '\n' + val;
+    return true;
   };
   // 别名匹配：取最长别名（如「平台昵称」优先于「昵称」），且别名前后不能是英文/数字（避免单词内部误命中）
   const findAliasMatch = (labelRaw) => {
@@ -13546,14 +13558,17 @@ function runCdChatParse() {
         return;
       }
       const bm = findAliasMatch(labelRaw);
-      if (bm) { assign(bm.key, val); return; }
-    } else {
-      if (line.length > 60) return; // 长句不强行识别，避免误判
-      const bm = findAliasMatch(line);
-      if (bm) {
-        const v = line.slice(bm.pos + bm.len).trim();
-        if (v) { assign(bm.key, v); return; }
-      }
+      if (bm) { assign(bm.key, val); lastKey = bm.key; return; }
+      lastKey = null; // v974：标签行未能识别 → 不承接后续无标签行（避免把无关文字并进来）
+      return;
+    }
+    // v974：无标签行优先作为上一个多行字段的续行（文案/备注/元素等常跨多行）
+    if (appendLast(line)) return;
+    if (line.length > 60) return; // 长句不强行识别，避免误判
+    const bm = findAliasMatch(line);
+    if (bm) {
+      const v = line.slice(bm.pos + bm.len).trim();
+      if (v) { assign(bm.key, v); lastKey = bm.key; return; }
     }
   });
   // 多制品拆分：每个制品行先按 、，,；;／/| 空格 拆开，首个为主制品，其余进 extraProducts（土味/饭圈/二次 均支持多制品）
@@ -13622,11 +13637,24 @@ function runCdChatParse() {
     if (onlySizes.length) { data.size = onlySizes[0]; hit++; }
   }
   // 交付方式（兼容「交付」与「交付方式」）
+  // v974：①只写「邮箱xxx@xx.com」没写「指定邮箱」的也归为「指定邮箱」；②顺带把邮箱地址填进「收件邮箱」
   const delM = text.match(/交付(?:方式)?[：:]\s*([^\n]+)/);
   if (delM) {
     const dv = delM[1].trim();
     const opt = COMM_DETAIL_DELIVERY_OPTS.find(o => dv.includes(o.value));
     if (opt) data.delivery = opt.value;
+    else if (/邮箱|mail/i.test(dv)) data.delivery = '指定邮箱';
+    const mailM = dv.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/);
+    if (mailM) { data.emailAddr = mailM[0]; if (!data.delivery) data.delivery = '指定邮箱'; hit++; }
+  }
+  // v974：展示权限归一化——聊天里常只写「否/可以」，需映射成选项值（长选项优先匹配，避免「解封日期后可以展示」被判成「可以展示」）
+  if (data.displayPermission) {
+    const dp = String(data.displayPermission).trim();
+    const neg = /不愿意|不可|不能|不展示|不愿|^否$|^不$|^no$/i.test(dp);
+    const pick = COMM_DETAIL_DISPLAY_OPTS.slice().sort((a, b) => b.value.length - a.value.length).find(o => dp === o.value || dp.indexOf(o.value) > -1);
+    if (neg && !COMM_DETAIL_DISPLAY_OPTS.some(o => o.value === dp)) data.displayPermission = '不愿意展示';
+    else if (pick) data.displayPermission = pick.value;
+    else if (/^(是|可以|可|能|行|yes)$/i.test(dp)) data.displayPermission = '可以展示';
   }
   if (!hit) { Toast.error('未能从聊天记录中提取到有效字段，请检查格式（每行用「标签：内容」）'); return; }
   const bodyHTML = cdFormShell(buildCdLocalForm(catKey, data));
@@ -14544,6 +14572,12 @@ function saveCdClientForm(pageKey, standalone) {
 // v777: 单主独立页提交——直接写入云端 sync_store.commissionDetails（记录级合并模型），接稿详情下次拉取即汇入
 async function cdSubmitClientOrder(data) {
   const cfg = window.__cdClientCfg || {};
+  // v974：提交要跑两次网络往返（先读云端再写回），网络慢时点了会"半天没反应" →
+  //       按钮立刻进入「提交中…」禁用态，并用 __cdSubmitting 防重复提交（否则会提交出多条重复单）
+  if (window.__cdSubmitting) return;
+  window.__cdSubmitting = true;
+  const submitBtn = document.querySelector('.cd-client-submit .btn-primary');
+  if (submitBtn) { submitBtn.dataset._t = submitBtn.textContent; submitBtn.disabled = true; submitBtn.textContent = '提交中…'; }
   const showErr = (msg) => {
     const body = $('#mainBody');
     if (body) {
@@ -14551,22 +14585,28 @@ async function cdSubmitClientOrder(data) {
       window.scrollTo(0, 0);
     }
   };
-  if (!cfg.su || !cfg.sk || !cfg.g) { showErr('链接缺少数据配置，请联系卖家重新发送链接。'); return; }
-  const H = { 'Content-Type': 'application/json', 'apikey': cfg.sk, 'Authorization': 'Bearer ' + cfg.sk };
-  const now = Date.now();
-  const rec = Object.assign({ id: uid(), _ct: now, _mt: now }, data);
-  rec.allowUrgent = cfg.allowUrgent ? true : false;
+  // v974：30 秒无响应直接中止并提示，避免一直转圈看不到结果
+  const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  const abortTimer = ctl ? setTimeout(() => ctl.abort(), 30000) : null;
   try {
+    if (!cfg.su || !cfg.sk || !cfg.g) { showErr('链接缺少数据配置，请联系卖家重新发送链接。'); return; }
+    const H = { 'Content-Type': 'application/json', 'apikey': cfg.sk, 'Authorization': 'Bearer ' + cfg.sk };
+    const now = Date.now();
+    const rec = Object.assign({ id: uid(), _ct: now, _mt: now }, data);
+    rec.allowUrgent = cfg.allowUrgent ? true : false;
     const getUrl = cfg.su.replace(/\/+$/, '') + '/rest/v1/sync_store?group_key=eq.' + encodeURIComponent(cfg.g) + '&store=eq.commissionDetails&select=store,data';
-    const r = await fetch(getUrl, { headers: { 'apikey': cfg.sk, 'Authorization': 'Bearer ' + cfg.sk } });
+    const r = await fetch(getUrl, { headers: { 'apikey': cfg.sk, 'Authorization': 'Bearer ' + cfg.sk }, signal: ctl ? ctl.signal : undefined });
     if (!r.ok) throw new Error('读取失败 HTTP ' + r.status);
     const rows = await r.json();
-    const cloud = (rows[0] && Array.isArray(rows[0].data)) ? rows[0].data : [];
+    // v974：云端同 (group_key,store) 可能存在重复行（历史遗留），旧代码只取 rows[0] 会把其它行里的历史单
+    //       整包丢掉；改为按 union 合并全部行再写回，与主人端 v935 的 union 读取一致，任何一端都不会漏单
+    const cloud = (rows || []).flatMap(x => (Array.isArray(x.data) ? x.data : []));
     const merged = cloud.concat([rec]);
     const pr = await fetch(cfg.su.replace(/\/+$/, '') + '/rest/v1/sync_store', {
       method: 'POST',
       headers: Object.assign(H, { 'Prefer': 'resolution=merge-duplicates' }),
-      body: JSON.stringify({ group_key: cfg.g, store: 'commissionDetails', data: merged, updated_at: new Date().toISOString() })
+      body: JSON.stringify({ group_key: cfg.g, store: 'commissionDetails', data: merged, updated_at: new Date().toISOString() }),
+      signal: ctl ? ctl.signal : undefined
     });
     if (!pr.ok) throw new Error('提交失败 HTTP ' + pr.status);
     const body = $('#mainBody');
@@ -14576,7 +14616,11 @@ async function cdSubmitClientOrder(data) {
       window.scrollTo(0, 0);
     }
   } catch (e) {
-    showErr('网络异常：' + e.message + '。请检查网络后重新提交。');
+    if (e && e.name === 'AbortError') showErr('提交超时（30 秒无响应），请检查网络后重新提交。');
+    else showErr('网络异常：' + (e && e.message ? e.message : e) + '。请检查网络后重新提交。');
+  } finally {
+    window.__cdSubmitting = false;
+    if (abortTimer) clearTimeout(abortTimer);
   }
 }
 
