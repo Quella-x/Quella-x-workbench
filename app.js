@@ -2230,6 +2230,13 @@ function kbUpdateState() {
 if (window.visualViewport) window.visualViewport.addEventListener('resize', kbUpdateState);
 else window.addEventListener('resize', kbUpdateState);
 kbUpdateState();
+// v973: 识别 QQ/微信等"只有顶部标题栏、底部无工具栏"的手机内置浏览器——其视口中心比整屏中心偏下约 44px，
+// 全屏居中内容（如单主提交成功页）需上移补偿；Safari/Chrome 等上下均衡浏览器不加，保持默认对称居中
+try {
+  if (/iPhone|Android|Mobile/i.test(navigator.userAgent) && /QQ\/|MQQBrowser|MicroMessenger|WeChat/i.test(navigator.userAgent)) {
+    document.documentElement.classList.add('inapp-topbar');
+  }
+} catch (e) {}
 document.addEventListener('mousedown', e => {
   const zone = e.target.closest && e.target.closest('.modal, .tpl-sub-overlay, .txt-tpl-picker-overlay');
   if (!zone) return;
@@ -7098,7 +7105,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 972, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 973, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);

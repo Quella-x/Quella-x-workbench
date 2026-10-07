@@ -6,7 +6,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#7AB5F5">
+<meta name="theme-color" content="#F4FCFF"> <!-- v973: 原 #7AB5F5 使 Safari 顶部状态栏/底部区域染成中蓝，改同页面底色浅蓝 -->
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -3444,9 +3444,11 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-client-submit .btn{padding:10px 40px;font-size:14px}
 /* v777: 提交成功页——浅蓝底色铺满全屏（全出血）、内容居中 */
 /* v799: 改 fixed 全屏铺满（原 100vw/负边距方案在滚动容器变化后只铺一半、内容偏下），浅蓝沿用 --c-primary-bg 不加新色 */
-/* v972: 单主在 QQ/微信内置浏览器打开时顶部有浏览器标题栏，原 padding(60px 上下对称)使内容落在"网页可视区"中心，
-   视觉上比手机屏幕中心偏下 ~50px；底部加 100px 让内容在整屏视觉居中 */
-.cd-client-done{position:fixed;inset:0;z-index:1200;text-align:center;padding:60px 20px 160px;background:var(--c-primary-bg);display:flex;flex-direction:column;justify-content:center;align-items:center;box-sizing:border-box}
+/* v973: 恢复对称居中——Safari 等上下均衡的浏览器（顶=状态栏、底=地址栏+标签栏）视口中心≈整屏中心；
+   QQ/微信内置浏览器只有顶部一条标题栏（无底部工具栏），视口中心比整屏中心偏下 ~44px，
+   由 UA 加 .inapp-topbar 后单独上移补偿（见下条） */
+.cd-client-done{position:fixed;inset:0;z-index:1200;text-align:center;padding:60px 20px;background:var(--c-primary-bg);display:flex;flex-direction:column;justify-content:center;align-items:center;box-sizing:border-box}
+.inapp-topbar .cd-client-done{padding-bottom:148px}
 .cd-client-done-icon{font-size:56px;margin-bottom:12px;color:var(--c-primary-dark)}
 .cd-client-done-title{font-size:18px;font-weight:700;color:var(--c-primary-dark)}
 .cd-client-done-sub{font-size:13px;color:var(--c-text-muted);margin-top:8px}
@@ -3760,7 +3762,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=972"><\/script>');</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=973"><\/script>');</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
