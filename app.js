@@ -7105,7 +7105,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 976, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 977, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -14611,13 +14611,15 @@ async function cdSubmitClientOrder(data) {
     const now = Date.now();
     const rec = Object.assign({ id: uid(), _ct: now, _mt: now }, data);
     rec.allowUrgent = cfg.allowUrgent ? true : false;
-    const getUrl = cfg.su.replace(/\/+$/, '') + '/rest/v1/sync_store?group_key=eq.' + encodeURIComponent(cfg.g) + '&store=eq.commissionDetails&select=store,data';
+    const getUrl = cfg.su.replace(/\/+$/, '') + '/rest/v1/sync_store?group_key=eq.' + encodeURIComponent(cfg.g) + '&store=eq.commissionDetails&select=store,data,updated_at&order=updated_at.desc&limit=1';
+    const t0 = Date.now();
     const r = await fetch(getUrl, { headers: { 'apikey': cfg.sk, 'Authorization': 'Bearer ' + cfg.sk }, signal: ctl ? ctl.signal : undefined });
     if (!r.ok) throw new Error('读取失败 HTTP ' + r.status);
     const rows = await r.json();
-    // v974：云端同 (group_key,store) 可能存在重复行（历史遗留），旧代码只取 rows[0] 会把其它行里的历史单
-    //       整包丢掉；改为按 union 合并全部行再写回，与主人端 v935 的 union 读取一致，任何一端都不会漏单
-    const cloud = (rows || []).flatMap(x => (Array.isArray(x.data) ? x.data : []));
+    // v977：只取 updated_at 最新的一行来合并。云端若存在历史重复行，union 读取由主人端 v935 引擎保证不漏单；
+    //       单主端不再拉取全部重复行，避免旧数据膨胀导致提交等待过长。
+    const latest = (rows || [])[0];
+    const cloud = Array.isArray(latest && latest.data) ? latest.data : [];
     const merged = cloud.concat([rec]);
     const pr = await fetch(cfg.su.replace(/\/+$/, '') + '/rest/v1/sync_store', {
       method: 'POST',
@@ -14626,6 +14628,7 @@ async function cdSubmitClientOrder(data) {
       signal: ctl ? ctl.signal : undefined
     });
     if (!pr.ok) throw new Error('提交失败 HTTP ' + pr.status);
+    console.log('[cdSubmitClientOrder] 成功写入云端，耗时 ' + (Date.now() - t0) + 'ms');
     const body = $('#mainBody');
     if (body) {
       // v777: 提交成功页——置顶显示、浅蓝底色填满、文案按需求更新
