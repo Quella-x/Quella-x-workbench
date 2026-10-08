@@ -2918,7 +2918,7 @@ function cdFormShell(html) {
   return `<div class="cd-form">`
     + `<div class="cd-form-top"><div class="cd-form-topline">请仔细填写</div><div class="cd-form-topline cd-form-tip">帮助我更好了解您的需求</div></div>`
     + html
-    + `<div class="cd-form-bottom"><div class="cd-form-botline">人物、参考图、色卡、模板等图片文件可直发/网盘/邮箱</div><div class="cd-form-botline cd-form-warn">请确认信息无误后再提交 尤其注意尺寸&颜色格式${lucide('alert-triangle',14)}</div></div>`
+    + `<div class="cd-form-bottom"><div class="cd-form-botline">人物、参考图、色卡、模板等图片文件可直发/网盘/邮箱</div><div class="cd-form-botline cd-form-warn">请确认信息无误后再提交 尤其注意尺寸&颜色格式<span class="cd-form-warn-icon">${lucide('alert-triangle',14)}</span></div></div>`
     + `</div>`;
 }
 // 饭圈/二次：制品下拉框 HTML（从价目表读取制品列表，支持选择后自动回填默认尺寸/出血）
@@ -7105,7 +7105,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 974, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 975, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -13547,28 +13547,38 @@ function runCdChatParse() {
   text.split(/\r?\n+/).forEach(raw => {
     const line = raw.replace(/[\s　]+/g, ' ').trim();
     if (!line) return;
-    const m = line.match(/^(.*?)[:：]\s*(.+)$/);
+    // v975：允许标签后值为空（如「备注：」），否则空值标签会被当成无标签续行并到上一个字段
+    const m = line.match(/^(.*?)[：:]\s*(.*)$/);
     if (m) {
-      const val = m[2];
+      const val = m[2].trim();
       const labelRaw = m[1];
       // 元素标签专项：以「元素」开头（如 元素/元素：/元素-）的字段走智能拆分
       const normLabelRaw = labelRaw.replace(/[\s　]/g, '');
       if (normLabelRaw === '元素' || normLabelRaw.startsWith('元素')) {
         parseElementLine(labelRaw, val);
+        lastKey = 'elementsRequired';
         return;
       }
       const bm = findAliasMatch(labelRaw);
-      if (bm) { assign(bm.key, val); lastKey = bm.key; return; }
+      if (bm) {
+        if (val) assign(bm.key, val);
+        lastKey = bm.key;
+        return;
+      }
       lastKey = null; // v974：标签行未能识别 → 不承接后续无标签行（避免把无关文字并进来）
       return;
     }
     // v974：无标签行优先作为上一个多行字段的续行（文案/备注/元素等常跨多行）
     if (appendLast(line)) return;
-    if (line.length > 60) return; // 长句不强行识别，避免误判
-    const bm = findAliasMatch(line);
-    if (bm) {
-      const v = line.slice(bm.pos + bm.len).trim();
-      if (v) { assign(bm.key, v); lastKey = bm.key; return; }
+    // v975：续行失败再看这行本身是不是一个「无冒号」的短字段标签（如单写「备注」），是则切换 lastKey
+    if (line.length <= 60) {
+      const bmInline = findAliasMatch(line);
+      if (bmInline) {
+        const v = line.slice(bmInline.pos + bmInline.len).trim();
+        if (v) assign(bmInline.key, v);
+        lastKey = bmInline.key;
+        return;
+      }
     }
   });
   // 多制品拆分：每个制品行先按 、，,；;／/| 空格 拆开，首个为主制品，其余进 extraProducts（土味/饭圈/二次 均支持多制品）

@@ -1,5 +1,5 @@
 /* Service Worker — 小筱工作台 PWA 离线壳 */
-const CACHE = "xiao-workbench-v974";
+const CACHE = "xiao-workbench-v975";
 const ASSETS = [
   './',
   'index.html',
@@ -17,6 +17,10 @@ self.addEventListener('install', e => {
       .then(c => c.addAll(ASSETS))
       .then(() => self.skipWaiting())
   );
+});
+// v975：允许页面指令等待中的 SW 立即接管（根治旧缓存页面不关闭就永远拿不到新版）
+self.addEventListener('message', e => {
+  if (e.data && e.data.action === 'skipWaiting') self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
