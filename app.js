@@ -58,6 +58,9 @@ const Sync = {
   versions: {},             // store -> updated_at(ISO)
   _timer: null,
   _pushTimer: null,
+  _ticking: false,           // v980: 轮询重入保护
+  _lastTick: 0,              // v980: focus/visibilitychange/online 同时触发时的防抖
+  _tickN: 0,                 // v980: 轮询轮次计数，用于定期全量兜底
   _applying: false,         // 防止拉取落地时触发回流推送
   load() {
     this.cfg = DB.get('syncCfg', null);
@@ -264,6 +267,70 @@ const Sync = {
     }
     return localChanged;
   },
+  // v980: 时间容差比较。PostgREST 返回的 timestamptz 是 6 位微秒（…123456+00:00），
+  //       而本地 toISOString() 是 3 位毫秒（…123Z），字符串直接比永远不相等，必须按数值比。
+  _tsEq(a, b) {
+    if (!a && !b) return true;
+    if (!a || !b) return false;
+    const ta = Date.parse(a), tb = Date.parse(b);
+    if (isNaN(ta) || isNaN(tb)) return a === b;
+    return Math.abs(ta - tb) < 1500;
+  },
+  /* v980: 轻量「变更探测」。
+     旧方案每轮对 23 个 store 各发一次 GET（一轮 20+ 请求、动辄数秒），
+     既慢又容易被浏览器判定为高负载后台任务而节流，所以轮询只能设 30 秒，实际体感 10-30 分钟。
+     现在改为：一次请求只取该分组所有行的 store+updated_at（约 30 行小 JSON），
+     与本地记录的 versions 比对，只对真正变了的 store 走完整 syncStore。
+     空闲时一轮 = 1 个请求，因此可以把轮询缩到 10 秒而不增加任何负担。 */
+  async peek() {
+    const url = this.table() + '?group_key=eq.' + encodeURIComponent(this.gkey()) + '&select=store,updated_at';
+    const r = await fetch(url, { headers: this.headers() });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const rows = await r.json();
+    const map = {};
+    (rows || []).forEach(x => {
+      if (!x || !x.store) return;
+      const p = map[x.store];
+      if (!p || (x.updated_at || '') > (p || '')) map[x.store] = x.updated_at;
+    });
+    const dirty = [];
+    for (const store of SYNC_STORES) {
+      const cv = map[store], lv = this.versions[store];
+      if (!cv && !lv) continue;                       // 两端都没有该 store，跳过
+      if (!this._tsEq(cv, lv)) dirty.push(store);     // 墓碑行与 store 行同时推送、updated_at 一致，无需单独比对
+    }
+    return dirty;
+  },
+  async tickPull() {
+    if (!this.enabled()) return;
+    const now = Date.now();
+    if (this._ticking || now - this._lastTick < 2000) return;
+    this._ticking = true; this._lastTick = now;
+    try {
+      this._tickN = (this._tickN || 0) + 1;
+      // v980: 每 30 轮（约 5 分钟）做一次全量收敛，兜底 peek 可能漏掉的情况（本地未推送的改动等）
+      if (this._tickN % 30 === 0) { await this.pullAll(); return; }
+      const dirty = await this.peek();
+      if (!dirty.length) { this.setStatus('connected'); return; }
+      let changed = false, okCount = 0; const errs = [];
+      for (const store of dirty) {
+        try { if (await this.syncStore(store)) changed = true; okCount++; }
+        catch (e) { this.diag[store] = Object.assign(this.diag[store] || {}, { error: e.message }); errs.push(store + ':' + e.message); }
+      }
+      if (okCount) { this.lastSync = Date.now(); DB.set('syncLast', this.lastSync); }
+      this.lastError = errs.length ? errs.join(' | ') : '';
+      this.setStatus(okCount ? 'connected' : 'disconnected');
+      healScrollLock();
+      if (changed) {
+        Toast.info('已从云端同步最新数据');
+        const modalOpen = document.getElementById('modalOverlay') && document.getElementById('modalOverlay').classList.contains('show');
+        if (!modalOpen && currentPage) navigate(currentPage);
+      }
+    } catch (e) {
+      this.lastError = e.message;
+      this.setStatus('disconnected');
+    } finally { this._ticking = false; }
+  },
   async pushAll() {
     if (!this.enabled()) return;
     this.setStatus('syncing');
@@ -321,9 +388,15 @@ const Sync = {
     if (!this.enabled()) { this.updateBadge(); return; }
     this.pullAll();
     if (this._timer) clearInterval(this._timer);
-    this._timer = setInterval(() => { if (navigator.onLine !== false) this.pullAll(); }, 30000);
-    window.addEventListener('online', () => this.pullAll());
-    window.addEventListener('focus', () => { if (navigator.onLine !== false) this.pullAll(); });
+    // v980: 轮询 30s → 10s（配合 peek 的 1 请求/轮，实际负载反而比旧的 30s 全量更低）
+    this._timer = setInterval(() => { if (navigator.onLine !== false) this.tickPull(); }, 10000);
+    window.addEventListener('online', () => this.tickPull());
+    window.addEventListener('focus', () => { if (navigator.onLine !== false) this.tickPull(); });
+    // v980: 切回标签页/从其他应用切回时立刻拉一次——后台标签页的 setInterval 会被浏览器节流
+    //       （Chrome 对隐藏 5 分钟以上的标签页降到 1 次/分钟），这是「感觉 10-30 分钟才同步」的另一半原因
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && navigator.onLine !== false) this.tickPull();
+    });
   }
 };
 
@@ -7105,7 +7178,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 979, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 980, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
