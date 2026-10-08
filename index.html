@@ -1105,8 +1105,8 @@ html.apk.modal-lock{overflow:hidden!important}
 /* v844: 详情表格对齐修正——第一行居中、换行的末行左对齐（v843 的 inline-block+left 会让首行也左对齐）。
    改 block+center，渲染后扫描真实换行（scanTdWrap）给多行格加 .td-multi（text-align-last:left 只把末行靠左）；
    单行格保持纯居中。备注行（gb-remark-row）维持左对齐不变 */
-.detail-table td .td-wrap{display:block;text-align:center;vertical-align:middle}
-.detail-table td .td-wrap.td-multi{text-align-last:left}
+.detail-table td .td-wrap{display:block;text-align:center;vertical-align:middle;text-wrap:balance}
+/* v986: 撤销 td-multi「末行左对齐」（她要求整格居中），加 text-wrap:balance 让换行两行字数尽量均衡；不支持 balance 的旧内核自动退回普通换行，无害 */
 .gb-remark-row .td-wrap{text-align:left}
 /* 接稿排期制品完成勾选（DN轮） */
 .detail-table td.comm-prod-done{text-align:center;white-space:nowrap}
@@ -1152,10 +1152,10 @@ html.apk.modal-lock{overflow:hidden!important}
 /* v910: 售后备注文字改回正常黑色（与 Excel 风格一致，不再用 muted 灰） */
 .gb-aftersales-remark td{color:var(--c-text);font-size:12px}
 .gb-aftersales-remark td .td-wrap{text-align:center}
-/* v923: 流团标签居中微调（-2 偏上、-1 偏下，取中间值） */
-.gb-disbanded-inline{display:inline-block;vertical-align:middle;background:var(--c-red);color:#fff;padding:2px 4px;border-radius:2px;font-size:10px;margin-right:4px;line-height:1;white-space:nowrap;transform:translateY(-1.5px)}
+/* v923: 流团标签居中微调（-2 偏上、-1 偏下，取中间值）；v986: 删 margin-right（v932 起签独占「是否流团」单元格、后面永远无文字，4px 右边距使签偏左、右侧空隙比左侧多 4px，两端同病） */
+.gb-disbanded-inline{display:inline-block;vertical-align:middle;background:var(--c-red);color:#fff;padding:2px 4px;border-radius:2px;font-size:10px;line-height:1;white-space:nowrap;transform:translateY(-1.5px)}
 /* v932: 未流团（否）显示绿色「成团」小签，与红色「流团」同尺寸同基线 */
-.gb-formed-inline{display:inline-block;vertical-align:middle;background:var(--c-green);color:#fff;padding:2px 4px;border-radius:2px;font-size:10px;margin-right:4px;line-height:1;white-space:nowrap;transform:translateY(-1.5px)}
+.gb-formed-inline{display:inline-block;vertical-align:middle;background:var(--c-green);color:#fff;padding:2px 4px;border-radius:2px;font-size:10px;line-height:1;white-space:nowrap;transform:translateY(-1.5px)}
 /* v928: 复制按钮颜色变浅（与旁边 muted 文字一致）、与文字间距加大 */
 .sync-copy-btn{width:22px;height:22px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--c-text-muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:6px;position:relative;top:-1px} /* v935：用户要求复制按钮上移 1px */
 .sync-copy-btn:hover{background:var(--c-primary-bg);color:var(--c-primary)}
@@ -2941,7 +2941,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   /* v931: 标签恢复 v834(v1.1.48 基准)观感——顶对齐+8px 下沉（v905 的 2px 比 v834 高 6px 故她报"飞了"，
      v930 的盒居中在多行/多条/空盒间与首行相对位置漂移故她报"不一致"）；空记录盒保持居中与提示文字同行 */
   .lr-subtype-label{width:36px;font-size:16px;align-self:flex-start;margin-top:8px}
-  .lr-subtype-box.lr-box-empty .lr-subtype-label{align-self:center;margin-top:0}
+  /* v986: 删空盒标签居中特例（lr-box-empty 单独居中导致有/无记录左侧文字位置不一致），统一贴顶 8px 与电脑端口径一致 */
   .lr-subtype-add{width:24px;height:24px;font-size:16px}
   .lr-empty-row{padding:9.5px 0}
   .lr-record-row{transform:none}
@@ -3695,8 +3695,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=985"></script>
-<script>console.log('[小筱工作台] 当前版本 v985 —— 若这里不是 985 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=986"></script>
+<script>console.log('[小筱工作台] 当前版本 v986 —— 若这里不是 986 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
@@ -3710,6 +3710,13 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
           function reloadOnce() {
             if (window.__swReloaded) return;
             window.__swReloaded = true;
+            /* v986: 防「自动刷新停不下来」死循环——CDN 新旧抖动时每次加载都会装上另一个版本的 SW
+               并触发重载，形成无限刷新。改为同一浏览器会话最多自动重载 2 次，
+               超过后静默放弃（下次手动刷新/重开标签自然恢复），不影响正常的单次更新接管。 */
+            var n = 0;
+            try { n = parseInt(sessionStorage.getItem('__swAutoReload') || '0', 10) || 0; } catch (e) {}
+            if (n >= 2) return;
+            try { sessionStorage.setItem('__swAutoReload', String(n + 1)); } catch (e) {}
             location.reload();
           }
           if (reg.waiting && navigator.serviceWorker.controller) {

@@ -3860,8 +3860,8 @@ function renderStatsSection(stats, title, scope, pageKey) {
   html += `</div>`;
   html += '<div class="stats-grid">';
   stats.forEach(s => {
-    const unit = s.unit ? `<span class="stat-unit">${esc(s.unit)}</span>` : '';
-    html += `<div class="stat-card"><div class="stat-label">${esc(s.label)}</div><div class="stat-value">${esc(s.value)}${unit}</div>${s.sub ? `<div class="stat-sub">${esc(s.sub)}</div>` : ''}</div>`;
+    // v986: 她要求统计卡数值后面的单位小字（次/篇/单/种，含「盈利/亏损」这类非单位）全部去掉
+    html += `<div class="stat-card"><div class="stat-label">${esc(s.label)}</div><div class="stat-value">${esc(s.value)}</div>${s.sub ? `<div class="stat-sub">${esc(s.sub)}</div>` : ''}</div>`;
   });
   html += '</div></div>';
   return html;
@@ -5649,19 +5649,19 @@ function renderHome() {
     // 本月平均更新 = 本月发布条数 ÷ 当月天数(30/31)
     const y = parseInt(thisMonth.slice(0, 4), 10), m = parseInt(thisMonth.slice(5, 7), 10);
     const daysThisMonth = new Date(y, m, 0).getDate();
-    const earliest = published.reduce((min, r) => { const t = (r.publishTime || '').slice(0, 7); return t && t < min ? t : min; }, thisMonth);
-    let activeMonths = 1;
+    // v986: 总平均更新改按天口径（她确认）——总发布数 ÷ 最早发布日→今天的自然天数（含首尾），与「本月=当月全部天数」同逻辑
+    let totalDays = 1;
     if (published.length) {
-      const ey = parseInt(earliest.slice(0, 4), 10), em = parseInt(earliest.slice(5, 7), 10);
-      const cy = new Date().getFullYear(), cm = new Date().getMonth() + 1;
-      activeMonths = Math.max(1, (cy - ey) * 12 + (cm - em) + 1);
+      const eDay = published.reduce((min, r) => { const t = (r.publishTime || '').slice(0, 10); return t && t < min ? t : min; }, todayStr());
+      const py = parseInt(eDay.slice(0, 4), 10), pm = parseInt(eDay.slice(5, 7), 10), pd = parseInt(eDay.slice(8, 10), 10);
+      totalDays = Math.max(1, Math.round((new Date() - new Date(py, pm - 1, pd)) / 86400000) + 1);
     }
     html += '<div class="cs-col cs-col-stats">' + renderStatsSection([
       { label: '本月发布数', value: monthPublished.length, unit: '篇' },
       { label: '本月平均更新', value: (monthPublished.length / daysThisMonth).toFixed(1), unit: '篇/天' },
       { label: '本月最高浏览', value: monthMaxViews, unit: '次' },
       { label: '总发布数', value: published.length, unit: '篇' },
-      { label: '总平均更新', value: (published.length / activeMonths).toFixed(1), unit: '篇/月' },
+      { label: '总平均更新', value: (published.length / totalDays).toFixed(1), unit: '篇/天' },
       { label: '总最高浏览', value: totalMaxViews, unit: '次' },
     ], ps.tab + '统计', scope, 'home') + '</div>';
     html += '</div>'; // close .chart-stats-2col
@@ -7324,7 +7324,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 985, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 986, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -12125,8 +12125,8 @@ function renderSleepWeekLineChart(days) {
         }
       }
     }
-    /* v959：圆点回 r5（v958 的 r4 她说"又太小了"）、白边 2；手机端维持 v943 的 r7/2.5 不动 */
-    const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${isDesktop?5:7}" fill="${color}" stroke="#fff" stroke-width="${isDesktop?2:2.5}"/>`;
+    /* v986: 手机端圆点 r7→6（她反馈点大挤标签，"改小一点但不能太小"）；桌面 v959 定稿 r5 不动 */
+    const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${isDesktop?5:6}" fill="${color}" stroke="#fff" stroke-width="${isDesktop?2:2}"/>`;
     if (!v) return `<g class="lr-hsc-point">${dot}</g>`; // 0 值：只画点不画字，避免一列 0m 互相重叠
     return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${formatSleepDuration(v)}</text>${dot}</g>`;
   }).join('');
