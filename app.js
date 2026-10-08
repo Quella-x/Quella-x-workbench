@@ -1940,6 +1940,28 @@ function refreshCommissionBindOptions() {
     dd.innerHTML = html;
   });
 }
+/* v983: 多选下拉框——标准 combobox 结构（她的下拉框统一规范），面板内点选多项、不自动关闭；
+   输入框只读，显示「补偿、补发」；旧数据（单选字符串 / v982 checkbox 数组）自动兼容 */
+function buildDynamicMultiCombobox(col, value) {
+  const arr = Array.isArray(value) ? value : (value ? String(value).split(',') : []);
+  const cbId = 'dymb_' + col.subkey + '_' + Math.random().toString(36).slice(2, 8);
+  const optHTML = (col.options || []).map(o => {
+    const v = typeof o === 'string' ? o : o.value;
+    const l = typeof o === 'string' ? o : (o.label || o.value);
+    const isSel = arr.indexOf(v) > -1;
+    return `<div class="combobox-option${isSel ? ' selected' : ''}" data-value="${esc(v)}" onclick="toggleMultiComboboxOption('${cbId}',this)">${esc(l)}</div>`;
+  }).join('');
+  return `<div class="combobox-wrapper" data-subkey="${col.subkey}" data-multi="1" style="min-width:0;flex:1"><input type="text" class="form-input combobox-input" data-subkey="${col.subkey}" value="${esc(arr.join('、'))}" placeholder="${esc(col.label)}" readonly onclick="showComboboxDropdown('${cbId}')" onfocus="showComboboxDropdown('${cbId}')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
+}
+function toggleMultiComboboxOption(cbId, el) {
+  el.classList.toggle('selected');
+  const dd = document.getElementById(cbId);
+  if (!dd) return;
+  const input = dd.closest('.combobox-wrapper');
+  const vals = $$('.combobox-option.selected', dd).map(o => o.dataset.value);
+  const inp = input ? input.querySelector('.combobox-input') : null;
+  if (inp) inp.value = vals.join('、');
+}
 /* v789：「无同模 + 加急」绑成不可拆行组合——勾选框任何宽度下都与无同模同一行 */
 function groupSameModelUrgentRow(row) {
   if (!row) return;
@@ -2018,6 +2040,9 @@ function buildDynamicListHTML(field, data, moduleKey) {
       } else if (col.recordProducts) {
         // v982: 开团售后「制品名称」下拉，选项=当前开团单制品列表里的制品名
         html += buildRecordProductCombobox(col, v, data ? data.products : null);
+      } else if (col.type === 'multicombobox' && col.options) {
+        // v983: 多选下拉框——注意用 item 原始值（上面的 v 已把数组塌缩成第一项）
+        html += buildDynamicMultiCombobox(col, item[col.subkey] !== undefined ? item[col.subkey] : col.default);
       } else if (col.type === 'multiselect' && col.options) {
         const selected = Array.isArray(v) ? v : (v ? String(v).split(',') : []);
         const cbId = 'dymc_' + col.subkey + '_' + Math.random().toString(36).slice(2,6);
@@ -2082,6 +2107,8 @@ function addDynamicRow(key) {
       html += buildCommissionBindCombobox(col, '', null);
     } else if (col.recordProducts) {
       html += buildRecordProductCombobox(col, '', null);
+    } else if (col.type === 'multicombobox' && col.options) {
+      html += buildDynamicMultiCombobox(col, col.default);
     } else if (col.type === 'multiselect' && col.options) {
       const cbId = 'dymc_' + col.subkey + '_' + Math.random().toString(36).slice(2,6);
       // v19: 优先用 col.default 数组（更通用），其次用 o.default 单选项默认
@@ -2177,6 +2204,12 @@ function readForm(container) {
           const sk = ms.dataset.subkey;
           const checked = $$('input[type="checkbox"]:checked', ms).map(c => c.value);
           item[sk] = checked;
+        });
+        // v983: 多选下拉框 -> 数组（先写入；后面 [data-subkey] 输入框循环只填 undefined，不会覆盖）
+        $$('.combobox-wrapper[data-multi]', row).forEach(w => {
+          const sk = w.dataset.subkey;
+          const dd = w.querySelector('.combobox-dropdown');
+          item[sk] = dd ? $$('.combobox-option.selected', dd).map(o => o.dataset.value) : [];
         });
         $$('[data-subkey]', row).forEach(input => {
           if (input.tagName === 'INPUT' && input.type === 'checkbox') {
@@ -2742,8 +2775,8 @@ MODULES['groupbuy-records'] = {
       // v982: 制品名称改标准下拉框（combobox），选项取自当前开团单「制品列表」里填的制品名（她确认的口径）
       { subkey: 'name', label: '制品名称', type: 'text', recordProducts: true },
       { subkey: 'quantity', label: '售后数量', type: 'number' },
-      // v982: 补偿方式改多选（checkbox 组，可同时勾补偿+补发等；旧单选字符串数据自动兼容）
-      { subkey: 'type', label: '补偿方式', type: 'multiselect', default: ['补偿'], options: [
+      // v983: 补偿方式改「多选下拉框」（她要求保留下拉框形态、可多选）——标准 combobox 结构，面板内点选多项不关闭
+      { subkey: 'type', label: '补偿方式', type: 'multicombobox', default: ['补偿'], options: [
         { value: '补偿', label: '补偿' }, { value: '补发', label: '补发' }, { value: '补寄', label: '补寄' }, { value: '退款', label: '退款' }
       ]},
       { subkey: 'amount', label: '价格', type: 'text', calc: true },
@@ -2768,9 +2801,9 @@ MODULES['groupbuy-records'] = {
   ],
   stats: (records) => {
     const totalRev = records.reduce((s, r) => s + parseNum(r.productTotal) + parseNum(r.shippingTotal), 0);
-    const totalCost = records.reduce((s, r) => s + parseNum(r.cost) + parseNum(r.shippingTotalCost), 0);
-    // v982: 总利润扣减全部售后价格
-    const profit = totalRev - totalCost - records.reduce((s, r) => s + gbAfterSalesTotal(r), 0);
+    // v983: 总成本含售后（她的建议采纳）——售后退款/补寄本质是额外支出，计入成本后「总营收−总成本=总利润」三张卡严格自洽
+    const totalCost = records.reduce((s, r) => s + parseNum(r.cost) + parseNum(r.shippingTotalCost) + gbAfterSalesTotal(r), 0);
+    const profit = totalRev - totalCost;
     const productSet = new Set();
     records.forEach(r => (r.products || []).forEach(p => { if (p.name) productSet.add(p.name); }));
     const buyers = records.reduce((s, r) => s + (parseFloat(r.purchaseCount) || 0), 0);
@@ -2789,7 +2822,8 @@ MODULES['groupbuy-records'] = {
     title: '开团营收/成本/利润',
     series: [
       { name: '营收', compute: r => parseNum(r.productTotal) + parseNum(r.shippingTotal), color: '#7ec678' },
-      { name: '成本', compute: r => parseNum(r.cost) + parseNum(r.shippingTotalCost), color: '#e8857e' },
+      // v983: 成本线同步含售后（与总成本卡片同口径），利润 = 营收 − 成本（含售后）
+      { name: '成本', compute: r => parseNum(r.cost) + parseNum(r.shippingTotalCost) + gbAfterSalesTotal(r), color: '#e8857e' },
       { name: '利润', compute: r => parseNum(r.productTotal) + parseNum(r.shippingTotal) - parseNum(r.cost) - parseNum(r.shippingTotalCost) - gbAfterSalesTotal(r), color: '#9DC8FF' },
     ], year: getChartYear('groupbuy-records') }, 'groupbuy-records'),
   detailExtra: (r) => {
@@ -2935,6 +2969,16 @@ MODULES['design-inspiration'] = {
 };
 
 // --- Commission (v5: 报价金额+最终金额手动, 进度选项更新) ---
+/* v983: 接稿收入「实际到账」口径（她确认）——全款=全额；勾了定金加 deposit、勾了尾款加 balance（未填各按报价 50%）；
+   未付=0。统计卡与年度图「最终金额」线共用这一个函数，口径永远一致。 */
+function commEarned(r) {
+  const full = parseNum(r.quoteAmount) || parseNum(r.amount) || 0;
+  if (valIncludes(r.paymentStatus, '全款')) return full;
+  let m = 0;
+  if (valIncludes(r.paymentStatus, '定金')) m += parseNum(r.deposit) || Math.round(full * 0.5 * 100) / 100;
+  if (valIncludes(r.paymentStatus, '尾款')) m += parseNum(r.balance) || Math.round(full * 0.5 * 100) / 100;
+  return m;
+}
 MODULES['design-commission'] = {
   store: 'commissions',
   fields: [
@@ -2997,18 +3041,9 @@ MODULES['design-commission'] = {
     { label: '制品', key: '_firstProduct' },
   ],
   stats: (records) => {
-    // v982: 收入改按实际到账口径（她确认）——全款=全额；勾了定金加 deposit、勾了尾款加 balance；未付=0。
-    // 例：已接稿收定金15 → 收入15；后续收到尾款15 → 收入30。
-    const earned = (r) => {
-      const full = parseNum(r.quoteAmount) || parseNum(r.amount) || 0;
-      if (valIncludes(r.paymentStatus, '全款')) return full;
-      let m = 0;
-      if (valIncludes(r.paymentStatus, '定金')) m += parseNum(r.deposit) || Math.round(full * 0.5 * 100) / 100;
-      if (valIncludes(r.paymentStatus, '尾款')) m += parseNum(r.balance) || Math.round(full * 0.5 * 100) / 100;
-      return m;
-    };
-    const totalRev = records.reduce((s, r) => s + earned(r), 0);
-    const monthRev = records.filter(r => (r.acceptTime || '').startsWith(thisMonthStr())).reduce((s, r) => s + earned(r), 0);
+    // v983: 实际到账口径提成 commEarned()（统计卡与年度图共用）
+    const totalRev = records.reduce((s, r) => s + commEarned(r), 0);
+    const monthRev = records.filter(r => (r.acceptTime || '').startsWith(thisMonthStr())).reduce((s, r) => s + commEarned(r), 0);
     return [
       { label: '本月收入', value: '¥' + monthRev.toLocaleString() },
       { label: '总接稿', value: records.length, unit: '单' },
@@ -3020,7 +3055,8 @@ MODULES['design-commission'] = {
   chart: (records) => {
     const processed = records.map(r => ({ ...r, acceptTime: r.acceptTime || r.startTime || r.deadline || '' }));
     return renderAnnualChart(processed, 'acceptTime', { title: '接稿收入', series: [
-      { name: '最终金额', compute: r => parseNum(r.quoteAmount) || parseNum(r.amount) || 0, color: '#f6ad5c' },
+      // v983: 「最终金额」线改实际到账口径（她确认），与接稿统计同用 commEarned()
+      { name: '最终金额', compute: r => commEarned(r), color: '#f6ad5c' },
     ], year: getChartYear('design-commission') }, 'design-commission');
   },
   isOverdue: (r) => { const now = todayStr(); return r.deadline && r.deadline < now && !valIncludes(r.progress, '已交付'); },
@@ -7273,7 +7309,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 982, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 983, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);

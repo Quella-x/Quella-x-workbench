@@ -941,8 +941,7 @@ html.apk.modal-lock{overflow:hidden!important}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="quantity"]{flex:0 0 80px}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="amount"]{flex:0 0 80px}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="type"]{flex:0 0 95px}
-/* v982: 手机端多选补偿方式列宽与 header(95px) 对齐（桌面 media 内覆盖为 150px） */
-.dynamic-list-container[data-key="afterSales"] .dynamic-list-row .dynamic-multi-sel[data-subkey="type"]{flex:0 0 95px}
+/* v983: 手机端补偿方式已改多选下拉框（combobox-wrapper），列宽由下方 967 行 95px 规则接管，此行废弃 */
 /* v29: 接稿排期修改项目（修改类型/次数/价格/备注）列宽 */
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyCount"]{flex:0 0 70px}
 .dynamic-list-container[data-key="modifications"] .form-input[data-subkey="modifyPrice"]{flex:0 0 100px}
@@ -991,10 +990,14 @@ html.apk.modal-lock{overflow:hidden!important}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="orderNo"],
 .dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="orderNo"]{flex:0 0 70px}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="name"]{flex:1.5 1 0;min-width:80px}
-.dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="name"],
-.dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="name"]{flex:1.5 1 0!important;min-width:80px!important;width:auto!important}
+/* v983: 只约束 wrapper 宽度；v982 误把 width:auto 加到内部 input 上（压缩输入框），现让 input 恢复填满 wrapper 的标准下拉框形态 */
+.dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="name"]{flex:1.5 1 0!important;min-width:80px!important}
+.dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="name"] .combobox-input{width:100%!important;min-width:0!important}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="type"],
-.dynamic-list-container[data-key="afterSales"] .dynamic-list-row .dynamic-multi-sel[data-subkey="type"]{flex:0 0 150px!important;width:150px!important;min-width:0!important}
+.dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="type"]{flex:0 0 150px!important;width:150px!important;min-width:0!important}
+/* v983: 售后「制品名称」下拉三角右边间隙太窄（她红框指认）——三角内移 8px（right:2px→10px），输入框文字右移避让，与其他下拉框观感一致 */
+.dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="name"] .combobox-toggle{right:10px}
+.dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="name"] .combobox-input{padding-right:38px!important}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="quantity"],
 .dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="quantity"]{flex:0 0 60px}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="amount"],
@@ -3691,8 +3694,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=982"></script>
-<script>console.log('[小筱工作台] 当前版本 v982 —— 若这里不是 982 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=983"></script>
+<script>console.log('[小筱工作台] 当前版本 v983 —— 若这里不是 983 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
