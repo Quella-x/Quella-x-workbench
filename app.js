@@ -7105,7 +7105,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 975, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 976, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -13647,14 +13647,21 @@ function runCdChatParse() {
     if (onlySizes.length) { data.size = onlySizes[0]; hit++; }
   }
   // 交付方式（兼容「交付」与「交付方式」）
-  // v974：①只写「邮箱xxx@xx.com」没写「指定邮箱」的也归为「指定邮箱」；②顺带把邮箱地址填进「收件邮箱」
-  const delM = text.match(/交付(?:方式)?[：:]\s*([^\n]+)/);
+  // v974/v976：①只写「邮箱xxx@xx.com」没写「指定邮箱」的也归为「指定邮箱」；②顺带把邮箱地址填进「收件邮箱」；
+  //            ③兼容「交付方式：邮箱\nxxx@xx.com」这种标签与邮箱分在两行的写法
+  const delM = text.match(/交付(?:方式)?[：:]\s*([^\n]*)/);
   if (delM) {
     const dv = delM[1].trim();
+    // 如果本行没邮箱，看紧接的下一行是不是纯邮箱（聊天记录常见换行写法）
+    let mailDV = dv;
+    if (!/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/.test(dv)) {
+      const nextLine = text.slice(text.indexOf(delM[0]) + delM[0].length).match(/^\s*\r?\n\s*([\w.+-]+@[\w-]+(?:\.[\w-]+)+)/);
+      if (nextLine) mailDV = nextLine[1].trim();
+    }
     const opt = COMM_DETAIL_DELIVERY_OPTS.find(o => dv.includes(o.value));
     if (opt) data.delivery = opt.value;
     else if (/邮箱|mail/i.test(dv)) data.delivery = '指定邮箱';
-    const mailM = dv.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/);
+    const mailM = mailDV.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/);
     if (mailM) { data.emailAddr = mailM[0]; if (!data.delivery) data.delivery = '指定邮箱'; hit++; }
   }
   // v974：展示权限归一化——聊天里常只写「否/可以」，需映射成选项值（长选项优先匹配，避免「解封日期后可以展示」被判成「可以展示」）
