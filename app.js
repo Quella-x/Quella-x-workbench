@@ -1891,6 +1891,38 @@ function buildCommissionBindCombobox(col, value, products) {
   const optHTML = commissionBindOptions(items, cbId);
   return `<div class="combobox-wrapper" data-subkey="${col.subkey}" style="min-width:0;flex:0 0 140px"><input type="text" class="form-input combobox-input" data-subkey="${col.subkey}" value="${esc(value)}" placeholder="${esc(col.label)}" oninput="filterComboboxDropdown('${cbId}',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}" data-bind="productRef">${optHTML}</div></div>`;
 }
+/* v982: 开团售后「制品名称」下拉——选项=当前开团单「制品列表」里填的制品名（标准 combobox 结构，她确认的口径）。
+   聚焦输入框时实时重读制品列表，先填售后再补制品名也能选到。 */
+function recordProductOptionHTML(names, cbId) {
+  return names.length
+    ? names.map(n => `<div class="combobox-option" data-value="${esc(n)}" onclick="selectComboboxOption('${cbId}',this)">${esc(n)}</div>`).join('')
+    : `<div class="combobox-option" data-value="" onclick="selectComboboxOption('${cbId}',this)">（先在上方制品列表填制品名）</div>`;
+}
+function buildRecordProductCombobox(col, value, products) {
+  const cbId = 'dyrec_' + col.subkey + '_' + Math.random().toString(36).slice(2, 8);
+  let items = products;
+  if (!items) {
+    items = $$('#products_rows .dynamic-list-row').map(row => {
+      const ni = row.querySelector('input[data-subkey="name"]');
+      return { name: ni ? ni.value.trim() : '' };
+    });
+  }
+  const names = [...new Set((items || []).map(p => (p.name || '').trim()).filter(Boolean))];
+  return `<div class="combobox-wrapper" data-subkey="${col.subkey}" style="min-width:0;flex:1"><input type="text" class="form-input combobox-input" data-subkey="${col.subkey}" value="${esc(value)}" placeholder="${esc(col.label)}" oninput="filterComboboxDropdown('${cbId}',this.value)" onfocus="refreshRecordProductOptions()"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}" data-bind="recordProducts">${recordProductOptionHTML(names, cbId)}</div></div>`;
+}
+function refreshRecordProductOptions() {
+  const names = [...new Set($$('#products_rows .dynamic-list-row').map(row => {
+    const ni = row.querySelector('input[data-subkey="name"]');
+    return ni ? ni.value.trim() : '';
+  }).filter(Boolean))];
+  $$('.combobox-dropdown[data-bind="recordProducts"]').forEach(dd => {
+    const cbId = dd.id;
+    const wrapper = dd.closest('.combobox-wrapper');
+    const cur = wrapper ? (wrapper.querySelector('.combobox-input') || {}).value : '';
+    dd.innerHTML = recordProductOptionHTML(names, cbId);
+    $$('.combobox-option', dd).forEach(o => { if (cur && o.dataset.value === cur) o.classList.add('selected'); });
+  });
+}
 /* 表单注入后刷新绑定下拉（读取最新制品列表） */
 function refreshCommissionBindOptions() {
   const prodRows = $$('#products_rows .dynamic-list-row');
@@ -1983,6 +2015,9 @@ function buildDynamicListHTML(field, data, moduleKey) {
         html += `<span class="dl-seq" data-subkey="_seq">${String(idx + 1).padStart(2, '0')}</span>`;
       } else if (col.bindProducts) {
         html += buildCommissionBindCombobox(col, v, data ? data.products : null);
+      } else if (col.recordProducts) {
+        // v982: 开团售后「制品名称」下拉，选项=当前开团单制品列表里的制品名
+        html += buildRecordProductCombobox(col, v, data ? data.products : null);
       } else if (col.type === 'multiselect' && col.options) {
         const selected = Array.isArray(v) ? v : (v ? String(v).split(',') : []);
         const cbId = 'dymc_' + col.subkey + '_' + Math.random().toString(36).slice(2,6);
@@ -2045,6 +2080,8 @@ function addDynamicRow(key) {
       html += `<span class="dl-seq" data-subkey="_seq">${String(curCount + 1).padStart(2, '0')}</span>`;
     } else if (col.bindProducts) {
       html += buildCommissionBindCombobox(col, '', null);
+    } else if (col.recordProducts) {
+      html += buildRecordProductCombobox(col, '', null);
     } else if (col.type === 'multiselect' && col.options) {
       const cbId = 'dymc_' + col.subkey + '_' + Math.random().toString(36).slice(2,6);
       // v19: 优先用 col.default 数组（更通用），其次用 o.default 单选项默认
@@ -2680,6 +2717,13 @@ MODULES['home'] = {
 };
 
 // --- Group Buy Records (需求4: 制品加售卖数量/是否流团, 厂家可选, 购买人数, 制品总价, 邮费总价, 年度柱状图) ---
+// v982: 盈亏口径=营收−成本−售后（售后价格合计，支持 5+7.5 表达式；她确认减全部售后行，不限补偿方式）
+function gbAfterSalesTotal(r) {
+  return (Array.isArray(r && r.afterSales) ? r.afterSales : []).reduce((s, a) => {
+    const v = calcExprStr(a && a.amount);
+    return s + (typeof v === 'number' && isFinite(v) ? v : (parseNum(v) || 0));
+  }, 0);
+}
 MODULES['groupbuy-records'] = {
   store: 'groupbuys',
   fields: [
@@ -2695,9 +2739,11 @@ MODULES['groupbuy-records'] = {
     ]},
     { key: 'afterSales', label: '售后记录', type: 'dynamic-list', columns: [
       { subkey: 'orderNo', label: '单号', type: 'text' },
-      { subkey: 'name', label: '制品名称', type: 'text', datalistId: 'gb_product_dl' },
+      // v982: 制品名称改标准下拉框（combobox），选项取自当前开团单「制品列表」里填的制品名（她确认的口径）
+      { subkey: 'name', label: '制品名称', type: 'text', recordProducts: true },
       { subkey: 'quantity', label: '售后数量', type: 'number' },
-      { subkey: 'type', label: '补偿方式', type: 'combobox', default: '补偿', options: [
+      // v982: 补偿方式改多选（checkbox 组，可同时勾补偿+补发等；旧单选字符串数据自动兼容）
+      { subkey: 'type', label: '补偿方式', type: 'multiselect', default: ['补偿'], options: [
         { value: '补偿', label: '补偿' }, { value: '补发', label: '补发' }, { value: '补寄', label: '补寄' }, { value: '退款', label: '退款' }
       ]},
       { subkey: 'amount', label: '价格', type: 'text', calc: true },
@@ -2723,7 +2769,8 @@ MODULES['groupbuy-records'] = {
   stats: (records) => {
     const totalRev = records.reduce((s, r) => s + parseNum(r.productTotal) + parseNum(r.shippingTotal), 0);
     const totalCost = records.reduce((s, r) => s + parseNum(r.cost) + parseNum(r.shippingTotalCost), 0);
-    const profit = totalRev - totalCost;
+    // v982: 总利润扣减全部售后价格
+    const profit = totalRev - totalCost - records.reduce((s, r) => s + gbAfterSalesTotal(r), 0);
     const productSet = new Set();
     records.forEach(r => (r.products || []).forEach(p => { if (p.name) productSet.add(p.name); }));
     const buyers = records.reduce((s, r) => s + (parseFloat(r.purchaseCount) || 0), 0);
@@ -2743,11 +2790,13 @@ MODULES['groupbuy-records'] = {
     series: [
       { name: '营收', compute: r => parseNum(r.productTotal) + parseNum(r.shippingTotal), color: '#7ec678' },
       { name: '成本', compute: r => parseNum(r.cost) + parseNum(r.shippingTotalCost), color: '#e8857e' },
-      { name: '利润', compute: r => parseNum(r.productTotal) + parseNum(r.shippingTotal) - parseNum(r.cost) - parseNum(r.shippingTotalCost), color: '#9DC8FF' },
+      { name: '利润', compute: r => parseNum(r.productTotal) + parseNum(r.shippingTotal) - parseNum(r.cost) - parseNum(r.shippingTotalCost) - gbAfterSalesTotal(r), color: '#9DC8FF' },
     ], year: getChartYear('groupbuy-records') }, 'groupbuy-records'),
   detailExtra: (r) => {
+    // v982: 盈亏统计 = 营收 − 成本 − 售后
     const rev = (parseFloat(r.productTotal) || 0) + (parseFloat(r.shippingTotal) || 0), cost = (parseFloat(r.cost) || 0) + (parseFloat(r.shippingTotalCost) || 0);
-    return `<div class="detail-row"><span class="detail-label">盈亏统计</span><span class="detail-value"><b style="color:${rev - cost >= 0 ? 'var(--c-green)' : 'var(--c-red)'}">${rev - cost >= 0 ? '+' : ''}¥${(rev - cost).toLocaleString()}</b></span></div>`;
+    const profit = rev - cost - gbAfterSalesTotal(r);
+    return `<div class="detail-row"><span class="detail-label">盈亏统计</span><span class="detail-value"><b style="color:${profit >= 0 ? 'var(--c-green)' : 'var(--c-red)'}">${profit >= 0 ? '+' : ''}¥${profit.toLocaleString()}</b></span></div>`;
   },
 };
 
@@ -2948,9 +2997,18 @@ MODULES['design-commission'] = {
     { label: '制品', key: '_firstProduct' },
   ],
   stats: (records) => {
-    const isPaid = r => valIncludes(r.paymentStatus, '全款') || valIncludes(r.paymentStatus, '尾款');
-    const totalRev = records.filter(isPaid).reduce((s, r) => s + (parseNum(r.quoteAmount) || parseNum(r.amount) || 0), 0);
-    const monthRev = records.filter(r => (r.acceptTime || '').startsWith(thisMonthStr()) && isPaid(r)).reduce((s, r) => s + (parseNum(r.quoteAmount) || parseNum(r.amount) || 0), 0);
+    // v982: 收入改按实际到账口径（她确认）——全款=全额；勾了定金加 deposit、勾了尾款加 balance；未付=0。
+    // 例：已接稿收定金15 → 收入15；后续收到尾款15 → 收入30。
+    const earned = (r) => {
+      const full = parseNum(r.quoteAmount) || parseNum(r.amount) || 0;
+      if (valIncludes(r.paymentStatus, '全款')) return full;
+      let m = 0;
+      if (valIncludes(r.paymentStatus, '定金')) m += parseNum(r.deposit) || Math.round(full * 0.5 * 100) / 100;
+      if (valIncludes(r.paymentStatus, '尾款')) m += parseNum(r.balance) || Math.round(full * 0.5 * 100) / 100;
+      return m;
+    };
+    const totalRev = records.reduce((s, r) => s + earned(r), 0);
+    const monthRev = records.filter(r => (r.acceptTime || '').startsWith(thisMonthStr())).reduce((s, r) => s + earned(r), 0);
     return [
       { label: '本月收入', value: '¥' + monthRev.toLocaleString() },
       { label: '总接稿', value: records.length, unit: '单' },
@@ -4857,7 +4915,7 @@ function openAddForm(pageKey) {
   ]);
   // v753：记录新增记录弹窗高度，供聊天记录导入弹窗对齐
   try { const m = $('#modal'); if (m) _lastRefModalH = m.getBoundingClientRect().height; } catch (e) {}
-  setTimeout(() => { setupFormInteractions(pageKey); refreshCommissionBindOptions(); groupSameModelUrgentAll();
+  setTimeout(() => { setupFormInteractions(pageKey); refreshCommissionBindOptions(); refreshRecordProductOptions(); groupSameModelUrgentAll();
     // v806: 厂家报价 textarea 默认带出四段模板时，光标定位到「打样：」下一行，直接往里填
     if (pageKey === 'groupbuy-factories') {
       const ta = document.querySelector('#modalBody textarea[data-key="quote"]');
@@ -4883,6 +4941,7 @@ function openEditForm(pageKey, id) {
   setTimeout(() => {
     setupFormInteractions(pageKey);
     refreshCommissionBindOptions();
+    refreshRecordProductOptions();
     groupSameModelUrgentAll();
     if ($('#imgUpload')) {
       initImageUpload('#imgUpload');
@@ -5266,7 +5325,9 @@ function openDetail(pageKey, id) {
           else if (c.type === 'checkbox') html += `<td${isCommProd ? commTdClass(c) : ''} style="text-align:center">${item[c.subkey] ? lucide('check',12) : ''}</td>`;
           else {
             // v856：calc 列详情展示时计算表达式（如 5+7.5 -> 12.5），保存值仍保留原表达式
+            // v982: 多选补偿方式存数组，详情用「、」连接展示
             let v = c.calc ? calcExprStr(item[c.subkey]) : item[c.subkey];
+            if (Array.isArray(v)) v = v.join('、');
             let cellExtra = '';
             // v932: 「是否流团」列——是→红色「流团」小签，否（默认成团）→绿色「成团」小签
             if (isGb && f.key === 'products' && c.subkey === 'isDisbanded') {
@@ -7212,7 +7273,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 981, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 982, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
