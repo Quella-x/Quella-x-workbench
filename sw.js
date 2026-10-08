@@ -1,5 +1,5 @@
 /* Service Worker — 小筱工作台 PWA 离线壳 */
-const CACHE = "xiao-workbench-v978";
+const CACHE = "xiao-workbench-v979";
 const ASSETS = [
   './',
   'index.html',
@@ -38,17 +38,9 @@ self.addEventListener('fetch', e => {
   // v775: 跳过非 http(s) 请求（chrome-extension/blob/data 等），避免 Cache.put 报 TypeError
   if (!/^https?:$/.test(url.protocol)) return;
 
-  // 跨域资源（如未来可能的 CDN）：尽力缓存
-  if (url.origin !== self.location.origin) {
-    e.respondWith(
-      caches.match(req).then(r => r || fetch(req).then(res => {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(req, copy));
-        return res;
-      }).catch(() => caches.match(req)))
-    );
-    return;
-  }
+  // 跨域资源：一律不拦、不缓存（v979）
+  // 之前这里把 Supabase REST GET 也存进 Cache API，导致电脑端 30 秒轮询拿到的是几小时前的缓存响应，
+  // 表现为「单主提交后电脑端 10-30 分钟才收到/刷新无效」。API 请求必须每次回源。
 
   /* v953：页面导航——带时间戳 + no-store 双重绕过。
      只加 cache:'reload' 仍可能被 CDN 边缘节点返回旧副本，表现为「代码已上线但她刷新还是旧界面」；
