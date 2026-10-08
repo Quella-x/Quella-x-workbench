@@ -384,6 +384,39 @@ const Sync = {
     } catch (e) { this.lastError = e.message; this.setStatus('disconnected'); Toast.error('同步失败：' + e.message); }
     healScrollLock(); // v799: 同步结束后强制自愈滚动锁
   },
+  /* v981: Supabase Realtime 实时推送。
+     浏览器会强制节流后台标签页的 setInterval（隐藏 5 分钟后降到 1 次/分钟），轮询间隔调多快
+     都保证不了「另一端半分钟内更新」。Realtime 是服务端主动推送的 WebSocket 长连接，不受节流影响：
+     手机端一写入云端，电脑端立刻收到事件 → tickPull 拉取（自带 2 秒防抖，短时间多个变更合并成一次）。
+     若 sync_store 表还没在 Supabase 后台开启 Realtime，订阅会静默失败并自动重连——
+     完全退化为 v980 的 10 秒轮询，没有任何副作用。 */
+  rtStart() {
+    if (!this.enabled() || (this._rt && this._rt.ws && this._rt.ws.readyState <= 1)) return;
+    try {
+      const url = this.base().replace(/^http/, 'ws') + '/realtime/v1/websocket?apikey=' + encodeURIComponent(this.cfg.anonKey) + '&vsn=1.0.0';
+      const ws = new WebSocket(url);
+      const self = this;
+      this._rt = { ws: ws, retries: (this._rt && this._rt.retries) || 0 };
+      let hb = null;
+      ws.onopen = () => {
+        self._rtRetries = 0;
+        ws.send(JSON.stringify({ topic: 'realtime:public:sync_store', event: 'phx_join', ref: '1', payload: { config: { postgres_changes: [{ event: '*', schema: 'public', table: 'sync_store' }] } } }));
+        hb = setInterval(() => { if (ws.readyState === 1) ws.send(JSON.stringify({ topic: 'phoenix', event: 'heartbeat', ref: String(Date.now()), payload: {} })); }, 25000);
+      };
+      ws.onmessage = (ev) => {
+        let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+        if (m.event === 'postgres_changes') self.tickPull();
+      };
+      ws.onclose = () => {
+        if (self._rt && self._rt.ws === ws) self._rt = null;
+        clearInterval(hb);
+        // 指数退避重连（2s→4s→…→60s 封顶）；后台节流不影响 WebSocket 的收发，只影响重连定时器
+        const n = ((self._rtRetries = (self._rtRetries || 0) + 1));
+        setTimeout(() => { if (self.enabled()) self.rtStart(); }, Math.min(60000, 2000 * Math.pow(2, Math.min(n, 5))));
+      };
+      ws.onerror = () => { try { ws.close(); } catch (e) {} };
+    } catch (e) { /* Realtime 建立失败就只用轮询 */ }
+  },
   startAuto() {
     if (!this.enabled()) { this.updateBadge(); return; }
     this.pullAll();
@@ -397,6 +430,7 @@ const Sync = {
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && navigator.onLine !== false) this.tickPull();
     });
+    this.rtStart(); // v981: 实时推送，收到云端变更事件立即拉取
   }
 };
 
@@ -7178,7 +7212,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 980, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 981, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
