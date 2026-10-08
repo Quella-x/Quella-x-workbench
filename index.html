@@ -989,15 +989,16 @@ html.apk.modal-lock{overflow:hidden!important}
    同时补偿方式改多选（checkbox 组），type 列从 combobox 变 .dynamic-multi-sel，宽度规则一并迁移。 */
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="orderNo"],
 .dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="orderNo"]{flex:0 0 70px}
-.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="name"]{flex:1.5 1 0;min-width:80px}
-/* v983: 只约束 wrapper 宽度；v982 误把 width:auto 加到内部 input 上（压缩输入框），现让 input 恢复填满 wrapper 的标准下拉框形态 */
-.dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="name"]{flex:1.5 1 0!important;min-width:80px!important}
+.dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="name"]{flex:0 0 215px}
+/* v984: 制品名称改定宽 215px——探针实测：名称/备注两个 grow 列在表头与行内分配差 8.8px（行内 remark 输入框
+   content-box 多占基准），「售后数量」列起表头整体右移=她红框的「标题没对齐」。定宽后备注成为唯一 grow 列，
+   两端确定性填满、逐列起点严格对齐；补偿方式 150→110 省下的宽度由名称(+13)与备注(+27)分得 */
+.dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="name"]{flex:0 0 215px!important;width:215px!important;min-width:0!important}
 .dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="name"] .combobox-input{width:100%!important;min-width:0!important}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="type"],
-.dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="type"]{flex:0 0 150px!important;width:150px!important;min-width:0!important}
-/* v983: 售后「制品名称」下拉三角右边间隙太窄（她红框指认）——三角内移 8px（right:2px→10px），输入框文字右移避让，与其他下拉框观感一致 */
-.dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="name"] .combobox-toggle{right:10px}
-.dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="name"] .combobox-input{padding-right:38px!important}
+.dynamic-list-container[data-key="afterSales"] .combobox-wrapper[data-subkey="type"]{flex:0 0 110px!important;width:110px!important;min-width:0!important}
+/* v984: 制品名称下拉三角还原为常规 right:2px（v983 的 10px 内移过头了，她说「跟常规的不一样」；
+   v982 观感异常的真凶是 width:auto 压缩输入框，已在上一条规则修掉） */
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="quantity"],
 .dynamic-list-container[data-key="afterSales"] .form-input[data-subkey="quantity"]{flex:0 0 60px}
 .dynamic-list-container[data-key="afterSales"] .dynamic-list-header span[data-subkey="amount"],
@@ -3694,8 +3695,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=983"></script>
-<script>console.log('[小筱工作台] 当前版本 v983 —— 若这里不是 983 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=984"></script>
+<script>console.log('[小筱工作台] 当前版本 v984 —— 若这里不是 984 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

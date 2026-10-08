@@ -1951,15 +1951,17 @@ function buildDynamicMultiCombobox(col, value) {
     const isSel = arr.indexOf(v) > -1;
     return `<div class="combobox-option${isSel ? ' selected' : ''}" data-value="${esc(v)}" onclick="toggleMultiComboboxOption('${cbId}',this)">${esc(l)}</div>`;
   }).join('');
-  return `<div class="combobox-wrapper" data-subkey="${col.subkey}" data-multi="1" style="min-width:0;flex:1"><input type="text" class="form-input combobox-input" data-subkey="${col.subkey}" value="${esc(arr.join('、'))}" placeholder="${esc(col.label)}" readonly onclick="showComboboxDropdown('${cbId}')" onfocus="showComboboxDropdown('${cbId}')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}">${optHTML}</div></div>`;
+  return `<div class="combobox-wrapper" data-subkey="${col.subkey}" data-multi="1" style="min-width:0;flex:1"><input type="text" class="form-input combobox-input" data-subkey="${col.subkey}" value="${esc(arr.join('、'))}" placeholder="${esc(col.label)}" readonly onclick="showComboboxDropdown('${cbId}')" onfocus="showComboboxDropdown('${cbId}')"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('${cbId}')">▼</button><div class="combobox-dropdown" id="${cbId}" data-multi="1">${optHTML}</div></div>`;
 }
 function toggleMultiComboboxOption(cbId, el) {
   el.classList.toggle('selected');
   const dd = document.getElementById(cbId);
   if (!dd) return;
-  const input = dd.closest('.combobox-wrapper');
+  // v984: 面板打开时已被 cbPortal 挂到 body（v784 浮层机制），closest('.combobox-wrapper') 拿不到——
+  // 必须用 _cbWrapper/_cbHost 找回 wrapper，否则输入框永远不更新（v983「无法更改内容」的根因）
+  const wrap = dd._cbWrapper || dd._cbHost || dd.closest('.combobox-wrapper');
+  const inp = wrap ? wrap.querySelector('.combobox-input') : null;
   const vals = $$('.combobox-option.selected', dd).map(o => o.dataset.value);
-  const inp = input ? input.querySelector('.combobox-input') : null;
   if (inp) inp.value = vals.join('、');
 }
 /* v789：「无同模 + 加急」绑成不可拆行组合——勾选框任何宽度下都与无同模同一行 */
@@ -2031,7 +2033,9 @@ function buildDynamicListHTML(field, data, moduleKey) {
   rows.forEach((item, idx) => {
     html += `<div class="dynamic-list-row">`;
     columns.forEach(col => {
-      const v = item[col.subkey] !== undefined ? item[col.subkey] : (col.default !== undefined ? col.default : '');
+      // v984: const→let——数组值（多选补偿方式）要在这里塌缩成首项，const 会直接抛 TypeError，
+      // 导致含多选数据的记录整个编辑弹窗渲染失败（v983「无法更改内容」的底层原因）
+      let v = item[col.subkey] !== undefined ? item[col.subkey] : (col.default !== undefined ? col.default : '');
       if (Array.isArray(v)) v = v[0] !== undefined ? v[0] : '';
       if (col.type === 'seq') {
         html += `<span class="dl-seq" data-subkey="_seq">${String(idx + 1).padStart(2, '0')}</span>`;
@@ -2209,7 +2213,10 @@ function readForm(container) {
         $$('.combobox-wrapper[data-multi]', row).forEach(w => {
           const sk = w.dataset.subkey;
           const dd = w.querySelector('.combobox-dropdown');
-          item[sk] = dd ? $$('.combobox-option.selected', dd).map(o => o.dataset.value) : [];
+          const inp = w.querySelector('.combobox-input');
+          // v984: 面板若正被 portal 到 body（保存时面板还开着），wrapper 里找不到 dd——退回按输入框「a、b」拆分
+          item[sk] = dd ? $$('.combobox-option.selected', dd).map(o => o.dataset.value)
+                        : (inp ? inp.value.split('、').filter(Boolean) : []);
         });
         $$('[data-subkey]', row).forEach(input => {
           if (input.tagName === 'INPUT' && input.type === 'checkbox') {
@@ -2257,9 +2264,13 @@ function showComboboxDropdown(id) {
     const input = wrapper ? wrapper.querySelector('.combobox-input') : null;
     const hidden = wrapper ? wrapper.querySelector('.combobox-value') : null;
     const currentVal = hidden ? hidden.value : (input ? input.value : '');
+    // v984: 多选下拉框——按输入框里的「a、b」恢复各选项选中态；单选仍走原来的单值等值匹配
+    // （v983 根因②：每次打开都按单值重置 selected，多选勾了白勾）
+    const isMulti = wrapper && wrapper.hasAttribute('data-multi');
+    const curVals = isMulti && input ? input.value.split('、').filter(Boolean) : null;
     $$('.combobox-option', dd).forEach(o => {
       o.style.display = '';
-      const isSelected = o.dataset.value ? (o.dataset.value === currentVal) : (o.textContent === currentVal);
+      const isSelected = curVals ? (curVals.indexOf(o.dataset.value) > -1) : (o.dataset.value ? (o.dataset.value === currentVal) : (o.textContent === currentVal));
       o.classList.toggle('selected', isSelected);
     });
     const cbTgl = wrapper ? wrapper.querySelector('.combobox-toggle') : null;
@@ -2424,6 +2435,10 @@ document.addEventListener('mousedown', e => {
   e.preventDefault();
 }, true);
 document.addEventListener('click', (e) => {
+  // v984: 多选下拉面板点选项不关闭——面板 portal 到 body 后不在 .combobox-wrapper 内，
+  // 会被下面的 cbCloseAll 误杀（v983 根因③：点一项面板就收起）
+  const ddHit = e.target.closest('.combobox-dropdown');
+  if (ddHit && ddHit.dataset.multi) return;
   if (!e.target.closest('.combobox-wrapper')) { cbCloseAll(); return; }
   // v805: 点输入框（非箭头/选项）=只输入——收起不属于本输入框的已开下拉
   if (!e.target.closest('.combobox-toggle') && !e.target.closest('.combobox-dropdown')) {
@@ -7309,7 +7324,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 983, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 984, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
