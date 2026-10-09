@@ -2827,10 +2827,14 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
      本轮按绝对值一次改齐三类盒(目标=各盒上下隙相等)：餐食≈14.35/14.35、睡眠≈12.65/12.65、空盒≈25.65/25.65。
      只动桌面断点，手机端不碰(她明令) */
   .lr-subtype-box.lr-box-diet .lr-record-row{transform:translateY(-0.35px)}
-  /* v994: 睡眠盒她整窗截图实测内容 14.67/12.67（偏下2px）→ 上移1px；按钮墨迹顶隙12.67 比饮食基准14.67 高2px
-     （睡眠按钮是独立右列顶对齐，饮食是首行内联 v866 margin-top:2px）→ 睡眠 ops 加 margin-top:2.65px 对齐首行 */
-  .lr-subtype-box:not(.lr-box-diet):not(.lr-box-empty) .lr-record-row{transform:translateY(-1.65px)}
-  .lr-subtype-box:not(.lr-box-diet):not(.lr-box-empty) .lr-record-ops{margin-top:2.65px}
+  /* v994: 睡眠盒上移1px + ops margin-top 2.65px 对齐首行（饮食按钮是首行内联 v866 margin-top:2px）。
+     v997: 用她 v994 态整窗图(74ce8b02,2160/1.5=1440CSS)实测复核——以她认可的饮食盒为基准：
+     饮食 内容14.00/14.67、按钮顶隙14.67；睡眠 内容14.00/13.33（底小0.67）、按钮顶隙14.00（偏上0.67）。
+     睡眠内容块墨迹高35.34 比饮食34.0 大1.33（末行16px数字 vs 13px文字），无法顶底隙同时相等；
+     改按「墨迹中心对齐 + 形状与饮食一致(底大0.67)」：内容再上移0.67 → 13.33/14.00（1物理px，DSF1.5可分辨）；
+     按钮随行上移0.67 后再下移0.67 回到饮食的14.67 → margin 2.65+1.35=4.0 */
+  .lr-subtype-box:not(.lr-box-diet):not(.lr-box-empty) .lr-record-row{transform:translateY(-2.32px)}
+  .lr-subtype-box:not(.lr-box-diet):not(.lr-box-empty) .lr-record-ops{margin-top:4.0px}
   .lr-box-empty .lr-empty-row{transform:translateY(-0.35px)}
   /* v989: 桌面统计数值随基础规则 18px（22px 她嫌大），此条保留兜底 */
   .stats-section .stat-card .stat-value{font-size:18px}
@@ -3719,8 +3723,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=994"></script>
-<script>console.log('[小筱工作台] 当前版本 v994 —— 若这里不是 994 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=997"></script>
+<script>console.log('[小筱工作台] 当前版本 v997 —— 若这里不是 997 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
