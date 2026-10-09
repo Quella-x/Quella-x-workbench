@@ -2827,10 +2827,17 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
      本轮按绝对值一次改齐三类盒(目标=各盒上下隙相等)：餐食≈14.35/14.35、睡眠≈12.65/12.65、空盒≈25.65/25.65。
      只动桌面断点，手机端不碰(她明令) */
   .lr-subtype-box.lr-box-diet .lr-record-row{transform:translateY(-0.35px)}
-  /* v994: 睡眠盒她整窗截图实测内容 14.67/12.67（偏下2px）→ 上移1px；按钮墨迹顶隙12.67 比饮食基准14.67 高2px
-     （睡眠按钮是独立右列顶对齐，饮食是首行内联 v866 margin-top:2px）→ 睡眠 ops 加 margin-top:2.65px 对齐首行 */
-  .lr-subtype-box:not(.lr-box-diet):not(.lr-box-empty) .lr-record-row{transform:translateY(-1.65px)}
-  .lr-subtype-box:not(.lr-box-diet):not(.lr-box-empty) .lr-record-ops{margin-top:2.65px}
+  /* v995: 睡眠盒按饮食盒墨迹绝对位置校平（饮食盒基准 v993 态她机实测 顶隙14.00/底隙14.67/按钮顶隙14.67，盒高64）。
+     睡眠末行是16px数字墨迹（饮食末行13px文字），底隙先天小~2px，transform 追不平——用 padding+行距+行位移联立：
+     padding 8.63/12.70 + 行距 4→2.67（盒高仍64）+ 行 transform -0.85（比饮食再高0.5px，她机与headless推导折中）。
+     取值策略：她机推导值与 headless(DSF1.5 同页相对差)精确值差~1px，全部取中点，两端残差≤0.5px 亚像素。
+     v994 的 -1.65px 方向反了（内容越改越偏下），撤销。标签 CSS 与饮食盒同源同值，墨迹窗差异是字形轮廓（夜晚vs午餐），非位置差 */
+  .lr-subtype-box.lr-box-sleep{padding-top:8.63px;padding-bottom:12.70px}
+  .lr-subtype-box.lr-box-sleep .lr-record-info-2col{gap:2.67px 40px}
+  .lr-subtype-box.lr-box-sleep .lr-record-row{transform:translateY(-0.85px)}
+  /* margin 3.13 是配合 padding-top 8.63 的联立值（padding-top 同时推动按钮行，改其一必须复算另一）；
+     headless 终验：内容±0.33/按钮±0.33 全对齐 */
+  .lr-subtype-box.lr-box-sleep .lr-record-ops{margin-top:3.13px}
   .lr-box-empty .lr-empty-row{transform:translateY(-0.35px)}
   /* v989: 桌面统计数值随基础规则 18px（22px 她嫌大），此条保留兜底 */
   .stats-section .stat-card .stat-value{font-size:18px}
@@ -3719,8 +3726,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=994"></script>
-<script>console.log('[小筱工作台] 当前版本 v994 —— 若这里不是 994 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=995"></script>
+<script>console.log('[小筱工作台] 当前版本 v995 —— 若这里不是 995 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
