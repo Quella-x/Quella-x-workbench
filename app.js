@@ -4278,8 +4278,9 @@ function goPage(pageKey, pageNo) {
 /* ===== Commission Calendar View (v593+: 仅渲染开稿/截稿「节点日」自身任务条，不跨日延伸；节点标记=日期数字右侧色块，工期条=红橙蓝绿) ===== */
 const CAL_URGENCY_COLORS = ['#e8857e', '#f6ad5c', '#7ab5f5']; // 红/橙/蓝 — 截稿紧迫度：≤2天红 / 3-5天橙 / >5天蓝
 const CAL_MAX_TRACKS = 3;
-const CAL_BAR_HEIGHT = 11;
-const CAL_BAR_GAP = 2;
+// v988: 手机端日历条支持换行，条高/间距随窗口宽度动态取值
+function calBarHeight(){ return window.innerWidth <= 640 ? 20 : 11; }
+function calBarGap(){ return window.innerWidth <= 640 ? 4 : 2; }
 const CAL_START_COLOR = '#f6ad5c';    // 开稿节点（v625 与工期条橙色一致）
 const CAL_END_COLOR = '#FFDE75';      // 截稿节点
 const CAL_BOTH_COLOR = '#9A91F2';     // 开+截同天；v677 改 #9A91F2
@@ -4458,10 +4459,15 @@ function renderCommissionCalendar(year, month, records) {
       else if (eFlag) cls = 'cal-period-bar end';
       const qty = calcProductQty(r);
       const label = sFlag ? (esc(r.clientInfo || '未命名') + ' ' + qty + '件') : '';
-      const topPx = 22 + item.track * (CAL_BAR_HEIGHT + CAL_BAR_GAP);
-      bars += '<div class="' + cls + '" style="background:' + color + ';top:' + topPx + 'px;height:' + CAL_BAR_HEIGHT + 'px;line-height:' + CAL_BAR_HEIGHT + 'px">' + label + '</div>';
+      const barH = calBarHeight(), barGap = calBarGap();
+      // v988: 手机端条高 20px 支持两行文字，line-height 用 1.2 而非 px 以便换行；桌面保持原 11px/11px 居中
+      const lineH = window.innerWidth <= 640 ? 1.2 : barH;
+      const lineHStr = window.innerWidth <= 640 ? '1.2' : (barH + 'px');
+      const topPx = 22 + item.track * (barH + barGap);
+      bars += '<div class="' + cls + '" style="background:' + color + ';top:' + topPx + 'px;height:' + barH + 'px;line-height:' + lineHStr + '">' + label + '</div>';
     });
-    const cellMinHeight = 76;
+    // v988: 手机端日历格最小高度 88px，给换行的时间段条留足空间
+    const cellMinHeight = window.innerWidth <= 640 ? 88 : 76;
     const cls = 'cal-day' + (isOther ? ' other-month' : '') + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
     return '<div class="' + cls + '" onclick="commissionDateClick(\'' + dateStr + '\')" style="cursor:pointer;min-height:' + cellMinHeight + 'px">' + bars + '<div class="cal-date-row"><span class="cal-date">' + cd + '</span><span class="cal-day-tags comm-tags-center">' + commTagStr + '</span></div></div>';
   }
@@ -7324,7 +7330,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 987, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 988, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -12127,7 +12133,8 @@ function renderSleepWeekLineChart(days) {
     }
     /* v986: 手机端圆点 r7→6（她反馈点大挤标签，"改小一点但不能太小"）；桌面 v959 定稿 r5 不动 */
     /* v987：手机端折线圆点再缩小 6→4，桌面保持 r5 */
-    const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${isDesktop?5:4}" fill="${color}" stroke="#fff" stroke-width="${isDesktop?2:2}"/>`;
+    // v988: 手机端折线圆点 4→5，比 v986 的 6 略小、比 v987 的 4 明显大
+    const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${isDesktop?5:5}" fill="${color}" stroke="#fff" stroke-width="${isDesktop?2:2}"/>`;
     if (!v) return `<g class="lr-hsc-point">${dot}</g>`; // 0 值：只画点不画字，避免一列 0m 互相重叠
     return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${formatSleepDuration(v)}</text>${dot}</g>`;
   }).join('');
