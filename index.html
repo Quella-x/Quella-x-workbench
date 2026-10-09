@@ -2947,6 +2947,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-subtype-add{width:24px;height:24px;font-size:16px}
   .lr-empty-row{padding:9.5px 0}
   .lr-record-row{transform:none}
+  /* v990: 她电脑端截图实测餐食盒墨迹顶隙12px/底隙16.3px（内容偏上）——记录行整体下移2.2px校平(≈14.2/14.1)。
+     只动记录行不动盒padding，标签位置一丝不动（她明令左侧文字不准动） */
+  .lr-subtype-box.lr-box-diet .lr-record-row{transform:translateY(2.2px)}
   .lr-record-row::after{bottom:-1px}
   .lr-record-info-2col{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3px 22px}
   .lr-info-label{font-size:11px}
@@ -3705,8 +3708,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=989"></script>
-<script>console.log('[小筱工作台] 当前版本 v989 —— 若这里不是 989 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=990"></script>
+<script>console.log('[小筱工作台] 当前版本 v990 —— 若这里不是 990 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
