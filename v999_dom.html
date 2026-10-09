@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
+<html lang="zh-CN" style="--c-primary: #9DC8FF; --c-primary-light: #BDE7FF; --c-primary-dark: #7AB5F5; --c-primary-bg: #E0F2FF; --c-sidebar-start: #7AB5F5; --c-sidebar-end: #5BA3F0; --c-info: #9DC8FF;"><head>
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
@@ -2835,12 +2834,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
      按钮随行上移0.67 后再下移0.67 回到饮食的14.67 → margin 2.65+1.35=4.0 */
   .lr-subtype-box:not(.lr-box-diet):not(.lr-box-empty) .lr-record-row{transform:translateY(-2.32px)}
   .lr-subtype-box:not(.lr-box-diet):not(.lr-box-empty) .lr-record-ops{margin-top:4.0px}
-  /* v999: v998 的标签 0.33px 位移实作无效（t999.py 8方案同页实验：Chrome 垂直文字光栅化吸附整数设备px，
-     transform/will-change/margin/行高全都纹丝不动，她强刷确认「没变」）——撤销。
-     换保证生效的路：睡眠盒底边框上收 1 物理px（padding-bottom 10→9.33 = -0.67CSS = -1dev@DSF1.5）：
-     标签下空 35→34 → 34/34 对称；内容底隙 14.00→13.33 → 13.33/13.33 对称；按钮顶隙不受影响仍 14.67。
-     副作用：睡眠盒比饮食盒矮 1物理px（分属两张卡片，不可感知），盒内上下自洽 */
-  .lr-subtype-box:not(.lr-box-diet):not(.lr-box-empty){padding-bottom:9.33px}
+  /* v998: 她放大图实测睡眠标签上空34/下空35物理px(文字偏上0.5物理,非字形噪声——y410有真实笔画minv=139)；
+     下移0.33CSS(=0.5物理@DSF1.5,半像素抗锯齿)→视觉34.5/34.5对称。饮食34/34已对称不动 */
+  .lr-subtype-box:not(.lr-box-diet):not(.lr-box-empty) .lr-subtype-label{transform:translateY(0.33px)}
   .lr-box-empty .lr-empty-row{transform:translateY(-0.35px)}
   /* v989: 桌面统计数值随基础规则 18px（22px 她嫌大），此条保留兜底 */
   .stats-section .stat-card .stat-value{font-size:18px}
@@ -3685,24 +3681,269 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-logo">
-        <span class="logo-icon" id="appLogo" onclick="pickAppLogo()" oncontextmenu="event.preventDefault();resetAppLogo()" title="点击上传 Logo 图片（右键恢复默认）"></span>
+        <span class="logo-icon" id="appLogo" onclick="pickAppLogo()" oncontextmenu="event.preventDefault();resetAppLogo()" title="点击上传 Logo 图片（右键恢复默认）"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 5h6"></path> <path d="M19 2v6"></path> <path d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5"></path> <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path> <circle cx="9" cy="9" r="2"></circle></svg></span>
         <span class="logo-text">小筱工作台</span>
       </div>
-      <button class="toggle-btn" id="toggleSidebar" title="折叠/展开"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg></button>
+      <button class="toggle-btn" id="toggleSidebar" title="折叠/展开"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg></button>
     </div>
-    <nav class="sidebar-nav" id="sidebarNav"></nav>
+    <nav class="sidebar-nav" id="sidebarNav"><div class="nav-item active" onclick="navigate('home')"><span class="nav-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path> <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span><span class="nav-label">首页</span></div><div class="nav-group"><div class="nav-group-title">生活</div><div class="nav-item " onclick="navigate('life-checkin')"><span class="nav-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v3"></path> <path d="M16 2v3"></path> <rect x="3" y="3" width="18" height="18" rx="2"></rect> <path d="M3 9h18"></path> <path d="m9 15 2 2 4-4"></path></svg></span><span class="nav-label">每日打卡</span></div><div class="nav-item " onclick="navigate('life-record')"><span class="nav-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"></path> <path d="M2 6h4"></path> <path d="M2 10h4"></path> <path d="M2 14h4"></path> <path d="M2 18h4"></path> <path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"></path></svg></span><span class="nav-label">每日记录</span></div></div><div class="nav-group"><div class="nav-group-title">开团</div><div class="nav-item " onclick="navigate('groupbuy-records')"><span class="nav-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"></path> <path d="M12 22V12"></path> <polyline points="3.29 7 12 12 20.71 7"></polyline> <path d="m7.5 4.27 9 5.15"></path></svg></span><span class="nav-label">开团记录</span></div><div class="nav-item " onclick="navigate('groupbuy-factories')"><span class="nav-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 21V10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v11"></path> <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 1.132-1.803l7.95-3.974a2 2 0 0 1 1.837 0l7.948 3.974A2 2 0 0 1 22 8z"></path> <path d="M6 13h12"></path> <path d="M6 17h12"></path></svg></span><span class="nav-label">厂家记录</span></div><div class="nav-item " onclick="navigate('groupbuy-samples')"><span class="nav-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 10.27 7 3.34"></path> <path d="m11 13.73-4 6.93"></path> <path d="M12 22v-2"></path> <path d="M12 2v2"></path> <path d="M14 12h8"></path> <path d="m17 20.66-1-1.73"></path> <path d="m17 3.34-1 1.73"></path> <path d="M2 12h2"></path> <path d="m20.66 17-1.73-1"></path> <path d="m20.66 7-1.73 1"></path> <path d="m3.34 17 1.73-1"></path> <path d="m3.34 7 1.73 1"></path> <circle cx="12" cy="12" r="2"></circle> <circle cx="12" cy="12" r="8"></circle></svg></span><span class="nav-label">打样记录</span></div><div class="nav-item " onclick="navigate('groupbuy-calc')"><span class="nav-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5v14"></path> <path d="M8 5v14"></path> <path d="M12 5v14"></path> <path d="M17 5v14"></path> <path d="M21 5v14"></path></svg></span><span class="nav-label">价目计算</span></div></div><div class="nav-group"><div class="nav-group-title">美工</div><div class="nav-item " onclick="navigate('design-inspiration')"><span class="nav-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path> <path d="M9 18h6"></path> <path d="M10 22h4"></path></svg></span><span class="nav-label">灵感记录</span></div><div class="nav-item " onclick="navigate('design-commission')"><span class="nav-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 14v2.2l1.6 1"></path> <path d="M16 2v3"></path> <path d="M21 7.338V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2.338"></path> <path d="M3 9h5.859"></path> <path d="M8 2v3"></path> <circle cx="16" cy="16" r="6"></circle></svg></span><span class="nav-label">接稿排期</span></div><div class="nav-item " onclick="navigate('design-commission-detail')"><span class="nav-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path> <path d="M14 2v5a1 1 0 0 0 1 1h5"></path> <path d="M10 9H8"></path> <path d="M16 13H8"></path> <path d="M16 17H8"></path></svg></span><span class="nav-label">接稿详情</span></div><div class="nav-item " onclick="navigate('design-auth')"><span class="nav-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 12h-5"></path> <path d="M15 8h-5"></path> <path d="M19 17V5a2 2 0 0 0-2-2H4"></path> <path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"></path></svg></span><span class="nav-label">授权记录</span></div><div class="nav-item " onclick="navigate('design-pricelist')"><span class="nav-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect> <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path> <path d="M12 11h4"></path> <path d="M12 16h4"></path> <path d="M8 11h.01"></path> <path d="M8 16h.01"></path></svg></span><span class="nav-label">价目表</span></div><div class="nav-item " onclick="navigate('design-calc')"><span class="nav-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="16" height="20" x="4" y="2" rx="2"></rect> <line x1="8" x2="16" y1="6" y2="6"></line> <line x1="16" x2="16" y1="14" y2="18"></line> <path d="M16 10h.01"></path> <path d="M12 10h.01"></path> <path d="M8 10h.01"></path> <path d="M12 14h.01"></path> <path d="M8 14h.01"></path> <path d="M12 18h.01"></path> <path d="M8 18h.01"></path></svg></span><span class="nav-label">报价计算</span></div></div><div class="nav-group"><div class="nav-group-title">OC</div><div class="nav-item " onclick="navigate('oc-profiles')"><span class="nav-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path> <path d="M16 3.128a4 4 0 0 1 0 7.744"></path> <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path> <circle cx="9" cy="7" r="4"></circle></svg></span><span class="nav-label">人物档案</span></div><div class="nav-item " onclick="navigate('oc-relations')"><span class="nav-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path> <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></span><span class="nav-label">人物关系</span></div><div class="nav-item " onclick="navigate('oc-stories')"><span class="nav-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v16"></path> <path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"></path></svg></span><span class="nav-label">故事小记</span></div><div class="nav-item " onclick="navigate('oc-timeline')"><span class="nav-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle> <path d="M12 6v6l4 2"></path></svg></span><span class="nav-label">时间线</span></div><div class="nav-item " onclick="navigate('oc-commission')"><span class="nav-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"></path> <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle> <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle> <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle> <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle></svg></span><span class="nav-label">约稿记录</span></div></div></nav>
   </aside>
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
   <!-- Main -->
   <div class="main">
     <header class="main-header">
-      <button class="mobile-toggle" id="mobileToggle"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg></button>
-      <span class="page-title" id="pageTitle">首页</span>
-      <span class="sync-badge off" id="syncBadge" onclick="openSyncPanel()" title="云端同步状态 · 点击配置"><span class="sync-dot"></span><span class="sync-ico"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.94 5.274A7 7 0 0 1 15.71 10h1.79a4.5 4.5 0 0 1 4.222 6.057"/><path d="M18.796 18.81A4.5 4.5 0 0 1 17.5 19H9A7 7 0 0 1 5.79 5.78"/><path d="m2 2 20 20"/></svg></span><span class="sync-txt"> 未同步</span></span>
-      <button class="header-settings-btn" onclick="openSettings()" title="设置"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg></button>
+      <button class="mobile-toggle" id="mobileToggle"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg></button>
+      <span class="page-title" id="pageTitle">首页 · 自媒体发布记录</span>
+      <span class="sync-badge off" id="syncBadge" onclick="openSyncPanel()" title="云端同步状态 · 点击配置"><span class="sync-dot"></span><span class="sync-ico"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.94 5.274A7 7 0 0 1 15.71 10h1.79a4.5 4.5 0 0 1 4.222 6.057"></path> <path d="M18.796 18.81A4.5 4.5 0 0 1 17.5 19H9A7 7 0 0 1 5.79 5.78"></path> <path d="m2 2 20 20"></path></svg></span><span class="sync-txt"> 未同步</span></span>
+      <button class="header-settings-btn" onclick="openSettings()" title="设置"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
     </header>
-    <div class="main-body" id="mainBody"></div>
+    <div class="main-body" id="mainBody"><div class="fade-in"><div class="platform-buttons"><button class="platform-btn" style="background:#ff2442"><span class="platform-main" onclick="enterPlatformView('小红书')"><span class="platform-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v16"></path> <path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"></path></svg></span><span class="platform-name">小红书</span></span><span class="platform-status-row"><span class="platform-pending">待发布 0</span><span class="platform-sep">·</span><span class="platform-published">已发布 0</span></span></button><button class="platform-btn" style="background:#161823"><span class="platform-main" onclick="enterPlatformView('抖音')"><span class="platform-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"></path> <circle cx="6" cy="18" r="3"></circle> <circle cx="18" cy="16" r="3"></circle></svg></span><span class="platform-name">抖音</span></span><span class="platform-status-row"><span class="platform-pending">待发布 0</span><span class="platform-sep">·</span><span class="platform-published">已发布 0</span></span></button><button class="platform-btn" style="background:#fa8c16"><span class="platform-main" onclick="enterPlatformView('视频号')"><span class="platform-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"></path> <rect x="2" y="6" width="14" height="12" rx="2"></rect></svg></span><span class="platform-name">视频号</span></span><span class="platform-status-row"><span class="platform-pending">待发布 0</span><span class="platform-sep">·</span><span class="platform-published">已发布 0</span></span></button><button class="platform-btn" style="background:#07a059"><span class="platform-main" onclick="enterPlatformView('公众号')"><span class="platform-icon"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18h-5"></path> <path d="M18 14h-8"></path> <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2"></path> <rect width="8" height="4" x="10" y="6" rx="1"></rect></svg></span><span class="platform-name">公众号</span></span><span class="platform-status-row"><span class="platform-pending">待发布 0</span><span class="platform-sep">·</span><span class="platform-published">已发布 0</span></span></button></div><div class="home-cal-insp"><div class="calendar" style="margin-top:4px"><div class="calendar-header"><span class="cal-title">2026年10月</span><div class="cal-nav"><button class="btn btn-sm btn-ghost" onclick="homeCalNav(-1)">‹ 上月</button><button class="btn btn-sm btn-ghost" onclick="homeCalNav(0)">本月</button><button class="btn btn-sm btn-ghost" onclick="homeCalNav(1)">下月 ›</button></div></div><div class="cal-grid"><div class="cal-weekday">日</div><div class="cal-weekday">一</div><div class="cal-weekday">二</div><div class="cal-weekday">三</div><div class="cal-weekday">四</div><div class="cal-weekday">五</div><div class="cal-weekday">六</div><div class="cal-day other-month">
+      <div class="cal-date-row"><span class="cal-date">27</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day other-month">
+      <div class="cal-date-row"><span class="cal-date">28</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day other-month">
+      <div class="cal-date-row"><span class="cal-date">29</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day other-month">
+      <div class="cal-date-row"><span class="cal-date">30</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">1</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">2</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">3</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">4</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">5</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">6</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">7</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">8</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">9</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day today">
+      <div class="cal-date-row"><span class="cal-date">10</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">11</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">12</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">13</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">14</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">15</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">16</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">17</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">18</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">19</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">20</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">21</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">22</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">23</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">24</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">25</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">26</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">27</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">28</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">29</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">30</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div><div class="cal-day">
+      <div class="cal-date-row"><span class="cal-date">31</span></div>
+      <div class="cal-dots"></div>
+      <div class="cal-tag-rows">
+        <div class="cal-tag-row home-comm-tags"></div>
+        <div class="cal-tag-row home-deep-tags"></div>
+      </div>
+    </div></div><div class="cal-legend-wrap"><div class="cal-legend"><span class="legend-item"><span class="status-dot" style="background:#ff2442"></span>小红书</span><span class="legend-item"><span class="status-dot" style="background:#161823"></span>抖音</span><span class="legend-item"><span class="status-dot" style="background:#fa8c16"></span>视频号</span><span class="legend-item"><span class="status-dot" style="background:#07a059"></span>公众号</span><span class="cal-legend-vbar"></span><span class="legend-item"><span class="status-dot" style="background:#9DC8FF"></span>进入临空</span></div><div class="cal-legend-sep"></div><div class="cal-legend"><span class="legend-item"><span class="status-dot" style="background:#f6ad5c"></span>当日有开稿</span><span class="legend-item"><span class="status-dot" style="background:#FFDE75"></span>当日有截稿</span><span class="legend-item"><span class="status-dot" style="background:#9A91F2"></span>当日既有开稿又有截稿</span></div></div></div><div class="home-insp"><div class="home-insp-title"><svg class="lucide-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path> <path d="M9 18h6"></path> <path d="M10 22h4"></path></svg> 灵感速记 <span class="hint">（随手记，保存后收入「灵感记录」）</span></div><div class="home-insp-row"><input type="text" class="form-input" id="hInspTheme" placeholder="灵感主题"><div class="combobox-wrapper home-insp-combo"><input type="text" class="form-input combobox-input" id="hInspCat" placeholder="请选择或输入制品" oninput="filterComboboxDropdown('hInspCatList',this.value)"><button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown('hInspCatList')">▼</button><div class="combobox-dropdown" id="hInspCatList"><div class="combobox-option" onclick="selectComboboxOption('hInspCatList',this)" data-value="壁纸">壁纸</div><div class="combobox-option" onclick="selectComboboxOption('hInspCatList',this)" data-value="封面">封面</div><div class="combobox-option" onclick="selectComboboxOption('hInspCatList',this)" data-value="海报">海报</div><div class="combobox-option" onclick="selectComboboxOption('hInspCatList',this)" data-value="镭射票">镭射票</div><div class="combobox-option" onclick="selectComboboxOption('hInspCatList',this)" data-value="明信片">明信片</div><div class="combobox-option" onclick="selectComboboxOption('hInspCatList',this)" data-value="其他">其他</div></div></div></div><textarea class="form-input home-insp-textarea" id="hInspThoughts" placeholder="文字思路"></textarea><div class="home-insp-actions"><button class="btn btn-primary" onclick="homeAddInspiration()">保存灵感</button></div></div></div></div></div>
   </div>
 </div>
 
@@ -3711,7 +3952,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   <div class="modal" id="modal">
     <div class="modal-header">
       <span class="modal-title" id="modalTitle">标题</span>
-      <button class="modal-close" id="modalClose">&times;</button>
+      <button class="modal-close" id="modalClose">×</button>
     </div>
     <div class="modal-body" id="modalBody"></div>
     <div class="modal-footer" id="modalFooter"></div>
@@ -3729,8 +3970,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=999"></script>
-<script>console.log('[小筱工作台] 当前版本 v999 —— 若这里不是 999 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=998"></script>
+<script>console.log('[小筱工作台] 当前版本 v998 —— 若这里不是 998 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
@@ -3885,5 +4126,46 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
     }, POLL);
   })();
 </script>
+
+<script>
+window.__errs=[];
+window.onerror=function(m,s,l,c,e){window.__errs.push(m+'@'+l+':'+c+(e&&e.stack?e.stack.slice(0,200):''));};
+(async function(){
+  const out=[];
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  try{
+    await sleep(500);
+    const today=todayStr();
+    DB.add('lifeRecords',{type:'sleep',subtype:'night',date:today,sleepTime:'23:00',wakeTime:'07:10',wakeCount:1});
+    navigate('life-record');
+    await sleep(1500);
+    const boxes=Array.from(document.querySelectorAll('.lr-subtype-box'));
+    const sleepB=boxes.find(b=>b.classList.contains('lr-box-sleep'));
+    if(!sleepB){out.push('FATAL=no sleep box');}
+    else{
+      const cont=document.createElement('div');
+      cont.style.cssText='position:fixed;left:1500px;top:0;z-index:99999;background:#fff;';
+      document.body.appendChild(cont);
+      const R=el=>{const r=el.getBoundingClientRect();return [r.left,r.top,r.right,r.bottom].map(v=>Math.round(v*100)/100);};
+      window.__CLONES=[];
+      [["base", ""], ["tf033", "transform:translateY(0.33px)"], ["tf05", "transform:translateY(0.5px)"], ["tf067", "transform:translateY(0.67px)"], ["wc033", "transform:translateY(0.33px);will-change:transform"], ["mt933", "margin-top:9.33px"], ["mt95", "margin-top:9.5px"], ["lh133", "line-height:1.33"]].forEach((c,i)=>{
+        const cl=sleepB.cloneNode(true);
+        cl.style.margin='0 0 6px 0';
+        const lab=cl.querySelector('.lr-subtype-label');
+        lab.style.transform='none'; lab.style.marginTop=''; lab.style.lineHeight='';
+        if(c[1]) c[1].split(';').forEach(s=>{const [k,v]=s.split(':'); if(k&&v) lab.style[k.trim()]=v.trim();});
+        cont.appendChild(cl);
+        window.__CLONES.push(R(cl.querySelector('.lr-subtype-label')).concat([R(cl)[1]]));
+      });
+      out.push('CLONES='+JSON.stringify(window.__CLONES));
+      out.push('CANDN=8');
+    }
+  }catch(e){ out.push('FATAL='+e.message+(e.stack?e.stack.slice(0,300):'')); }
+  out.push('ERRS='+JSON.stringify(window.__errs||[]));
+  const pre=document.createElement('pre'); pre.id='OUT'; pre.textContent=out.join('\n');
+  document.body.appendChild(pre);
+})();
+
 </body>
 </html>
+</script><button type="button" id="previewReloadBtn" title="本地预览刷新（文件改动会自动刷新）" style="position: fixed; left: 10px; bottom: 10px; z-index: 950; padding: 6px 11px; font: 12px / 1.2 system-ui, &quot;Microsoft YaHei&quot;, sans-serif; color: rgb(43, 108, 176); background: rgb(224, 242, 255); border: 1px solid rgb(157, 200, 255); border-radius: 14px; box-shadow: rgba(0, 0, 0, 0.12) 0px 2px 8px; cursor: pointer; opacity: 0.9; transition: opacity 0.2s, background 0.2s;">⟳ 刷新预览</button></body></html>
