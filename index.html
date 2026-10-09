@@ -2835,17 +2835,19 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
      按钮随行上移0.67 后再下移0.67 回到饮食的14.67 → margin 2.65+1.35=4.0 */
   .lr-subtype-box:not(.lr-box-diet):not(.lr-box-empty) .lr-record-row{transform:translateY(-2.32px)}
   .lr-subtype-box:not(.lr-box-diet):not(.lr-box-empty) .lr-record-ops{margin-top:4.0px}
-  /* v999: v998 的标签 0.33px 位移实作无效（t999.py 8方案同页实验：Chrome 垂直文字光栅化吸附整数设备px，
-     transform/will-change/margin/行高全都纹丝不动，她强刷确认「没变」）——撤销。
-     换保证生效的路：睡眠盒底边框上收 1 物理px（padding-bottom 10→9.33 = -0.67CSS = -1dev@DSF1.5）：
-     标签下空 35→34 → 34/34 对称；内容底隙 14.00→13.33 → 13.33/13.33 对称；按钮顶隙不受影响仍 14.67。
-     副作用：睡眠盒比饮食盒矮 1物理px（分属两张卡片，不可感知），盒内上下自洽 */
-  .lr-subtype-box:not(.lr-box-diet):not(.lr-box-empty){padding-bottom:9.33px}
-  /* v1000: 她固定要求「有记录和无记录的记录条高度保持一致」（电脑端）——空盒与有记录盒等高：
-     饮食空盒 10+43.3+10 = 63.3 = 饮食有记录盒；睡眠空盒 10+42.6+10 = 62.6 = 睡眠有记录盒(v999 底收1dev)。
-     撤 v993 的 -0.35px 位移（那是旧矮盒的居中补偿） */
-  .lr-card-diet .lr-box-empty .lr-empty-row{height:43.3px;padding:0;display:flex;align-items:center}
-  .lr-card-sleep .lr-box-empty .lr-empty-row{height:42.6px;padding:0;display:flex;align-items:center}
+  /* v1001: 她明令「改回 v998」——撤销 v999 的 padding-bottom:9.33px（她实测「有记录的还是缩了」：
+     睡眠有记录盒被压矮 1物理px）与 v1000 的空盒高度（headless 实测空盒反而比有记录盒高 1.3CSS）。
+     v998 的标签 translateY(0.33px) 一并撤销（t999 八方案已证 Chrome 垂直文字吸附整数设备px，该位移无效）。 */
+  /* v1001: 睡眠记录条左侧文字上下对称（v998 实测墨迹上空34/下空35物理px，文字偏上 0.5物理）。
+     ⚠️盒内高 95dev − 墨迹 26dev = 69dev（奇数）→ 盒高不变时上下空必然差 1dev，半像素位移 Chrome 无解。
+     唯一出路是让盒高改 1dev（奇偶翻转）：v999 走「下边框上收1dev」＝盒被压矮（她不要），
+     本轮改走「上边框让出1dev」＝ padding-top 10→10.67（+0.67CSS=+1dev@DSF1.5），盒高 +1物理px：
+     标签上空 34→35、下空 35 不变 ⇒ 35/35 对称；内容随盒同步下移 1dev ⇒ 顶隙 13.33→14.00、底隙 14.00 ⇒ 也对称。 */
+  .lr-card-sleep .lr-subtype-box{padding-top:10.67px}
+  /* v1001: 她固定要求「有记录和无记录的记录条高度保持一致」——只把空盒调到与有记录盒等高（有记录盒一个不动）：
+     headless(DSF1.5,与她机同倍率)实测有记录盒盒高：饮食 63.33 / 睡眠 64.0（睡眠含本次让出的 +1物理px）；
+     空盒行高钉 42 = 有记录盒内容高 ⇒ 饮食空盒 62.66+0.67=63.33、睡眠空盒 63.32+0.67=63.99 —— 与同卡有记录盒一致 */
+  .lr-box-empty .lr-empty-row{height:42px;padding:0;display:flex;align-items:center}
   /* v989: 桌面统计数值随基础规则 18px（22px 她嫌大），此条保留兜底 */
   .stats-section .stat-card .stat-value{font-size:18px}
 }
@@ -2983,21 +2985,21 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   /* v987：手机端编辑/删除按钮与首行文字顶部对齐（去掉了 head/trail 的 3px 下推） */
   .lr-info-line-head .lr-record-ops{margin-top:0}
   .lr-ops-trail{margin-top:0}
-  /* v989: 空盒矮化——空行 22px，盒总高 = 10+22+10 = 42px（有值两行盒 ~59px，有值明显更高）
-     v1000: 她重申固定要求「有记录和无记录的记录条高度保持一致」——空盒改回与有记录盒等高：
-     饮食空盒 10+38.7+10 = 58.7 = 饮食有记录盒；睡眠空盒 10+40+10 = 60 = 睡眠有记录盒 */
+  /* v989: 空盒矮化——空行 22px（v989 按「有值更高」推翻了她的等高要求，本轮已彻底回到等高）
+     v1000→v1001: 她固定要求「有记录和无记录的记录条高度保持一致」——空盒改回与有记录盒等高。
+     v1000 的 38/39.3 是按公式算的，headless 实测空盒反而比有记录盒高 1.3CSS（这就是她说的「记录条在变」）。
+     v1001 改用 headless 实测的有记录盒内容高：饮食 36.75 / 睡眠 38 ⇒ 空盒盒高 58.75 / 60，与有记录盒分毫不差 */
   .lr-empty-row{padding:0;min-height:22px;height:22px;display:flex;align-items:center}
-  .lr-card-diet .lr-box-empty .lr-empty-row{height:38px}
-  .lr-card-sleep .lr-box-empty .lr-empty-row{height:39.3px}
-  /* v1000: 撤 v994 的空盒标签居中——空盒与有记录盒等高后，标签统一 flex-start+9px（与有记录盒同位） */
+  .lr-card-diet .lr-box-empty .lr-empty-row{height:36.75px}
+  .lr-card-sleep .lr-box-empty .lr-empty-row{height:38px}
+  /* v1000/v1001: 空盒标签与有记录盒同规则（flex-start+9px），v994 的空盒居中不再需要 */
   .lr-subtype-box.lr-box-empty .lr-subtype-label{align-self:flex-start;margin-top:9px}
   /* v989: 餐食盒（有 head 行）墨迹实测顶隙 15px > 底隙 12px（她红框：吃饭时间到顶边框比餐食记录到底边框多），
      非对称 padding 校平：-1.5/+1.5 → 顶隙 13.5 = 底隙 13.5。只作用有 head 行的盒
-     v994: 睡眠盒并入同款校平（headless DSF3 实测睡眠内容 15.3/12.7 同样偏下 2.6px，v989「睡眠盒对称不动」的假设不成立） */
-  /* v1000: 她手机标注图实测内容墨迹顶隙12.5/底隙16.75（偏上≈2CSS）——v989 的 8.5/11.5 方向修反了，
-     内容下移2：10.5/9.5（和=20 不变，盒高不动，她手机校平到 ≈14.5/14.75）。
-     headless(DSF3) 测同位置是平衡的——安卓字体渲染差，以她手机标注图为准 */
-  .lr-subtype-box.lr-box-diet,.lr-subtype-box.lr-box-sleep{padding-top:10.5px;padding-bottom:9.5px}
+     v994: 睡眠盒并入同款校平（headless DSF3 实测睡眠内容 15.3/12.7 同样偏下 2.6px，v989「睡眠盒对称不动」的假设不成立）
+     v1001: 撤 v1000 的 10.5/9.5（她说手机端「一样没改」）→ 回到 v989/v994 的 8.5/11.5（她认可的那版校平），
+     并把空盒并入同一套 padding：空盒 padding-top 与有记录盒一致 ⇒ 左侧标签位置不再随「有无记录」变化 */
+  .lr-subtype-box.lr-box-diet,.lr-subtype-box.lr-box-sleep,.lr-subtype-box.lr-box-empty{padding-top:8.5px;padding-bottom:11.5px}
   .lr-record-ops .btn{padding:1px 6px;font-size:11px}
   .lr-size-note{font-size:10px}
   .lr-history-stat-card{padding:8px}
@@ -3740,8 +3742,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1000"></script>
-<script>console.log('[小筱工作台] 当前版本 v1000 —— 若这里不是 1000 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1001"></script>
+<script>console.log('[小筱工作台] 当前版本 v1001 —— 若这里不是 1001 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
