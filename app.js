@@ -4279,8 +4279,9 @@ function goPage(pageKey, pageNo) {
 const CAL_URGENCY_COLORS = ['#e8857e', '#f6ad5c', '#7ab5f5']; // 红/橙/蓝 — 截稿紧迫度：≤2天红 / 3-5天橙 / >5天蓝
 const CAL_MAX_TRACKS = 3;
 // v988: 手机端日历条支持换行，条高/间距随窗口宽度动态取值
-function calBarHeight(){ return window.innerWidth <= 640 ? 20 : 11; }
-function calBarGap(){ return window.innerWidth <= 640 ? 4 : 2; }
+// v989: 还原 v987 固定值（v988 的手机 20px/两行换行方案已废弃，改跨格显示）
+function calBarHeight(){ return 11; }
+function calBarGap(){ return 2; }
 const CAL_START_COLOR = '#f6ad5c';    // 开稿节点（v625 与工期条橙色一致）
 const CAL_END_COLOR = '#FFDE75';      // 截稿节点
 const CAL_BOTH_COLOR = '#9A91F2';     // 开+截同天；v677 改 #9A91F2
@@ -4446,6 +4447,7 @@ function renderCommissionCalendar(year, month, records) {
     else if (startOnlyRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_START_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_START_COLOR + '">开稿</span></span>';
     else if (endOnlyRecords.length > 0) commTagStr += '<span class="cal-day-tag"><span class="cal-day-tag-dot" style="background:' + CAL_END_COLOR + '"></span><span class="cal-day-tag-text" style="color:' + CAL_END_COLOR + '">截稿</span></span>';
     let bars = '';
+    let crossSpan = 0; // v989: 本格是否有跨格 start 条及其跨度（格数）
     list.forEach(item => {
       const r = item.rec;
       const start = recStart(r);
@@ -4460,15 +4462,22 @@ function renderCommissionCalendar(year, month, records) {
       const qty = calcProductQty(r);
       const label = sFlag ? (esc(r.clientInfo || '未命名') + ' ' + qty + '件') : '';
       const barH = calBarHeight(), barGap = calBarGap();
-      // v988: 手机端条高 20px 支持两行文字，line-height 用 1.2 而非 px 以便换行；桌面保持原 11px/11px 居中
-      const lineH = window.innerWidth <= 640 ? 1.2 : barH;
-      const lineHStr = window.innerWidth <= 640 ? '1.2' : (barH + 'px');
       const topPx = 22 + item.track * (barH + barGap);
-      bars += '<div class="' + cls + '" style="background:' + color + ';top:' + topPx + 'px;height:' + barH + 'px;line-height:' + lineHStr + '">' + label + '</div>';
+      let style = 'background:' + color + ';top:' + topPx + 'px;height:' + barH + 'px;line-height:' + barH + 'px';
+      // v989: 跨格——开稿格的文字条横向延伸到截稿格（她要求名字一行显示完=跨格，不是条内换行）
+      if (sFlag) {
+        const sT = Date.parse(String(start).replace(/-/g, '/'));
+        const eT = Date.parse(String(end).replace(/-/g, '/'));
+        if (!isNaN(sT) && !isNaN(eT) && eT > sT) {
+          crossSpan = Math.max(1, Math.round((eT - sT) / 86400000) + 1);
+          style += ';right:auto;width:calc(' + crossSpan + '*100% - 2px)';
+          cls += ' cal-period-bar-cross';
+        }
+      }
+      bars += '<div class="' + cls + '" style="' + style + '">' + label + '</div>';
     });
-    // v988: 手机端日历格最小高度 88px，给换行的时间段条留足空间
-    const cellMinHeight = window.innerWidth <= 640 ? 88 : 76;
-    const cls = 'cal-day' + (isOther ? ' other-month' : '') + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
+    const cellMinHeight = 76;
+    const cls = 'cal-day' + (crossSpan > 0 ? ' cal-day-xsrc' : '') + (isOther ? ' other-month' : '') + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
     return '<div class="' + cls + '" onclick="commissionDateClick(\'' + dateStr + '\')" style="cursor:pointer;min-height:' + cellMinHeight + 'px">' + bars + '<div class="cal-date-row"><span class="cal-date">' + cd + '</span><span class="cal-day-tags comm-tags-center">' + commTagStr + '</span></div></div>';
   }
 
@@ -7330,7 +7339,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 988, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 989, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -12014,12 +12023,11 @@ function renderDietRecordCard(date) {
     <div class="lr-card-body">`;
   dietSubs.forEach(st => {
     const recs = all.filter(r => r.type === 'diet' && r.subtype === st.key && r.date === date).sort((a, b) => (a._ct || 0) - (b._ct || 0));
-    html += `<div class="lr-subtype-box${recs.length ? '' : ' lr-box-empty'}">
-      <div class="lr-subtype-label">${st.label}</div>
-      <div class="lr-subtype-content">
-        ${recs.length ? renderDietRecordRows(recs, st) : `<div class="lr-empty-row" onclick="lifeRecOpenForm('diet','${st.key}')">点击添加${st.label}记录</div>`}
-      </div>
-    </div>`;
+    // v989: 有记录的餐食盒加 lr-box-diet（手机端非对称 padding 校平上下墨迹隙，空盒/睡眠盒不参与）
+    html += `<div class="lr-subtype-box${recs.length ? ' lr-box-diet' : ''}${recs.length ? '' : ' lr-box-empty'}">`
+      + `<div class="lr-subtype-label">${st.label}</div>`
+      + `<div class="lr-subtype-content">${recs.length ? renderDietRecordRows(recs, st) : `<div class="lr-empty-row" onclick="lifeRecOpenForm('diet','${st.key}')">点击添加${st.label}记录</div>`}</div>`
+      + `</div>`;
   });
   html += `</div></div>`;
   return html;

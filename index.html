@@ -359,7 +359,8 @@ html.apk.modal-lock{overflow:hidden!important}
   padding:16px;box-shadow:var(--shadow-sm);
 }
 .stat-card .stat-label{font-size:12px;color:var(--c-text-muted);margin-bottom:6px}
-.stat-card .stat-value{font-size:22px;font-weight:700;color:var(--c-primary);display:flex;align-items:baseline;justify-content:space-between;gap:4px}
+/* v989: 桌面统计数值 22→18px（她反馈 22 太大；15 又太小，取中间值，不合适再调） */
+.stat-card .stat-value{font-size:18px;font-weight:700;color:var(--c-primary);display:flex;align-items:baseline;justify-content:space-between;gap:4px}
 .stat-card .stat-sub{font-size:11px;color:var(--c-text-light);margin-top:4px}
 .stat-card .stat-unit{font-size:11px;font-weight:400;color:var(--c-text-muted);margin-left:0;white-space:nowrap}
 
@@ -558,10 +559,6 @@ html.apk.modal-lock{overflow:hidden!important}
   .commission-cal-grid .cal-day-tag{gap:2px}
   .commission-cal-grid .cal-day-tag-dot{width:4px;height:4px;min-width:4px;min-height:4px;box-sizing:border-box;border-radius:50%;flex-shrink:0}
   .commission-cal-grid .cal-day-tag-text{font-size:9px}
-  /* v988: 手机端日历时间段条支持换行（单主名字太长时显示两行），条高由 JS 动态改为 20px；
-     用 !important 覆盖移动端通用 .cal-day{height:70px!important}，让 commission 日历格能撑到 88px */
-  .commission-cal-grid .cal-day{height:auto !important;min-height:88px !important}
-  .commission-cal-grid .cal-period-bar{white-space:normal !important;overflow:hidden !important;display:-webkit-box !important;-webkit-line-clamp:2 !important;-webkit-box-orient:vertical !important;text-overflow:clip !important;line-height:1.2 !important}
 }
 /* Calendar period bar (开稿~截稿时间段连续显示) */
 .cal-period-bar{
@@ -574,6 +571,11 @@ html.apk.modal-lock{overflow:hidden!important}
 .cal-period-bar.end{border-radius:0 5px 5px 0}
 .cal-period-bar.full{border-radius:5px}
 .cal-period-bar.middle{border-radius:0}
+/* v989: 跨格文字条（两端通用——条宽是 JS 内联 style，缺 z-index 会被后绘的 middle 条盖住）：
+   start 条从开稿格横向延伸到截稿格，文字一行显示完；xsrc 格放开 overflow 让条伸出格外 */
+.cal-period-bar-cross{right:auto !important;z-index:3;pointer-events:none;text-overflow:clip}
+.commission-cal-grid .cal-day.cal-day-xsrc{overflow:visible}
+.commission-cal-grid{overflow:hidden}
 .cal-period-overflow{
   position:absolute;left:0;right:0;font-size:9px;color:var(--c-text-muted);
   text-align:center;font-weight:600;z-index:1;
@@ -2819,8 +2821,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-info-line-head .lr-record-ops{margin-top:2px} /* v866: 桌面端同样下移与时间小标题对齐 */
   .lr-ops-trail{margin-top:2px} /* v874: 同 head 内联按钮的桌面下移值 */
   .lr-record-ops .btn{line-height:1}
-  /* v988: 桌面端开团统计数值恢复 22px（v987 误把 .stats-section .stat-card .stat-value 设成全局 15px，压小了桌面） */
-  .stats-section .stat-card .stat-value{font-size:22px}
+  /* v989: 桌面统计数值随基础规则 18px（22px 她嫌大），此条保留兜底 */
+  .stats-section .stat-card .stat-value{font-size:18px}
 }
 
 /* Inline form tweaks */
@@ -2938,29 +2940,29 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-card-head{padding:8px 10px}
   .lr-card-title{font-size:14px}
   .lr-card-body{padding:8px 10px}
-  /* v988: 钉死 subtype 盒最小高度，让空行与单条记录行总高度一致（58px）；多行/多条自然撑高 */
-  .lr-subtype-box{align-items:center;gap:8px;padding:10px 10px;min-height:58px}
-  /* v988: 标签 margin-top 10→9，让标签自身在 58px 盒内上下留白接近相等；
-     空记录行 38→37，配合盒 min-height 58 后空/有记录盒都 58px */
+  /* v989: 去 v988 的 min-height:58px 等高方案——她要求「有值的盒要比空盒高一些」（两行内容自然更高），
+     空盒改矮为单行 42px，有值盒保持 ~59px */
+  .lr-subtype-box{align-items:center;gap:8px;padding:10px 10px}
   .lr-subtype-label{width:36px;font-size:16px;align-self:flex-start;margin-top:9px}
   .lr-subtype-add{width:24px;height:24px;font-size:16px}
   .lr-empty-row{padding:9.5px 0}
   .lr-record-row{transform:none}
   .lr-record-row::after{bottom:-1px}
-  /* v988: 内容行 gap 恢复 3px，普通记录内容高=18+16+3=37px，在 58px 盒内上下留白≈10.5px 对称 */
   .lr-record-info-2col{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3px 22px}
   .lr-info-label{font-size:11px}
   .lr-info-val{font-size:14px}
-  /* v805: 记录文字加大一号（12→13px，时间数字/标签不动）；行高钉死 px——空行与有记录行严格等高，
-     不再依赖设备字体度量（Windows 实测 58.1 vs 58 已几乎相等，但手机端字体行高差导致有记录行偏高） */
+  /* v805: 记录文字加大一号（12→13px，时间数字/标签不动）；行高钉死 px */
   .lr-info-full .lr-info-val{font-size:13px}
   .lr-info-line{line-height:18px}
   .lr-info-full{line-height:16px}
   /* v987：手机端编辑/删除按钮与首行文字顶部对齐（去掉了 head/trail 的 3px 下推） */
   .lr-info-line-head .lr-record-ops{margin-top:0}
   .lr-ops-trail{margin-top:0}
-  /* v988: 空行 38→37，与单记录内容 37px 完全等高，配合 min-height:58px 的盒后空/有记录盒都 58px */
-  .lr-empty-row{padding:0;min-height:37px;height:37px;display:flex;align-items:center}
+  /* v989: 空盒矮化——空行 22px，盒总高 = 10+22+10 = 42px（有值两行盒 ~59px，有值明显更高） */
+  .lr-empty-row{padding:0;min-height:22px;height:22px;display:flex;align-items:center}
+  /* v989: 餐食盒（有 head 行）墨迹实测顶隙 15px > 底隙 12px（她红框：吃饭时间到顶边框比餐食记录到底边框多），
+     非对称 padding 校平：-1.5/+1.5 → 顶隙 13.5 = 底隙 13.5。只作用有 head 行的盒（睡眠盒两行对称不动） */
+  .lr-subtype-box.lr-box-diet{padding-top:8.5px;padding-bottom:11.5px}
   .lr-record-ops .btn{padding:1px 6px;font-size:11px}
   .lr-size-note{font-size:10px}
   .lr-history-stat-card{padding:8px}
@@ -3620,8 +3622,10 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .chart-stats-2col .cs-col + .cs-col{margin-top:9px !important;}
   .chart-stats-2col .cs-col-chart .annual-chart{margin-bottom:0 !important;}
   .chart-stats-2col .cs-col-stats .stats-section{margin-top:0 !important;}
-  /* v988: 手机端统计卡数值 13→16px 并给 line-height:1.25，解决"压瘪"感（v987 13px 太小） */
-  .stats-section .stat-card .stat-value{font-size:16px;line-height:1.25}
+  /* v989: 手机端统计数值 16→14px（¥999999.99 实测 76.3px，内容宽内右侧留出间距不占满）；
+     line-height 1.3 防「压瘪」；统计块间距 10→8px（她点名手机端 8px） */
+  .stats-section .stats-grid{gap:8px}
+  .stats-section .stat-card .stat-value{font-size:14px;line-height:1.3}
   .calc-input-col,.calc-receipt-col{height:auto !important;overflow:visible !important;max-width:100% !important;container-type:normal !important;}
 
   /* 工具栏：搜索框独占首行，按钮包进 grid 绝对等宽 */
@@ -3701,8 +3705,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=988"></script>
-<script>console.log('[小筱工作台] 当前版本 v988 —— 若这里不是 988 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=989"></script>
+<script>console.log('[小筱工作台] 当前版本 v989 —— 若这里不是 989 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
