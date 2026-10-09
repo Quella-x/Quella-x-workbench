@@ -2617,6 +2617,9 @@ function getChartYear(pageKey) { const ps = pageState[pageKey]; return (ps && ps
 function setChartYear(pageKey, y) {
   if (!pageState[pageKey]) pageState[pageKey] = {};
   pageState[pageKey].chartYear = y;
+  // v1002: 时间导航栏切年会把 statsScope 钉成年份字符串——柱状图「上年/下年」时同步更新它，年度数据才跟手
+  const _sc = pageState[pageKey].statsScope;
+  if (_sc && /^\d{4}$/.test(String(_sc))) pageState[pageKey].statsScope = String(y);
   if (pageKey === 'home') { renderHome(); return; }
   renderListPage(pageKey, MODULES[pageKey]);
 }
@@ -3852,9 +3855,11 @@ function renderStatsSection(stats, title, scope, pageKey) {
   let html = `<div class="stats-section">`;
   html += `<div class="stats-section-title"><span class="stats-section-title-main">${lucide('bar-chart-3',14)} ${esc(title || '总结')}</span>`;
   if (pageKey) {
+    // v1002: 时间导航栏切年把 statsScope 写成年份字符串，此时「年度」按钮也要高亮
+    const _isYearScope = scope === 'year' || /^\d{4}$/.test(String(scope));
     html += `<div class="stats-scope-toggle">`;
     html += `<button class="btn btn-xs ${scope === 'all' ? 'btn-primary' : 'btn-outline'}" onclick="setStatsScope('${pageKey}','all')">全部</button>`;
-    html += `<button class="btn btn-xs ${scope === 'year' ? 'btn-primary' : 'btn-outline'}" onclick="setStatsScope('${pageKey}','year')">年度</button>`;
+    html += `<button class="btn btn-xs ${_isYearScope ? 'btn-primary' : 'btn-outline'}" onclick="setStatsScope('${pageKey}','year')">年度</button>`;
     html += `</div>`;
   }
   html += `</div>`;
@@ -3879,11 +3884,17 @@ function renderChartStatsInner(mod, pageKey, store) {
   if (mod.chart) html += '<div class="cs-col cs-col-chart">' + mod.chart(DB.list(store)) + '</div>';
   html += '<div class="cs-col cs-col-stats">';
   if (mod.stats) {
-    const scope = (pageState[pageKey] && pageState[pageKey].statsScope) || 'all';
+    const _psS = pageState[pageKey] || {};
+    const scope = _psS.statsScope || 'all';
     let statRecs = DB.list(store);
     const yrField = mod.statsYearField;
-    if (scope === 'year' && yrField) {
-      const y = new Date().getFullYear();
+    // v1002: 年度数据跟随年份——两处断裂修复：
+    // ① 旧代码 scope==='year' 时固定用 new Date().getFullYear()，柱状图「上年/下年」(setChartYear 只改 chartYear) 切年统计不动；
+    // ② 时间导航栏切年(modYearShift/modYearPick)把 statsScope 写成年份字符串("2026")，旧代码只认 'year'，
+    //    数值型 scope 直接落空 → 统计显示全部且「年度」按钮不高亮。现在数值型 scope 也按年筛，年份取 scope 本身。
+    const _isYearScope = scope === 'year' || /^\d{4}$/.test(String(scope));
+    if (_isYearScope && yrField) {
+      const y = /^\d{4}$/.test(String(scope)) ? String(scope) : (_psS.chartYear != null ? _psS.chartYear : new Date().getFullYear());
       statRecs = statRecs.filter(r => String(r[yrField] || '').startsWith(String(y)));
     }
     html += renderStatsSection(mod.stats(statRecs), mod.statsTitle, scope, pageKey);
@@ -4415,6 +4426,23 @@ function renderCommissionCalendar(year, month, records) {
     recordTrack[r.id] = target;
   });
 
+  // v1002: 跨格条覆盖范围内的格子不再重复渲染同色分段条——分段条(opacity .85)叠在跨格条上，
+  // 叠加处变深、格子边框/1px 内缩处透白，条上出现一道道深浅竖纹，看起来像被「截断」。
+  // 仅当整个跨度放得进同一周日历行（起始列 + 跨度 ≤ 7）才省略分段；跨周条仍靠分段兜底。
+  const crossCovered = new Set();
+  periodRecords.forEach(r => {
+    const s = recStart(r), e = recEnd(r);
+    if (!s || !e || e <= s) return;
+    const sT = Date.parse(String(s).replace(/-/g, '/'));
+    const eT = Date.parse(String(e).replace(/-/g, '/'));
+    if (isNaN(sT) || isNaN(eT)) return;
+    const span = Math.round((eT - sT) / 86400000) + 1;
+    if (span < 2) return;
+    const _p = String(s).split('-').map(Number);
+    const col = new Date(_p[0], _p[1] - 1, _p[2]).getDay();
+    if (col + span <= 7) crossCovered.add(r.id);
+  });
+
   function renderCommCalCell(cy, cm, cd, isOther) {
     const dateStr = cy + '-' + String(cm + 1).padStart(2, '0') + '-' + String(cd).padStart(2, '0');
     const isStart = r => (r.startTime || r.acceptTime || '') === dateStr;
@@ -4452,6 +4480,8 @@ function renderCommissionCalendar(year, month, records) {
       const r = item.rec;
       const start = recStart(r);
       const end = recEnd(r);
+      // v1002: 本格已被开稿格的跨格条覆盖——不再渲染分段条（防叠深/接缝竖纹）
+      if (crossCovered.has(r.id) && dateStr !== start) return;
       const sFlag = dateStr === start;
       const eFlag = dateStr === end;
       const color = commissionBarColor(r, todayTime);
@@ -5355,13 +5385,13 @@ function openDetail(pageKey, id) {
         : null;
       const commColStyle = (c, forTh) => {
         // v844: 宽度改 class（桌面 media 生效，手机端自动均分）；单元格 nowrap 保留
-        const _cc = { _seq: 'cc-seq', patternId: 'cc-pat', price: 'cc-price', size: 'cc-size', quantity: 'cc-qty', sameModel: 'cc-model' }[c.subkey];
+        const _cc = { _seq: 'cc-seq', name: 'cc-name', patternId: 'cc-pat', price: 'cc-price', size: 'cc-size', quantity: 'cc-qty', sameModel: 'cc-model' }[c.subkey];
         const ws = forTh ? '' : ' style="white-space:nowrap;"';
         return _cc ? ` class="${_cc}"${ws}` : '';
       };
       // v932: td 也要带同名 class，手机端才能把「柄图标识/同模」整列隐藏（挪到第二行展示）
       const commTdClass = c => {
-        const _cc = { _seq: 'cc-seq', patternId: 'cc-pat', price: 'cc-price', size: 'cc-size', quantity: 'cc-qty', sameModel: 'cc-model' }[c.subkey];
+        const _cc = { _seq: 'cc-seq', name: 'cc-name', patternId: 'cc-pat', price: 'cc-price', size: 'cc-size', quantity: 'cc-qty', sameModel: 'cc-model' }[c.subkey];
         return _cc ? ` class="${_cc}"` : '';
       };
       const commThLabel = c => esc(c.label);
@@ -5379,7 +5409,12 @@ function openDetail(pageKey, id) {
       const _isGbDisbMain = c => isGbProducts && c.subkey === 'isDisbanded';
       const _belowCols = renderCols.filter(c => c.mobileBelow && !_isGbDisbMain(c));
       const _mainCols = renderCols.filter(c => !c.mobileBelow || _isGbDisbMain(c));
-      html += `<div class="detail-row"><span class="detail-label">${esc(label)}</span><div class="detail-value"><table class="detail-table"><tr>${_mainCols.map(c => `<th${thStyle(c)}>${isCommProd ? commThLabel(c) : esc(c.label)}</th>`).join('')}${_belowCols.map(c => { const _s = thStyle(c); const _m = /class="([^"]*)"/.exec(_s); const _rest = _s.replace(/ ?class="[^"]*"/, ''); return `<th class="gb-remark-col${_m ? ' ' + _m[1] : ''}"${_rest}>${esc(c.label)}</th>`; }).join('')}${extraHead}</tr>`;
+      // v1002: 手机端 柄图标识/同模 两列 display:none（挪到第二行展示），comm-ud-row 的 colspan 必须按
+      // 「可见主列 − 序号」算，否则多算隐藏列 → 表格右侧冒出空列（她说的「数量右边空着」）
+      const _hiddenSubsMobile = new Set(isCommProd ? ['patternId','sameModel'] : []);
+      const _visMainCount = _mainCols.filter(c => !_hiddenSubsMobile.has(c.subkey)).length;
+      const _udColspan = Math.max(1, _visMainCount - 1);
+      html += `<div class="detail-row${(f.type === 'dynamic-list' || f.type === 'dynamic-products') ? ' has-table' : ''}"><span class="detail-label">${esc(label)}</span><div class="detail-value"><table class="detail-table${isCommProd ? ' comm-prod-table' : ''}"><tr>${_mainCols.map(c => `<th${thStyle(c)}>${isCommProd ? commThLabel(c) : esc(c.label)}</th>`).join('')}${_belowCols.map(c => { const _s = thStyle(c); const _m = /class="([^"]*)"/.exec(_s); const _rest = _s.replace(/ ?class="[^"]*"/, ''); return `<th class="gb-remark-col${_m ? ' ' + _m[1] : ''}"${_rest}>${esc(c.label)}</th>`; }).join('')}${extraHead}</tr>`;
       items.forEach((item, idx) => {
         // v932: 接稿排期制品列表——序号像售后「单号」一样占两行（第二行放 柄图标识/同模/加急/完成）
         const hasRemark = isGb && f.key === 'afterSales' && item.remark;
@@ -5417,12 +5452,13 @@ function openDetail(pageKey, id) {
         }
         // v932: 手机端第二行 = 柄图标识 + 同模 + 加急 + 完成（一排，居中，上下留白相等）；
         // 序号已 rowspan=2，所以这里 colspan 少一列
-        if (isCommProd) html += `<tr class="comm-ud-row"><td colspan="${_mainCols.length - 1}">`
-          + (item.patternId ? `<span class="cu-pat">柄图标识：${esc(item.patternId)}</span>` : '')
-          + (item.sameModel ? `<span class="cu-model">同模：${esc(item.sameModel)}</span>` : '')
-          + `<span class="cu-urgent"><label><input type="checkbox" ${item.urgent ? 'checked' : ''} onclick="commissionToggleProductUrgent('${id}',${idx},this.checked)">加急</label></span>`
-          + `<span class="cu-done"><label><input type="checkbox" ${item.done ? 'checked' : ''} onclick="commissionToggleProductDone('${id}',${idx},this.checked)">完成</label></span>`
-          + `</td></tr>`;
+        // v1002: 她要求——三个等宽格子（同模 / 加急 / 完成）均分、中间格子线隔开、内容水平+垂直居中；
+        // 「同模：」小标题去掉只留值；加急、完成各占一格（满足「可以放一起」的意图）。桌面端 comm-ud-row 整行 display:none。
+        if (isCommProd) html += `<tr class="comm-ud-row"><td colspan="${_udColspan}"><div class="cu-cells">`
+          + `<div class="cu-cell cu-cell-model">${item.patternId ? `<span class="cu-pat">柄图标识：${esc(item.patternId)}</span>` : ''}${item.sameModel ? `<span class="cu-model">${esc(item.sameModel)}</span>` : ''}</div>`
+          + `<div class="cu-cell cu-cell-urgent"><span class="cu-urgent"><label><input type="checkbox" ${item.urgent ? 'checked' : ''} onclick="commissionToggleProductUrgent('${id}',${idx},this.checked)">加急</label></span></div>`
+          + `<div class="cu-cell cu-cell-done"><span class="cu-done"><label><input type="checkbox" ${item.done ? 'checked' : ''} onclick="commissionToggleProductDone('${id}',${idx},this.checked)">完成</label></span></div>`
+          + `</div></td></tr>`;
         if (_belowCols.length) {
           // v906: 备注/是否流团等 mobileBelow 字段改为更干净的整行展示（去掉「备注：」前缀，流团用红色标签）
           // v931: 是否流团已回到表格主列，整行展示仅剩售后备注
@@ -7339,7 +7375,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 1001, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 1002, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
