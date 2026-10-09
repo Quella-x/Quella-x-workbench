@@ -7324,7 +7324,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 986, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 987, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -12126,7 +12126,8 @@ function renderSleepWeekLineChart(days) {
       }
     }
     /* v986: 手机端圆点 r7→6（她反馈点大挤标签，"改小一点但不能太小"）；桌面 v959 定稿 r5 不动 */
-    const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${isDesktop?5:6}" fill="${color}" stroke="#fff" stroke-width="${isDesktop?2:2}"/>`;
+    /* v987：手机端折线圆点再缩小 6→4，桌面保持 r5 */
+    const dot = `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${isDesktop?5:4}" fill="${color}" stroke="#fff" stroke-width="${isDesktop?2:2}"/>`;
     if (!v) return `<g class="lr-hsc-point">${dot}</g>`; // 0 值：只画点不画字，避免一列 0m 互相重叠
     return `<g class="lr-hsc-point"><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="16" font-weight="700" fill="${color}" stroke="#fff" stroke-width="3" paint-order="stroke">${formatSleepDuration(v)}</text>${dot}</g>`;
   }).join('');
