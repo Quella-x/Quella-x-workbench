@@ -2821,24 +2821,16 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-info-line-head .lr-record-ops{margin-top:2px} /* v866: 桌面端同样下移与时间小标题对齐 */
   .lr-ops-trail{margin-top:2px} /* v874: 同 head 内联按钮的桌面下移值 */
   .lr-record-ops .btn{line-height:1}
-  /* v993: 她整窗截图(v991态,2160物理/1.5=1440CSS,多盒一致)实测三类盒墨迹上下隙：
-     餐食盒(早/午/晚) 12.67/16.00、睡眠盒(夜晚/午间) 11.33/14.00、空盒(宵夜/零食/奶茶) 26.00/25.33。
-     ⚠️基线 .lr-record-row 自带 translateY(-2px)(2782行)——v992 写 1.65px 是替换不是叠加，实际移了 3.65px 校过头。
-     本轮按绝对值一次改齐三类盒(目标=各盒上下隙相等)：餐食≈14.35/14.35、睡眠≈12.65/12.65、空盒≈25.65/25.65。
-     只动桌面断点，手机端不碰(她明令) */
-  .lr-subtype-box.lr-box-diet .lr-record-row{transform:translateY(-0.35px)}
-  /* v995: 睡眠盒按饮食盒墨迹绝对位置校平（饮食盒基准 v993 态她机实测 顶隙14.00/底隙14.67/按钮顶隙14.67，盒高64）。
-     睡眠末行是16px数字墨迹（饮食末行13px文字），底隙先天小~2px，transform 追不平——用 padding+行距+行位移联立：
-     padding 8.63/12.70 + 行距 4→2.67（盒高仍64）+ 行 transform -0.85（比饮食再高0.5px，她机与headless推导折中）。
-     取值策略：她机推导值与 headless(DSF1.5 同页相对差)精确值差~1px，全部取中点，两端残差≤0.5px 亚像素。
-     v994 的 -1.65px 方向反了（内容越改越偏下），撤销。标签 CSS 与饮食盒同源同值，墨迹窗差异是字形轮廓（夜晚vs午餐），非位置差 */
-  .lr-subtype-box.lr-box-sleep{padding-top:8.63px;padding-bottom:12.70px}
+  /* v996: 关键勘误——她的浏览器直到 v995 前一直跑 v991（SW 缓存），v992-v994 她从未见过！
+     她 17:05 截图的「正确饮食」= v991 基线态（无位移，translateY(-2px) 基线）：饮食 P14.00/Q14.67/ops14.67、
+     睡眠 P14.67/Q12.67/ops12.67、空盒 26.00/25.33（全部基线 -2，同一张图同态测量零换算）。
+     v993 偷偷加的 diet/-0.35 和 empty/-0.35 她在 v995 才第一次看到 → 「饮食全往上挪了」。
+     本轮：饮食、空盒还原基线（删位移规则）；睡眠盒按同图差值校到饮食位置（她机精确，无跨机换算）：
+     ΔP=-0.67 → padding-top 9.33；ΔQ=+2.00 → padding-bottom 12.00；盒高守恒 → 行距 4→2.67；
+     行不动（与饮食同基线）；ops Δ=+2.00 → margin-top 2.00 */
+  .lr-subtype-box.lr-box-sleep{padding-top:9.33px;padding-bottom:12.00px}
   .lr-subtype-box.lr-box-sleep .lr-record-info-2col{gap:2.67px 40px}
-  .lr-subtype-box.lr-box-sleep .lr-record-row{transform:translateY(-0.85px)}
-  /* margin 3.13 是配合 padding-top 8.63 的联立值（padding-top 同时推动按钮行，改其一必须复算另一）；
-     headless 终验：内容±0.33/按钮±0.33 全对齐 */
-  .lr-subtype-box.lr-box-sleep .lr-record-ops{margin-top:3.13px}
-  .lr-box-empty .lr-empty-row{transform:translateY(-0.35px)}
+  .lr-subtype-box.lr-box-sleep .lr-record-ops{margin-top:2.00px}
   /* v989: 桌面统计数值随基础规则 18px（22px 她嫌大），此条保留兜底 */
   .stats-section .stat-card .stat-value{font-size:18px}
 }
@@ -3726,8 +3718,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=995"></script>
-<script>console.log('[小筱工作台] 当前版本 v995 —— 若这里不是 995 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=996"></script>
+<script>console.log('[小筱工作台] 当前版本 v996 —— 若这里不是 996 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
