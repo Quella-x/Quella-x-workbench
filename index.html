@@ -2821,6 +2821,10 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-info-line-head .lr-record-ops{margin-top:2px} /* v866: 桌面端同样下移与时间小标题对齐 */
   .lr-ops-trail{margin-top:2px} /* v874: 同 head 内联按钮的桌面下移值 */
   .lr-record-ops .btn{line-height:1}
+  /* v992: 她整窗截图(2160物理宽/1.5=1440CSS,1:1无放大)实测餐食盒墨迹顶隙12.7/底隙16.0，早中晚三个盒完全一致
+     ——记录行(含行内按钮)下移1.65px校平到≈14.35/14.35。标签一丝不动。注意：headless(DSF1)同页A/B测得15/16平衡，
+     她机 DSF1.5 字体渲染导致不对称——headless 校准不迁移真机，以她整窗截图为准 */
+  .lr-subtype-box.lr-box-diet .lr-record-row{transform:translateY(1.65px)}
   /* v989: 桌面统计数值随基础规则 18px（22px 她嫌大），此条保留兜底 */
   .stats-section .stat-card .stat-value{font-size:18px}
 }
@@ -3705,8 +3709,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=991"></script>
-<script>console.log('[小筱工作台] 当前版本 v991 —— 若这里不是 991 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=992"></script>
+<script>console.log('[小筱工作台] 当前版本 v992 —— 若这里不是 992 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
