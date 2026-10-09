@@ -7339,7 +7339,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 993, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 994, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -12005,7 +12005,8 @@ function renderSleepRecordCard(date) {
     <div class="lr-card-body">`;
   sleepSubs.forEach(st => {
     const recs = all.filter(r => r.type === 'sleep' && r.subtype === st.key && r.date === date).sort((a, b) => (a._ct || 0) - (b._ct || 0));
-    html += `<div class="lr-subtype-box${recs.length ? '' : ' lr-box-empty'}">
+    // v994: 有记录的睡眠盒加 lr-box-sleep（手机端与餐食盒同款非对称 padding 校平，v989 漏了睡眠盒）
+    html += `<div class="lr-subtype-box${recs.length ? ' lr-box-sleep' : ''}${recs.length ? '' : ' lr-box-empty'}">
       <div class="lr-subtype-label">${st.label}</div>
       <div class="lr-subtype-content">
         ${recs.length ? renderSleepRecordRows(recs) : `<div class="lr-empty-row" onclick="lifeRecOpenForm('sleep','${st.key}')">点击添加${st.label}睡眠记录</div>`}
