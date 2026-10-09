@@ -2821,10 +2821,14 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .lr-info-line-head .lr-record-ops{margin-top:2px} /* v866: 桌面端同样下移与时间小标题对齐 */
   .lr-ops-trail{margin-top:2px} /* v874: 同 head 内联按钮的桌面下移值 */
   .lr-record-ops .btn{line-height:1}
-  /* v992: 她整窗截图(2160物理宽/1.5=1440CSS,1:1无放大)实测餐食盒墨迹顶隙12.7/底隙16.0，早中晚三个盒完全一致
-     ——记录行(含行内按钮)下移1.65px校平到≈14.35/14.35。标签一丝不动。注意：headless(DSF1)同页A/B测得15/16平衡，
-     她机 DSF1.5 字体渲染导致不对称——headless 校准不迁移真机，以她整窗截图为准 */
-  .lr-subtype-box.lr-box-diet .lr-record-row{transform:translateY(1.65px)}
+  /* v993: 她整窗截图(v991态,2160物理/1.5=1440CSS,多盒一致)实测三类盒墨迹上下隙：
+     餐食盒(早/午/晚) 12.67/16.00、睡眠盒(夜晚/午间) 11.33/14.00、空盒(宵夜/零食/奶茶) 26.00/25.33。
+     ⚠️基线 .lr-record-row 自带 translateY(-2px)(2782行)——v992 写 1.65px 是替换不是叠加，实际移了 3.65px 校过头。
+     本轮按绝对值一次改齐三类盒(目标=各盒上下隙相等)：餐食≈14.35/14.35、睡眠≈12.65/12.65、空盒≈25.65/25.65。
+     只动桌面断点，手机端不碰(她明令) */
+  .lr-subtype-box.lr-box-diet .lr-record-row{transform:translateY(-0.35px)}
+  .lr-subtype-box:not(.lr-box-diet):not(.lr-box-empty) .lr-record-row{transform:translateY(-0.65px)}
+  .lr-box-empty .lr-empty-row{transform:translateY(-0.35px)}
   /* v989: 桌面统计数值随基础规则 18px（22px 她嫌大），此条保留兜底 */
   .stats-section .stat-card .stat-value{font-size:18px}
 }
@@ -3709,8 +3713,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=992"></script>
-<script>console.log('[小筱工作台] 当前版本 v992 —— 若这里不是 992 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=993"></script>
+<script>console.log('[小筱工作台] 当前版本 v993 —— 若这里不是 993 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
