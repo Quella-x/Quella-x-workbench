@@ -1147,22 +1147,20 @@ html.apk.modal-lock{overflow:hidden!important}
   .detail-row.has-table{flex-direction:column;gap:4px;align-items:stretch}
   .detail-row.has-table .detail-value{width:100%;padding:0;margin:0}
   .detail-table.comm-prod-table{width:100%;table-layout:fixed}
-  /* v1003: 序号/价格/数量固定 60px（与 v1001 桌面口径一致），制品/尺寸平分剩余，避免价格/数量过宽 */
+  /* v1004: 序号/价格/数量固定 60px（与 v1001 桌面口径一致），制品/尺寸平分剩余；
+     底行 td 强制 padding:0 消除表格线空隙，三格固定单行高 26px、内容水平+垂直居中、同模文字色统一 --c-text */
   .detail-table.comm-prod-table th.cc-seq,.detail-table.comm-prod-table th.cc-price,.detail-table.comm-prod-table th.cc-qty{width:60px}
-  /* v932: 第二行四个元素（柄图标识/同模/加急/完成）一排居中，上下留白相等
-     v1002: 改三个等宽格子（同模 / 加急 / 完成）均分、中间格子线隔开、内容水平+垂直居中；
-     「同模：」小标题已去（只留值）；加急+完成分两格也满足「可以放一起」的意图 */
-  .comm-ud-row td{padding:0;font-size:12px;text-align:center;white-space:normal}
-  .comm-ud-row .cu-cells{display:flex;align-items:stretch;width:100%;border-top:1px solid var(--c-border)}
-  .comm-ud-row .cu-cell{flex:1 1 0;display:flex;align-items:center;justify-content:center;gap:6px;min-height:28px;padding:4px 6px;white-space:nowrap}
-  .comm-ud-row .cu-cell+.cu-cell{border-left:1px solid var(--c-border)}
-  .comm-ud-row .cu-cell > span{display:flex;align-items:center;justify-content:center;height:100%}
-  .comm-ud-row .cu-pat,.comm-ud-row .cu-model{display:inline-flex;align-items:center;gap:3px;margin:0;color:var(--c-text);font-size:12px}
-  .comm-ud-row label{display:inline-flex;align-items:center;gap:3px;cursor:pointer;font-size:12px;margin:0}
-  .comm-ud-row .cu-urgent{color:var(--c-red)}
-  .comm-ud-row .cu-urgent input{width:15px;height:15px;accent-color:var(--c-red);margin:0}
-  .comm-ud-row .cu-done{color:var(--c-green)}
-  .comm-ud-row .cu-done input{width:15px;height:15px;accent-color:var(--c-green);margin:0}
+  .detail-table.comm-prod-table .comm-ud-row td{padding:0;font-size:12px;text-align:center;white-space:normal;vertical-align:middle}
+  .detail-table.comm-prod-table .comm-ud-row .cu-cells{display:flex;align-items:stretch;width:100%;height:26px;box-sizing:border-box;border-top:1px solid var(--c-border)}
+  .detail-table.comm-prod-table .comm-ud-row .cu-cell{flex:1 1 0;display:flex;align-items:center;justify-content:center;gap:6px;padding:0;white-space:nowrap}
+  .detail-table.comm-prod-table .comm-ud-row .cu-cell+.cu-cell{border-left:1px solid var(--c-border)}
+  .detail-table.comm-prod-table .comm-ud-row .cu-cell > span{display:inline-flex;align-items:center;justify-content:center;line-height:1}
+  .detail-table.comm-prod-table .comm-ud-row .cu-pat,.detail-table.comm-prod-table .comm-ud-row .cu-model{display:inline-flex;align-items:center;gap:3px;margin:0;color:var(--c-text);font-size:12px;line-height:1}
+  .detail-table.comm-prod-table .comm-ud-row .cu-urgent{color:var(--c-red)}
+  .detail-table.comm-prod-table .comm-ud-row .cu-done{color:var(--c-green)}
+  .detail-table.comm-prod-table .comm-ud-row label{display:inline-flex;align-items:center;gap:3px;cursor:pointer;font-size:12px;margin:0;line-height:1}
+  .detail-table.comm-prod-table .comm-ud-row .cu-urgent input,.detail-table.comm-prod-table .comm-ud-row .cu-done input{width:15px;height:15px;accent-color:var(--c-red);margin:0}
+  .detail-table.comm-prod-table .comm-ud-row .cu-done input{accent-color:var(--c-green)}
 }
 /* v914：开团记录售后「备注」——电脑端作为单号下方跨行备注；手机端(<=768px)仍可在每行下方显示小字 */
 .gb-remark-row{display:none}
@@ -2992,7 +2990,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
      ④左侧标签顶距一致 ⇒ align-self:flex-start + margin-top:9，padding 对称后 diet/sleep 标签同位
      ⑤编辑/删除对齐 ⇒ 饮食 head 内联按钮收回到与睡眠同款 margin-top:2px（v987 收到 0 致偏上） */
   .lr-subtype-box{align-items:center;gap:8px;padding:10.5px 10px}
-  .lr-subtype-label{width:36px;font-size:16px;align-self:center;margin-top:0}
+  /* v1004: 左侧标签改为竖排文字(writing-mode:vertical-rl)，并让标签在盒内垂直拉伸后 flex 居中，
+     彻底解决不同字体/换行导致的上下边距不等问题 */
+  .lr-subtype-label{width:36px;font-size:16px;font-weight:700;color:var(--c-text);line-height:1;text-align:center;writing-mode:vertical-rl;text-orientation:mixed;align-self:stretch;display:flex;align-items:center;justify-content:center;margin:0}
   .lr-subtype-add{width:24px;height:24px;font-size:16px}
   .lr-record-row{transform:none}
   .lr-record-row::after{bottom:-1px}
@@ -3011,7 +3011,6 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   /* ③ 空盒与有记录盒等高：空行钉 39px，padding 同款 */
   .lr-empty-row{padding:0;min-height:22px;height:39px;display:flex;align-items:center}
   .lr-box-empty .lr-empty-row{height:39px}
-  .lr-subtype-box.lr-box-empty .lr-subtype-label{align-self:center;margin-top:0}
   /* ① 对称 padding：上下墨迹隙相等；④ 标签顶距 diet/sleep 一致 */
   .lr-subtype-box.lr-box-diet,.lr-subtype-box.lr-box-sleep,
   .lr-card-diet .lr-box-empty,.lr-card-sleep .lr-box-empty{padding-top:10.5px;padding-bottom:10.5px}
@@ -3757,8 +3756,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1003"></script>
-<script>console.log('[小筱工作台] 当前版本 v1003 —— 若这里不是 1003 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1004"></script>
+<script>console.log('[小筱工作台] 当前版本 v1004 —— 若这里不是 1004 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

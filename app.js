@@ -4287,7 +4287,7 @@ function goPage(pageKey, pageNo) {
 }
 
 /* ===== Commission Calendar View (v593+: 仅渲染开稿/截稿「节点日」自身任务条，不跨日延伸；节点标记=日期数字右侧色块，工期条=红橙蓝绿) ===== */
-const CAL_URGENCY_COLORS = ['#e8857e', '#f6ad5c', '#7ab5f5']; // 红/橙/蓝 — 截稿紧迫度：≤2天红 / 3-5天橙 / >5天蓝
+const CAL_URGENCY_COLORS = ['#e8857e', '#f6ad5c', '#7ab5f5']; // 红/橙/蓝 — 截稿紧迫度：≤2天红 / 3-4天橙 / ≥5天蓝
 const CAL_MAX_TRACKS = 3;
 // v988: 手机端日历条支持换行，条高/间距随窗口宽度动态取值
 // v989: 还原 v987 固定值（v988 的手机 20px/两行换行方案已废弃，改跨格显示）
@@ -4308,7 +4308,7 @@ function commissionBarColor(r, todayTime) {
   if (valIncludes(r.progress, '已交付')) return CAL_DELIVERED_COLOR;
   const daysLeft = (new Date(r.deadline).getTime() - todayTime) / 86400000;
   if (daysLeft <= 2) return CAL_URGENCY_COLORS[0];
-  if (daysLeft <= 5) return CAL_URGENCY_COLORS[1];
+  if (daysLeft <= 4) return CAL_URGENCY_COLORS[1];
   return CAL_URGENCY_COLORS[2];
 }
 
@@ -4500,8 +4500,9 @@ function renderCommissionCalendar(year, month, records) {
         const eT = Date.parse(String(end).replace(/-/g, '/'));
         if (!isNaN(sT) && !isNaN(eT) && eT > sT) {
           crossSpan = Math.max(1, Math.round((eT - sT) / 86400000) + 1);
-          // v1003: 保持左右端各 1px 距单元格边框（视觉等距）
-          style += ';right:auto;width:calc(' + crossSpan + '*100% - 2px)';
+          // v1004: 跨格条左右端距单元格外边框等距；实测最佳 offset = crossSpan - 2
+          const crossWidthAdjust = crossSpan - 2;
+          style += ';right:auto;width:calc(' + crossSpan + '*100% + ' + crossWidthAdjust + 'px)';
           cls += ' cal-period-bar-cross';
         }
       }
@@ -4529,8 +4530,8 @@ function renderCommissionCalendar(year, month, records) {
   html += '<div class="cal-legend-sep"></div>';
   html += '<div class="cal-legend">';
   html += '<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:' + CAL_URGENCY_COLORS[0] + '"></span>截稿<=2天</span>';
-  html += '<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:' + CAL_URGENCY_COLORS[1] + '"></span>3-5天</span>';
-  html += '<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:' + CAL_URGENCY_COLORS[2] + '"></span>>5天</span>';
+  html += '<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:' + CAL_URGENCY_COLORS[1] + '"></span>3-4天</span>';
+  html += '<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:' + CAL_URGENCY_COLORS[2] + '"></span>≥5天</span>';
   html += '<span class="legend-item"><span style="display:inline-block;width:14px;height:8px;border-radius:2px;background:' + CAL_DELIVERED_COLOR + '"></span>已交付</span>';
   html += '</div>';
   html += '</div>';
@@ -7376,7 +7377,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 1003, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 1004, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
