@@ -306,6 +306,15 @@ html.apk.modal-lock{overflow:hidden!important}
 .record-list.cal-view .record-card-header{margin-top:-3px}
 /* v534：接稿排期日历视图展示模块盒子 padding-top 再减 2px（13->11）*/
 .record-list.cal-view .record-card{padding-top:11px}
+/* v1007：标题文字上下隙找平（实测上 11.5 / 下 12.5，差 1px）——只位移标题文字 0.5px，分割线/编辑删除/内容不动。
+   作用域 = 九大模块列表卡 + 首页最新记录 + 接稿排期日历视图卡（全部带 cal-view 类） */
+.record-list.cal-view .record-card-title{position:relative;top:0.5px}
+/* v1007：OC 关系卡（record-list 无 cal-view，padding 16）——实测上 19.5 / 下 12.5（差 7px，手机 15.5/12.5 差 3px），
+   只位移标题文字，分割线/编辑删除/内容不动 */
+.record-list.oc-rel-list-2col .record-card-title{position:relative;top:-1.5px}
+@media (min-width:769px){
+  .record-list.oc-rel-list-2col .record-card-title{top:-3.5px}
+}
 .record-card-body{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--c-text-light)}
 .record-card-body .field{display:flex;gap:4px}
 .record-card-body .field-label{color:var(--c-text-muted)}
@@ -3351,21 +3360,33 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 /* ===== 接稿排期双栏预览：左右并排等宽卡片，一一对应、等高联动 ===== */
 .comm-dual{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:stretch;margin-top:6px}
 .comm-dual .record-card{height:100%;box-sizing:border-box;display:flex;flex-direction:column;min-width:0;padding-top:13px}
-.comm-dual .record-card-body{flex:1;min-width:0;padding-top:8px}
+.comm-dual .record-card-body{flex:1;min-width:0;padding-top:9px}
 /* v465：左栏卡片头部——标题、编辑/删除按钮在一条水平线上(标题左/按钮右)、分割线保留，整体往上移 2px，分隔线下边距 -4px */
 .comm-dual .record-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:-7px;margin-bottom:2px;border-bottom:1px solid var(--c-border-light);padding-bottom:6px}
+/* v1007：标题文字上下隙找平（桌面实测上 9.5 / 下 10.5）——只位移标题文字，分割线与编辑删除不动 */
+@media (min-width:769px){
+  .comm-dual .record-card-title{position:relative;top:0.5px}
+}
 /* v456：右栏详情模块标题分割线左右留空，与左侧卡片一致 */
-.comm-detail-card .cdc-header{margin:0 16px;padding:12px 0 8px;border-bottom:1px solid var(--c-border-light);font-size:13px;color:var(--c-text);font-weight:600;display:flex;justify-content:flex-start;align-items:center;gap:6px}
-.comm-dual .record-card-body .field:not(.comm-products-field){display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:baseline;margin:0}
-.comm-dual .record-card-body .field:not(.comm-products-field) .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;white-space:nowrap;line-height:1.4}
-.comm-dual .record-card-body .field:not(.comm-products-field) .field-value{font-size:13px;color:var(--c-text);line-height:1.4;min-width:0;word-break:break-word}
-.comm-dual .record-card-body .field:not(.comm-products-field) .field-tags{display:flex;flex-wrap:wrap;gap:4px}
-.comm-dual .record-card-body{gap:2px 0;margin-left:2px;margin-top:1px}
+/* v1007：标题文字上下隙相等——padding 总和保持 20px(12+8→10.5+9.5) 不变，分割线位置不动，仅标题文字上移 1.5px；
+   行高钉死 17px（安卓 normal 行高偏大会让 header 变高、分割线与左卡错位） */
+.comm-detail-card .cdc-header{margin:0 16px;padding:10.5px 0 9.5px;line-height:17px;border-bottom:1px solid var(--c-border-light);font-size:13px;color:var(--c-text);font-weight:600;display:flex;justify-content:flex-start;align-items:center;gap:6px}
+/* v1007：左栏内容行距向右栏(.cdc-row)看齐——右栏 label 12px/1.6、value 13px/1.5，行高 19.5px 无间隙；
+   左栏原 1.4/1.4+2px 间隙 = 20.2px 行距，逐行累积漂移导致两栏内容错位（她：「数据以右边为准」） */
+.comm-dual .record-card-body .field:not(.comm-products-field){display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:stretch;margin:0;min-height:19.5px}
+.comm-dual .record-card-body .field:not(.comm-products-field) .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;white-space:nowrap;line-height:1.6}
+.comm-dual .record-card-body .field:not(.comm-products-field) .field-value{font-size:13px;color:var(--c-text);line-height:1.5;min-width:0;word-break:break-word}
+.comm-dual .record-card-body .field:not(.comm-products-field) .field-tags{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.comm-dual .record-card-body{gap:0 0;margin-left:2px;margin-top:1px}
 .comm-dual .record-card-body .comm-product-checklist{flex-direction:row;flex-wrap:wrap;gap:4px;align-items:center}
 .comm-dual .record-card-body .comm-products-field{display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:center;margin:0}
-.comm-dual .record-card-body .comm-products-field .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;padding-right:8px;white-space:nowrap;line-height:1.4}
-.comm-dual .record-card-body .comm-product-item{display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;color:var(--c-text);line-height:1.4}
-.comm-dual .record-card-body .comm-product-item input{width:14px;height:14px;accent-color:var(--c-green);cursor:pointer}
+.comm-dual .record-card-body .comm-products-field .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;padding-right:8px;white-space:nowrap;line-height:1.6}
+.comm-dual .record-card-body .comm-product-item{display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;color:var(--c-text);line-height:1.5}
+/* v1007：胶囊行高钉 1.2（全宽度，此前仅 ≤640）——桌面 normal 行高把胶囊撑到 ~20px、顶破 19.5px 统一行距；
+   19.5px 行内由 align-items:center 保持胶囊自身 17px 紧凑居中 */
+.comm-dual .record-card-body .field .field-value.field-tags .tag{line-height:1.2}
+/* v1007：制品勾选框往上挪 0.5px（实测中心比文字低 0.25px，她说「偏下，往上调一点别调多」） */
+.comm-dual .record-card-body .comm-product-item input{width:14px;height:14px;accent-color:var(--c-green);cursor:pointer;transform:translateY(-0.5px)}
 .comm-dual .empty-state{grid-column:1 / -1}
 .comm-dual .comm-detail-card{cursor:default;display:flex;flex-direction:column;overflow:hidden}
 .comm-dual .comm-detail-card.record-card{background:var(--c-card);padding:0}
@@ -3397,9 +3418,10 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 /* v454：右侧轮播圆点上边距 -4px、下边距 +4px（在 v453 +2px 基础上再 +2px） */
 .comm-dual .cdc-dots{margin-top:-4px;margin-bottom:4px}
 /* v805: 手机端列表视图左卡（展示模块）——分割线上挪1px（header padding-bottom 6→5）与内容区整体上挪1px（body padding-top 8→7）分开调整，桌面端不动 */
+/* v1007：body padding-top 7→10.3——左栏首行文字与右栏(cdc-slide)首行对齐（实测差 3.31px，「数据以右边为准」） */
 @media (max-width:768px){
   .comm-dual .record-card-header{padding-bottom:5px}
-  .comm-dual .record-card-body{padding-top:7px}
+  .comm-dual .record-card-body{padding-top:10px}
 }
 .comm-dual .comm-detail-actions .btn{width:100%;pointer-events:auto}
 .record-card.selected{border-color:var(--c-primary);box-shadow:0 0 0 2px var(--c-primary-bg)}
@@ -3763,8 +3785,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1006"></script>
-<script>console.log('[小筱工作台] 当前版本 v1006 —— 若这里不是 1006 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1007"></script>
+<script>console.log('[小筱工作台] 当前版本 v1007 —— 若这里不是 1007 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
