@@ -1151,7 +1151,7 @@ html.apk.modal-lock{overflow:hidden!important}
      底行 td 强制 padding:0 消除表格线空隙，三格固定单行高 26px、内容水平+垂直居中、同模文字色统一 --c-text */
   .detail-table.comm-prod-table th.cc-seq,.detail-table.comm-prod-table th.cc-price,.detail-table.comm-prod-table th.cc-qty{width:60px}
   .detail-table.comm-prod-table .comm-ud-row td{padding:0;font-size:12px;text-align:center;white-space:normal;vertical-align:middle}
-  .detail-table.comm-prod-table .comm-ud-row .cu-cells{display:flex;align-items:stretch;width:100%;height:26px;box-sizing:border-box;border-top:1px solid var(--c-border)}
+  .detail-table.comm-prod-table .comm-ud-row .cu-cells{display:flex;align-items:stretch;width:100%;height:26px;box-sizing:border-box}
   .detail-table.comm-prod-table .comm-ud-row .cu-cell{flex:1 1 0;display:flex;align-items:center;justify-content:center;gap:6px;padding:0;white-space:nowrap}
   .detail-table.comm-prod-table .comm-ud-row .cu-cell+.cu-cell{border-left:1px solid var(--c-border)}
   .detail-table.comm-prod-table .comm-ud-row .cu-cell > span{display:inline-flex;align-items:center;justify-content:center;line-height:1}
@@ -1159,7 +1159,8 @@ html.apk.modal-lock{overflow:hidden!important}
   .detail-table.comm-prod-table .comm-ud-row .cu-urgent{color:var(--c-red)}
   .detail-table.comm-prod-table .comm-ud-row .cu-done{color:var(--c-green)}
   .detail-table.comm-prod-table .comm-ud-row label{display:inline-flex;align-items:center;gap:3px;cursor:pointer;font-size:12px;margin:0;line-height:1}
-  .detail-table.comm-prod-table .comm-ud-row .cu-urgent input,.detail-table.comm-prod-table .comm-ud-row .cu-done input{width:15px;height:15px;accent-color:var(--c-red);margin:0}
+  /* v1005: 勾选框整体往上挪 1px，使其与「加急/完成」文字视觉居中 */
+  .detail-table.comm-prod-table .comm-ud-row .cu-urgent input,.detail-table.comm-prod-table .comm-ud-row .cu-done input{width:15px;height:15px;accent-color:var(--c-red);margin:0;transform:translateY(-1px)}
   .detail-table.comm-prod-table .comm-ud-row .cu-done input{accent-color:var(--c-green)}
 }
 /* v914：开团记录售后「备注」——电脑端作为单号下方跨行备注；手机端(<=768px)仍可在每行下方显示小字 */
@@ -2990,9 +2991,10 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
      ④左侧标签顶距一致 ⇒ align-self:flex-start + margin-top:9，padding 对称后 diet/sleep 标签同位
      ⑤编辑/删除对齐 ⇒ 饮食 head 内联按钮收回到与睡眠同款 margin-top:2px（v987 收到 0 致偏上） */
   .lr-subtype-box{align-items:center;gap:8px;padding:10.5px 10px}
-  /* v1004: 左侧标签改为竖排文字(writing-mode:vertical-rl)，并让标签在盒内垂直拉伸后 flex 居中，
-     彻底解决不同字体/换行导致的上下边距不等问题 */
-  .lr-subtype-label{width:36px;font-size:16px;font-weight:700;color:var(--c-text);line-height:1;text-align:center;writing-mode:vertical-rl;text-orientation:mixed;align-self:stretch;display:flex;align-items:center;justify-content:center;margin:0}
+  /* v1005: 左侧标签恢复水平文字，按历史口径用「align-self:flex-start + 固定 margin-top」钉在盒内垂直正中，
+     右侧内容自动换行或新增记录时标签位置固定不动；空盒单独居中 */
+  .lr-subtype-label{width:36px;font-size:16px;font-weight:700;color:var(--c-text);line-height:1.2;text-align:center;align-self:flex-start;margin-top:11px}
+  .lr-box-empty .lr-subtype-label{align-self:center;margin-top:0}
   .lr-subtype-add{width:24px;height:24px;font-size:16px}
   .lr-record-row{transform:none}
   .lr-record-row::after{bottom:-1px}
@@ -3756,7 +3758,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1004"></script>
+  <script src="app.js?v=1005"></script>
 <script>console.log('[小筱工作台] 当前版本 v1004 —— 若这里不是 1004 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
