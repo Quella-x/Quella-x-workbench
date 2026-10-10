@@ -2991,11 +2991,10 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
      ④左侧标签顶距一致 ⇒ align-self:flex-start + margin-top:9，padding 对称后 diet/sleep 标签同位
      ⑤编辑/删除对齐 ⇒ 饮食 head 内联按钮收回到与睡眠同款 margin-top:2px（v987 收到 0 致偏上） */
   .lr-subtype-box{align-items:center;gap:8px;padding:10.5px 10px}
-  /* v1006: 左侧标签统一一条规则（空盒/有记录盒同位，她铁律「有记录和无记录位置一致」；
-     v1005 的「空盒单独居中」正是历史已否定的方案，删除）。margin 11→9：
-     她 v1.1.68 标注图按行距 21CSS 定标实测墨迹下空多 8CSS（她口述「下边距多」为反述 v1000 铁律，
-     像素=标签偏低 3.8CSS）；按她机墨迹模型(墨迹低坐0.78CSS)反解 margin:9px = 像素对称点（v1002 口径） */
-  .lr-subtype-label{width:36px;font-size:16px;font-weight:700;color:var(--c-text);line-height:1.2;text-align:center;align-self:flex-start;margin-top:9px}
+  /* v1006: 左侧标签回归她的原文口径（v844/v845 定稿、v930 恢复、MEMORY-modules 记档）：
+     「窄屏左侧标签垂直居中（自身上下空隙相等），空/有记录都居中」——统一 align-self:center;margin-top:0，
+     空盒/有记录盒同规则同位（v1005 的「空盒单独居中」与 v1002 的「顶距一致 flex-start」都是偏离，一并撤销） */
+  .lr-subtype-label{width:36px;font-size:16px;font-weight:700;color:var(--c-text);line-height:1.2;text-align:center;align-self:center;margin-top:0}
   /* v1006: 展示模块胶囊偏下——Android 默认行高(normal≈1.45em)比桌面 YaHei 大，11px 胶囊被撑到 ~20CSS
      撑满整行且相对标签下坠（她截图实测胶囊底超出参考线）；钉 line-height:1.2 使胶囊高度与设备无关，
      field-tags 统一 flex 居中（gb 等非 comm-list-style 模块同样生效） */
