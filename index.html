@@ -303,7 +303,12 @@ html.apk.modal-lock{overflow:hidden!important}
 /* v452：九大模块列表视图卡片标题底部分割线与接稿排期列表视图右侧接稿详情模块(.cdc-header)统一为同款 1px solid var(--c-border-light) */
 .record-list .record-card-header{border-bottom:1px solid var(--c-border-light);padding-bottom:8px}
 /* v535：接稿排期日历视图卡片标题/编辑/删除/分割线整体下移 1px（累计 -3px） */
-.record-list.cal-view .record-card-header{margin-top:-3px}
+/* v1008: 标题区对齐接稿排期左卡基准（实测 12/12 → 目标 10/10，手机 9.5/9.5；她定「所有展示模块以接稿排期左侧为基准」）：
+   margin-top -3→-5 + header padding-bottom 8→6(桌面)/5.5(手机)，标题 top:+0.5 位移保持 v1007 不变 */
+.record-list.cal-view .record-card-header{margin-top:-5px;padding-bottom:6px}
+@media (max-width:768px){
+  .record-list.cal-view .record-card-header{margin-top:-5.5px;padding-bottom:5.5px}
+}
 /* v534：接稿排期日历视图展示模块盒子 padding-top 再减 2px（13->11）*/
 .record-list.cal-view .record-card{padding-top:11px}
 /* v1007：标题文字上下隙找平（实测上 11.5 / 下 12.5，差 1px）——只位移标题文字 0.5px，分割线/编辑删除/内容不动。
@@ -314,6 +319,12 @@ html.apk.modal-lock{overflow:hidden!important}
 .record-list.oc-rel-list-2col .record-card-title{position:relative;top:-1.5px}
 @media (min-width:769px){
   .record-list.oc-rel-list-2col .record-card-title{top:-3.5px}
+}
+/* v1008: OC 关系卡标题区对齐接稿排期左卡基准（实测桌 16/16→10/10、手机 14/14→9.5/9.5）：
+   header margin-top 桌-6/机-4.5 + padding-bottom 桌2/机3.5（标题位移保持 v1007 不变） */
+.record-list.oc-rel-list-2col .record-card-header{margin-top:-6px;padding-bottom:2px}
+@media (max-width:768px){
+  .record-list.oc-rel-list-2col .record-card-header{margin-top:-4.5px;padding-bottom:3.5px}
 }
 .record-card-body{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--c-text-light)}
 .record-card-body .field{display:flex;gap:4px}
@@ -3000,10 +3011,11 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
      ④左侧标签顶距一致 ⇒ align-self:flex-start + margin-top:9，padding 对称后 diet/sleep 标签同位
      ⑤编辑/删除对齐 ⇒ 饮食 head 内联按钮收回到与睡眠同款 margin-top:2px（v987 收到 0 致偏上） */
   .lr-subtype-box{align-items:center;gap:8px;padding:10.5px 10px}
-  /* v1006: 左侧标签回归她的原文口径（v844/v845 定稿、v930 恢复、MEMORY-modules 记档）：
-     「窄屏左侧标签垂直居中（自身上下空隙相等），空/有记录都居中」——统一 align-self:center;margin-top:0，
-     空盒/有记录盒同规则同位（v1005 的「空盒单独居中」与 v1002 的「顶距一致 flex-start」都是偏离，一并撤销） */
-  .lr-subtype-label{width:36px;font-size:16px;font-weight:700;color:var(--c-text);line-height:1.2;text-align:center;align-self:center;margin-top:0}
+  /* v1008: 左侧标签回归电脑端正例同构规则——flex-start 钉在首条记录位置，内容换行/新增记录时位置固定不变
+     （v1006 的 align-self:center 在晚餐两行/零食两条时标签漂到盒中间，违反她「固定不动」铁律）。
+     空盒/有记录盒同一条规则同位（盒高等高 v1002 口径不变）。margin-top:10 = 单条记录盒墨迹上下隙相等点
+     （v1002 的 9 她报「下边距多」=标签偏高，v1005 的 11 偏低 1.1，取中校准）；电脑端 2794 规则不动 */
+  .lr-subtype-label{width:36px;font-size:16px;font-weight:700;color:var(--c-text);line-height:1.2;text-align:center;align-self:flex-start;margin-top:10px}
   /* v1006: 展示模块胶囊偏下——Android 默认行高(normal≈1.45em)比桌面 YaHei 大，11px 胶囊被撑到 ~20CSS
      撑满整行且相对标签下坠（她截图实测胶囊底超出参考线）；钉 line-height:1.2 使胶囊高度与设备无关，
      field-tags 统一 flex 居中（gb 等非 comm-list-style 模块同样生效） */
@@ -3785,8 +3797,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1007"></script>
-<script>console.log('[小筱工作台] 当前版本 v1007 —— 若这里不是 1007 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1008"></script>
+<script>console.log('[小筱工作台] 当前版本 v1008 —— 若这里不是 1007 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

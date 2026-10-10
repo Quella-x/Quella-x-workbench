@@ -4182,7 +4182,9 @@ function renderListPage(pageKey, mod) {
             if (['买断', '敌对', '已结算'].includes(v)) tc = 'tag-purple';
             if (f.key === 'progress' || f.key === 'paymentStatus') tc = commTagClass(f.key, v);
             const _ov = fieldDisplayTagClass(pageKey, f.key, v); if (_ov) tc = _ov;
-            html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value"><span class="tag ${tc}">${esc(String(v))}</span></span></span>`;
+            // v1008: 字符串值胶囊也走 field-tags flex 容器（与数组路径同构）——此前普通 field-value 内联胶囊
+            // 行盒被撑到 21.5 且胶囊 20.5 底部贴行底（她实测「稿件进度偏下、支付状态正确」）
+            html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value field-tags"><span class="tag ${tc}">${esc(String(v))}</span></span></span>`;
           }
         } else if (f.link) {
           if (v && v.startsWith('http')) html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><a href="${esc(v)}" target="_blank" style="color:var(--c-primary)">链接</a></span>`;
@@ -5785,7 +5787,7 @@ function renderHomeRecordCard(r) {
     }
     if (f.tag) {
       if (v === '') html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value"></span></span>`;
-      else html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value"><span class="tag tag-info">${esc(String(v))}</span></span></span>`;
+      else html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value field-tags"><span class="tag tag-info">${esc(String(v))}</span></span></span>`;
       return;
     }
     html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value">${esc(String(v))}</span></span>`;
@@ -7378,7 +7380,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 1007, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 1008, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
