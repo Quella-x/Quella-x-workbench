@@ -345,9 +345,7 @@ html.apk.modal-lock{overflow:hidden!important}
 .record-card-body.comm-list-style .comm-products-field .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;padding-right:8px;white-space:nowrap;line-height:1.6}
 /* v1009/v1010: 八模块内容行距与接稿排期左卡(.comm-dual)基准对齐（v1009 行高/min-height/gap/padding-top；v1010 字号改为 12/12） */
 .record-card-body.comm-list-style .field .field-value.field-tags .tag{line-height:1.2}
-/* v1015：胶囊相对标签文字「下面多一点」——文字墨迹在行内偏高 0.75px，胶囊几何居中就显得下坠；
-   八模块（comm-list-style）胶囊上移 0.75px 与文字墨迹居中。接稿左卡(comm-dual)未点名不动 */
-.record-card-body.comm-list-style .field .field-value.field-tags .tag{position:relative;top:-0.75px}
+/* v1015 曾把八模块胶囊上移 0.75px，她实测「上面又多了」（v1014 无位移的版本她说厂家评价是好的）——v1016 撤销上移 */
 @media (max-width:768px){
   .record-card-body.comm-list-style{padding-top:9px}
 }
@@ -515,6 +513,11 @@ html.apk.modal-lock{overflow:hidden!important}
   /* v807：列内滚动条隐藏（同报价计算 v719），滚动条不占布局宽 */
   .main-body.two-col-fixed .gb-left,.main-body.two-col-fixed .gb-right{scrollbar-width:none}
   .main-body.two-col-fixed .gb-left::-webkit-scrollbar,.main-body.two-col-fixed .gb-right::-webkit-scrollbar{width:0;height:0}
+  /* v1016：overflow 滚动容器把卡片左右阴影裁掉了（接稿排期等整页滚动模块阴影正常，她：「阴影边框不一样」）——
+     clip+clip-margin 在滚动容器里会被降级为 hidden，改用 padding+负 margin：卡片位置/宽度不变，
+     只让裁剪边界外扩 6px，阴影画得出来；纵向独立滚动行为不变 */
+  .main-body.two-col-fixed .gb-records-2col .gb-left,
+  .main-body.two-col-fixed .gb-records-2col .gb-right{padding-left:6px;padding-right:6px;margin-left:-6px;margin-right:-6px}
   /* v807：APK 兜底——宽视口 WebView 保持文档滚动（v798 铁律，内部滚动链在部分 WebView 失效） */
   html.apk .main-body.two-col-fixed{display:block;overflow:visible}
   html.apk .main-body.two-col-fixed .fade-in{display:block}
@@ -3389,7 +3392,13 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .comm-dual .record-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:-6px;margin-bottom:4px;border-bottom:1px solid var(--c-border-light);padding-bottom:8.5px}
 /* v1007：标题文字上下隙找平（桌面实测上 9.5 / 下 10.5）——只位移标题文字，分割线与编辑删除不动 */
 @media (min-width:769px){
-  .comm-dual .record-card-title{position:relative;top:0.5px}
+  .comm-dual .record-card-title{position:relative;top:0.75px}
+}
+/* v1016：左卡标题行高钉 17px 与右卡 cdc-header 同款——normal 行高 19px 的负半行距让文字墨迹比右卡低约 1px（她：「超出一节」） */
+.comm-dual .record-card-title{line-height:17px}
+/* v1016：手机断点同样补正 0.25px，使左卡标题框与右卡同高（桌面 0.75 / 手机 0.25，实测两端均 12） */
+@media (max-width:768px){
+  .comm-dual .record-card-title{position:relative;top:0.25px}
 }
 /* v456：右栏详情模块标题分割线左右留空，与左侧卡片一致 */
 /* v1007：标题文字上下隙相等——padding 总和保持 20px(12+8→10.5+9.5) 不变，分割线位置不动，仅标题文字上移 1.5px；
@@ -3811,8 +3820,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1015"></script>
-<script>console.log('[小筱工作台] 当前版本 v1015 —— 若这里显示的不是 v1015 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1016"></script>
+<script>console.log('[小筱工作台] 当前版本 v1016 —— 若这里显示的不是 v1016 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
