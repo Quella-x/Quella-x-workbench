@@ -2652,8 +2652,11 @@ function renderAnnualChart(records, dateField, opts = {}, pageKey) {
     for (let i = 0; i < 12; i++) {
       const maxBarH = Math.max(...series.map((s, si) => (data[si][i] / max) * 100), 0);
       const monthTotal = series.reduce((sum, s, si) => sum + data[si][i], 0);
+      // v1011：顶部数字改显示「利润」系列的当月值（她：「顶部数字改成显示利润」）；无利润系列的图维持合计口径
+      const profitIdx = series.findIndex(s => s.name === '利润');
+      const topVal = profitIdx >= 0 ? data[profitIdx][i] : monthTotal;
       bars += '<div class="annual-chart-bar">';
-      if (monthTotal > 0) bars += `<span class="annual-chart-bar-value" style="bottom:calc(${Math.max(maxBarH, 2)}% + 3px)">¥${Math.round(monthTotal).toLocaleString()}</span>`;
+      if (monthTotal > 0) bars += `<span class="annual-chart-bar-value" style="bottom:calc(${Math.max(maxBarH, 2)}% + 3px)">${topVal < 0 ? '-¥' + Math.round(-topVal).toLocaleString() : '¥' + Math.round(topVal).toLocaleString()}</span>`;
       bars += `<div style="display:flex;gap:1px;width:80%;height:100%;align-items:flex-end;justify-content:center">`;
       series.forEach((s, si) => {
         const v = data[si][i]; const h = (v / max) * 100;
@@ -2749,14 +2752,13 @@ MODULES['home'] = {
     { key: 'contentType', label: '内容类型', type: 'multiselect', single: true, options: [{ value: '图文', label: '图文' }, { value: '短视频', label: '短视频' }, { value: '推文', label: '推文' }, { value: '直播', label: '直播' }] },
     { key: 'status', label: '发布状态', type: 'multiselect', single: true, options: [{ value: '待发布', label: '待发布' }, { value: '已发布', label: '已发布' }] },
     { section: '24小时数据' },
-    { key: 'data24h_plays', label: '播放量', type: 'number', row: 'data24h' },
-    { key: 'data24h_reads', label: '阅读量', type: 'number', row: 'data24h' },
+    // v1011：播放量/阅读量合并为单个字段（她：「阅读量不是单个的啊」）——值存 plays key，统计同步取 plays/reads 最大值兼容旧数据
+    { key: 'data24h_plays', label: '播放量/阅读量', type: 'number', row: 'data24h' },
     { key: 'data24h_likes', label: '点赞', type: 'number', row: 'data24h' },
     { key: 'data24h_comments', label: '评论', type: 'number', row: 'data24h' },
     { key: 'data24h_saves', label: '收藏', type: 'number', row: 'data24h' },
     { section: '7天数据' },
-    { key: 'data7d_plays', label: '播放量', type: 'number', row: 'data7d' },
-    { key: 'data7d_reads', label: '阅读量', type: 'number', row: 'data7d' },
+    { key: 'data7d_plays', label: '播放量/阅读量', type: 'number', row: 'data7d' },
     { key: 'data7d_likes', label: '点赞', type: 'number', row: 'data7d' },
     { key: 'data7d_comments', label: '评论', type: 'number', row: 'data7d' },
     { key: 'data7d_saves', label: '收藏', type: 'number', row: 'data7d' },
@@ -5700,8 +5702,8 @@ function renderHome() {
     const thisMonth = todayStr().slice(0, 7);
     const published = scopeRecords.filter(r => statusOf(r) === '已发布');
     const monthPublished = published.filter(r => (r.publishTime || '').startsWith(thisMonth));
-    // 最高浏览：7 天阅读优先，未填时回落到 24 小时阅读，确保刚填完数据就能实时更新
-    const recViews = (r) => Math.max(Number(r.data7d_reads || 0), Number(r.data24h_reads || 0));
+    // 最高浏览：v1011 播放量/阅读量合并为单字段（存 plays key），取 plays/reads 四键最大值——兼容旧数据里只填了阅读量(reads)的记录
+    const recViews = (r) => Math.max(Number(r.data7d_plays || 0), Number(r.data24h_plays || 0), Number(r.data7d_reads || 0), Number(r.data24h_reads || 0));
     const monthMaxViews = monthPublished.reduce((m, r) => Math.max(m, recViews(r)), 0);
     const totalMaxViews = published.reduce((m, r) => Math.max(m, recViews(r)), 0);
     // 本月平均更新 = 本月发布条数 ÷ 当月天数(30/31)
@@ -7382,7 +7384,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 1010, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 1011, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
