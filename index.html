@@ -228,8 +228,8 @@ html.apk.modal-lock{overflow:hidden!important}
 .sidebar-overlay.show{display:block}
 
 /* ===== Cards & Lists ===== */
-.card{background:var(--c-card);border-radius:var(--radius);box-shadow:var(--shadow-sm);transition:box-shadow .2s}
-.card:hover{box-shadow:var(--shadow)}
+.card{background:var(--c-card);border-radius:var(--radius);outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;transition:box-shadow .2s}
+.card:hover{box-shadow:none}
 .card-body{padding:16px}
 
 .toolbar{
@@ -248,20 +248,20 @@ html.apk.modal-lock{overflow:hidden!important}
 .search-box{position:relative;display:flex;align-items:center}
 .search-box input{
   width:200px;padding:8px 32px 8px 12px;
-  border:1px solid transparent;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm);
+  border:1px dashed var(--c-border);border-radius:var(--radius-sm);box-shadow:none;
   font-size:13px;background:var(--c-card);transition:border-color .2s;
 }
 .search-box input:focus{border-color:var(--c-primary-light)}
 .search-box .search-icon{position:absolute;right:10px;color:var(--c-text-muted);font-size:14px;pointer-events:none}
 
 .filter-select{
-  padding:8px 12px;border:1px solid transparent;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm);
+  padding:8px 12px;border:1px dashed var(--c-border);border-radius:var(--radius-sm);box-shadow:none;
   font-size:13px;background:var(--c-card);cursor:pointer;transition:border-color .2s;
   text-align:center;color-scheme:light;
 }
 .filter-select:focus{border-color:var(--c-primary-light)}
 .filter-combobox{min-width:0;width:112px;max-width:112px}
-.filter-combobox-input{padding:8px 24px 8px 8px!important;font-size:13px;text-align:center;background:var(--c-card);cursor:pointer;border:1px solid transparent !important;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm);transition:border-color .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.filter-combobox-input{padding:8px 24px 8px 8px!important;font-size:13px;text-align:center;background:var(--c-card);cursor:pointer;border:1px dashed var(--c-border)!important;border-radius:var(--radius-sm);box-shadow:none;transition:border-color .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .filter-combobox .combobox-toggle{right:4px;width:16px;font-size:9px}
 .filter-combobox-input:focus{border-color:var(--c-primary-light)}
 .filter-combobox .combobox-option{text-align:center}
@@ -272,8 +272,8 @@ html.apk.modal-lock{overflow:hidden!important}
   font-weight:500;transition:all .2s;white-space:nowrap;
   border:1px solid transparent
 }
-.btn-primary{background:var(--c-primary);color:#fff;box-shadow:var(--shadow-sm)}
-.btn-primary:hover{background:var(--c-primary-dark);box-shadow:var(--shadow)}
+.btn-primary{background:var(--c-primary);color:#fff;box-shadow:none}
+.btn-primary:hover{background:var(--c-primary-dark);box-shadow:none}
 .btn-outline{background:var(--c-card);color:var(--c-primary);border:1px solid var(--c-primary-light);box-shadow:none}
 .btn-outline:hover{background:var(--c-primary-bg)}
 .btn-ghost{background:transparent;color:var(--c-text-light);box-shadow:none}
@@ -293,10 +293,10 @@ html.apk.modal-lock{overflow:hidden!important}
 .record-list{display:flex;flex-direction:column;gap:12px}
 .record-card{
   background:var(--c-card);border-radius:var(--radius);
-  box-shadow:var(--shadow-sm);padding:16px;transition:box-shadow .2s,transform .15s;
+  outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;padding:16px;transition:box-shadow .2s,transform .15s;
   cursor:pointer;
 }
-.record-card:hover{box-shadow:var(--shadow);border-color:var(--c-primary-bg)}
+.record-card:hover{box-shadow:none;border-color:var(--c-primary-bg)}
 .record-list.two-col .record-card{min-height:110px}
 .record-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;flex-wrap:wrap}
 .record-card-title{font-size:14px;font-weight:600;color:var(--c-text);flex:1;word-break:break-word;min-width:0}
@@ -384,7 +384,7 @@ html.apk.modal-lock{overflow:hidden!important}
 .stats-grid{grid-auto-columns:minmax(0,1fr)}
 .stat-card{
   background:var(--c-card);border-radius:var(--radius);
-  padding:16px;box-shadow:var(--shadow-sm);
+  padding:16px;outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;
 }
 .stat-card .stat-label{font-size:12px;color:var(--c-text-muted);margin-bottom:6px}
 /* v989: 桌面统计数值 22→18px（她反馈 22 太大；15 又太小，取中间值，不合适再调） */
@@ -406,7 +406,7 @@ html.apk.modal-lock{overflow:hidden!important}
 .tab-orange.active{color:var(--c-orange);border-bottom-color:var(--c-orange)}
 
 /* ===== Calendar ===== */
-.calendar{background:var(--c-card);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden}
+.calendar{background:var(--c-card);border-radius:var(--radius);outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;overflow:hidden}
 .calendar-header{
   display:flex;align-items:center;justify-content:space-between;
   padding:12px 16px;border-bottom:1px solid var(--c-border);
@@ -815,7 +815,7 @@ html.apk.modal-lock{overflow:hidden!important}
 /* v32: 时间线重要性分段胶囊 — 一个长椭圆容器，里面四段；未选中=白底彩点+黑字，选中=整段填色+白点白字 */
 .checkbox-group.importance-pills{
   display:inline-flex;flex-wrap:nowrap;gap:0;
-  background:#fff;border:none;border-radius:999px;box-shadow:var(--shadow-sm);
+  background:#fff;border:none;border-radius:999px;outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;
   padding:3px;overflow:hidden;height:var(--pill-h);
 }
 .checkbox-group.importance-pills .checkbox-item{
@@ -1252,7 +1252,7 @@ html.apk.modal-lock{overflow:hidden!important}
 /* Mind map */
 .mindmap-container{
   background:var(--c-card);border-radius:var(--radius);
-  box-shadow:var(--shadow-sm);padding:20px;min-height:500px;
+  outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;padding:20px;min-height:500px;
   position:relative;overflow:auto;
 }
 .mindmap-node{
@@ -1269,7 +1269,7 @@ html.apk.modal-lock{overflow:hidden!important}
 
 /* Price calculator */
 .calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.calc-section{background:var(--c-card);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:16px}
+.calc-section{background:var(--c-card);border-radius:var(--radius);outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;padding:16px}
 .calc-section h4{font-size:14px;margin-bottom:12px;color:var(--c-primary)}
 .calc-result{background:var(--c-primary-bg);border-radius:var(--radius-sm);padding:12px;margin-top:8px}
 .calc-result .calc-row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px}
@@ -1465,10 +1465,10 @@ html.apk.modal-lock{overflow:hidden!important}
   background:#fff;
   /* v715：去掉外框蓝色边框（用户要求弹窗内页不要蓝色外边框） */
   border:none;
+  outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;
   border-radius:12px;
   padding:16px 20px;
   margin-bottom:20px;
-  box-shadow:0 2px 8px rgba(91,155,213,.08);
 }
 .pricelist-notes-header{
   display:flex;align-items:baseline;justify-content:space-between;
@@ -1500,13 +1500,13 @@ html.apk.modal-lock{overflow:hidden!important}
 }
 .pricelist-category-card{
   background:#fff;border-radius:12px;padding:0;
-  box-shadow:0 2px 8px rgba(0,0,0,.04);
-  border:1px solid var(--c-border);
+  box-shadow:none;
+  border:1px dashed var(--c-border);
   overflow:hidden;
   transition:all .2s;
 }
 .pricelist-category-card:hover{
-  box-shadow:0 4px 16px rgba(91,155,213,.12);
+  box-shadow:none;
   border-color:var(--c-primary-light);
 }
 .pricelist-category-header{
@@ -1556,7 +1556,7 @@ html.apk.modal-lock{overflow:hidden!important}
 /* ===== Annual Bar Chart ===== */
 .annual-chart{
   background:var(--c-card);border-radius:var(--radius);
-  box-shadow:var(--shadow-sm);padding:16px;margin-bottom:16px;
+  outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;padding:16px;margin-bottom:16px;
 }
 /* v692：chart标题重构——图标+标题包成span做整体 flex，yearNav单独，space-between自然分布；图标用 vertical-align:text-bottom 让图标底与文字基线齐 */
 .annual-chart-title{
@@ -1626,10 +1626,10 @@ html.apk.modal-lock{overflow:hidden!important}
   border-radius:var(--radius-sm);color:#fff;font-size:13px;font-weight:600;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:2px;cursor:pointer;transition:all .2s;border:none;
-  box-shadow:0 2px 8px rgba(0,0,0,.12);
+  box-shadow:none;
   position:relative;overflow:hidden;
 }
-.platform-btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.16)}
+.platform-btn:hover{transform:translateY(-2px);box-shadow:none}
 .platform-btn .platform-main{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
 .platform-btn .platform-name{font-size:13px;font-weight:700;opacity:.95}
 .platform-btn .platform-icon{font-size:18px;margin-bottom:1px}
@@ -1656,7 +1656,7 @@ html.apk.modal-lock{overflow:hidden!important}
 
 .home-status-btn{
   flex:1;min-width:0;padding:0 12px;border-radius:var(--radius-sm);cursor:pointer;
-  border:1px solid transparent;background:var(--c-card);box-shadow:var(--shadow-sm);
+  border:1px dashed var(--c-border);background:var(--c-card);box-shadow:none;
   font-size:13px;font-weight:600;color:var(--c-text);line-height:1;height:var(--pill-h);min-height:var(--pill-h);
   display:flex;align-items:center;justify-content:center;gap:4px;transition:all .15s;
 }
@@ -1897,10 +1897,10 @@ html.apk.modal-lock{overflow:hidden!important}
   position:fixed;right:32px;bottom:32px;z-index:900;
   width:52px;height:52px;border-radius:50%;border:none;
   background:var(--c-primary);color:#fff;font-size:28px;cursor:pointer;
-  box-shadow:0 4px 12px rgba(0,0,0,.2);transition:all .2s;
+  box-shadow:none;transition:all .2s;
   display:flex;align-items:center;justify-content:center;line-height:1;
 }
-.fab-add:hover{transform:scale(1.1);box-shadow:0 6px 16px rgba(0,0,0,.25)}
+.fab-add:hover{transform:scale(1.1);box-shadow:none}
 .fab-add:active{transform:scale(.95)}
 
 /* ===== Pagination (v13) ===== */
@@ -2070,7 +2070,7 @@ html.apk.modal-lock{overflow:hidden!important}
 button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .calc-page-grid{display:grid;grid-template-columns:1fr 340px;gap:10px;align-items:stretch;height:100%}
 .calc-input-col{display:flex;flex-direction:column;gap:10px;height:100%;overflow-y:auto;container-type:inline-size}
-.calc-card{background:var(--c-card);border-radius:10px;padding:14px;box-shadow:var(--shadow-sm)}
+.calc-card{background:var(--c-card);border-radius:10px;padding:14px;outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;}
 .calc-card-title{font-size:14px;font-weight:600;color:var(--c-text);margin-bottom:10px;display:flex;align-items:center;gap:3px}
 .price-calc-title{margin-bottom:16px}
 .calc-card-hint{font-size:11px;font-weight:400;color:var(--c-text-muted)}
@@ -2317,7 +2317,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 /* AH轮修正：时间线选中胶囊加高(垂直padding)、外框内边距取消；全局toolbar间距回16px */
 .timeline-filter-bar{
   display:flex;flex-wrap:nowrap;gap:0;align-items:center;justify-content:center;
-  width:fit-content;min-width:auto;max-width:100%;background:#fff;border:1px solid transparent;border-radius:999px;box-shadow:var(--shadow-sm);
+  width:fit-content;min-width:auto;max-width:100%;background:#fff;border:1px dashed var(--c-border);border-radius:999px;box-shadow:none;
   padding:0;margin:8px auto 14px;overflow:hidden;box-sizing:border-box;
 }
 @media (max-width:768px){
@@ -2362,7 +2362,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   content:'';width:8px;height:8px;border-radius:50%;background:#fff;flex-shrink:0;
 }
 .timeline-container{
-  background:var(--c-card);border-radius:var(--radius);box-shadow:var(--shadow-sm);
+  background:var(--c-card);border-radius:var(--radius);outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;
   padding:20px;position:relative;
 }
 .timeline-item{
@@ -2418,7 +2418,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .spacer{flex:1}
 
 /* Hero */
-.life-hero{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,var(--c-primary-bg),#fff);border-radius:var(--radius);padding:14px 16px;margin:2px 0 14px;box-shadow:var(--shadow-sm)}
+.life-hero{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,var(--c-primary-bg),#fff);border-radius:var(--radius);padding:14px 16px;margin:2px 0 14px;outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;}
 .life-hero .lh-ico{font-size:30px}
 .life-hero .lh-title{font-size:16px;font-weight:800;color:var(--c-text)}
 .life-hero .lh-sub{font-size:12px;color:var(--c-text-light);margin-top:2px}
@@ -2431,12 +2431,12 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 /* Summary cards */
 .life-summary-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin:12px 0 14px}
-.life-summary-card{background:var(--c-card);border-radius:var(--radius);padding:12px 10px;text-align:center;box-shadow:var(--shadow-sm)}
+.life-summary-card{background:var(--c-card);border-radius:var(--radius);padding:12px 10px;text-align:center;outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;}
 .life-summary-card .lsc-val{font-size:22px;font-weight:800;color:var(--c-primary-dark)}
 .life-summary-card .lsc-label{font-size:12px;color:var(--c-text-light);margin-top:2px}
 
 /* Quick check-in block */
-.life-quick-checkin{background:#fff;border-radius:var(--radius);padding:18px 12px;margin-bottom:14px;box-shadow:var(--shadow-sm)}
+.life-quick-checkin{background:#fff;border-radius:var(--radius);padding:18px 12px;margin-bottom:14px;outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;}
 .lqc-hd{display:flex;align-items:center;justify-content:flex-start;gap:10px;margin-bottom:12px}
 .lqc-title{font-size:18px;font-weight:700;color:var(--c-text)}
 .lqc-count{font-size:11px;font-weight:500;color:var(--c-text-light);background:var(--c-card);padding:2px 8px;border-radius:99px}
@@ -2480,8 +2480,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .life-goal-add:hover{border-color:var(--c-primary);color:var(--c-primary)}
 .lga-plus{font-size:30px;line-height:1}
 .lga-txt{font-size:13px}
-.life-goal-card{background:var(--c-card);border-radius:var(--radius);padding:10px 12px;box-shadow:var(--shadow-sm);transition:box-shadow .2s,transform .2s,border-color .2s;display:flex;flex-direction:column;gap:8px}
-.life-goal-card:hover{box-shadow:var(--shadow);transform:translateY(-2px);border-color:var(--c-primary-light)}
+.life-goal-card{background:var(--c-card);border-radius:var(--radius);padding:10px 12px;outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;transition:box-shadow .2s,transform .2s,border-color .2s;display:flex;flex-direction:column;gap:8px}
+.life-goal-card:hover{box-shadow:none;transform:translateY(-2px);border-color:var(--c-primary-light)}
 .lgc-head{display:flex;align-items:center;gap:12px}
 .lgc-ico{width:44px;height:44px;border-radius:50%;background:var(--c-primary-bg);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
 .lgc-title-wrap{flex:1;min-width:0;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
@@ -2538,7 +2538,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lgc-monthprog,.lgc-foot{transform:translateY(-1px)}
 
 /* Quick check-in matrix */
-.life-quick-matrix{background:var(--c-card);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
+.life-quick-matrix{background:var(--c-card);border-radius:var(--radius);overflow:hidden;outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;}
 .life-qm-table{width:100%;border-collapse:collapse;font-size:13px}
 .life-qm-table th{padding:10px 6px;text-align:center;font-weight:600;color:var(--c-text-light);background:var(--c-primary-bg);border-bottom:1px solid var(--c-border-light)}
 .life-qm-table th .wd{font-weight:400;font-size:11px}
@@ -2607,7 +2607,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 #lifePickerBackdrop{display:none}
 #lifePickerBackdrop.show{display:block}
 .life-year-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.life-year-card{background:var(--c-card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow-sm)}
+.life-year-card{background:var(--c-card);border-radius:var(--radius);padding:14px;outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;}
 .life-year-grid .life-goal-card{padding-top:10px}
 .lyc-name{font-size:14px;font-weight:700;color:var(--c-text);display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .life-year-grid .lgc-name{font-size:14px}
@@ -2686,7 +2686,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 /* ===== /v627 每日打卡配色局部调整 ===== */
 
 /* 本周概览（主页面大模块） */
-.life-week-module{background:var(--c-card);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow-sm);max-width:420px;margin:0 auto 14px}
+.life-week-module{background:var(--c-card);border-radius:var(--radius);padding:12px 14px;outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;max-width:420px;margin:0 auto 14px}
 .lwm-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap;padding-left:0;padding-right:0}
 .lwm-title{font-size:18px;font-weight:700;color:var(--c-text)}
 .lwm-range{font-size:12px;font-weight:600;color:var(--c-text-light);min-width:120px;text-align:right}
@@ -2703,13 +2703,13 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lwm-cell.week.done{background:var(--c-orange);border-color:var(--c-orange)}
 .lwm-cell.today{outline:1px solid var(--c-primary);outline-offset:-1px}
 .lwm-cell.week.today{outline-color:var(--c-orange)}
-.lwm-summary{display:flex;gap:10px;flex-wrap:wrap;margin:0 auto 12px;max-width:420px;background:var(--c-card);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow-sm)}
+.lwm-summary{display:flex;gap:10px;flex-wrap:wrap;margin:0 auto 12px;max-width:420px;background:var(--c-card);border-radius:var(--radius);padding:12px 14px;outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;}
 .lwm-sum-item{flex:1;min-width:100px;display:flex;flex-direction:column;gap:3px}
 .lwm-sum-label{font-size:11px;color:var(--c-text-light)}
 .lwm-sum-val{font-size:18px;font-weight:800;color:var(--c-text)}
 
 /* Daily record */
-.life-record-datebar{display:flex;align-items:center;gap:10px;background:var(--c-card);border-radius:var(--radius);padding:10px 14px;margin-bottom:4px;box-shadow:var(--shadow-sm);flex-wrap:wrap}
+.life-record-datebar{display:flex;align-items:center;gap:10px;background:var(--c-card);border-radius:var(--radius);padding:10px 14px;margin-bottom:4px;outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;flex-wrap:wrap}
 .life-record-datebar input[type=date]{padding:7px 9px;font-size:14px;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:#fff;color-scheme:light}
 .life-stat-row{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 4px}
 .life-stat{flex:1;min-width:120px;background:var(--c-primary-bg);border-radius:var(--radius);padding:10px 14px;text-align:center}
@@ -2732,7 +2732,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .life-rec-form .form-input,.life-rec-form .form-select{font-size:13px}
 .life-rec-form .checkbox-group.pill-group,.life-rec-form .checkbox-group.tag-group{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 
-.life-panel{background:var(--c-card);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-top:14px;overflow:hidden}
+.life-panel{background:var(--c-card);border-radius:var(--radius);outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;margin-top:14px;overflow:hidden}
 .life-panel-head{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--c-primary-bg);border-bottom:1px solid var(--c-border-light)}
 .life-panel-head .lph-ico{font-size:18px}
 .life-panel-head .lph-label{font-weight:700;font-size:14px;color:var(--c-text)}
@@ -2768,7 +2768,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .life-record-page{background:var(--c-bg);border-radius:var(--radius);padding:0;margin:0}
 
 /* Top overview card — v311: 左右两盒均分，中间竖线用左盒 border-right，底色白色 */
-.lr-top-card{display:grid;grid-template-columns:1fr 1fr;align-items:stretch;background:#FFFFFF;border-radius:var(--radius);padding:0;margin-bottom:12px;box-shadow:var(--shadow-sm);overflow:hidden;min-height:210px}
+.lr-top-card{display:grid;grid-template-columns:1fr 1fr;align-items:stretch;background:#FFFFFF;border-radius:var(--radius);padding:0;margin-bottom:12px;outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;overflow:hidden;min-height:210px}
 .lr-top-left{min-width:0;display:flex;align-items:flex-start;justify-content:flex-start;gap:14px;padding:16px 16px 16px 3px;border-right:1px solid var(--c-border-light);box-sizing:border-box}
 .lr-ring-col{flex-shrink:0;display:flex;flex-direction:column;align-items:center;min-width:0;margin-left:-2px}
 .sleep-ring-wrap{position:relative;width:160px;height:160px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
@@ -2801,13 +2801,13 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 /* v934：日期标签固定宽度（容纳最长「2026年12月28日 ▾」），切换日期时导航整体不再移动/缩放 */
 .lr-date-nav .life-monthbar-txt{width:136px;min-width:136px}
 .lmp-back{font-size:12px;color:var(--c-primary);text-align:center;padding:4px 0 8px;cursor:pointer}
-.lr-toggle-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--c-card);border:1px solid transparent;border-radius:var(--radius-sm);padding:0 12px;font-size:13px;font-weight:600;color:var(--c-text);cursor:pointer;transition:.15s;line-height:1;height:var(--pill-h);min-height:var(--pill-h);box-shadow:var(--shadow-sm)}
-.lr-toggle-btn:hover{color:var(--c-primary);box-shadow:var(--shadow)}
+.lr-toggle-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--c-card);border:1px solid transparent;border-radius:var(--radius-sm);padding:0 12px;font-size:13px;font-weight:600;color:var(--c-text);cursor:pointer;transition:.15s;line-height:1;height:var(--pill-h);min-height:var(--pill-h);outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;}
+.lr-toggle-btn:hover{color:var(--c-primary);box-shadow:none}
 .lr-toggle-btn.active{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
 .lr-toggle-btn span{font-size:18px}
 
 /* Record cards */
-.lr-card{background:var(--c-card);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-bottom:12px;overflow:hidden}
+.lr-card{background:var(--c-card);border-radius:var(--radius);outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;margin-bottom:12px;overflow:hidden}
 .lr-card-head{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--c-primary-bg);border-bottom:1px solid var(--c-border-light)}
 /* v687：标题改为 flex 容器，让图标与文字视觉中心对齐（消除 lucide-icon 基线偏上） */
 /* v688：撤销 v687 的 flex（vertical-align:middle 已全局生效，不再需要 flex 居中） */
@@ -2918,7 +2918,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .life-rec-form .flavor-name{white-space:normal;word-break:break-word;overflow:visible;min-width:0;flex:1}
 
 /* History view */
-.lr-history-stat-card{background:var(--c-card);border-radius:var(--radius);padding:10px;margin-bottom:8px;box-shadow:var(--shadow-sm)}
+.lr-history-stat-card{background:var(--c-card);border-radius:var(--radius);padding:10px;margin-bottom:8px;outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;}
 /* v938：日均行上下留白对称（她的口径一直是「两边一致」，不是某个固定值）。
    ⚠️ 走过的弯路：v935/v936 我把上边距越调越大（10→26/28），她说"我说下边距近了，你把上边距拉更大"；
    v937 我为了凑相等把上边距压到 6（原值 10），她说"上边距少了，初始是这个值吗？"——问得对，6 根本不是原始值。
@@ -2966,7 +2966,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .lr-hsc-diet-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 12px;padding:4px 2px}
 .lr-hsc-diet-item{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--c-text)}
 .lr-hsc-diet-count{font-weight:700;color:var(--c-primary)}
-.lr-history-day-card{background:var(--c-card);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-bottom:12px;overflow:hidden}
+.lr-history-day-card{background:var(--c-card);border-radius:var(--radius);outline:1px dashed var(--c-border);outline-offset:-1px;box-shadow:none;margin-bottom:12px;overflow:hidden}
 .lr-history-day-head{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--c-primary-bg);border-bottom:1px solid var(--c-border-light)}
 .lr-history-day-date{font-size:14px;font-weight:700;color:var(--c-text)}
 .lr-history-day-wd{font-size:12px;color:var(--c-text-light);font-weight:500}
@@ -3082,8 +3082,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-page-head{font-size:18px;font-weight:700;color:var(--c-primary-dark);margin:2px 0 12px}
 /* 信息录入：四个按钮并列（桌面一排4，移动一排2） */
 .cd-import-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
-.cd-import-btn{padding:14px 12px;border-radius:var(--radius-sm);background:#fff;border:1px solid transparent;box-shadow:var(--shadow-sm);cursor:pointer;transition:.15s;text-align:center;margin-bottom:-2px}
-.cd-import-btn:hover{box-shadow:0 2px 10px rgba(0,0,0,.06);transform:translateY(-2px)}
+.cd-import-btn{padding:14px 12px;border-radius:var(--radius-sm);background:#fff;border:1px dashed var(--c-border);box-shadow:none;cursor:pointer;transition:.15s;text-align:center;margin-bottom:-2px}
+.cd-import-btn:hover{box-shadow:none;transform:translateY(-2px)}
 .cd-import-btn-icon{font-size:26px;margin-bottom:3px}
 /* v452：顶部导入渠道按钮字色与接稿详情四个品类按钮内文字色(var(--c-text))统一 */
 .cd-import-btn-name{font-size:14px;font-weight:700;color:var(--c-primary-dark)}
@@ -3224,7 +3224,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 /* v733：接稿详情顶部顺序改 导入→搜索→品类 后，搜索框下边距跟随其余块统一为 8px（原继承 .toolbar 的 14px） */
 .cd-toolbar{margin-bottom:8px}
 .cd-cat-bar{display:flex;gap:6px;margin-bottom:14px}
-.cd-cat-btn{flex:1;justify-content:center;padding:11px 6px;border:1px solid transparent;border-radius:var(--radius-sm);font-size:14px;cursor:pointer;background:#fff;color:var(--c-text);transition:.15s;display:flex;align-items:center;gap:6px;font-weight:700;margin-bottom:-2px;box-shadow:var(--shadow-sm)}
+.cd-cat-btn{flex:1;justify-content:center;padding:11px 6px;border:1px solid transparent;border-radius:var(--radius-sm);font-size:14px;cursor:pointer;background:#fff;color:var(--c-text);transition:.15s;display:flex;align-items:center;gap:6px;font-weight:700;margin-bottom:-2px;border:1px dashed var(--c-border);box-shadow:none}
 .cd-cat-btn:hover{color:var(--c-primary)}
 .cd-cat-btn.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary)}
 /* v452：品类按钮后数字颜色与按钮内文字色(var(--c-text))一致；激活态保持 #fff */
@@ -3391,14 +3391,16 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 /* v465：左栏卡片头部——标题、编辑/删除按钮在一条水平线上(标题左/按钮右)、分割线保留，整体往上移 2px，分隔线下边距 -4px */
 .comm-dual .record-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:-6px;margin-bottom:4px;border-bottom:1px solid var(--c-border-light);padding-bottom:8.5px}
 /* v1007：标题文字上下隙找平（桌面实测上 9.5 / 下 10.5）——只位移标题文字，分割线与编辑删除不动 */
+/* v1017：八模块(cal-view)标题同款对齐（她：「其他展示模块还没改啊」） */
 @media (min-width:769px){
-  .comm-dual .record-card-title{position:relative;top:0.75px}
+  .comm-dual .record-card-title,.record-list.cal-view .record-card-title{position:relative;top:0.75px}
 }
 /* v1016：左卡标题行高钉 17px 与右卡 cdc-header 同款——normal 行高 19px 的负半行距让文字墨迹比右卡低约 1px（她：「超出一节」） */
-.comm-dual .record-card-title{line-height:17px}
+/* v1017：八模块标题行高同款钉 17px */
+.comm-dual .record-card-title,.record-list.cal-view .record-card-title{line-height:17px}
 /* v1016：手机断点同样补正 0.25px，使左卡标题框与右卡同高（桌面 0.75 / 手机 0.25，实测两端均 12） */
 @media (max-width:768px){
-  .comm-dual .record-card-title{position:relative;top:0.25px}
+  .comm-dual .record-card-title,.record-list.cal-view .record-card-title{position:relative;top:0.25px}
 }
 /* v456：右栏详情模块标题分割线左右留空，与左侧卡片一致 */
 /* v1007：标题文字上下隙相等——padding 总和保持 20px(12+8→10.5+9.5) 不变，分割线位置不动，仅标题文字上移 1.5px；
@@ -3433,7 +3435,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .coop-date{color:var(--c-text-light)}
 .coop-date{color:var(--c-text-muted);font-size:11px}
 .coop-src{display:block;font-size:10px;color:var(--c-text-muted);font-weight:400;margin-top:2px}
-.comm-dual .comm-detail-card:hover{box-shadow:var(--shadow-sm);border-color:transparent}
+.comm-dual .comm-detail-card:hover{box-shadow:none}
 .comm-detail-card .cdc-header-label{font-size:13px;color:var(--c-text-muted);font-weight:500}
 .comm-detail-card .cdc-header-value{font-size:14px;color:var(--c-text);font-weight:600}
 .comm-detail-card .cdc-header-main{white-space:nowrap}
@@ -3820,8 +3822,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1016"></script>
-<script>console.log('[小筱工作台] 当前版本 v1016 —— 若这里显示的不是 v1016 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1017"></script>
+<script>console.log('[小筱工作台] 当前版本 v1017 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

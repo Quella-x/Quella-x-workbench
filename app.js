@@ -2687,9 +2687,10 @@ function renderAnnualChart(records, dateField, opts = {}, pageKey) {
   months.forEach(v => {
     const h = (v / max) * 100;
     const barH = Math.max(h, v > 0 ? 2 : 0);
+    // v1017：恢复零月 2px 底条（她对照最早截图「没改回去」）——v1015 误加的内联条件 min-height 覆盖了 CSS 的无条件 min-height:2px，删掉即回到最早样子
     bars += '<div class="annual-chart-bar">';
     if (v > 0) bars += `<span class="annual-chart-bar-value" style="bottom:calc(${barH}% + 3px)">${isCount ? v : '¥' + Math.round(v).toLocaleString()}</span>`;
-    bars += `<div class="annual-chart-bar-fill" style="height:${barH}%;background:linear-gradient(180deg,${barColor},${barColor}88);min-height:${v > 0 ? '2px' : '0'}"></div>`;
+    bars += `<div class="annual-chart-bar-fill" style="height:${barH}%;background:linear-gradient(180deg,${barColor},${barColor}88)"></div>`;
     bars += '</div>';
   });
   let labels = ''; for (let i = 0; i < 12; i++) labels += `<span>${i + 1}月</span>`;
@@ -2847,10 +2848,11 @@ MODULES['groupbuy-records'] = {
   statsYearField: 'startTime',
   chart: (records) => renderAnnualChart(records, 'startTime', {
     title: '开团营收/成本/利润',
+    // v1017：她要求顺序改为 成本、营收、利润（图例与柱条顺序随数组）
     series: [
-      { name: '营收', compute: r => parseNum(r.productTotal) + parseNum(r.shippingTotal), color: '#7ec678' },
-      // v983: 成本线同步含售后（与总成本卡片同口径），利润 = 营收 − 成本（含售后）
       { name: '成本', compute: r => parseNum(r.cost) + parseNum(r.shippingTotalCost) + gbAfterSalesTotal(r), color: '#e8857e' },
+      // v983: 成本线同步含售后（与总成本卡片同口径），利润 = 营收 − 成本（含售后）
+      { name: '营收', compute: r => parseNum(r.productTotal) + parseNum(r.shippingTotal), color: '#7ec678' },
       { name: '利润', compute: r => parseNum(r.productTotal) + parseNum(r.shippingTotal) - parseNum(r.cost) - parseNum(r.shippingTotalCost) - gbAfterSalesTotal(r), color: '#9DC8FF' },
     ], year: getChartYear('groupbuy-records') }, 'groupbuy-records'),
   detailExtra: (r) => {
@@ -7389,7 +7391,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 1016, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 1017, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
@@ -11322,7 +11324,8 @@ function lifeCheckinModalMakeup(typeKey) {
   if (DB.list('lifeCheckins').some(r => r.type === typeKey && r.date === d)) { Toast.info('该日期已打卡'); return; }
   const def = getCheckinDef(typeKey);
   DB.add('lifeCheckins', { type: typeKey, date: d, week: weekKeyOf(d), period: def.period, isMakeup: d < todayStr(), createdAt: new Date().toISOString() });
-  Toast.success('补卡成功');
+  // v1017：当天点击按钮已显示为「打卡」，提示语同步（isMakeup 本就按日期自动判断）
+  Toast.success(d < todayStr() ? '补卡成功' : '打卡成功');
   lifeCheckinRenderModal(typeKey);
   renderLifeCheckin();
 }
@@ -11514,7 +11517,7 @@ function lifeCheckinRenderModal(typeKey) {
     mpDone = lifeWeeklyMonthCount(typeKey, v.y, v.m);
   }
   let html = `<div class="life-modal-body">`;
-  html += `<div class="life-modal-hd"><div><div class="lm-name">${esc(getLifeCheckinLabel(t.key))}<span class="lm-tag">${t.period === 'day' ? '每日打卡' : '每周打卡'}</span></div></div></div>`;
+  // v1017：她要求去掉弹窗内这行标题（原「名称 + 每日打卡」chip），内容并入顶部标题栏
   // month nav (replaces date input)
   html += `<div class="life-modal-monthbar">`;
   html += `<button class="btn btn-ghost btn-sm" onclick="lifeCheckinModalPrevMonth()">‹ 上月</button>`;
@@ -11528,7 +11531,8 @@ function lifeCheckinRenderModal(typeKey) {
   html += `<div class="life-modal-prog"><div class="lmp-num ${t.period === 'week' ? 'week' : ''}">${mpDone}/${mpTotal}</div></div>`;
   html += `</div></div>`;
   html += `<div class="life-modal-btns">`;
-  html += `<button class="btn btn-primary" onclick="lifeCheckinModalMakeup('${typeKey}')">补卡</button>`;
+  // v1017：她要求当天时「补卡」显示为「打卡」（isMakeup 本就按日期自动判断，行为不变）
+  html += `<button class="btn btn-primary" onclick="lifeCheckinModalMakeup('${typeKey}')">${lifeCheckinSelDate === t2 ? '打卡' : '补卡'}</button>`;
   html += `<button class="btn life-modal-undo" onclick="lifeCheckinModalUndo('${typeKey}')">撤销</button>`;
   html += `</div>`;
   html += `<div class="life-modal-sel">已选日期：${lifeCheckinSelDate}</div>`;
@@ -11545,7 +11549,8 @@ function lifeCheckinRenderModal(typeKey) {
     html += `</div>`;
   }
   html += `</div>`;
-  openModal(esc(getLifeCheckinLabel(t.key)) + ' 打卡详情', html, '');
+  // v1017：标题栏文案与弹窗内原 chip 一致（每日打卡/每周打卡），不再叫「打卡详情」
+  openModal(esc(getLifeCheckinLabel(t.key)) + (t.period === 'day' ? ' 每日打卡' : ' 每周打卡'), html, '');
 }
 function renderLifeWeekOverview() {
   const today = todayStr();
