@@ -333,14 +333,19 @@ html.apk.modal-lock{overflow:hidden!important}
 /* v517：对齐样式模块标签不再显示冒号；默认流式布局仍保留冒号 */
 .record-card-body:not(.comm-list-style) .field-label::after{content:':'}
 /* v515: 九模块列表字段对齐（与接稿排期左栏一致：64px 右对齐标签 + 1fr 值列），仅内部字段样式，单双列保持原样 */
-.record-card-body.comm-list-style{display:flex;flex-direction:column;gap:2px 0;margin-left:2px;margin-top:1px}
-.record-card-body.comm-list-style .field:not(.comm-products-field){display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:baseline;margin:0}
-.record-card-body.comm-list-style .field:not(.comm-products-field) .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;white-space:nowrap;line-height:1.4}
-.record-card-body.comm-list-style .field:not(.comm-products-field) .field-value{font-size:13px;color:var(--c-text);line-height:1.4;min-width:0;word-break:break-word}
+.record-card-body.comm-list-style{display:flex;flex-direction:column;gap:0 0;margin-left:2px;margin-top:1px;padding-top:9px}
+.record-card-body.comm-list-style .field:not(.comm-products-field){display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:stretch;margin:0;min-height:19.5px}
+.record-card-body.comm-list-style .field:not(.comm-products-field) .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;white-space:nowrap;line-height:1.6}
+.record-card-body.comm-list-style .field:not(.comm-products-field) .field-value{font-size:13px;color:var(--c-text);line-height:1.5;min-width:0;word-break:break-word}
 .record-card-body.comm-list-style .field:not(.comm-products-field) .field-tags{display:flex;flex-wrap:wrap;gap:4px}
 .record-card-body.comm-list-style .comm-product-checklist{flex-direction:row;flex-wrap:wrap;gap:4px;align-items:center}
 .record-card-body.comm-list-style .comm-products-field{display:grid;grid-template-columns:61px 1fr;gap:0 0;align-items:center;margin:0}
-.record-card-body.comm-list-style .comm-products-field .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;padding-right:8px;white-space:nowrap;line-height:1.4}
+.record-card-body.comm-list-style .comm-products-field .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;padding-right:8px;white-space:nowrap;line-height:1.6}
+/* v1009: 八模块内容行距与接稿排期左卡(.comm-dual)基准对齐（她：「内容间距差很大」）——行高/字段min-height/body gap/padding-top 同构，字号保持 12/13 不动 */
+.record-card-body.comm-list-style .field .field-value.field-tags .tag{line-height:1.2}
+@media (max-width:768px){
+  .record-card-body.comm-list-style{padding-top:10px}
+}
 .record-card-actions{display:flex;gap:4px;justify-content:flex-end;flex-shrink:0}
 .record-card-minimal{padding:14px}
 .record-card-minimal .record-card-header{margin-bottom:10px}
@@ -3797,8 +3802,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1008"></script>
-<script>console.log('[小筱工作台] 当前版本 v1008 —— 若这里不是 1007 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1009"></script>
+<script>console.log('[小筱工作台] 当前版本 v1009 —— 若这里显示的不是 v1009 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
