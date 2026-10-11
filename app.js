@@ -2635,7 +2635,7 @@ function renderAnnualChart(records, dateField, opts = {}, pageKey) {
   const { title = '', color = '#9DC8FF', valueField = null, isCount = false, series = null, year = null } = opts;
   const yr = year || new Date().getFullYear();
   const yearNav = pageKey ? `<div class="annual-chart-yearnav"><button class="btn btn-xs btn-ghost" onclick="setChartYear('${pageKey}',${yr - 1})">‹ 上年</button><button class="btn btn-xs btn-ghost" onclick="setChartYear('${pageKey}',${yr + 1})">下年 ›</button></div>` : '';
-  if (series && series.length) {
+  if (series && series.length > 1) {
     const data = series.map(() => Array(12).fill(0));
     records.forEach(r => {
       const d = r[dateField]; if (!d || !String(d).startsWith(String(yr))) return;
@@ -2670,12 +2670,17 @@ function renderAnnualChart(records, dateField, opts = {}, pageKey) {
     const hasYearnav = yearNav ? ' has-yearnav' : '';
     return `<div class="annual-chart${hasYearnav}"><div class="annual-chart-title"><span class="annual-chart-title-main">${lucide('bar-chart-3',16)} ${esc(title)} · ${yr}年</span>${yearNav}</div><div class="annual-chart-bars">${bars}</div><div class="annual-chart-labels">${labels}</div><div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--c-text-light)">${legend}</div></div>`;
   }
+  // v1012：单条柱统一走单系列分支（她：「接稿排期的单条和其他单条一样吗」）——
+  // 接稿收入等单系列 series 图与普通单系列图完全同构：同柱宽/同渐变/同数字格式/无图例
+  const single = series && series.length === 1 ? series[0] : null;
+  const barColor = single ? (single.color || color) : color;
   const months = Array(12).fill(0);
   records.forEach(r => {
     const d = r[dateField]; if (!d || !String(d).startsWith(String(yr))) return;
     const m = parseInt(String(d).split('-')[1]) - 1;
     if (m < 0 || m > 11) return;
-    if (isCount) months[m] += 1; else months[m] += parseNum(r[valueField]);
+    if (single) months[m] += single.compute ? single.compute(r) : parseNum(r[single.valueField]);
+    else if (isCount) months[m] += 1; else months[m] += parseNum(r[valueField]);
   });
   const max = Math.max(...months, 1);
   let bars = '';
@@ -2684,7 +2689,7 @@ function renderAnnualChart(records, dateField, opts = {}, pageKey) {
     const barH = Math.max(h, v > 0 ? 2 : 0);
     bars += '<div class="annual-chart-bar">';
     if (v > 0) bars += `<span class="annual-chart-bar-value" style="bottom:calc(${barH}% + 3px)">${isCount ? v : '¥' + Math.round(v)}</span>`;
-    bars += `<div class="annual-chart-bar-fill" style="height:${barH}%;background:linear-gradient(180deg,${color},${color}88)"></div>`;
+    bars += `<div class="annual-chart-bar-fill" style="height:${barH}%;background:linear-gradient(180deg,${barColor},${barColor}88)"></div>`;
     bars += '</div>';
   });
   let labels = ''; for (let i = 0; i < 12; i++) labels += `<span>${i + 1}月</span>`;
@@ -7384,7 +7389,7 @@ function drawMindMap(chars, relations) {
   const _k = 160; // v897：用户澄清 100px 与 120px 同口径=圆边空白（圆边到圆边），即圆心距 160（v896 误当圆心距 100 导致过挤）
   // v863：布局缓存——关系集合未变（无新增/删除）时复用上次的布局结果，避免重进抖动/重复计算；
   // 加新人/删人/改关系时签名变化才重算（确定性种子 → 结果稳定，不会「加了新人就乱」）
-  const _layoutSig = JSON.stringify({ v: 1011, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
+  const _layoutSig = JSON.stringify({ v: 1012, n: layoutChars.map(c => c.name).sort(), e: allConnections.map(c => [c.a, c.b, c.type].sort().join('|')).sort() });
   let positions = (_mmLayoutCache.sig === _layoutSig && _mmLayoutCache.w === w && _mmLayoutCache.h === h) ? _mmLayoutCache.pos : null;
   if (!positions) {
     positions = computeForceLayout(layoutChars, allConnections, w, h, _k);
