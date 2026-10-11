@@ -305,9 +305,9 @@ html.apk.modal-lock{overflow:hidden!important}
 /* v535：接稿排期日历视图卡片标题/编辑/删除/分割线整体下移 1px（累计 -3px） */
 /* v1008: 标题区对齐接稿排期左卡基准（实测 12/12 → 目标 10/10，手机 9.5/9.5；她定「所有展示模块以接稿排期左侧为基准」）：
    margin-top -3→-5 + header padding-bottom 8→6(桌面)/5.5(手机)，标题 top:+0.5 位移保持 v1007 不变 */
-.record-list.cal-view .record-card-header{margin-top:-3.5px;padding-bottom:11px;margin-bottom:5px}
+.record-list.cal-view .record-card-header{margin-top:-4px;padding-bottom:8.5px;margin-bottom:5px}
 @media (max-width:768px){
-  .record-list.cal-view .record-card-header{margin-top:-3.5px;padding-bottom:10.5px;margin-bottom:5px}
+  .record-list.cal-view .record-card-header{margin-top:-4px;padding-bottom:8.5px;margin-bottom:5px}
 }
 /* v534：接稿排期日历视图展示模块盒子 padding-top 再减 2px（13->11）*/
 .record-list.cal-view .record-card{padding-top:11px}
@@ -1591,8 +1591,8 @@ html.apk.modal-lock{overflow:hidden!important}
   min-width:0;
 }
 .annual-chart-bar-fill{
-  width:80%;background:linear-gradient(180deg,var(--c-primary),var(--c-primary-light));
-  border-radius:4px 4px 0 0;min-height:2px;transition:height .4s ease;
+  width:calc((80% - 2px) / 3);background:linear-gradient(180deg,var(--c-primary),var(--c-primary-light));
+  border-radius:4px 4px 0 0;transition:height .4s ease;
   position:relative;
 }
 .annual-chart-bar-fill:hover{opacity:.8}
@@ -3379,7 +3379,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .comm-dual .record-card{height:100%;box-sizing:border-box;display:flex;flex-direction:column;min-width:0;padding-top:13px}
 .comm-dual .record-card-body{flex:1;min-width:0;padding-top:9px}
 /* v465：左栏卡片头部——标题、编辑/删除按钮在一条水平线上(标题左/按钮右)、分割线保留，整体往上移 2px，分隔线下边距 -4px */
-.comm-dual .record-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:-3.5px;margin-bottom:4px;border-bottom:1px solid var(--c-border-light);padding-bottom:11px}
+.comm-dual .record-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:-6px;margin-bottom:4px;border-bottom:1px solid var(--c-border-light);padding-bottom:8.5px}
 /* v1007：标题文字上下隙找平（桌面实测上 9.5 / 下 10.5）——只位移标题文字，分割线与编辑删除不动 */
 @media (min-width:769px){
   .comm-dual .record-card-title{position:relative;top:0.5px}
@@ -3438,7 +3438,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 /* v805: 手机端列表视图左卡（展示模块）——分割线上挪1px（header padding-bottom 6→5）与内容区整体上挪1px（body padding-top 8→7）分开调整，桌面端不动 */
 /* v1007：body padding-top 7→10.3——左栏首行文字与右栏(cdc-slide)首行对齐（实测差 3.31px，「数据以右边为准」） */
 @media (max-width:768px){
-  .comm-dual .record-card-header{padding-bottom:10.5px}
+  .comm-dual .record-card-header{margin-top:-5.5px;padding-bottom:8px}
   .comm-dual .record-card-body{padding-top:10px}
 }
 .comm-dual .comm-detail-actions .btn{width:100%;pointer-events:auto}
@@ -3803,8 +3803,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1013"></script>
-<script>console.log('[小筱工作台] 当前版本 v1013 —— 若这里显示的不是 v1013 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1014"></script>
+<script>console.log('[小筱工作台] 当前版本 v1014 —— 若这里显示的不是 v1014 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
