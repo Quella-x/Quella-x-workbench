@@ -538,6 +538,7 @@ function openModal(title, bodyHTML, footerBtns, size = '') {
   // v776：弹窗打开期间冻结背景滚动，隐藏透出来的背景滚动条，关闭后恢复
   _modalScrollLockN++; _applyModalScrollLock();
   initModalSwipe();
+  resetModalDirty();
   if (!ov._pushed) { try { history.pushState({ wbModal: 1 }, ''); ov._pushed = true; } catch (e) {} }
 }
 // v776：背景滚动冻结（引用计数，支持弹窗叠弹窗）
@@ -620,6 +621,23 @@ window.addEventListener('popstate', function (e) {
     _modalScrollLockN = Math.max(0, _modalScrollLockN - 1); _applyModalScrollLock();
   }
 });
+// v1022：弹窗未保存改动保护——编辑中（任意字段被改过）按 ESC / 点遮罩外 / 点关闭按钮 需确认才关；完全没动过直接关
+let modalDirty = false;
+function resetModalDirty() {
+  modalDirty = false;
+  try {
+    const mb = document.getElementById('modalBody');
+    if (mb) mb.querySelectorAll('input,textarea,select').forEach(el => {
+      el.addEventListener('input', () => { modalDirty = true; });
+      el.addEventListener('change', () => { modalDirty = true; });
+    });
+  } catch (e) {}
+}
+function isModalDirty() { return modalDirty; }
+async function attemptCloseModal() {
+  if (isModalDirty()) { if (await confirmDialog('当前有未保存的修改，确定放弃吗？')) closeModal(); }
+  else closeModal();
+}
 
 /* ===== 二级页面手势返回（手机端左右滑动返回上一级） ===== */
 // v377：首页平台视图 / 每日记录历史视图 属于「二级页面」，支持手机手势左右滑动返回上一级
@@ -4122,7 +4140,7 @@ function renderListPage(pageKey, mod) {
     if (!isCommDual) { const _calViewCls = ((pageKey === 'design-commission' && ps.viewMode === 'calendar') || CAL_VIEW_STYLE_MODULES.includes(pageKey)) ? ' cal-view' : ''; html += `<div class="record-list${twoCol}${_calViewCls}">`; }
     pagedRecords.forEach(r => {
       const isOverdue = mod.isOverdue && mod.isOverdue(r);
-      const cardClick = isCommDual ? `commissionSelectCard('${r.id}')` : `openDetail('${pageKey}','${r.id}')`;
+      const cardClick = `openDetail('${pageKey}','${r.id}')`;
       const cardSelCls = (isCommDual && ps.selectedCommissionId === r.id) ? ' selected' : '';
       html += `<div class="record-card${cardSelCls}" onclick="${cardClick}">`;
       html += '<div class="record-card-header">';
@@ -4182,6 +4200,11 @@ function renderListPage(pageKey, mod) {
         if (Array.isArray(v)) v = v.join('、');
         if (f.date) v = fmtDate(v);
         if (f.prefix) v = f.prefix + v;
+        if (pageKey === 'design-commission' && f.key === 'progress') {
+          const _tc = commTagClass('progress', v) || 'tag-info';
+          html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value field-tags"><span class="tag ${_tc} comm-progress-tag" role="button" tabindex="0" onclick="event.stopPropagation();commissionOpenProgressMenu('${r.id}', this)">${esc(String(v))}<span style="margin-left:4px;font-size:10px;opacity:.7">▾</span></span></span></span>`;
+          return;
+        }
         if (f.tag) {
           if (v === '') {
             html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value"></span></span>`;
@@ -5555,6 +5578,67 @@ function commissionToggleProductUrgent(id, idx, checked) {
   Toast.success(checked ? '已标记加急' : '已取消加急');
   openDetail('design-commission', id);
 }
+// v1022：接稿排期卡片「稿件进度」就地小菜单直改 + 设为「已交付」自动勾尾款
+const COMM_PROGRESS_OPTIONS = ['待接稿', '已接稿', '制作中', '修改中', '已交付'];
+let _commProgressPop = null;
+function commissionOpenProgressMenu(id, el) {
+  commissionCloseProgressMenu();
+  const r = DB.getById('commissions', id);
+  if (!r) return;
+  const cur = r.progress;
+  const pop = document.createElement('div');
+  pop.style.cssText = 'position:fixed;z-index:9999;background:#fff;border:1px solid #e3e6ea;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.12);padding:4px;min-width:120px;';
+  pop.innerHTML = COMM_PROGRESS_OPTIONS.map(opt => {
+    const isCur = (opt === cur);
+    const base = isCur ? 'background:#fff7e6;color:#854f0b;font-weight:500;' : '';
+    return `<div class="comm-progress-opt" data-opt="${opt}" style="padding:8px 12px;border-radius:6px;cursor:pointer;font-size:13px;color:#2c2c2a;${base}" onmouseenter="this.style.background='#f5f6f8'" onmouseleave="this.style.background='${isCur ? '#fff7e6' : 'transparent'}'">${opt}</div>`;
+  }).join('');
+  document.body.appendChild(pop);
+  const rect = el.getBoundingClientRect();
+  const ph = pop.offsetHeight, pw = pop.offsetWidth;
+  let top = rect.bottom + 4;
+  if (top + ph > window.innerHeight) top = rect.top - ph - 4;
+  let left = rect.left;
+  if (left + pw > window.innerWidth) left = window.innerWidth - pw - 8;
+  pop.style.top = Math.max(4, top) + 'px';
+  pop.style.left = Math.max(4, left) + 'px';
+  _commProgressPop = pop;
+  pop.addEventListener('click', (e) => {
+    const t = e.target.closest('.comm-progress-opt'); if (!t) return;
+    commissionSetProgress(id, t.getAttribute('data-opt'));
+  });
+  setTimeout(() => document.addEventListener('click', _commProgressOutside, true), 0);
+}
+function _commProgressOutside(e) { if (_commProgressPop && !_commProgressPop.contains(e.target)) commissionCloseProgressMenu(); }
+function commissionCloseProgressMenu() {
+  if (_commProgressPop) { _commProgressPop.remove(); _commProgressPop = null; }
+  document.removeEventListener('click', _commProgressOutside, true);
+}
+function commissionSetProgress(id, newProgress) {
+  commissionCloseProgressMenu();
+  const r = DB.getById('commissions', id);
+  if (!r) return;
+  if (r.progress === newProgress) return;
+  r.progress = newProgress;
+  if (newProgress === '已交付') applyDeliveredPaymentStatus(r);
+  DB.update('commissions', id, r);
+  Toast.success('进度已更新：' + newProgress);
+  renderListPage('design-commission', MODULES['design-commission']);
+}
+// v1022：进度设为「已交付」时的支付状态自动规则（仅在卡片直改触发，不动编辑页逻辑）
+// 未付→全款；定金→定金+尾款；定金+尾款/全款→不变；尾款单独(异常)→全款
+function applyDeliveredPaymentStatus(r) {
+  let ps = r.paymentStatus;
+  if (typeof ps === 'string') ps = ps ? [ps] : [];
+  if (!Array.isArray(ps)) ps = [];
+  const hasDeposit = ps.includes('定金');
+  const hasBalance = ps.includes('尾款');
+  const isFull = ps.includes('全款');
+  if (isFull) r.paymentStatus = ['全款'];
+  else if (hasDeposit && hasBalance) r.paymentStatus = ['定金', '尾款'];
+  else if (hasDeposit && !hasBalance) r.paymentStatus = ['定金', '尾款'];
+  else r.paymentStatus = ['全款'];
+}
 
 /* ===== Delete ===== */
 async function onDelete(pageKey, id) {
@@ -6007,6 +6091,8 @@ function calcPrice() {
   const unitCost = itemCost + perSampleCost + laborCost + shipping;
   const commission = unitCost * commissionRate / 100;
   const salePrice = Math.ceil((unitCost + commission) * (1 + profitMargin) * 100) / 100;
+  const unitCostNoShip = itemCost + perSampleCost + laborCost;
+  const salePriceNoShip = Math.ceil((unitCostNoShip + unitCostNoShip * commissionRate / 100) * (1 + profitMargin) * 100) / 100;
   const unitProfit = salePrice - unitCost - commission;
   const r = $('#calcResult'); if (!r) return;
   r.innerHTML = `
@@ -6028,8 +6114,12 @@ function calcPrice() {
       <div class="dc-rr"><span>总营收</span><span>¥${(salePrice * quantity).toFixed(2)}</span></div>
     </div>
     <div class="dc-r-final">
-      <div class="dc-r-final-label">建议售价</div>
+      <div class="dc-r-final-label">包邮建议价<small style="font-weight:400;opacity:.6;margin-left:4px">含运费</small></div>
       <div class="dc-r-final-val">¥${salePrice.toFixed(2)}</div>
+    </div>
+    <div class="dc-r-final" style="margin-top:10px;padding-top:10px;border-top:1px dashed #e3e6ea">
+      <div class="dc-r-final-label">不包邮建议价<small style="font-weight:400;opacity:.6;margin-left:4px">不含运费</small></div>
+      <div class="dc-r-final-val">¥${salePriceNoShip.toFixed(2)}</div>
     </div>`;
 }
 function readCalcData(name) {
@@ -10379,10 +10469,10 @@ function initEvents() {
   };
   $('#mobileToggle').onclick = () => { $('#sidebar').classList.toggle('show'); $('#sidebarOverlay').classList.toggle('show'); };
   $('#sidebarOverlay').onclick = () => { $('#sidebar').classList.remove('show'); $('#sidebarOverlay').classList.remove('show'); };
-  $('#modalClose').onclick = closeModal;
-  $('#modalOverlay').onclick = (e) => { if (e.target === $('#modalOverlay')) closeModal(); };
+  $('#modalClose').onclick = attemptCloseModal;
+  $('#modalOverlay').onclick = (e) => { if (e.target === $('#modalOverlay')) attemptCloseModal(); };
   $('#lightbox').onclick = () => $('#lightbox').classList.remove('show');
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); $('#lightbox').classList.remove('show'); } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { const ov = document.getElementById('modalOverlay'); if (ov && ov.classList.contains('show')) { attemptCloseModal(); } else { $('#lightbox').classList.remove('show'); } } });
   $('#importFile').onchange = (e) => {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
