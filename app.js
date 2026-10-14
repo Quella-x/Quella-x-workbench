@@ -5578,7 +5578,7 @@ function commissionToggleProductUrgent(id, idx, checked) {
   Toast.success(checked ? '已标记加急' : '已取消加急');
   openDetail('design-commission', id);
 }
-// v1022：接稿排期卡片「稿件进度」就地小菜单直改 + 设为「已交付」自动勾尾款
+// v1022：接稿排期卡片「稿件进度」就地小菜单直改 + 设为「已交付」自动勾尾款、自动填交付时间（与编辑页保存口径一致）
 const COMM_PROGRESS_OPTIONS = ['待接稿', '已接稿', '制作中', '修改中', '已交付'];
 let _commProgressPop = null;
 function commissionOpenProgressMenu(id, el) {
@@ -5620,7 +5620,10 @@ function commissionSetProgress(id, newProgress) {
   if (!r) return;
   if (r.progress === newProgress) return;
   r.progress = newProgress;
-  if (newProgress === '已交付') applyDeliveredPaymentStatus(r);
+  if (newProgress === '已交付') {
+    applyDeliveredPaymentStatus(r);
+    if (!r.deliveredTime) r.deliveredTime = todayStr(); // 与编辑页保存口径一致：已交付自动记录交付时间（已填过不覆盖）
+  }
   DB.update('commissions', id, r);
   Toast.success('进度已更新：' + newProgress);
   renderListPage('design-commission', MODULES['design-commission']);
