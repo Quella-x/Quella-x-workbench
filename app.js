@@ -5610,8 +5610,8 @@ function commissionOpenProgressMenu(id, el) {
   pop.style.cssText = 'position:fixed;z-index:9999;background:#fff;border:1px solid #e3e6ea;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.12);padding:4px;min-width:120px;';
   pop.innerHTML = COMM_PROGRESS_OPTIONS.map(opt => {
     const isCur = (opt === cur);
-    const base = isCur ? 'background:#fff7e6;color:#854f0b;font-weight:500;' : '';
-    return `<div class="comm-progress-opt" data-opt="${opt}" style="padding:8px 12px;border-radius:6px;cursor:pointer;font-size:13px;color:#2c2c2a;${base}" onmouseenter="this.style.background='#f5f6f8'" onmouseleave="this.style.background='${isCur ? '#fff7e6' : 'transparent'}'">${opt}</div>`;
+    const base = isCur ? 'background:#e6f4ff;color:#0958d9;font-weight:500;' : '';
+    return `<div class="comm-progress-opt" data-opt="${opt}" style="padding:8px 12px;border-radius:6px;cursor:pointer;font-size:13px;color:#2c2c2a;${base}" onmouseenter="this.style.background='#f5f6f8'" onmouseleave="this.style.background='${isCur ? '#e6f4ff' : 'transparent'}'">${opt}</div>`;
   }).join('');
   document.body.appendChild(pop);
   const rect = el.getBoundingClientRect();
