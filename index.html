@@ -67,7 +67,7 @@ html,body{height:100%;font-size:14px}
 body{-webkit-user-select:none;user-select:none}
 input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:text}
 /* v1022：展示卡片 / 详情文本允许直接选中复制（两端均可用，不改原有交互） */
-.record-card,.comm-detail-card,.detail-view{-webkit-user-select:text;user-select:text}
+.record-card,.comm-detail-card,.detail-view,.commission-detail-page,.cd-rec-card,.cd-rec-body{-webkit-user-select:text;user-select:text}
 /* v1023：稿件进度胶囊是可点击控件（小菜单直改）——禁止文本选中，避免点它时被文字选择抢走 click 而误跳详情 */
 .comm-progress-tag{-webkit-user-select:none;user-select:none}
 html{background:#FFFFFF}
@@ -3259,7 +3259,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 @media (max-width:640px){
   .cd-rec-list{grid-template-columns:1fr}
 }
-.cd-rec-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
+.cd-rec-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer}
+.cd-rec-pill{-webkit-user-select:none;user-select:none}
 .cd-rec-head:hover{background:var(--c-primary-bg)}
 /* v932: 三角折叠按钮放大（12px/14px → 16px/18px），并改成 inline-flex 居中，避免字形在 em-box 里偏移 */
 /* v970: 字形 ▾/▸(U+25BE/25B5 小三角) → ▼/▶(U+25BC/25B6 常规大三角，同排序按钮)，字号 22px→12px 对齐排序 .df-sort-btn；
@@ -3833,8 +3834,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1023"></script>
-<script>console.log('[小筱工作台] 当前版本 v1023 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1024"></script>
+<script>console.log('[小筱工作台] 当前版本 v1024 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

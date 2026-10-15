@@ -4182,6 +4182,14 @@ function renderListPage(pageKey, mod) {
         }
         // v531：列表卡片空字段也展示标签，无信息就空着
         if (v == null || v === '') v = '';
+        // v1024 修复：接稿排期列表/日历卡片的「稿件进度」无论存为字符串还是数组，都渲染成可点开小菜单的胶囊；
+        // 必须放在 multiselect 分支之前，否则数组型进度会被普通标签分支拦截、胶囊分支变死代码（表现为"进度胶囊没有小菜单"）
+        if (pageKey === 'design-commission' && f.key === 'progress') {
+          const _pv = Array.isArray(v) ? (v[0] || '') : v;
+          const _tc = commTagClass('progress', _pv) || 'tag-info';
+          html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value field-tags"><span class="tag ${_tc} comm-progress-tag" role="button" tabindex="0" onclick="event.stopPropagation();commissionOpenProgressMenu('${r.id}', this)">${esc(String(_pv))}<span style="margin-left:4px;font-size:10px;opacity:.7">▾</span></span></span></span>`;
+          return;
+        }
         if (f.tag && Array.isArray(v)) {
           const tags = v.map(val => {
             let tc = 'tag-info';
@@ -4200,11 +4208,6 @@ function renderListPage(pageKey, mod) {
         if (Array.isArray(v)) v = v.join('、');
         if (f.date) v = fmtDate(v);
         if (f.prefix) v = f.prefix + v;
-        if (pageKey === 'design-commission' && f.key === 'progress') {
-          const _tc = commTagClass('progress', v) || 'tag-info';
-          html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value field-tags"><span class="tag ${_tc} comm-progress-tag" role="button" tabindex="0" onclick="event.stopPropagation();commissionOpenProgressMenu('${r.id}', this)">${esc(String(v))}<span style="margin-left:4px;font-size:10px;opacity:.7">▾</span></span></span></span>`;
-          return;
-        }
         if (f.tag) {
           if (v === '') {
             html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value"></span></span>`;
@@ -5590,9 +5593,17 @@ function commissionToggleProductUrgent(id, idx, checked) {
 // v1022：接稿排期卡片「稿件进度」就地小菜单直改 + 设为「已交付」自动勾尾款、自动填交付时间（与编辑页保存口径一致）
 const COMM_PROGRESS_OPTIONS = ['待接稿', '已接稿', '制作中', '修改中', '已交付'];
 let _commProgressPop = null;
+// v1024：接稿详情页(cd-rec-pill)直接改进度——取关联接稿排期记录(无关联则取约稿单自身)打开同一小菜单
+function cdOpenProgressMenu(detailId, el) {
+  const r = DB.getById('commissionDetails', detailId);
+  if (!r) return;
+  const linked = DB.list('commissions').find(c => cdSameClient(c.clientInfo, r.clientInfo));
+  const targetId = linked ? linked.id : detailId;
+  commissionOpenProgressMenu(targetId, el);
+}
 function commissionOpenProgressMenu(id, el) {
   commissionCloseProgressMenu();
-  const r = DB.getById('commissions', id);
+  const r = DB.getById('commissions', id) || DB.getById('commissionDetails', id);
   if (!r) return;
   const cur = r.progress;
   const pop = document.createElement('div');
@@ -5625,17 +5636,20 @@ function commissionCloseProgressMenu() {
 }
 function commissionSetProgress(id, newProgress) {
   commissionCloseProgressMenu();
-  const r = DB.getById('commissions', id);
+  let r = DB.getById('commissions', id);
+  let store = 'commissions';
+  if (!r) { r = DB.getById('commissionDetails', id); store = 'commissionDetails'; }
   if (!r) return;
   if (r.progress === newProgress) return;
   r.progress = newProgress;
-  if (newProgress === '已交付') {
+  if (store === 'commissions' && newProgress === '已交付') {
     applyDeliveredPaymentStatus(r);
     if (!r.deliveredTime) r.deliveredTime = todayStr(); // 与编辑页保存口径一致：已交付自动记录交付时间（已填过不覆盖）
   }
-  DB.update('commissions', id, r);
+  DB.update(store, id, r);
   Toast.success('进度已更新：' + newProgress);
   renderListPage('design-commission', MODULES['design-commission']);
+  if (currentPage === 'design-commission-detail') renderCommissionDetailPage();
 }
 // v1022：进度设为「已交付」时的支付状态自动规则（仅在卡片直改触发，不动编辑页逻辑）
 // 未付→全款；定金→定金+尾款；定金+尾款/全款→不变；尾款单独(异常)→全款
@@ -13034,7 +13048,7 @@ function renderCommissionDetailPage() {
           <span class="cd-rec-toggle">${collapsed ? '▶' : '▼'}</span>
           <span class="cd-rec-title">${esc(r.clientInfo || r.bookName || r.theme || r.ipName || r.platformNick || '未命名约稿单')}</span>
           <span class="cd-rec-cat">${esc(r.category || '')}</span>
-          ${prog ? `<span class="cd-rec-pill" data-progress="${esc(prog)}">${esc(prog)}</span>` : ''}
+          ${prog ? `<span class="cd-rec-pill" data-progress="${esc(prog)}" role="button" tabindex="0" onclick="event.stopPropagation();cdOpenProgressMenu('${r.id}',this)">${esc(prog)}</span>` : ''}
           <span class="cd-rec-actions">
             <span class="btn-icon" onclick="event.stopPropagation();openCdEditForm('${r.id}')">${lucide('pencil',16)}</span>
             <span class="btn-icon danger" onclick="event.stopPropagation();onCdDelete('${r.id}')">${lucide('trash-2',16)}</span>
