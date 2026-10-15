@@ -68,6 +68,8 @@ body{-webkit-user-select:none;user-select:none}
 input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:text}
 /* v1022：展示卡片 / 详情文本允许直接选中复制（两端均可用，不改原有交互） */
 .record-card,.comm-detail-card,.detail-view{-webkit-user-select:text;user-select:text}
+/* v1023：稿件进度胶囊是可点击控件（小菜单直改）——禁止文本选中，避免点它时被文字选择抢走 click 而误跳详情 */
+.comm-progress-tag{-webkit-user-select:none;user-select:none}
 html{background:#FFFFFF}
 /* v1.1.4: 顶部让出 80dp 白带
    - 让 #app padding-top:80px，使 sidebar / main-wrap 都从 80dp 下沿开始绘制
@@ -3831,8 +3833,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1022"></script>
-<script>console.log('[小筱工作台] 当前版本 v1022 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1023"></script>
+<script>console.log('[小筱工作台] 当前版本 v1023 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

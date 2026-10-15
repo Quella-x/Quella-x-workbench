@@ -4140,7 +4140,7 @@ function renderListPage(pageKey, mod) {
     if (!isCommDual) { const _calViewCls = ((pageKey === 'design-commission' && ps.viewMode === 'calendar') || CAL_VIEW_STYLE_MODULES.includes(pageKey)) ? ' cal-view' : ''; html += `<div class="record-list${twoCol}${_calViewCls}">`; }
     pagedRecords.forEach(r => {
       const isOverdue = mod.isOverdue && mod.isOverdue(r);
-      const cardClick = `openDetail('${pageKey}','${r.id}')`;
+      const cardClick = `recordCardOpenDetail('${pageKey}','${r.id}')`;
       const cardSelCls = (isCommDual && ps.selectedCommissionId === r.id) ? ' selected' : '';
       html += `<div class="record-card${cardSelCls}" onclick="${cardClick}">`;
       html += '<div class="record-card-header">';
@@ -5378,6 +5378,15 @@ function removeGroupbuyFromFactories(gb) {
 }
 
 /* ===== Detail View ===== */
+// v1023：展示卡片点击加「文字选中」守卫。卡片文字已可自由选中复制(user-select:text)，
+// 但拖选文字后松手会顺带在卡片上触发 click → 误跳详情/编辑。点击时若存在文本选中则不跳转。
+function recordCardOpenDetail(pageKey, id) {
+  try {
+    var sel = (typeof window.getSelection === 'function') ? window.getSelection() : null;
+    if (sel && String(sel.toString()).length > 0) return;
+  } catch (_) {}
+  openDetail(pageKey, id);
+}
 function openDetail(pageKey, id) {
   const mod = MODULES[pageKey];
   const r = DB.getById(mod.store, id);
