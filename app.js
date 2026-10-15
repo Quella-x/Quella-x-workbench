@@ -621,7 +621,7 @@ window.addEventListener('popstate', function (e) {
     _modalScrollLockN = Math.max(0, _modalScrollLockN - 1); _applyModalScrollLock();
   }
 });
-// v1022：弹窗未保存改动保护——编辑中（任意字段被改过）按 ESC / 点遮罩外 / 点关闭按钮 需确认才关；完全没动过直接关
+// v1025：弹窗未保存改动保护——编辑中（任意字段被改过）按 ESC / 点遮罩外 / 点关闭按钮 需确认才关；完全没动过直接关；仅电脑端启用，手机端直接关闭
 let modalDirty = false;
 function resetModalDirty() {
   modalDirty = false;
@@ -635,7 +635,7 @@ function resetModalDirty() {
 }
 function isModalDirty() { return modalDirty; }
 async function attemptCloseModal() {
-  if (isModalDirty()) { if (await confirmDialog('当前有未保存的修改，确定放弃吗？')) closeModal(); }
+  if (isModalDirty() && window.innerWidth > 768) { if (await confirmDialog('当前有未保存的修改，确定放弃吗？')) closeModal(); }
   else closeModal();
 }
 
@@ -4187,7 +4187,7 @@ function renderListPage(pageKey, mod) {
         if (pageKey === 'design-commission' && f.key === 'progress') {
           const _pv = Array.isArray(v) ? (v[0] || '') : v;
           const _tc = commTagClass('progress', _pv) || 'tag-info';
-          html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value field-tags"><span class="tag ${_tc} comm-progress-tag" role="button" tabindex="0" onclick="event.stopPropagation();commissionOpenProgressMenu('${r.id}', this)">${esc(String(_pv))}<span style="margin-left:4px;font-size:10px;opacity:.7">▾</span></span></span></span>`;
+          html += `<span class="field"><span class="field-label">${esc(dispLabel)}</span><span class="field-value field-tags"><span class="tag ${_tc} comm-progress-tag" role="button" tabindex="0" onclick="event.stopPropagation();commissionOpenProgressMenu('${r.id}', this)">${esc(String(_pv))}</span></span></span>`;
           return;
         }
         if (f.tag && Array.isArray(v)) {
@@ -5616,8 +5616,8 @@ function commissionOpenProgressMenu(id, el) {
   document.body.appendChild(pop);
   const rect = el.getBoundingClientRect();
   const ph = pop.offsetHeight, pw = pop.offsetWidth;
-  let top = rect.bottom + 4;
-  if (top + ph > window.innerHeight) top = rect.top - ph - 4;
+  let top = rect.bottom;
+  if (top + ph > window.innerHeight) top = rect.top - ph;
   let left = rect.left;
   if (left + pw > window.innerWidth) left = window.innerWidth - pw - 8;
   pop.style.top = Math.max(4, top) + 'px';
