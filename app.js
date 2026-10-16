@@ -5774,10 +5774,11 @@ function priceRefEditProduct(name) {
     .sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
   if (!rows.length) return;
   const rowFields = _priceRefRowFields();
-  /* v1036：块头改用接稿详情弹窗同款 .form-section（纯蓝字+底部1.5px细线，无左竖条——上一版错用带竖条的 form-section-title，她指正） */
-  const blockHead = (i) => `<div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 0">
-      <div class="form-section" style="flex:1;margin:0 0 10px">价位 ${i}</div>
-      <span class="btn-icon danger" title="删除此价位" style="margin:0 0 10px" onclick="this.closest('.pr-edit-block').remove()">${lucide('trash-2',16)}</span>
+  /* v1038：块头 .form-section 不再内联覆盖 margin（上一版顶掉了自带 14/8 间距与底部1px线，观感"变小"），
+     完全沿用接稿详情同款默认样式；删除按钮底对齐到分割线上方 */
+  const blockHead = (i) => `<div style="display:flex;align-items:flex-end;justify-content:space-between">
+      <div class="form-section" style="flex:1">价位 ${i}</div>
+      <span class="btn-icon danger" title="删除此价位" style="margin:0 0 12px" onclick="this.closest('.pr-edit-block').remove()">${lucide('trash-2',16)}</span>
     </div>`;
   const blockHTML = (r, i) => `<div class="pr-edit-block" data-id="${r ? r.id : 'new'}">
     ${blockHead(i)}
@@ -5798,9 +5799,9 @@ function priceRefAddEditBlock() {
   const n = wrap.querySelectorAll('.pr-edit-block').length + 1;
   const div = document.createElement('div');
   div.className = 'pr-edit-block'; div.dataset.id = 'new';
-  div.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 0">
-      <div class="form-section" style="flex:1;margin:0 0 10px">价位 ${n}</div>
-      <span class="btn-icon danger" title="删除此价位" style="margin:0 0 10px" onclick="this.closest('.pr-edit-block').remove()">${lucide('trash-2',16)}</span>
+  div.innerHTML = `<div style="display:flex;align-items:flex-end;justify-content:space-between">
+      <div class="form-section" style="flex:1">价位 ${n}</div>
+      <span class="btn-icon danger" title="删除此价位" style="margin:0 0 12px" onclick="this.closest('.pr-edit-block').remove()">${lucide('trash-2',16)}</span>
     </div>` + buildForm(_priceRefRowFields(), {}, 'groupbuy-priceref');
   wrap.appendChild(div);
 }
