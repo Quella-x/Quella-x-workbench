@@ -5774,11 +5774,13 @@ function priceRefEditProduct(name) {
     .sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
   if (!rows.length) return;
   const rowFields = _priceRefRowFields();
-  const blockHTML = (r, i) => `<div class="pr-edit-block" data-id="${r ? r.id : 'new'}">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
-      <span style="font-size:13px;font-weight:600;color:var(--c-text)">价位 ${i}</span>
+  /* v1034：块头改用接稿详情同款 .form-section-title（蓝字+左3px蓝竖条），删除按钮同行右对齐 */
+  const blockHead = (i) => `<div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px">
+      <span class="form-section-title" style="margin:0">价位 ${i}</span>
       <span class="btn-icon danger" title="删除此价位" onclick="this.closest('.pr-edit-block').remove()">${lucide('trash-2',16)}</span>
-    </div>
+    </div>`;
+  const blockHTML = (r, i) => `<div class="pr-edit-block" data-id="${r ? r.id : 'new'}">
+    ${blockHead(i)}
     ${buildForm(rowFields, r || {}, 'groupbuy-priceref')}
   </div>`;
   const bodyHTML = `
@@ -5796,8 +5798,8 @@ function priceRefAddEditBlock() {
   const n = wrap.querySelectorAll('.pr-edit-block').length + 1;
   const div = document.createElement('div');
   div.className = 'pr-edit-block'; div.dataset.id = 'new';
-  div.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
-      <span style="font-size:13px;font-weight:600;color:var(--c-text)">价位 ${n}</span>
+  div.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px">
+      <span class="form-section-title" style="margin:0">价位 ${n}</span>
       <span class="btn-icon danger" title="删除此价位" onclick="this.closest('.pr-edit-block').remove()">${lucide('trash-2',16)}</span>
     </div>` + buildForm(_priceRefRowFields(), {}, 'groupbuy-priceref');
   wrap.appendChild(div);
