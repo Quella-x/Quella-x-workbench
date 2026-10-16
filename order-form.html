@@ -3428,12 +3428,11 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
    日历实测14.33（与右卡同）→ 0.75+1.0=1.75，取整校准后 1.4（墨迹15.33 与右卡齐）；普通九模块墨迹20.0/线47 → header 整体上移4.7、pb 8→7.4（墨迹15.33、线41.7）。
    只动标题区（标题文字/header/分割线），内容区一律不碰 */
 @media (max-width:768px){
-  .comm-dual .record-card-title{position:relative;top:1.4px}
-  .record-list.cal-view .record-card-title{position:relative;top:1.4px}
-  /* v1035：日历视图标题上下隙找平——她手机 DPR2 实测上隙15.5/下隙16.25（差0.75，下大），标题下移0.4px；
-     v1021 只校了墨迹对齐右卡、没校上下隙相等。只动日历视图，八模块/桌面未点名不动 */
-  .comm-cal-col-list .record-list.cal-view .record-card-title{position:relative;top:1.8px}
-  .comm-detail-card .cdc-header > *{position:relative;top:1px}
+  /* v1036：她确认全部展示模块手机端都存在标题偏上0.75（安卓字体行盒墨迹差），统一 1.4→1.8 找平
+     （v1021 只校了墨迹对齐、没校上下隙相等；日历视图 v1035 已改，此处通用规则覆盖后删除其专用条目） */
+  .comm-dual .record-card-title{position:relative;top:1.8px}
+  .record-list.cal-view .record-card-title{position:relative;top:1.8px}
+  .comm-detail-card .cdc-header > *{position:relative;top:1.4px}
   .record-list .record-card-header{margin-top:-4.7px;padding-bottom:7.4px}
 }
 /* v456：右栏详情模块标题分割线左右留空，与左侧卡片一致 */
@@ -3856,8 +3855,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=1035"><\/script>');</script>
-<script>console.log('[小筱工作台] 当前版本 v1035 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=1036"><\/script>');</script>
+<script>console.log('[小筱工作台] 当前版本 v1036 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

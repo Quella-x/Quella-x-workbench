@@ -5774,10 +5774,10 @@ function priceRefEditProduct(name) {
     .sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
   if (!rows.length) return;
   const rowFields = _priceRefRowFields();
-  /* v1034：块头改用接稿详情同款 .form-section-title（蓝字+左3px蓝竖条），删除按钮同行右对齐 */
-  const blockHead = (i) => `<div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px">
-      <span class="form-section-title" style="margin:0">价位 ${i}</span>
-      <span class="btn-icon danger" title="删除此价位" onclick="this.closest('.pr-edit-block').remove()">${lucide('trash-2',16)}</span>
+  /* v1036：块头改用接稿详情弹窗同款 .form-section（纯蓝字+底部1.5px细线，无左竖条——上一版错用带竖条的 form-section-title，她指正） */
+  const blockHead = (i) => `<div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 0">
+      <div class="form-section" style="flex:1;margin:0 0 10px">价位 ${i}</div>
+      <span class="btn-icon danger" title="删除此价位" style="margin:0 0 10px" onclick="this.closest('.pr-edit-block').remove()">${lucide('trash-2',16)}</span>
     </div>`;
   const blockHTML = (r, i) => `<div class="pr-edit-block" data-id="${r ? r.id : 'new'}">
     ${blockHead(i)}
@@ -5798,9 +5798,9 @@ function priceRefAddEditBlock() {
   const n = wrap.querySelectorAll('.pr-edit-block').length + 1;
   const div = document.createElement('div');
   div.className = 'pr-edit-block'; div.dataset.id = 'new';
-  div.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px">
-      <span class="form-section-title" style="margin:0">价位 ${n}</span>
-      <span class="btn-icon danger" title="删除此价位" onclick="this.closest('.pr-edit-block').remove()">${lucide('trash-2',16)}</span>
+  div.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 0">
+      <div class="form-section" style="flex:1;margin:0 0 10px">价位 ${n}</div>
+      <span class="btn-icon danger" title="删除此价位" style="margin:0 0 10px" onclick="this.closest('.pr-edit-block').remove()">${lucide('trash-2',16)}</span>
     </div>` + buildForm(_priceRefRowFields(), {}, 'groupbuy-priceref');
   wrap.appendChild(div);
 }
