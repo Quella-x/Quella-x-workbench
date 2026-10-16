@@ -439,7 +439,8 @@ const Sync = {
 const Toast = {
   show(msg, type = 'info', dur = 2500) {
     const c = $('#toastContainer'); const t = document.createElement('div');
-    t.className = 'toast ' + type; t.innerHTML = '<span>' + esc(msg) + '</span>';
+    const dotClass = { success: 'd-success', error: 'd-danger', warning: 'd-warning', info: 'd-primary' }[type] || 'd-primary';
+    t.className = 'toast ' + type; t.innerHTML = '<span class="dot ' + dotClass + '"><i></i></span><span>' + esc(msg) + '</span>';
     c.appendChild(t); setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(100%)'; setTimeout(() => t.remove(), 300); }, dur);
   },
   success(m) { this.show(m, 'success'); }, error(m) { this.show(m, 'error'); },
