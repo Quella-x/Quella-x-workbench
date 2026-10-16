@@ -1122,7 +1122,7 @@ function lucide(name, size, cls) {
 /* v686：导航图标改用 Lucide 图标名（原为 emoji），取值即 LUCIDE_SVG 的键名 */
 const DEFAULT_NAV_ICONS = {
   'home': 'house', 'groupbuy': 'package', 'groupbuy-records': 'package', 'groupbuy-factories': 'warehouse',
-  'groupbuy-samples': 'cog', 'groupbuy-calc': 'barcode', 'design': 'palette', 'design-inspiration': 'lightbulb',
+  'groupbuy-samples': 'cog', 'groupbuy-priceref': 'tags', 'groupbuy-calc': 'barcode', 'design': 'palette', 'design-inspiration': 'lightbulb',
   'design-commission': 'calendar-clock', 'design-commission-detail': 'file-text', 'design-calc': 'calculator', 'design-auth': 'scroll-text', 'design-pricelist': 'clipboard-list',
   'oc': 'user', 'oc-profiles': 'users', 'oc-relations': 'link', 'oc-stories': 'book-open', 'oc-timeline': 'clock', 'oc-commission': 'palette',
   'life-checkin': 'calendar-check', 'life-record': 'notebook-pen'
@@ -2729,6 +2729,7 @@ const NAV = [
     { key: 'groupbuy-records', label: '开团记录' },
     { key: 'groupbuy-factories', label: '厂家记录' },
     { key: 'groupbuy-samples', label: '打样记录' },
+    { key: 'groupbuy-priceref', label: '价格参考' },
     { key: 'groupbuy-calc', label: '价目计算' },
   ]},
   { key: 'design', label: '美工', group: true, children: [
@@ -2749,7 +2750,7 @@ const NAV = [
 ];
 const PAGE_TITLES = {
   'home': '首页 · 自媒体发布记录', 'groupbuy-records': '开团 · 开团记录', 'groupbuy-factories': '开团 · 厂家记录',
-  'groupbuy-samples': '开团 · 打样记录', 'groupbuy-calc': '开团 · 价目计算', 'design-inspiration': '美工 · 灵感记录',
+  'groupbuy-samples': '开团 · 打样记录', 'groupbuy-priceref': '开团 · 价格参考', 'groupbuy-calc': '开团 · 价目计算', 'design-inspiration': '美工 · 灵感记录',
   'design-commission': '美工 · 接稿排期', 'design-commission-detail': '美工 · 接稿详情', 'design-calc': '美工 · 报价计算', 'design-auth': '美工 · 授权记录', 'design-pricelist': '美工 · 价目表',
   'oc-profiles': 'OC · 人物档案', 'oc-relations': 'OC · 人物关系', 'oc-stories': 'OC · 故事小记', 'oc-timeline': 'OC · 时间线', 'oc-commission': 'OC · 约稿记录',
   'life-checkin': '生活 · 每日打卡', 'life-record': '生活 · 每日记录',
@@ -3014,6 +3015,44 @@ MODULES['design-inspiration'] = {
     { label: '制品', key: 'category' },
     { label: '标签分类', key: 'tags', tag: true },
     { label: '创建时间', key: 'createTime', date: true },
+  ],
+};
+
+// --- 开团 · 价格参考（独立存储 priceRef；同名制品自动归并为一张卡，卡内多价位按价格升序）
+function getPriceRefProducts() {
+  const list = DB.get('priceRef', []) || [];
+  const seen = [];
+  list.forEach(r => { const n = (r.name || '').trim(); if (n && !seen.includes(n)) seen.push(n); });
+  return seen.sort((a, b) => priceRefSortKey(a).localeCompare(priceRefSortKey(b), 'zh-Hans-CN'));
+}
+/* v1032：A-Z 排序。Chrome 的 zh collation 会把纯拉丁字母名整体排在汉字之后（PVC 跑到「亚克力」后面），
+   这里把拉丁首字母映射成一个同声母汉字做排序键，让 P 回到 Y 前面、与中文制品混排。 */
+const PR_LATIN2HAN = { A: '啊', B: '八', C: '擦', D: '搭', E: '蛾', F: '发', G: '噶', H: '哈', I: '衣', J: '击', K: '喀', L: '垃', M: '妈', N: '拿', O: '哦', P: '批', Q: '七', R: '然', S: '撒', T: '他', U: '乌', V: '维', W: '挖', X: '西', Y: '呀', Z: '杂' };
+function priceRefSortKey(name) {
+  const s = String(name || '').trim();
+  const c = s[0];
+  if (c && /[A-Za-z]/.test(c)) {
+    const h = PR_LATIN2HAN[c.toUpperCase()];
+    return h ? h + s.slice(1) : s;
+  }
+  return s;
+}
+MODULES['groupbuy-priceref'] = {
+  store: 'priceRef',
+  aggregateBy: 'name',
+  fields: [
+    { key: 'name', label: '制品', type: 'combobox', options: [], placeholder: '请选择或输入制品' },
+    { key: 'price', label: '价格', type: 'number' },
+    { key: 'material', label: '材质', type: 'text' },
+    { key: 'size', label: '尺寸', type: 'text' },
+    { key: 'remark', label: '备注', type: 'text' },
+  ],
+  filters: [{ key: 'name', label: '全部制品', options: [{ value: '', label: '全部制品' }] }],
+  listFields: [
+    { label: '价格', key: 'price' },
+    { label: '材质', key: 'material' },
+    { label: '尺寸', key: 'size' },
+    { label: '备注', key: 'remark' },
   ],
 };
 
@@ -3833,9 +3872,9 @@ function modYearPick(pageKey, y) {
   renderListPage(pageKey, MODULES[pageKey]);
 }
 
-const TWO_COL_MODULES = ['design-inspiration', 'oc-profiles'];
+const TWO_COL_MODULES = ['design-inspiration', 'oc-profiles', 'groupbuy-priceref'];
 // v515: 九模块列表字段对齐（与接稿排期左栏一致：64px 右对齐标签 + 1fr 值列），仅改内部字段样式，单双列保持原样
-const COMM_LIST_STYLE_MODULES = ['groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'design-inspiration', 'design-commission', 'design-auth', 'oc-profiles', 'oc-stories', 'oc-commission'];
+const COMM_LIST_STYLE_MODULES = ['groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'design-inspiration', 'groupbuy-priceref', 'design-commission', 'design-auth', 'oc-profiles', 'oc-stories', 'oc-commission'];
 // v547：八模块(开团/厂家/打样/灵感/授权/人物档案/故事小记/约稿记录)展示模块卡片盒子对齐「接稿排期日历视图」(cal-view 紧凑 padding-top:11px + header margin-top:-3px)，单双列保持原样
 const CAL_VIEW_STYLE_MODULES = COMM_LIST_STYLE_MODULES.filter(k => k !== 'design-commission');
 
@@ -4038,6 +4077,10 @@ function renderListPage(pageKey, mod) {
       const cats = getInspirationCategories();
       modFilters = [{ key: 'category', label: '全部制品', options: [{ value: '', label: '全部制品' }, ...cats.map(c => ({ value: c, label: c }))] }];
     }
+    if (pageKey === 'groupbuy-priceref') {
+      const prods = getPriceRefProducts();
+      modFilters = [{ key: 'name', label: '全部制品', options: [{ value: '', label: '全部制品' }, ...prods.map(c => ({ value: c, label: c }))] }];
+    }
     modFilters.forEach(f => {
       const cv = ps.filters[f.key] || '';
       const displayOpts = [...f.options];
@@ -4109,6 +4152,21 @@ function renderListPage(pageKey, mod) {
   if (isCommDual) html += '<div class="comm-dual">';
 
   // Records
+  // v1032 价格参考：同名制品归并成一张聚合卡；卡内多价位按价格升序，卡片按制品名 A-Z
+  if (mod.aggregateBy === 'name') {
+    const _map = new Map();
+    records.forEach(r => {
+      const k = String(r.name || '').trim() || '未命名';
+      if (!_map.has(k)) _map.set(k, []);
+      _map.get(k).push(r);
+    });
+    records = [..._map.entries()]
+      .sort((a, b) => priceRefSortKey(a[0]).localeCompare(priceRefSortKey(b[0]), 'zh-Hans-CN'))
+      .map(([k, rs]) => {
+        const sorted = rs.slice().sort((x, y) => (parseFloat(x.price) || 0) - (parseFloat(y.price) || 0));
+        return { id: sorted[0].id, _aggName: k, _aggRows: sorted };
+      });
+  }
   const pageSize = getPageSize(pageKey);
   const totalPages = Math.ceil(records.length / pageSize);
   if (ps.pageNo > totalPages) ps.pageNo = 1;
@@ -4134,7 +4192,8 @@ function renderListPage(pageKey, mod) {
   if (!records.length) {
     const emptyCls = isCommDual ? ' class="empty-state" style="grid-column:1/-1"' : ' class="empty-state"';
     if (gbWrapped) { html += '<div class="gb-records-2col"><div class="gb-left">'; }
-    html += `<div${emptyCls}><div class="empty-icon">${lucide('inbox',32)}</div><div class="empty-text">暂无记录，点击新增开始添加</div></div>`;
+    const _emptyTxt = (pageKey === 'groupbuy-priceref') ? '暂无价格参考，点击新增添加制品' : '暂无记录，点击新增开始添加';
+    html += `<div${emptyCls}><div class="empty-icon">${lucide('inbox',32)}</div><div class="empty-text">${_emptyTxt}</div></div>`;
   } else {
     const twoCol = TWO_COL_MODULES.includes(pageKey) ? ' two-col' : '';
     if (gbWrapped) { html += '<div class="gb-records-2col"><div class="gb-left">'; }
@@ -4148,16 +4207,37 @@ function renderListPage(pageKey, mod) {
       /* v935：撤销 v934 的 .rch-spacer 左占位——卡片标题要的是「上下居中」（上下留白相等），不是左右居中，标题恢复贴左 */
       const cardImg = mod.cardImage ? mod.cardImage(r) : null;
       if (cardImg) html += `<img src="${cardImg}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0">`;
-      const titleText = r.title || r.name || r.theme || r.sampleName || r.artworkName || r.clientInfo || '未命名记录';
+      const titleText = r._aggName || r.title || r.name || r.theme || r.sampleName || r.artworkName || r.clientInfo || '未命名记录';
       /* v688 修复：逾期图标（lucide 输出的 SVG 字符串）单独拼接，不走 esc()——之前 esc() 会把 SVG 标签转义成实体显示成文字 */
       const overdueIcon = isOverdue ? lucide('alert-triangle',14) + ' ' : '';
       html += `<div class="record-card-title">${overdueIcon}${esc(titleText)}</div>`;
       html += '<div class="record-card-actions">';
-      html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('${pageKey}','${r.id}')">${lucide('pencil',16)}</span>`;
-      html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('${pageKey}','${r.id}')">${lucide('trash-2',16)}</span>`;
+      // v1032 价格参考聚合卡：✏️ 打开新增表单（给该制品再添价位）；🗑️ 删掉整个制品的全部价位（带确认）
+      if (r._aggRows) {
+        const _pn = String(r._aggName).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        html += `<span class="btn-icon" onclick="event.stopPropagation();openAddForm('${pageKey}')">${lucide('pencil',16)}</span>`;
+        html += `<span class="btn-icon danger" onclick="event.stopPropagation();priceRefDeleteProduct('${_pn}')">${lucide('trash-2',16)}</span>`;
+      } else {
+        html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('${pageKey}','${r.id}')">${lucide('pencil',16)}</span>`;
+        html += `<span class="btn-icon danger" onclick="event.stopPropagation();onDelete('${pageKey}','${r.id}')">${lucide('trash-2',16)}</span>`;
+      }
       html += '</div>';
       html += '</div>';
       html += '<div class="record-card-body' + (COMM_LIST_STYLE_MODULES.includes(pageKey) ? ' comm-list-style' : '') + '">';
+      // v1032 价格参考聚合卡：一张卡 = 一个制品，卡内按价格升序列出各价位
+      if (r._aggRows) {
+        html += '<div class="price-entries">';
+        r._aggRows.forEach(row => {
+          html += '<div class="price-entry">';
+          visibleListFields.forEach(f => {
+            const _v = row[f.key] == null ? '' : row[f.key];
+            html += `<span class="field"><span class="field-label">${esc(f.label)}</span><span class="field-value">${esc(String(_v))}</span></span>`;
+          });
+          html += '</div>';
+        });
+        html += '</div></div></div>';
+        return;
+      }
       (visibleListFields).forEach(f => {
         const dispLabel = fieldLabelMap[f.key] || f.label;
         let v = r[f.key];
@@ -4973,6 +5053,10 @@ function prepareFields(pageKey, fields) {
     const cats = getInspirationCategories();
     const ff = f.find(x => x.key === 'category'); if (ff) ff.options = cats.map(c => ({ value: c, label: c }));
   }
+  if (pageKey === 'groupbuy-priceref') {
+    const prods = getPriceRefProducts();
+    const ff = f.find(x => x.key === 'name'); if (ff) ff.options = prods.map(c => ({ value: c, label: c }));
+  }
   if (pageKey === 'groupbuy-samples') {
     const cats = getSampleCategories();
     const ff = f.find(x => x.key === 'category'); if (ff) ff.options = cats.map(c => ({ value: c, label: c }));
@@ -5681,6 +5765,15 @@ async function onDelete(pageKey, id) {
     if (pageKey === 'oc-relations') removeOcRelationRefs(r);
     Toast.success(_coopRemoved ? `已删除（同步移除厂家合作记录 ${_coopRemoved} 条）` : '已删除'); navigate(pageKey);
   }
+}
+
+async function priceRefDeleteProduct(name) {
+  const list = DB.get('priceRef', []) || [];
+  const hits = list.filter(r => String(r.name || '').trim() === name);
+  if (!hits.length) return;
+  if (!(await confirmDialog(`确定要删除制品「${name}」的全部 ${hits.length} 条价位记录吗？此操作不可撤销。`))) return;
+  hits.forEach(r => DB.remove('priceRef', r.id));
+  Toast.success('已删除'); navigate('groupbuy-priceref');
 }
 
 /* ===== Home Page (v5: 平台按钮一排4个, 进平台隐藏日历, 图表在统计上) ===== */

@@ -361,6 +361,11 @@ html.apk.modal-lock{overflow:hidden!important}
 .record-card-body.comm-list-style .comm-products-field .field-label{font-size:12px;color:var(--c-text-muted);font-weight:500;text-align:left;padding-right:8px;white-space:nowrap;line-height:1.6}
 /* v1009/v1010: 八模块内容行距与接稿排期左卡(.comm-dual)基准对齐（v1009 行高/min-height/gap/padding-top；v1010 字号改为 12/12） */
 .record-card-body.comm-list-style .field .field-value.field-tags .tag{line-height:1.2}
+/* v1032 价格参考：聚合卡内多价位分组（仅结构容器，字号/行高/字色全部沿用 comm-list-style 现成规则） */
+.price-entries{display:flex;flex-direction:column}
+.price-entry{padding:6px 0;border-top:1px dashed var(--c-border-light)}
+.price-entry:first-child{padding-top:0;border-top:none}
+.record-card-body.comm-list-style .price-entry .field:first-child .field-value{color:var(--c-primary-dark);font-weight:700}
 /* v1015 曾把八模块胶囊上移 0.75px，她实测「上面又多了」（v1014 无位移的版本她说厂家评价是好的）——v1016 撤销上移 */
 @media (max-width:768px){
   .record-card-body.comm-list-style{padding-top:9px}
@@ -3848,8 +3853,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=1031"><\/script>');</script>
-<script>console.log('[小筱工作台] 当前版本 v1031 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=1032"><\/script>');</script>
+<script>console.log('[小筱工作台] 当前版本 v1032 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
