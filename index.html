@@ -3418,6 +3418,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 @media (max-width:768px){
   .comm-dual .record-card-title{position:relative;top:1.4px}
   .record-list.cal-view .record-card-title{position:relative;top:1.4px}
+  /* v1035：日历视图标题上下隙找平——她手机 DPR2 实测上隙15.5/下隙16.25（差0.75，下大），标题下移0.4px；
+     v1021 只校了墨迹对齐右卡、没校上下隙相等。只动日历视图，八模块/桌面未点名不动 */
+  .comm-cal-col-list .record-list.cal-view .record-card-title{position:relative;top:1.8px}
   .comm-detail-card .cdc-header > *{position:relative;top:1px}
   .record-list .record-card-header{margin-top:-4.7px;padding-bottom:7.4px}
 }
@@ -3842,8 +3845,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1034"></script>
-<script>console.log('[小筱工作台] 当前版本 v1034 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1035"></script>
+<script>console.log('[小筱工作台] 当前版本 v1035 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
