@@ -6139,13 +6139,15 @@ function calcPrice() {
       <div class="dc-rr"><span>总成本</span><span>¥${(unitCost * quantity).toFixed(2)}</span></div>
       <div class="dc-rr"><span>总营收</span><span>¥${(salePrice * quantity).toFixed(2)}</span></div>
     </div>
-    <div class="dc-r-final">
-      <div class="dc-r-final-label">包邮建议价<small style="font-weight:400;opacity:.6;margin-left:4px">含运费</small></div>
-      <div class="dc-r-final-val">¥${salePrice.toFixed(2)}</div>
-    </div>
-    <div class="dc-r-final" style="margin-top:10px;padding-top:10px;border-top:1px dashed #e3e6ea">
-      <div class="dc-r-final-label">不包邮建议价<small style="font-weight:400;opacity:.6;margin-left:4px">不含运费</small></div>
-      <div class="dc-r-final-val">¥${salePriceNoShip.toFixed(2)}</div>
+    <div class="dc-r-final-balance">
+      <div class="dc-r-final" style="margin-top:0">
+        <div class="dc-r-final-label">包邮建议价<small style="font-weight:400;opacity:.6;margin-left:4px">含运费</small></div>
+        <div class="dc-r-final-val">¥${salePrice.toFixed(2)}</div>
+      </div>
+      <div class="dc-r-final" style="margin-top:0">
+        <div class="dc-r-final-label">不包邮建议价<small style="font-weight:400;opacity:.6;margin-left:4px">不含运费</small></div>
+        <div class="dc-r-final-val">¥${salePriceNoShip.toFixed(2)}</div>
+      </div>
     </div>`;
 }
 function readCalcData(name) {
