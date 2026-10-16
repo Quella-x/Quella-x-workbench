@@ -2226,7 +2226,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 /* v22: 总价 section 与其他 section 一致间距（14px）—— 去掉之前的收紧规则 */
 /* v30: 同模明细行（改人/改色...）左对齐制品文字（12 行内边距 + 20 序号宽 + 8 间距 = 40px） */
 .dc-rr.sub{font-size:11px;color:var(--c-text-muted);padding:0 12px 1px 40px}
-.dc-r-final{background:var(--c-primary);color:#fff;border-radius:8px;padding:12px;text-align:center;margin-top:4px}
+.dc-r-final{background:var(--c-primary);color:#fff;border-radius:8px;padding:12px;display:grid;place-items:center;text-align:center;margin-top:4px}
 .dc-r-final-label{font-size:12px;opacity:.9}
 .dc-r-final-val{font-size:24px;font-weight:700;margin-top:2px}
 /* DY轮：回退 DV/DW/DX 的修改项目强调面板，恢复 v163 原版——最终总价/需付尾款用普通小计行（.dc-rr.total），不再额外强调 */
@@ -3837,8 +3837,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1030"></script>
-<script>console.log('[小筱工作台] 当前版本 v1030 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1031"></script>
+<script>console.log('[小筱工作台] 当前版本 v1031 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
