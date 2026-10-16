@@ -41,7 +41,7 @@ const DB = {
 
 /* ===== Cloud Sync (Supabase REST) ===== */
 /* 同步集合：这些 store 会参与云端同步；其余（ui_state、customOpts_*、syncCfg 等）仅本地 */
-const SYNC_STORES = ['publishRecords','groupbuys','factories','samples','calcTemplates','calcRecords','inspirations','commissions','authorizations','priceList','ocCharacters','ocRelations','ocStories','ocTimeline','ocCommissions','appSettings','customCategories','lifeCheckins','lifeRecords','lifeCheckinDefs','commissionDetails','textTemplates','textTemplateCats'];
+const SYNC_STORES = ['publishRecords','groupbuys','factories','samples','calcTemplates','calcRecords','inspirations','commissions','authorizations','priceList','priceRef','ocCharacters','ocRelations','ocStories','ocTimeline','ocCommissions','appSettings','customCategories','lifeCheckins','lifeRecords','lifeCheckinDefs','commissionDetails','textTemplates','textTemplateCats'];
 
 function hashStr(str) {
   let h = 0;
@@ -1122,7 +1122,7 @@ function lucide(name, size, cls) {
 /* v686：导航图标改用 Lucide 图标名（原为 emoji），取值即 LUCIDE_SVG 的键名 */
 const DEFAULT_NAV_ICONS = {
   'home': 'house', 'groupbuy': 'package', 'groupbuy-records': 'package', 'groupbuy-factories': 'warehouse',
-  'groupbuy-samples': 'cog', 'groupbuy-priceref': 'tags', 'groupbuy-calc': 'barcode', 'design': 'palette', 'design-inspiration': 'lightbulb',
+  'groupbuy-samples': 'cog', 'groupbuy-priceref': 'tag', 'groupbuy-calc': 'barcode', 'design': 'palette', 'design-inspiration': 'lightbulb',
   'design-commission': 'calendar-clock', 'design-commission-detail': 'file-text', 'design-calc': 'calculator', 'design-auth': 'scroll-text', 'design-pricelist': 'clipboard-list',
   'oc': 'user', 'oc-profiles': 'users', 'oc-relations': 'link', 'oc-stories': 'book-open', 'oc-timeline': 'clock', 'oc-commission': 'palette',
   'life-checkin': 'calendar-check', 'life-record': 'notebook-pen'
@@ -4212,10 +4212,10 @@ function renderListPage(pageKey, mod) {
       const overdueIcon = isOverdue ? lucide('alert-triangle',14) + ' ' : '';
       html += `<div class="record-card-title">${overdueIcon}${esc(titleText)}</div>`;
       html += '<div class="record-card-actions">';
-      // v1032 价格参考聚合卡：✏️ 打开新增表单（给该制品再添价位）；🗑️ 删掉整个制品的全部价位（带确认）
+      // v1033 价格参考聚合卡：✏️ 编辑该制品（可改已有价位/删行/加行）；🗑️ 删掉整个制品的全部价位（带确认）
       if (r._aggRows) {
         const _pn = String(r._aggName).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        html += `<span class="btn-icon" onclick="event.stopPropagation();openAddForm('${pageKey}')">${lucide('pencil',16)}</span>`;
+        html += `<span class="btn-icon" onclick="event.stopPropagation();priceRefEditProduct('${_pn}')">${lucide('pencil',16)}</span>`;
         html += `<span class="btn-icon danger" onclick="event.stopPropagation();priceRefDeleteProduct('${_pn}')">${lucide('trash-2',16)}</span>`;
       } else {
         html += `<span class="btn-icon" onclick="event.stopPropagation();openEditForm('${pageKey}','${r.id}')">${lucide('pencil',16)}</span>`;
@@ -5765,6 +5765,69 @@ async function onDelete(pageKey, id) {
     if (pageKey === 'oc-relations') removeOcRelationRefs(r);
     Toast.success(_coopRemoved ? `已删除（同步移除厂家合作记录 ${_coopRemoved} 条）` : '已删除'); navigate(pageKey);
   }
+}
+
+/* v1033 价格参考 · 编辑制品弹窗：块内字段走 buildForm（与新增表单同构），保存用 DB.add/update/remove 标准接口（保持云端同步与墓碑机制） */
+function _priceRefRowFields() { return MODULES['groupbuy-priceref'].fields.filter(f => f.key !== 'name'); }
+function priceRefEditProduct(name) {
+  const rows = (DB.get('priceRef', []) || []).filter(r => String(r.name || '').trim() === name)
+    .sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
+  if (!rows.length) return;
+  const rowFields = _priceRefRowFields();
+  const blockHTML = (r, i) => `<div class="pr-edit-block" data-id="${r ? r.id : 'new'}">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
+      <span style="font-size:13px;font-weight:600;color:var(--c-text)">价位 ${i}</span>
+      <span class="btn-icon danger" title="删除此价位" onclick="this.closest('.pr-edit-block').remove()">${lucide('trash-2',16)}</span>
+    </div>
+    ${buildForm(rowFields, r || {}, 'groupbuy-priceref')}
+  </div>`;
+  const bodyHTML = `
+    ${buildForm([{ key: 'name', label: '制品', type: 'text' }], { name }, 'groupbuy-priceref')}
+    <div id="prEditBlocks">${rows.map((r, i) => blockHTML(r, i + 1)).join('')}</div>
+    <button type="button" class="btn btn-outline btn-sm" style="margin-top:10px" onclick="priceRefAddEditBlock()">${lucide('plus',14)} 添加价位</button>`;
+  openModal('编辑制品', bodyHTML, [
+    { label: '取消', class: 'btn-ghost', action: closeModal },
+    { label: '保存', class: 'btn-primary', action: () => priceRefSaveEdit(name) },
+  ]);
+}
+function priceRefAddEditBlock() {
+  const wrap = $('#prEditBlocks');
+  if (!wrap) return;
+  const n = wrap.querySelectorAll('.pr-edit-block').length + 1;
+  const div = document.createElement('div');
+  div.className = 'pr-edit-block'; div.dataset.id = 'new';
+  div.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
+      <span style="font-size:13px;font-weight:600;color:var(--c-text)">价位 ${n}</span>
+      <span class="btn-icon danger" title="删除此价位" onclick="this.closest('.pr-edit-block').remove()">${lucide('trash-2',16)}</span>
+    </div>` + buildForm(_priceRefRowFields(), {}, 'groupbuy-priceref');
+  wrap.appendChild(div);
+}
+async function priceRefSaveEdit(origName) {
+  const body = $('#modalBody');
+  const nameEl = $('input[data-key="name"]', body);
+  const newName = nameEl ? nameEl.value.trim() : '';
+  if (!newName) return Toast.error('制品不能为空');
+  const kept = [];
+  body.querySelectorAll('.pr-edit-block').forEach(b => {
+    const get = k => { const el = b.querySelector(`input[data-key="${k}"]`); return el ? el.value.trim() : ''; };
+    const row = { name: newName, price: get('price'), material: get('material'), size: get('size'), remark: get('remark') };
+    if (row.price === '' && row.material === '' && row.size === '' && row.remark === '') return; // 全空行视为删除
+    const id = b.dataset.id;
+    if (id && id !== 'new') row.id = id;
+    kept.push(row);
+  });
+  if (!kept.length) return Toast.error('至少保留一条价位');
+  const list = DB.get('priceRef', []) || [];
+  const oldRows = list.filter(r => String(r.name || '').trim() === origName);
+  const keptIds = kept.filter(r => r.id).map(r => r.id);
+  oldRows.forEach(r => { if (!keptIds.includes(r.id)) DB.remove('priceRef', r.id); }); // 走墓碑，多端不复活
+  kept.forEach(row => {
+    if (row.id) DB.update('priceRef', row.id, { name: row.name, price: row.price, material: row.material, size: row.size, remark: row.remark });
+    else DB.add('priceRef', { name: row.name, price: row.price, material: row.material, size: row.size, remark: row.remark });
+  });
+  closeModal();
+  Toast.success('已保存');
+  navigate('groupbuy-priceref');
 }
 
 async function priceRefDeleteProduct(name) {
