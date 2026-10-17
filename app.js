@@ -5788,7 +5788,7 @@ function priceRefEditProduct(name) {
   const bodyHTML = `
     ${buildForm([{ key: 'name', label: '制品', type: 'text' }], { name }, 'groupbuy-priceref')}
     <div id="prEditBlocks">${rows.map((r, i) => blockHTML(r, i + 1)).join('')}</div>
-    <button type="button" class="btn btn-outline btn-sm" style="margin-top:10px" onclick="priceRefAddEditBlock()">${lucide('plus',14)} 添加价位</button>`;
+    <button type="button" class="btn btn-primary" onclick="priceRefAddEditBlock()" style="margin-top:10px;width:100%;font-size:13px;padding:8px 12px">+ 添加价位</button>`;
   openModal('编辑制品', bodyHTML, [
     { label: '取消', class: 'btn-ghost', action: closeModal },
     { label: '保存', class: 'btn-primary', action: () => priceRefSaveEdit(name) },
