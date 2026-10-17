@@ -3975,6 +3975,59 @@ function renderChartStatsInner(mod, pageKey, store) {
   return html;
 }
 
+/* === v1049 masonry RR begin === 原生 grid masonry 优先；不支持时 JS 轮转列分组兜底（DOM 横向分行配对 1-2/3-4、列内垂直咬合无空隙） */
+const PR_MASONRY_NATIVE = (window.CSS && CSS.supports && CSS.supports('grid-template-rows', 'masonry'));
+function masonryRRCols(kind){
+  if (kind === 'pr') return window.innerWidth > 768 ? 2 : 1; /* 价格参考：电脑两列 / 手机单列 */
+  return window.innerWidth > 640 ? 3 : 1; /* 接稿详情：电脑三列 / 手机单列 */
+}
+function masonryRRRestore(el){
+  if (!el.dataset.rrCols) return;
+  const colEls = [].slice.call(el.children).filter(x => x.classList && x.classList.contains('masonry-col'));
+  if (colEls.length) {
+    const grids = colEls.map(c => [].slice.call(c.children));
+    const frag = document.createDocumentFragment();
+    const maxLen = Math.max.apply(null, grids.map(g => g.length));
+    for (let r = 0; r < maxLen; r++) for (let c = 0; c < grids.length; c++) { if (grids[c][r]) frag.appendChild(grids[c][r]); }
+    el.appendChild(frag);
+    colEls.forEach(c => c.remove());
+  }
+  el.classList.remove('masonry-rr', 'pr-2col', 'cd-3col');
+  delete el.dataset.rrCols;
+}
+function masonryRRApply(el, kind){
+  if (PR_MASONRY_NATIVE || !el) return;
+  const cols = masonryRRCols(kind);
+  if (el.dataset.rrCols === String(cols)) return;
+  masonryRRRestore(el);
+  if (cols <= 1) return;
+  const cards = [].slice.call(el.children);
+  if (cards.length < 2) return;
+  const groups = [];
+  for (let i = 0; i < cols; i++) groups.push([]);
+  cards.forEach((c, i) => groups[i % cols].push(c));
+  el.classList.add('masonry-rr');
+  el.classList.add(kind === 'pr' ? 'pr-2col' : 'cd-3col');
+  el.dataset.rrCols = String(cols);
+  const frag = document.createDocumentFragment();
+  groups.forEach(g => {
+    const col = document.createElement('div');
+    col.className = 'masonry-col';
+    g.forEach(c => col.appendChild(c));
+    frag.appendChild(col);
+  });
+  el.appendChild(frag);
+}
+let _masonryRRTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(_masonryRRTimer);
+  _masonryRRTimer = setTimeout(() => {
+    document.querySelectorAll('.record-list.priceref-list').forEach(el => masonryRRApply(el, 'pr'));
+    document.querySelectorAll('.cd-rec-list').forEach(el => masonryRRApply(el, 'cd'));
+  }, 150);
+});
+/* === v1049 masonry RR end === */
+
 function renderListPage(pageKey, mod) {
   const body = $('#mainBody');
   const store = mod.store;
@@ -4370,6 +4423,9 @@ function renderListPage(pageKey, mod) {
   if (gbWrapped) { html += '</div>'; } // close .gb-records-2col
   html += '</div>';
   body.innerHTML = html;
+  /* v1049：价格参考列表 masonry 兜底（浏览器不支持原生 grid masonry 时轮转列分组） */
+  const _prMasonryEl = body.querySelector('.record-list.priceref-list');
+  if (_prMasonryEl) masonryRRApply(_prMasonryEl, 'pr');
   // v808：仅五模块两列加独立滚动标记（接稿排期日历视图 v808 起恢复整页滚动=v679 定稿；navigate 切页时清除）
   body.classList.toggle('two-col-fixed', isGbTwoCol);
 }
@@ -13241,6 +13297,9 @@ function renderCommissionDetailPage() {
 
   html += '</div>';
   body.innerHTML = html;
+  /* v1049：接稿详情列表 masonry 兜底（浏览器不支持原生 grid masonry 时轮转列分组） */
+  const _cdMasonryEl = body.querySelector('.cd-rec-list');
+  if (_cdMasonryEl) masonryRRApply(_cdMasonryEl, 'cd');
 }
 
 // v801: 展示视图取大框列标签的基础文字（去掉括号提示词——提示词只在填写表单显示）

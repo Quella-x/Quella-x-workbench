@@ -362,8 +362,21 @@ html.apk.modal-lock{overflow:hidden!important}
   .record-list.two-col.priceref-list{grid-template-columns:1fr}
 }
 /* v1040：价格参考电脑端两列卡片贴合内容（矮卡不再被拉等高留白；手机端已是单列无需此规则） */
+/* v1049：优先 grid masonry 自动填补垂直空白（保留 DOM 横向分行顺序；不支持时降级普通 grid，align-items:start 保持矮卡顶部对齐） */
 @media (min-width:769px){
-  .record-list.two-col.priceref-list{align-items:start}
+  .record-list.two-col.priceref-list{align-items:start;grid-template-rows:masonry}
+}
+/* v1049：masonry 兜底样式（浏览器不支持原生 grid masonry 时，JS 把卡片按 i%列数 轮转分列、列内垂直堆叠） */
+.masonry-rr{display:flex !important;flex-direction:row !important;gap:10px;align-items:flex-start}
+.masonry-rr>.masonry-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:10px}
+/* 手机端解除轮转分组：单列自然堆叠 */
+@media (max-width:768px){
+  .masonry-rr.pr-2col{display:block !important}
+  .masonry-rr.pr-2col>.masonry-col{display:contents}
+}
+@media (max-width:640px){
+  .masonry-rr.cd-3col{display:block !important}
+  .masonry-rr.cd-3col>.masonry-col{display:contents}
 }
 /* v1015 曾把八模块胶囊上移 0.75px，她实测「上面又多了」（v1014 无位移的版本她说厂家评价是好的）——v1016 撤销上移 */
 @media (max-width:768px){
@@ -3273,7 +3286,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .cd-month-summary{font-size:12px;color:var(--c-text-muted);text-align:center;margin-bottom:10px}
 /* 接稿条列表（v646：电脑端恢复瀑布流；移动端单列） */
 /* v653：grid row-major 横读 sort 顺序（1,2,3 / 4,5,6），align-items:start 让行内卡片顶部对齐、自然高度（行间独立高度接近瀑布流） */
-.cd-rec-list{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:start}
+/* v1049：接稿详情优先 grid masonry 自动填补垂直空白（保留 DOM 横向分行顺序）；不支持时降级普通 grid（align-items:start 保持矮卡顶部对齐） */
+.cd-rec-list{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:start;grid-template-rows:masonry}
 .cd-rec-card{border:1px solid var(--c-border-light);border-radius:12px;background:#fff;overflow:hidden}
 @media (max-width:640px){
   .cd-rec-list{grid-template-columns:1fr}
@@ -3855,8 +3869,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1048"></script>
-<script>console.log('[小筱工作台] 当前版本 v1048 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1049"></script>
+<script>console.log('[小筱工作台] 当前版本 v1049 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
