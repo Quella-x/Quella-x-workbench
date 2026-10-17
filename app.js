@@ -10659,7 +10659,12 @@ function initEvents() {
   $('#mobileToggle').onclick = () => { $('#sidebar').classList.toggle('show'); $('#sidebarOverlay').classList.toggle('show'); };
   $('#sidebarOverlay').onclick = () => { $('#sidebar').classList.remove('show'); $('#sidebarOverlay').classList.remove('show'); };
   $('#modalClose').onclick = attemptCloseModal;
-  $('#modalOverlay').onclick = (e) => { if (e.target === $('#modalOverlay')) attemptCloseModal(); };
+  // v1042：修复弹窗内拖选文本到外部释放时误关弹窗；只有 mousedown/touchstart 和 click 都落在遮罩上才关闭
+  let _modalOverlayDownTarget = null;
+  const _modalOverlay = $('#modalOverlay');
+  _modalOverlay.addEventListener('mousedown', (e) => { _modalOverlayDownTarget = e.target; });
+  _modalOverlay.addEventListener('touchstart', (e) => { _modalOverlayDownTarget = e.target; }, { passive: true });
+  _modalOverlay.onclick = (e) => { if (e.target === _modalOverlay && _modalOverlayDownTarget === _modalOverlay) attemptCloseModal(); _modalOverlayDownTarget = null; };
   $('#lightbox').onclick = () => $('#lightbox').classList.remove('show');
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { const ov = document.getElementById('modalOverlay'); if (ov && ov.classList.contains('show')) { attemptCloseModal(); } else { $('#lightbox').classList.remove('show'); } } });
   $('#importFile').onchange = (e) => {
