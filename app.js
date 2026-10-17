@@ -5813,7 +5813,7 @@ async function priceRefSaveEdit(origName) {
   if (!newName) return Toast.error('制品不能为空');
   const kept = [];
   body.querySelectorAll('.pr-edit-block').forEach(b => {
-    const get = k => { const el = b.querySelector(`input[data-key="${k}"]`); return el ? el.value.trim() : ''; };
+    const get = k => { const el = b.querySelector(`input[data-key="${k}"], textarea[data-key="${k}"]`); return el ? el.value.trim() : ''; };
     const row = { name: newName, price: get('price'), material: get('material'), size: get('size'), remark: get('remark') };
     if (row.price === '' && row.material === '' && row.size === '' && row.remark === '') return; // 全空行视为删除
     const id = b.dataset.id;
