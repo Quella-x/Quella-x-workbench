@@ -3784,6 +3784,7 @@ const PAGE_SIZES = {
   'design-inspiration': 12, 'oc-profiles': 12,
   'design-commission': 12,
   'design-commission-detail': 18,
+  'groupbuy-priceref': 12, /* v1050：价格参考两列×6行=12（此前漏配吃默认6，一页只有3行） */
 };
 function getPageSize(pageKey) { return PAGE_SIZES[pageKey] || 6; }
 

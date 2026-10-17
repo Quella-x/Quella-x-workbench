@@ -379,7 +379,7 @@ html.apk.modal-lock{overflow:hidden!important}
   .record-list.two-col.priceref-list{align-items:start;grid-template-rows:masonry}
 }
 /* v1049：masonry 兜底样式（浏览器不支持原生 grid masonry 时，JS 把卡片按 i%列数 轮转分列、列内垂直堆叠） */
-.masonry-rr{display:flex !important;gap:10px;align-items:flex-start}
+.masonry-rr{display:flex !important;flex-direction:row !important;gap:10px;align-items:flex-start}
 .masonry-rr>.masonry-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:10px}
 /* 手机端解除轮转分组：单列自然堆叠 */
 @media (max-width:768px){
@@ -3880,8 +3880,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=1049"><\/script>');</script>
-<script>console.log('[小筱工作台] 当前版本 v1049 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=1050"><\/script>');</script>
+<script>console.log('[小筱工作台] 当前版本 v1050 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
