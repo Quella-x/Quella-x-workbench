@@ -366,6 +366,12 @@ html.apk.modal-lock{overflow:hidden!important}
 .price-entry{padding:6px 0;border-top:1px dashed var(--c-border-light)}
 .price-entry:first-child{padding-top:0;border-top:none}
 .record-card-body.comm-list-style .price-entry .field:first-child .field-value{color:var(--c-primary-dark);font-weight:700}
+/* v1039：备注（末位字段）支持换行显示 */
+.record-card-body.comm-list-style .price-entry .field:last-child .field-value{white-space:pre-line}
+/* v1039：价格参考手机端改单列（桌面仍两列） */
+@media (max-width:768px){
+  .record-list.two-col.priceref-list{grid-template-columns:1fr}
+}
 /* v1015 曾把八模块胶囊上移 0.75px，她实测「上面又多了」（v1014 无位移的版本她说厂家评价是好的）——v1016 撤销上移 */
 @media (max-width:768px){
   .record-card-body.comm-list-style{padding-top:9px}
@@ -3855,8 +3861,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=1038"><\/script>');</script>
-<script>console.log('[小筱工作台] 当前版本 v1038 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=1039"><\/script>');</script>
+<script>console.log('[小筱工作台] 当前版本 v1039 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

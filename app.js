@@ -3045,7 +3045,8 @@ MODULES['groupbuy-priceref'] = {
     { key: 'price', label: '价格', type: 'number' },
     { key: 'material', label: '材质', type: 'text' },
     { key: 'size', label: '尺寸', type: 'text' },
-    { key: 'remark', label: '备注', type: 'text' },
+    /* v1039：备注支持换行 → textarea；卡内展示走 .price-entry 末位字段 white-space:pre-line */
+    { key: 'remark', label: '备注', type: 'textarea' },
   ],
   filters: [{ key: 'name', label: '全部制品', options: [{ value: '', label: '全部制品' }] }],
   listFields: [
@@ -4197,7 +4198,7 @@ function renderListPage(pageKey, mod) {
   } else {
     const twoCol = TWO_COL_MODULES.includes(pageKey) ? ' two-col' : '';
     if (gbWrapped) { html += '<div class="gb-records-2col"><div class="gb-left">'; }
-    if (!isCommDual) { const _calViewCls = ((pageKey === 'design-commission' && ps.viewMode === 'calendar') || CAL_VIEW_STYLE_MODULES.includes(pageKey)) ? ' cal-view' : ''; html += `<div class="record-list${twoCol}${_calViewCls}">`; }
+    if (!isCommDual) { const _prListCls = (pageKey === 'groupbuy-priceref') ? ' priceref-list' : ''; const _calViewCls = ((pageKey === 'design-commission' && ps.viewMode === 'calendar') || CAL_VIEW_STYLE_MODULES.includes(pageKey)) ? ' cal-view' : ''; html += `<div class="record-list${twoCol}${_calViewCls}${_prListCls}">`; }
     pagedRecords.forEach(r => {
       const isOverdue = mod.isOverdue && mod.isOverdue(r);
       const cardClick = `recordCardOpenDetail('${pageKey}','${r.id}')`;
