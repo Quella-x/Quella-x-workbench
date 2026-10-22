@@ -5990,7 +5990,12 @@ function renderHome() {
     if (ps.contentTypeFilter) filteredRecords = filteredRecords.filter(r => valIncludes(r.contentType, ps.contentTypeFilter));
     if (ps.search) filteredRecords = filteredRecords.filter(r => (r.title || '').toLowerCase().includes(ps.search.toLowerCase()));
     if (ps.dateFilter) filteredRecords = filteredRecords.filter(r => (r.publishTime || '').startsWith(ps.dateFilter));
-    filteredRecords.sort((a, b) => (b.publishTime || '').localeCompare(a.publishTime || ''));
+    // v1051：发布日期降序；同一天按创建时间 _ct 降序（最新创建在上，最早创建在最底下）
+    filteredRecords.sort((a, b) => {
+      const pa = a.publishTime || '', pb = b.publishTime || '';
+      if (pa !== pb) return pb.localeCompare(pa);
+      return (b._ct || 0) - (a._ct || 0);
+    });
 
     // Pagination
     if (ps.homePageNo == null) ps.homePageNo = 1;
