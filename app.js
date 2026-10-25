@@ -6353,7 +6353,7 @@ function calcPrice() {
       <div class="dc-rr"><span>人工成本/件</span><span>¥${laborCost.toFixed(2)}</span></div>
       <div class="dc-rr"><span>运费/件</span><span>¥${shipping.toFixed(2)}</span></div>
       <div class="dc-rr"><span>抽成/件 (${commissionRate}%)</span><span>¥${commission.toFixed(2)}</span></div>
-      <div class="dc-rr total"><span>综合单位成本</span><span>¥${unitCost.toFixed(2)}</span></div>
+      <div class="dc-rr total"><span>单位成本</span><span>¥${unitCost.toFixed(2)}</span></div>
     </div>
     <div class="dc-r-section">
       <div class="dc-r-sub">利润分析</div>
