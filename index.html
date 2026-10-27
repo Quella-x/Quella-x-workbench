@@ -3818,6 +3818,40 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .cd-toolbar > .search-box{margin-bottom:0 !important;}
 }
 </style>
+
+<style id="gb-calc-css">
+/* v1054: 价目计算·开团版（预览 v43 定稿） */
+/* ===== 预览新增（仅布局栅格，颜色/字号/间距一律沿用现有变量） ===== */
+.gb-row{border:1px solid var(--c-border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px}
+.gb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:14px 16px}
+.gb-f{display:flex;flex-direction:column;gap:8px;min-width:0}
+.gb-f>span{font-size:11px;font-weight:400;color:var(--c-text-muted)}
+.gb-tier{display:flex;align-items:center;gap:6px;margin-top:14px;flex-wrap:wrap}
+.gb-tier .form-input{width:80px;flex:none}
+.gb-inline{display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+.gb-inline label{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--c-text);white-space:nowrap}
+.gb-combo{display:inline-block}
+.gb-combo .combobox-input{width:100%}
+.gb-combo .combobox-dropdown{white-space:nowrap;left:0;right:auto;min-width:100%;width:max-content;max-width:90vw}
+/* v35：卡片底部建议售价/推荐售卖价块 = 报价单结尾蓝块同款（.dc-r-final），原 .gb-ps/.gb-ps-h/.gb-tr 已删 */
+.gb-del-foot{display:flex;justify-content:flex-end;margin-top:14px}
+/* ===== 阶梯显示格式（不存在"当前档"） ===== */
+.gb-cv{font-size:20px;font-weight:700;margin-top:2px}
+/* 删除按钮：全站一致红色（.btn 造型 + .gb-del 红字红边） */
+.gb-del{color:var(--c-danger) !important;border-color:var(--c-danger) !important;background:var(--c-card) !important}
+.gb-del:hover{background:#fff0f0 !important;color:var(--c-danger) !important}
+/* v27：档位标题=分区小标题（15px/700，与 13px 明细行拉开层级）；档与档之间浅色分割线（她："分割线呢？"+红框"还是不明确"） */
+/* v37：档位标题字重加粗（字体只有 Bold，700/800/900 渲染相同 → 用 text-stroke 加粗笔画）；竖线加深（浅蓝底上 var(--c-border) 几乎看不见，她："呢？"） */
+.tier-hdr{margin-top:8px}
+.tier-hdr span{background:none;color:var(--c-text);font-size:14px;font-weight:700;border-radius:0;padding:0;-webkit-text-stroke:.4px currentColor}
+.tier-hdr .th-note{font-style:normal;font-size:12px;font-weight:400;color:var(--c-text-muted);display:inline-block;border-left:1px solid #a9bfd6;padding-left:6px;margin-left:6px;vertical-align:1px;-webkit-text-stroke:0}
+/* v30：恢复 v25 的汇总行深色粗线（=真实页面 .dc-rr.total 自带 border-top，v26/v29 删错了，她原话"分割线呢？v25是这样的？"） */
+/* 结果数字加重 */
+.gbv .dc-rr.total span:last-child{font-size:15px;font-weight:700}
+/* 包邮行电脑端强制一行；注释常显（她："其他注释呢？"）；窄屏允许换行防溢出 */
+.gb-ship-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;white-space:nowrap;flex-wrap:nowrap}
+@media(max-width:640px){.gb-ship-row{flex-wrap:wrap;white-space:normal}}
+</style>
 </head>
 <body>
 <div id="app">
@@ -3869,8 +3903,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1053"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1053 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1054"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1054 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
