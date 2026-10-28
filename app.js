@@ -6431,6 +6431,7 @@ function deleteCalcTemplate(id) { DB.remove('calcTemplates', id); Toast.success(
 
 /* ===== v1054: 价目计算 · 开团版（预览 v43 定稿移植；命名空间 gb* 防冲突） ===== */
 var gbMode='shop', gbUid=1;
+var gbTotalVal=0;
 var gbG={giftCost:300, rate:0, freeShip:false, ship:6};
 var gbItems=[], gbBundles=[];
 var gbVerifyOpen=false;
@@ -6580,8 +6581,9 @@ function gbBundleCalcAt(b,T){
   var ms=[];
   b.members.forEach(function(m,mi){var it=gbItemById(m.itemId); if(it) ms.push({it:it,n:T*(m.qty||1),qty:m.qty||1,mi:mi});});
   var perMember=[];
-  var valSum=ms.reduce(function(s,o){return s+((o.it.sellable&&!o.it.locked)?gbFpAt(o.it,o.n)*o.n:0);},0);
   var cost=0,price=0;
+  /* v1055：宣团礼/赠品按「全局货值占比」分摊给所有可售卖且未锁价制品（与单品口径一致）；
+     不得只在套件内按局部 valSum 摊——那会让套装独吞整笔礼金成本，导致套装远比单品贵。 */
   ms.forEach(function(o){
     var it=o.it,n=o.n;
     var fp=gbFpAt(it,n);
@@ -6590,7 +6592,7 @@ function gbBundleCalcAt(b,T){
     var d=dQty*fp/n;
     var sfv=parseFloat(it.shipFee);
     var ship=gbG.freeShip?(isNaN(sfv)?(gbG.ship||0):sfv):0;
-    var g=(it.sellable&&!it.locked&&valSum>0)? gbG.giftCost*((fp*n)/valSum)/n : 0;
+    var g=(it.sellable&&!it.locked&&gbTotalVal>0)? gbG.giftCost*fp/gbTotalVal : 0;
     var c=fp+s+d+g+ship;
     cost+=c*o.qty;
     var p;
@@ -6611,6 +6613,7 @@ function gbCompute(){
   var compliant=gbItems.filter(function(i){return i.sellable && !i.locked;});
   var val=function(i){return gbTierPrice(i)*(i.moq||1);};
   var totalVal=compliant.reduce(function(s,i){return s+val(i);},0);
+  gbTotalVal = totalVal;
   gbItems.forEach(function(i){
     i._f=gbTierPrice(i);
     var q=i.moq||1;
@@ -6789,9 +6792,8 @@ function gbRenderBundles(){
     h+='<div class="gb-row">';
     /* 顶行：套装名 + 加入商品 + 删除套装 */
     h+='<div class="gb-inline" style="margin-top:0;gap:14px">';
-    h+='<span style="font-size:11px;color:var(--c-text-muted);white-space:nowrap">套装名</span><input class="form-input" style="width:140px" value="'+gbEsc(b.name)+'" oninput="gbBundles['+bi+'].name=this.value">';
+    h+='<span style="font-size:11px;color:var(--c-text-muted);white-space:nowrap">套装名</span><input class="form-input" style="width:140px" value="'+gbEsc(b.name)+'" oninput="gbBundles['+bi+'].name=this.value;gbSaveState()">';
     h+='<button class="btn btn-primary btn-sm" onclick="gbAddBundleMember('+bi+')">+ 加入商品</button>';
-    h+='<button class="btn btn-sm gb-del" onclick="gbDelBundle('+bi+')">删除套装</button>';
     h+='</div>';
     b.members.forEach(function(m,mi){
       h+='<div class="gb-tier"><div class="combobox-wrapper gb-combo" style="width:140px;flex:none"><input class="form-input combobox-input" readonly value="'+(gbItemById(m.itemId)?gbEsc(gbItemById(m.itemId).name):'?')+'" onclick="event.stopPropagation();gbComboToggle(this)"><button type="button" class="combobox-toggle" onclick="event.stopPropagation();gbComboToggle(this)">▼</button><div class="combobox-dropdown">';
@@ -6804,7 +6806,9 @@ function gbRenderBundles(){
     h+='<label style="white-space:nowrap"><input type="checkbox" '+(b.locked?'checked':'')+' onchange="gbLockBundle('+bi+',this.checked)" style="width:auto">锁价</label>';
     if(b.locked){ h+='<span style="font-size:12px;white-space:nowrap">锁定套装价</span><input type="number" class="form-input" style="width:100px;flex:none" value="'+(b.lockedPrice==null?'':b.lockedPrice)+'" oninput="gbBundles['+bi+'].lockedPrice=this.value;gbLiveRefresh()">'; }
     h+='</div>';
-    h+='<div class="dc-r-final" style="margin-top:14px" id="bsum_'+bi+'"></div></div>';
+    h+='<div class="dc-r-final" style="margin-top:14px" id="bsum_'+bi+'"></div>';
+    /* 删除套装：卡片最末尾，右对齐（与单品「删除商品」位置一致） */
+    h+='<div class="gb-del-foot"><button class="btn btn-sm gb-del" onclick="gbDelBundle('+bi+')">删除套装</button></div></div>';
   });
   $('#bundleRows').innerHTML=h;
   gbRefreshBundlesLive();
@@ -6922,9 +6926,9 @@ function gbSaveState(){ try{ localStorage.setItem('gbCalcState', JSON.stringify(
 function gbInitState(){
   try{
     var s=JSON.parse(localStorage.getItem('gbCalcState')||'null');
-    if(s && s.items && s.items.length){ gbG=s.gbG||gbG; gbItems=s.items; gbBundles=s.bundles||[]; gbUid=s.uid||1000; }
-    else gbSeed();
-  }catch(e){ gbSeed(); }
+    if(s && s.items){ gbG=s.gbG||gbG; gbItems=s.items; gbBundles=s.bundles||[]; gbUid=s.uid||1000; }
+    else { gbItems=[]; gbBundles=[]; }   /* v1055：首次进入留空（不再塞演示数据） */
+  }catch(e){ gbItems=[]; gbBundles=[]; }
 }
 
 /* ===== OC Timeline — 时间轨迹 (需求4) ===== */
