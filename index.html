@@ -3834,6 +3834,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .gb-cp-line .form-input{flex:1 1 110px;min-width:80px;width:auto}
 .gb-cp-inline{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:stretch;align-self:stretch}
 .gb-cp-inline .lbt-btn{padding:3px 10px;font-weight:500;display:inline-flex;align-items:center}   /* v1058：按钮高度拉伸=输入框高度（她："按钮高度要和输入框高度一致"） */
+/* v1060：跟在输入框后面的操作按钮同样拉伸=输入框高度（她 image#3/#4：删除档位/+加入商品/移除） */
+.gb-inline .btn-sm,.gb-tier .btn-sm{align-self:stretch;display:inline-flex;align-items:center;padding-top:0;padding-bottom:0}
 .gb-cp-save{color:var(--c-primary)}
 .gb-cp-chip{background:var(--c-primary-bg);border-color:var(--c-primary-light);color:var(--c-primary)}
 .gb-inline label{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--c-text);white-space:nowrap}
@@ -3841,7 +3843,7 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .gb-combo .combobox-input{width:100%}
 .gb-combo .combobox-dropdown{white-space:nowrap;left:0;right:auto;min-width:100%;width:max-content;max-width:90vw}
 /* v35：卡片底部建议售价/推荐售卖价块 = 报价单结尾蓝块同款（.dc-r-final），原 .gb-ps/.gb-ps-h/.gb-tr 已删 */
-.gb-del-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}   /* v1058：两按钮间距规范 8px（她："间距"） */
+.gb-del-foot{display:flex;justify-content:flex-end;gap:4px;margin-top:14px}   /* v1060：间距回归全站按钮标准 4px（.record-card-actions/.template-actions 同款） */
 /* ===== 阶梯显示格式（不存在"当前档"） ===== */
 .gb-cv{font-size:20px;font-weight:700;margin-top:2px}
 /* 删除按钮：全站一致红色（.btn 造型 + .gb-del 红字红边） */
@@ -3910,8 +3912,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1059"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1059 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1060"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1060 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

@@ -6330,9 +6330,11 @@ function renderPriceCalc() {
   html += '<div class="calc-card" id="poolCard" style="display:none">';
   html += '<div class="calc-card-title">商品池 <span class="calc-card-hint">（主制品、可售卖赠品/宣团礼 平级；每条独立配置）</span></div>';
   html += '<div id="poolRows"></div>';
-  html += '<button class="btn btn-primary" style="width:100%;margin-top:10px" onclick="gbAddItem()">+ 添加商品</button>';
-  /* v1059：恢复「从商品库导入」（她的原始需求："价目计算的商品可以直接从商品库导入"；商品库本体在侧边栏「开团 · 商品库」页） */
-  html += '<button class="btn btn-outline" style="width:100%;margin-top:8px" onclick="gbToggleImport()">从商品库导入</button>';
+  /* v1060：并排两按钮（她 image#1："改成并排的"） */
+  html += '<div style="display:flex;gap:4px;margin-top:10px">';
+  html += '<button class="btn btn-primary" style="flex:1" onclick="gbAddItem()">+ 添加商品</button>';
+  html += '<button class="btn btn-outline" style="flex:1" onclick="gbToggleImport()">从商品库导入</button>';
+  html += '</div>';
   html += '<div id="gbImportBox" style="display:none;margin-top:8px"></div>';
   html += '</div>';
   // v1054：套装（开团版）
@@ -6351,16 +6353,9 @@ function renderPriceCalc() {
   html += '<div class="calc-receipt-col">';
   html += '<div id="gbVerifyArea" style="display:none"></div>';
   html += '<div class="calc-receipt" id="calcResult"></div>';
-  // v1059：常用模板两种模式都显示（她："开团也要常用模板啊"）
+  // v1059：常用模板两种模式都显示（她："开团也要常用模板啊"）；v1060：列表抽成 gbRenderTplList（支持排序后局部刷新）
   html += `<div class="calc-card" id="tplCard"><div class="calc-card-title">${lucide('clipboard-list',16)} 常用模板</div>`;
-  html += '<div id="shopTplBox">';
-  if (templates.length) {
-    html += '<div class="template-list">';
-    templates.forEach((t, i) => {
-      html += `<div class="template-item" onclick="loadCalcTemplate('${t.id}')"><span class="template-name">${esc(t.name || '模板' + (i + 1))}</span><div class="template-actions"><button class="btn-icon danger" onclick="event.stopPropagation();deleteCalcTemplate('${t.id}')">${lucide('trash-2',16)}</button></div></div>`;
-    });
-    html += '</div>';
-  } else { html += '<div style="font-size:12px;color:var(--c-text-muted);padding:8px">暂无模板</div>'; }
+  html += '<div id="shopTplBox"><div id="tplList"></div></div>';
   html += '</div>';
   html += '</div>';
   html += `<div class="calc-card"><div class="calc-card-title">${lucide('clock',14)} 历史计算</div>`;
@@ -6379,7 +6374,7 @@ function renderPriceCalc() {
   html += '</div></div>';
   body.innerHTML = html;
   gbInitState();
-  gbRenderHis();   /* v1056：开团历史列表（商品库已移至开团记录页） */
+  gbRenderHis(); gbRenderTplList();   /* v1060：开团历史 + 常用模板（支持排序） */
   gbSetMode('shop');
   /* v1058：小店参数草稿回填（第二次进保留上次输入） */
   if(gbShopVals){ gbShopIds.forEach(function(id){ var el=$('#'+id); if(el && gbShopVals[id]!=null) el.value=gbShopVals[id]; }); calcPrice(); }
@@ -6436,6 +6431,40 @@ function readCalcData(name) {
   const unitCost = itemCost + sampleCost / quantity + laborCost + shipping;
   const salePrice = Math.ceil((unitCost + unitCost * commissionRate / 100) * (1 + profitMargin) * 100) / 100;
   return { name, itemCost, sampleCost, laborCost, shipping, commissionRate, profitMargin: profitMargin * 100, quantity, unitCost, salePrice };
+}
+/* v1060：常用模板排序（↑↓，order 字段；未排过序的按创建时间补 order） */
+function tplSorted(list){
+  return list.slice().sort(function(a,b){
+    var oa=(a.order!=null?a.order:1e15), ob=(b.order!=null?b.order:1e15);
+    return (oa!==ob) ? (oa-ob) : ((b._ct||0)-(a._ct||0));
+  });
+}
+function gbRenderTplList(){
+  var box=$('#tplList'); if(!box) return;
+  var templates=tplSorted(DB.list('calcTemplates'));
+  var h='';
+  if (templates.length) {
+    h += '<div class="template-list">';
+    templates.forEach((t, i) => {
+      h += `<div class="template-item" onclick="loadCalcTemplate('${t.id}')"><span class="template-name">${esc(t.name || '模板' + (i + 1))}</span><div class="template-actions">`+
+           `<button class="btn-icon" title="上移" onclick="event.stopPropagation();moveCalcTemplate('${t.id}',-1)">${lucide('arrow-up',14)}</button>`+
+           `<button class="btn-icon" title="下移" onclick="event.stopPropagation();moveCalcTemplate('${t.id}',1)">${lucide('arrow-down',14)}</button>`+
+           `<button class="btn-icon danger" onclick="event.stopPropagation();deleteCalcTemplate('${t.id}')">${lucide('trash-2',16)}</button></div></div>`;
+    });
+    h += '</div>';
+  } else { h += '<div style="font-size:12px;color:var(--c-text-muted);padding:8px">暂无模板</div>'; }
+  box.innerHTML=h;
+}
+function moveCalcTemplate(id,dir){
+  var arr=tplSorted(DB.list('calcTemplates'));
+  arr.forEach(function(t,i){ if(t.order==null) DB.update('calcTemplates', t.id, {order:i}); });
+  arr=tplSorted(DB.list('calcTemplates'));
+  var idx=-1; arr.forEach(function(t,i){ if(t.id===id) idx=i; });
+  var j=idx+dir;
+  if(idx<0 || j<0 || j>=arr.length) return;
+  DB.update('calcTemplates', arr[idx].id, {order:arr[j].order});
+  DB.update('calcTemplates', arr[j].id, {order:arr[idx].order});
+  gbRenderTplList();
 }
 function saveCalcTemplate() { DB.add('calcTemplates', readCalcData($('#calc_templateName').value || '模板' + (DB.list('calcTemplates').length + 1))); Toast.success('模板已保存'); renderPriceCalc(); }
 function saveCalcHistory() { DB.add('calcRecords', readCalcData($('#calc_templateName').value || '计算记录')); Toast.success('记录已保存'); renderPriceCalc(); }
@@ -6805,16 +6834,18 @@ function gbRenderBundles(){
   var h='';
   gbBundles.forEach(function(b,bi){
     h+='<div class="gb-row">';
-    /* 顶行：套装名 + 加入商品 + 删除套装 */
+    /* 顶行：套装名 + 加入商品 + 从商品库导入（v1060，她 image#2） */
     h+='<div class="gb-inline" style="margin-top:0;gap:14px">';
     h+='<span style="font-size:11px;color:var(--c-text-muted);white-space:nowrap">套装名</span><input class="form-input" style="width:140px" value="'+gbEsc(b.name)+'" oninput="gbBundles['+bi+'].name=this.value;gbSaveState()">';
     h+='<button class="btn btn-primary btn-sm" onclick="gbAddBundleMember('+bi+')">+ 加入商品</button>';
+    h+='<button class="btn btn-outline btn-sm" onclick="gbToggleBundleImport('+bi+')">从商品库导入</button>';
+    h+='<div id="gbBimp_'+bi+'" style="display:none;width:100%"></div>';
     h+='</div>';
     b.members.forEach(function(m,mi){
       h+='<div class="gb-tier"><div class="combobox-wrapper gb-combo" style="width:140px;flex:none"><input class="form-input combobox-input" readonly value="'+(gbItemById(m.itemId)?gbEsc(gbItemById(m.itemId).name):'?')+'" onclick="event.stopPropagation();gbComboToggle(this)"><button type="button" class="combobox-toggle" onclick="event.stopPropagation();gbComboToggle(this)">▼</button><div class="combobox-dropdown">';
       gbItems.forEach(function(it){ h+='<div class="combobox-option'+(it.id===m.itemId?' selected':'')+'" onclick="gbSetBundleItem('+bi+','+mi+','+it.id+',this)">'+gbEsc(it.name)+'</div>'; });
       h+='</div></div><span style="font-size:11px;color:var(--c-text-muted);white-space:nowrap;align-self:center">数量</span><input type="number" class="form-input" style="width:70px" value="'+m.qty+'" oninput="gbBundles['+bi+'].members['+mi+'].qty=parseFloat(this.value)||1;gbLiveRefresh()">';
-      h+='<button class="btn btn-sm gb-del" style="margin-bottom:4px" onclick="gbDelBundleMember('+bi+','+mi+')">移除</button></div>';
+      h+='<button class="btn btn-sm gb-del" onclick="gbDelBundleMember('+bi+','+mi+')">移除</button></div>';
     });
     /* 手填行：锁价在此，间距拉开 */
     h+='<div class="gb-inline" style="gap:14px"><span style="font-size:12px;white-space:nowrap">手填套装价(留空=自动)</span><input type="number" class="form-input" style="width:100px;flex:none" value="'+b.customPrice+'" oninput="gbBundles['+bi+'].customPrice=this.value;gbLiveRefresh()">';
@@ -7044,9 +7075,12 @@ function renderGbLibPage(){
   var body=$('#mainBody');
   var list=DB.list('gbProducts');
   var h='<div class="fade-in"><div class="calc-card" style="max-width:860px;margin:0 auto">';
-  h+='<div class="calc-card-title">'+lucide('package',16)+' 商品库 <span class="calc-card-hint">（在「开团 · 价目计算」的商品/套装卡右下角点「保存模板」存入；价目计算的商品池可点「从商品库导入」一键加入）</span></div>';
+  h+='<div class="calc-card-title">'+lucide('package',16)+' 商品库 <span class="calc-card-hint">（在「开团 · 价目计算」的商品/套装卡右下角点「保存模板」存入，或下方从开团记录导入；价目计算的商品池可点「从商品库导入」一键加入）</span></div>';
+  /* v1060：从开团记录导入（她："最多可以从开团记录里导入"） */
+  h+='<button class="btn btn-outline btn-sm" style="margin-bottom:10px" onclick="gbToggleLibImport()">从开团记录导入</button>';
+  h+='<div id="gbLibImportBox" style="display:none;margin-bottom:10px"></div>';
   if(!list.length){
-    h+='<div style="font-size:12px;color:var(--c-text-muted);padding:8px 0">暂无商品。去「开团 · 价目计算」添加商品/套装后，点卡片右下角「保存模板」存入。</div>';
+    h+='<div style="font-size:12px;color:var(--c-text-muted);padding:8px 0">暂无商品。</div>';
   } else {
     h+='<div class="template-list">';
     list.forEach(function(t){
@@ -7060,6 +7094,53 @@ function renderGbLibPage(){
   }
   h+='</div></div>';
   body.innerHTML=h;
+}
+/* v1060：从开团记录导入商品进商品库（制品列表 → 单品，重名跳过） */
+function gbToggleLibImport(){
+  var b=$('#gbLibImportBox'); if(!b) return;
+  var show=(b.style.display==='none');
+  b.style.display=show?'':'none';
+  if(!show) return;
+  var recs=DB.list('groupbuys');
+  if(!recs.length){ b.innerHTML='<div style="font-size:12px;color:var(--c-text-muted);padding:8px">开团记录还没有数据。</div>'; return; }
+  var h='<div class="template-list">';
+  recs.forEach(function(r){
+    var n=(r.products||[]).filter(function(p){ return p.name; }).length;
+    h+='<div class="template-item" onclick="gbImportFromRecord(\''+r.id+'\')"><span class="template-name">'+gbEsc(r.title||'未命名开团')+'（'+n+' 个制品）</span>'+
+       '<div class="template-actions"><button class="btn btn-sm btn-outline" onclick="event.stopPropagation();gbImportFromRecord(\''+r.id+'\')">导入</button></div></div>';
+  });
+  h+='</div>';
+  b.innerHTML=h;
+}
+function gbImportFromRecord(id){
+  var r=DB.getById('groupbuys', id); if(!r) return;
+  var prods=(r.products||[]).filter(function(p){ return p.name; });
+  if(!prods.length){ Toast.info('该开团记录没有制品'); return; }
+  var n=0;
+  prods.forEach(function(p){
+    var exists=DB.list('gbProducts').some(function(o){ return o.type==='item' && o.name===p.name; });
+    if(exists) return;
+    DB.add('gbProducts', {type:'item', name:p.name, moq:100, tiers:[{min:100, price:parseFloat(p.price)||0}], sampleFee:0, defectRate:3, shipFee:'', sellable:true, locked:false, lockedPrice:null, pmode:'margin', pval:0});
+    n++;
+  });
+  renderGbLibPage();
+  Toast.success(n?('已从开团记录导入 '+n+' 个商品'):'制品都已在商品库里，没有新导入');
+}
+/* 价目计算：套装卡「从商品库导入」折叠列表（只列套装） */
+function gbToggleBundleImport(bi){
+  var b=$('#gbBimp_'+bi); if(!b) return;
+  var show=(b.style.display==='none');
+  b.style.display=show?'':'none';
+  if(!show) return;
+  var list=DB.list('gbProducts').filter(function(t){ return t.type==='bundle'; });
+  if(!list.length){ b.innerHTML='<div style="font-size:12px;color:var(--c-text-muted);padding:8px">商品库里还没有套装。在套装卡右下角点「保存模板」存入。</div>'; return; }
+  var h='<div class="template-list">';
+  list.forEach(function(t){
+    h+='<div class="template-item"><span class="template-name">'+gbEsc(t.name)+'（'+((t.members||[]).length)+' 个商品）</span>'+
+       '<div class="template-actions"><button class="btn btn-sm btn-outline" onclick="gbImportLib(\''+t.id+'\')">导入</button></div></div>';
+  });
+  h+='</div>';
+  b.innerHTML=h;
 }
 /* 价目计算：商品池「从商品库导入」折叠列表 */
 function gbToggleImport(){
