@@ -3829,6 +3829,13 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .gb-tier{display:flex;align-items:center;gap:6px;margin-top:14px;flex-wrap:wrap}
 .gb-tier .form-input{width:80px;flex:none}
 .gb-inline{display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+/* v1057：常用参数与输入框同一行——输入框 + 单位提示 + 「存为常用」+ 已存值按钮（点值即套用） */
+.gb-cp-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.gb-cp-line .form-input{flex:1 1 110px;min-width:80px;width:auto}
+.gb-cp-inline{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}
+.gb-cp-inline .lbt-btn{padding:3px 10px;font-weight:500}
+.gb-cp-save{color:var(--c-primary)}
+.gb-cp-chip{background:var(--c-primary-bg);border-color:var(--c-primary-light);color:var(--c-primary)}
 .gb-inline label{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--c-text);white-space:nowrap}
 .gb-combo{display:inline-block}
 .gb-combo .combobox-input{width:100%}
@@ -3903,8 +3910,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1055"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1055 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1056"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1056 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
