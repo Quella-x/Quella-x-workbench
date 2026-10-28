@@ -1122,7 +1122,7 @@ function lucide(name, size, cls) {
 /* v686：导航图标改用 Lucide 图标名（原为 emoji），取值即 LUCIDE_SVG 的键名 */
 const DEFAULT_NAV_ICONS = {
   'home': 'house', 'groupbuy': 'package', 'groupbuy-records': 'package', 'groupbuy-factories': 'warehouse',
-  'groupbuy-samples': 'cog', 'groupbuy-priceref': 'tag', 'groupbuy-calc': 'barcode', 'groupbuy-lib': 'package', 'design': 'palette', 'design-inspiration': 'lightbulb',
+  'groupbuy-samples': 'cog', 'groupbuy-priceref': 'tag', 'groupbuy-calc': 'barcode', 'groupbuy-lib': 'database', 'design': 'palette', 'design-inspiration': 'lightbulb',
   'design-commission': 'calendar-clock', 'design-commission-detail': 'file-text', 'design-calc': 'calculator', 'design-auth': 'scroll-text', 'design-pricelist': 'clipboard-list',
   'oc': 'user', 'oc-profiles': 'users', 'oc-relations': 'link', 'oc-stories': 'book-open', 'oc-timeline': 'clock', 'oc-commission': 'palette',
   'life-checkin': 'calendar-check', 'life-record': 'notebook-pen'
@@ -2027,9 +2027,38 @@ function removeDynamicRow(btn) {
   const container = row.closest('.dynamic-list-container');
   row.remove();
   if (container) {
-    const rows = container.querySelectorAll('.dynamic-list-row');
-    rows.forEach((r, i) => { const s = r.querySelector('.dl-seq'); if (s) s.textContent = String(i + 1).padStart(2, '0'); });
+    /* v1061：删除后重排序号并刷新 ▲▼ 可用态 */
+    resortDynamicRows(container.querySelector('.dynamic-list-rows'));
   }
+}
+/* v1061：动态列表 ▲▼ 上移/下移（她："所有模块、内容都要支持修改排序"） */
+function moveDynamicRow(btn, dir) {
+  const row = btn.closest('.dynamic-list-row');
+  if (!row) return;
+  const wrap = row.parentElement;
+  if (!wrap) return;
+  if (dir < 0) {
+    const prev = row.previousElementSibling;
+    if (!prev) return;
+    wrap.insertBefore(row, prev);
+  } else {
+    const next = row.nextElementSibling;
+    if (!next) return;
+    wrap.insertBefore(next, row);
+  }
+  resortDynamicRows(wrap);
+}
+/* v1061：重排序号 + 刷新每条的首尾 ▲▼ 禁用态 */
+function resortDynamicRows(wrap) {
+  if (!wrap) return;
+  const rows = wrap.querySelectorAll('.dynamic-list-row');
+  rows.forEach((r, i) => {
+    const s = r.querySelector('.dl-seq');
+    if (s) s.textContent = String(i + 1).padStart(2, '0');
+    const us = r.querySelectorAll('.df-sort-btn');
+    if (us[0]) us[0].disabled = (i === 0);
+    if (us[1]) us[1].disabled = (i === rows.length - 1);
+  });
 }
 
 function buildDynamicListHTML(field, data, moduleKey) {
@@ -2041,7 +2070,8 @@ function buildDynamicListHTML(field, data, moduleKey) {
   const containerCls = 'dynamic-list-container';
   html += `<div class="${containerCls}" data-key="${field.key}" data-module="${esc(moduleKey)}">`;
   if (columns.length > 1) {
-    html += `<div class="dynamic-list-header">`;
+    /* v1061：动态列表支持排序——表头第一列让出 26px 承载行首 ▲▼（不加列、不加总宽，避免桌面弹窗出现横向滚动条） */
+    html += `<div class="dynamic-list-header dl-sortable-hdr">`;
     columns.forEach(col => {
       html += `<span data-subkey="${esc(col.subkey)}">${esc(col.label)}</span>`;
     });
@@ -2050,7 +2080,14 @@ function buildDynamicListHTML(field, data, moduleKey) {
   html += `<div class="dynamic-list-rows" id="${field.key}_rows">`;
   const rows = items.length > 0 ? items : [{}];
   rows.forEach((item, idx) => {
-    html += `<div class="dynamic-list-row">`;
+    const _isFirst = idx === 0, _isLast = idx === rows.length - 1;
+    html += `<div class="dynamic-list-row dl-sortable">`;
+    /* v1061：行首 ▲▼ 排序（沿用既有 .df-sort-btn 三角标准；行尾已被「删除」占满）。
+       绝对定位到行最左侧，不进入 flex 流——否则总宽 +52px 会让桌面弹窗出现横向滚动条（违反"不能影响当前格式"）。 */
+    html += `<span class="dl-sort-abs">`+
+            `<button type="button" class="df-btn df-sort-btn"${_isFirst ? ' disabled' : ''} title="上移" aria-label="上移" onclick="moveDynamicRow(this,-1)">▲</button>`+
+            `<button type="button" class="df-btn df-sort-btn"${_isLast ? ' disabled' : ''} title="下移" aria-label="下移" onclick="moveDynamicRow(this,1)">▼</button>`+
+            `</span>`;
     columns.forEach(col => {
       // v984: const→let——数组值（多选补偿方式）要在这里塌缩成首项，const 会直接抛 TypeError，
       // 导致含多选数据的记录整个编辑弹窗渲染失败（v983「无法更改内容」的底层原因）
@@ -4078,6 +4115,8 @@ function renderListPage(pageKey, mod) {
   } else {
     records.sort((a, b) => (b._ct || 0) - (a._ct || 0));
   }
+  /* v1061：手动排序优先级最高——只有用户在该模块点过「调整排序」并保存后才有 order 字段，此前行为完全不变 */
+  records = moduleSortedRecords(records);
 
   // 年份筛选（默认当年，按模块首个 date 字段或创建时间筛选）
   if (YEAR_FILTER_MODULES.includes(pageKey)) {
@@ -4151,6 +4190,9 @@ function renderListPage(pageKey, mod) {
   html += '<div class="spacer"></div>';
   if (pageKey === 'oc-profiles') {
     html += `<button class="btn btn-outline toolbar-eq" onclick="openProfileSortModal()">${lucide('arrow-up-down',16)} 调整排序</button>`;
+  } else if (MODULES[pageKey] && MODULES[pageKey].store) {
+    /* v1061：所有模块都支持调整排序（手机端「调整」二字由 CSS 隐藏，只留「排序」） */
+    html += `<button class="btn btn-outline toolbar-eq" onclick="openModuleSortModal('${pageKey}')">${lucide('arrow-up-down',16)} <span class="sort-long">调整</span>排序</button>`;
   }
   html += `<button class="btn btn-primary" onclick="openAddForm('${pageKey}')">+ 新增记录</button>`;
   html += '</div>';
@@ -5079,6 +5121,70 @@ function openProfileSortModal() {
       Toast.success('排序已保存');
       closeModal();
       renderListPage('oc-profiles', MODULES['oc-profiles']);
+    }}
+  ]);
+  render();
+}
+
+/* ===== v1061：通用模块排序（她："所有模块、内容都要支持修改排序"）=====
+   复用人物档案排序弹窗的 .sortable-list 结构与 ▲▼ 三角按钮，落到各模块自己的 store。 */
+function moduleRecordLabel(pageKey, r) {
+  const mod = MODULES[pageKey] || {};
+  const cands = ['title', 'name', 'product', 'sampleName', 'clientInfo', 'factory', 'category'];
+  for (const k of cands) { if (r[k] != null && String(r[k]).trim()) return String(r[k]); }
+  const lf = (mod.listFields || [])[0];
+  if (lf && r[lf.key] != null && String(r[lf.key]).trim()) return String(r[lf.key]);
+  return '未命名';
+}
+function moduleSortedRecords(records) {
+  // 只有用户手动排过序（任一条带 order）才启用手动序，未排过的模块行为完全不变
+  if (!records.some(r => r.order != null)) return records;
+  return records.slice().sort((a, b) => {
+    const ao = a.order == null ? 1e15 : a.order, bo = b.order == null ? 1e15 : b.order;
+    if (ao !== bo) return ao - bo;
+    return (b._ct || 0) - (a._ct || 0);
+  });
+}
+function openModuleSortModal(pageKey) {
+  const mod = MODULES[pageKey];
+  if (!mod || !mod.store) return;
+  let list = DB.list(mod.store).slice();
+  const byOrder = (a, b) => {
+    const ao = a.order != null ? a.order : 1e15, bo = b.order != null ? b.order : 1e15;
+    if (ao !== bo) return ao - bo;
+    return (a._ct || 0) - (b._ct || 0);
+  };
+  list.sort(byOrder);
+  list.forEach((r, i) => { if (r.order == null) r.order = i; });
+  const render = () => {
+    let html = '<div class="sortable-list">';
+    list.forEach((r, i) => {
+      html += `<div class="sortable-item"><span class="sortable-name">${esc(moduleRecordLabel(pageKey, r))}</span>`;
+      html += '<div class="sortable-actions">';
+      html += `<button class="btn btn-ghost btn-sm" ${i === 0 ? 'disabled' : ''} onclick="moduleSortMove(${i},-1)">▲</button>`;
+      html += `<button class="btn btn-ghost btn-sm" ${i === list.length - 1 ? 'disabled' : ''} onclick="moduleSortMove(${i},1)">▼</button>`;
+      html += '</div></div>';
+    });
+    html += '</div>';
+    $('#modalBody').innerHTML = html;
+  };
+  window._moduleSortList = list;
+  window._moduleSortStore = mod.store;
+  window._moduleSortKey = pageKey;
+  window.moduleSortMove = (idx, dir) => {
+    const j = idx + dir;
+    if (j < 0 || j >= list.length) return;
+    const tmp = list[idx].order; list[idx].order = list[j].order; list[j].order = tmp;
+    list.sort(byOrder);
+    render();
+  };
+  openModal('调整排序', '', [
+    { label: '取消', class: 'btn-outline', action: () => closeModal() },
+    { label: '保存', class: 'btn-primary', action: () => {
+      DB.save(mod.store, list);
+      Toast.success('排序已保存');
+      closeModal();
+      if (currentPage === pageKey) navigate(pageKey);
     }}
   ]);
   render();
@@ -6307,7 +6413,7 @@ function renderPriceCalc() {
   html += '<div class="form-row"><label class="form-label">预期利润率<span class="calc-card-hint">（%）</span></label><div class="gb-cp-line"><input type="number" class="form-input" id="calc_profitMargin" value="30" oninput="calcPrice()"><span class="gb-cp-inline" id="gbCp_calc_profitMargin">'+gbCpControls('calc_profitMargin')+'</span></div></div>';
   html += '<div class="form-row"><label class="form-label">开团数量</label><div class="gb-cp-line"><input type="number" class="form-input" id="calc_quantity" value="100" oninput="calcPrice()"><span class="gb-cp-inline" id="gbCp_calc_quantity">'+gbCpControls('calc_quantity')+'</span></div></div>';
   html += '<div class="form-row"><label class="form-label">模板名称</label><input type="text" class="form-input" id="calc_templateName" placeholder="保存为模板便于复用"></div>';
-  html += '<div style="display:flex;gap:8px;margin-top:12px">';
+  html += '<div class="gb-gap gb-mt">';
   html += `<button class="btn btn-primary" onclick="saveCalcTemplate()">${lucide('save',16)} 保存模板</button>`;
   html += `<button class="btn btn-outline" onclick="saveCalcHistory()">${lucide('save',16)} 保存记录</button>`;
   html += `<button class="btn btn-danger" onclick="gbClearAll()">${lucide('trash-2',16)} 一键清除</button>`;
@@ -6331,19 +6437,19 @@ function renderPriceCalc() {
   html += '<div class="calc-card-title">商品池 <span class="calc-card-hint">（主制品、可售卖赠品/宣团礼 平级；每条独立配置）</span></div>';
   html += '<div id="poolRows"></div>';
   /* v1060：并排两按钮（她 image#1："改成并排的"） */
-  html += '<div style="display:flex;gap:4px;margin-top:10px">';
+  html += '<div class="gb-gap gb-mt">';
   html += '<button class="btn btn-primary" style="flex:1" onclick="gbAddItem()">+ 添加商品</button>';
   html += '<button class="btn btn-outline" style="flex:1" onclick="gbToggleImport()">从商品库导入</button>';
   html += '</div>';
-  html += '<div id="gbImportBox" style="display:none;margin-top:8px"></div>';
+  html += '<div id="gbImportBox" class="gb-mt" style="display:none"></div>';
   html += '</div>';
   // v1054：套装（开团版）
   html += '<div class="calc-card" id="bundleCard" style="display:none">';
   html += '<div class="calc-card-title">套装 <span class="calc-card-hint">（从商品池挑选打包；不新增商品、不改变单品定价与分摊）</span></div>';
   html += '<div id="bundleRows"></div>';
-  html += '<button class="btn btn-primary" style="width:100%;margin-top:10px" onclick="gbAddBundle()">+ 添加套装</button>';
+  html += '<button class="btn btn-primary gb-mt" style="width:100%" onclick="gbAddBundle()">+ 添加套装</button>';
   html += '</div>';
-  html += '<div id="groupActions" style="display:none;gap:8px">';   /* v1057：去掉 margin-top，间距走父容器 gap:10px 与卡片一致 */
+  html += '<div id="groupActions" class="gb-gap" style="display:none">';   /* v1057：去掉 margin-top，间距走父容器 gap:10px 与卡片一致 */
   html += '<button class="btn btn-primary" style="flex:1" onclick="gbRunVerify()">核验报价</button>';
   html += '<button class="btn btn-outline" style="flex:1" onclick="gbSaveRecord()">保存记录</button>';
   html += `<button class="btn btn-danger" style="flex:1" onclick="gbClearAll()">${lucide('trash-2',16)} 一键清除</button>`;
@@ -6446,9 +6552,9 @@ function gbRenderTplList(){
   if (templates.length) {
     h += '<div class="template-list">';
     templates.forEach((t, i) => {
+      /* v1061：排序按钮统一为全站既有三角标准（.df-btn.df-sort-btn ▲▼），原用 btn-icon+lucide 箭头与其他模块的 ▲▼ 不一致 */
       h += `<div class="template-item" onclick="loadCalcTemplate('${t.id}')"><span class="template-name">${esc(t.name || '模板' + (i + 1))}</span><div class="template-actions">`+
-           `<button class="btn-icon" title="上移" onclick="event.stopPropagation();moveCalcTemplate('${t.id}',-1)">${lucide('arrow-up',14)}</button>`+
-           `<button class="btn-icon" title="下移" onclick="event.stopPropagation();moveCalcTemplate('${t.id}',1)">${lucide('arrow-down',14)}</button>`+
+           `<span class="opt-sort-btns"><button type="button" class="df-btn df-sort-btn" title="上移" aria-label="上移" onclick="event.stopPropagation();moveCalcTemplate('${t.id}',-1)">▲</button><button type="button" class="df-btn df-sort-btn" title="下移" aria-label="下移" onclick="event.stopPropagation();moveCalcTemplate('${t.id}',1)">▼</button></span>`+
            `<button class="btn-icon danger" onclick="event.stopPropagation();deleteCalcTemplate('${t.id}')">${lucide('trash-2',16)}</button></div></div>`;
     });
     h += '</div>';
@@ -6777,7 +6883,7 @@ function gbRenderPool(){
       h+='<div class="gb-tier"><span style="font-size:11px;color:var(--c-text-muted);white-space:nowrap">起订量≥</span><input type="number" class="form-input" value="'+t.min+'" oninput="gbItems['+idx+'].tiers['+ti+'].min=parseFloat(this.value)||0;gbLiveRefresh()"><span style="font-size:11px;color:var(--c-text-muted);white-space:nowrap">出厂价</span><input type="number" class="form-input" value="'+t.price+'" oninput="gbItems['+idx+'].tiers['+ti+'].price=parseFloat(this.value)||0;gbLiveRefresh()"><button class="btn btn-sm gb-del" onclick="gbItems['+idx+'].tiers.splice('+ti+',1);gbRenderPool();gbLiveRefresh()">删除档位</button></div>';
     });
     /* + 阶梯档位：紧跟阶梯编辑行之后 */
-    h+='<div style="margin-top:14px"><button class="btn btn-primary btn-sm" onclick="gbItems['+idx+'].tiers.push({min:50,price:0});gbRenderPool();gbLiveRefresh()">+ 阶梯档位</button></div>';
+    h+='<div class="gb-mt"><button class="btn btn-primary btn-sm" onclick="gbItems['+idx+'].tiers.push({min:50,price:0});gbRenderPool();gbLiveRefresh()">+ 阶梯档位</button></div>';
     /* 盈利模式 + 值 + 可售卖 + 锁价：同一行 */
     h+='<div class="gb-inline">';
     h+='<span style="font-size:12px;white-space:nowrap">盈利模式</span>'+
@@ -6792,7 +6898,7 @@ function gbRenderPool(){
     if(i.locked){ h+='<span style="font-size:12px;white-space:nowrap">锁定售价</span><input type="number" class="form-input" style="width:90px;flex:none" value="'+(i.lockedPrice==null?'':i.lockedPrice)+'" oninput="gbItems['+idx+'].lockedPrice=this.value;gbLiveRefresh()">'; }
     h+='</div>';
     /* 建议售价：商品卡底部 = 报价单结尾蓝块同款（她拍板"和底下清单的一样"） */
-    h+='<div class="dc-r-final" style="margin-top:14px" id="ps_'+idx+'"></div>';
+    h+='<div class="dc-r-final gb-mt" id="ps_'+idx+'"></div>';
     /* 删除商品：卡片最末尾，右对齐；v1057：保存模板改 btn-outline（白底蓝边，与删除按钮同造型） */
     h+='<div class="gb-del-foot"><button class="btn btn-sm btn-outline" onclick="gbSaveItemTpl('+idx+')">保存模板</button><button class="btn btn-sm gb-del" onclick="gbDelItem('+idx+')">删除商品</button></div>';
     h+='</div>';
@@ -6848,11 +6954,11 @@ function gbRenderBundles(){
       h+='<button class="btn btn-sm gb-del" onclick="gbDelBundleMember('+bi+','+mi+')">移除</button></div>';
     });
     /* 手填行：锁价在此，间距拉开 */
-    h+='<div class="gb-inline" style="gap:14px"><span style="font-size:12px;white-space:nowrap">手填套装价(留空=自动)</span><input type="number" class="form-input" style="width:100px;flex:none" value="'+b.customPrice+'" oninput="gbBundles['+bi+'].customPrice=this.value;gbLiveRefresh()">';
+    h+='<div class="gb-inline"><span style="font-size:12px;white-space:nowrap">手填套装价(留空=自动)</span><input type="number" class="form-input" style="width:100px;flex:none" value="'+b.customPrice+'" oninput="gbBundles['+bi+'].customPrice=this.value;gbLiveRefresh()">';
     h+='<label style="white-space:nowrap"><input type="checkbox" '+(b.locked?'checked':'')+' onchange="gbLockBundle('+bi+',this.checked)" style="width:auto">锁价</label>';
     if(b.locked){ h+='<span style="font-size:12px;white-space:nowrap">锁定套装价</span><input type="number" class="form-input" style="width:100px;flex:none" value="'+(b.lockedPrice==null?'':b.lockedPrice)+'" oninput="gbBundles['+bi+'].lockedPrice=this.value;gbLiveRefresh()">'; }
     h+='</div>';
-    h+='<div class="dc-r-final" style="margin-top:14px" id="bsum_'+bi+'"></div>';
+    h+='<div class="dc-r-final gb-mt" id="bsum_'+bi+'"></div>';
     /* 删除套装：卡片最末尾，右对齐（与单品「删除商品」位置一致）；v1057：保存模板改 btn-outline */
     h+='<div class="gb-del-foot"><button class="btn btn-sm btn-outline" onclick="gbSaveBundleTpl('+bi+')">保存模板</button><button class="btn btn-sm gb-del" onclick="gbDelBundle('+bi+')">删除套装</button></div></div>';
   });
@@ -7070,61 +7176,128 @@ function gbSaveBundleTpl(bi){
    价目计算商品池保留「从商品库导入」折叠列表（她的原始需求："价目计算的商品可以直接从商品库导入"） */
 var gbPendingLibId=null;   /* 商品库页点「去导入」→ navigate('groupbuy-calc') 后自动导入 */
 function gbLibGoImport(id){ gbPendingLibId=id; navigate('groupbuy-calc'); }
-/* 开团 · 商品库 独立页 */
+/* 开团 · 商品库 独立页：v1061 改照「价目表」单表格式（toolbar + 一行一条），支持 ▲▼ 手动排序；
+   删除 v1060 自加的「从开团记录导入」（她："没有这项功能，我没说过的不要乱加"） */
+function gbLibSorted(){
+  return DB.list('gbProducts').slice().sort(function(a,b){
+    var oa=(a.order!=null?a.order:1e15), ob=(b.order!=null?b.order:1e15);
+    return (oa!==ob)?(oa-ob):((b._ct||0)-(a._ct||0));
+  });
+}
+function gbLibRow(t,isFirst,isLast){
+  var meta;
+  if(t.type==='bundle'){ meta=((t.members||[]).length)+' 个商品'; }
+  else { meta='起订 '+(t.moq||0)+' · '+(((t.tiers||[]).map(function(x){ return '≥'+x.min+' ¥'+x.price; }).join(' / '))||'未设档位'); }
+  return '<div class="pricelist-menu-item gb-lib-item" onclick="gbLibEdit(\''+t.id+'\')">'+
+    '<span class="lib-name">'+gbEsc(t.name||'未命名')+'</span>'+
+    '<span class="lib-type">'+(t.type==='bundle'?'套装':'单品')+'</span>'+
+    '<span class="lib-meta">'+esc(meta)+'</span>'+
+    '<span class="opt-sort-btns">'+
+    '<button type="button" class="df-btn df-sort-btn"'+(isFirst?' disabled':'')+' title="上移" aria-label="上移" onclick="event.stopPropagation();gbLibMove(\''+t.id+'\',-1)">▲</button>'+
+    '<button type="button" class="df-btn df-sort-btn"'+(isLast?' disabled':'')+' title="下移" aria-label="下移" onclick="event.stopPropagation();gbLibMove(\''+t.id+'\',1)">▼</button>'+
+    '</span>'+
+    '<button class="btn-icon danger" title="删除" onclick="event.stopPropagation();gbDelLib(\''+t.id+'\')">'+lucide('trash-2',14)+'</button>'+
+    '</div>';
+}
+function gbLibListHTML(){
+  var ps=pageState['groupbuy-lib']||{};
+  var list=gbLibSorted();
+  if(ps.search){
+    var q=String(ps.search).toLowerCase();
+    list=list.filter(function(t){
+      return (t.name||'').toLowerCase().indexOf(q)>=0 ||
+             ((t.members||[]).map(function(m){ return m.name||''; }).join(',')).toLowerCase().indexOf(q)>=0;
+    });
+  }
+  if(!list.length) return '<div class="empty-state"><div class="empty-icon">'+lucide('database',32)+'</div><div class="empty-text">暂无商品，点击「新增商品」添加，或在「价目计算」的商品卡右下角点「保存模板」存入</div></div>';
+  var h='<div class="pricelist-menu gb-lib-list"><div class="pricelist-menu-header">商品库</div>';
+  list.forEach(function(t,i){ h+=gbLibRow(t,i===0,i===list.length-1); });
+  h+='</div>';
+  return h;
+}
 function renderGbLibPage(){
   var body=$('#mainBody');
-  var list=DB.list('gbProducts');
-  var h='<div class="fade-in"><div class="calc-card" style="max-width:860px;margin:0 auto">';
-  h+='<div class="calc-card-title">'+lucide('package',16)+' 商品库 <span class="calc-card-hint">（在「开团 · 价目计算」的商品/套装卡右下角点「保存模板」存入，或下方从开团记录导入；价目计算的商品池可点「从商品库导入」一键加入）</span></div>';
-  /* v1060：从开团记录导入（她："最多可以从开团记录里导入"） */
-  h+='<button class="btn btn-outline btn-sm" style="margin-bottom:10px" onclick="gbToggleLibImport()">从开团记录导入</button>';
-  h+='<div id="gbLibImportBox" style="display:none;margin-bottom:10px"></div>';
-  if(!list.length){
-    h+='<div style="font-size:12px;color:var(--c-text-muted);padding:8px 0">暂无商品。</div>';
-  } else {
-    h+='<div class="template-list">';
-    list.forEach(function(t){
-      h+='<div class="template-item"><span class="template-name">'+gbEsc(t.name)+(t.type==='bundle'?'（套装）':'（单品）')+'</span>'+
-         '<div class="template-actions">'+
-         '<button class="btn btn-sm btn-outline" onclick="gbLibGoImport(\''+t.id+'\')">去导入</button>'+
-         '<button class="btn btn-sm gb-del" onclick="gbDelLib(\''+t.id+'\')">删除</button>'+
-         '</div></div>';
-    });
-    h+='</div>';
-  }
-  h+='</div></div>';
+  if(!pageState['groupbuy-lib']) pageState['groupbuy-lib']={search:''};
+  var ps=pageState['groupbuy-lib'];
+  var h='<div class="fade-in pricelist-page">';
+  h+='<div class="toolbar">';
+  h+='<div class="search-box"><input type="text" placeholder="搜索商品" value="'+esc(ps.search||'')+'" oninput="gbLibSearch(this.value)"><span class="search-icon">'+lucide('search',16)+'</span></div>';
+  h+='<div class="spacer"></div>';
+  h+='<button class="btn btn-primary" onclick="gbLibEdit(\'\')">+ 新增商品</button>';
+  h+='</div>';
+  h+='<div id="gbLibListWrap">'+gbLibListHTML()+'</div>';
+  h+='</div>';
   body.innerHTML=h;
 }
-/* v1060：从开团记录导入商品进商品库（制品列表 → 单品，重名跳过） */
-function gbToggleLibImport(){
-  var b=$('#gbLibImportBox'); if(!b) return;
-  var show=(b.style.display==='none');
-  b.style.display=show?'':'none';
-  if(!show) return;
-  var recs=DB.list('groupbuys');
-  if(!recs.length){ b.innerHTML='<div style="font-size:12px;color:var(--c-text-muted);padding:8px">开团记录还没有数据。</div>'; return; }
-  var h='<div class="template-list">';
-  recs.forEach(function(r){
-    var n=(r.products||[]).filter(function(p){ return p.name; }).length;
-    h+='<div class="template-item" onclick="gbImportFromRecord(\''+r.id+'\')"><span class="template-name">'+gbEsc(r.title||'未命名开团')+'（'+n+' 个制品）</span>'+
-       '<div class="template-actions"><button class="btn btn-sm btn-outline" onclick="event.stopPropagation();gbImportFromRecord(\''+r.id+'\')">导入</button></div></div>';
-  });
-  h+='</div>';
-  b.innerHTML=h;
+function gbLibSearch(v){
+  pageState['groupbuy-lib'].search=v;
+  var box=$('#gbLibListWrap'); if(box) box.innerHTML=gbLibListHTML();
 }
-function gbImportFromRecord(id){
-  var r=DB.getById('groupbuys', id); if(!r) return;
-  var prods=(r.products||[]).filter(function(p){ return p.name; });
-  if(!prods.length){ Toast.info('该开团记录没有制品'); return; }
-  var n=0;
-  prods.forEach(function(p){
-    var exists=DB.list('gbProducts').some(function(o){ return o.type==='item' && o.name===p.name; });
-    if(exists) return;
-    DB.add('gbProducts', {type:'item', name:p.name, moq:100, tiers:[{min:100, price:parseFloat(p.price)||0}], sampleFee:0, defectRate:3, shipFee:'', sellable:true, locked:false, lockedPrice:null, pmode:'margin', pval:0});
-    n++;
-  });
+function gbLibMove(id,dir){
+  var arr=gbLibSorted();
+  arr.forEach(function(t,i){ if(t.order==null) DB.update('gbProducts', t.id, {order:i}); });
+  arr=gbLibSorted();
+  var idx=-1; arr.forEach(function(t,i){ if(t.id===id) idx=i; });
+  var j=idx+dir;
+  if(idx<0||j<0||j>=arr.length) return;
+  DB.update('gbProducts', arr[idx].id, {order:arr[j].order});
+  DB.update('gbProducts', arr[j].id, {order:arr[idx].order});
   renderGbLibPage();
-  Toast.success(n?('已从开团记录导入 '+n+' 个商品'):'制品都已在商品库里，没有新导入');
+}
+/* 商品库新增/编辑：单品可编辑档位；套装只读展示成员（改组成请回价目计算重新保存模板） */
+var _gbLibEditId='', _gbLibTiers=[];
+function gbLibRenderTiers(){
+  var box=$('#gbl_tiers'); if(!box) return;
+  var h='';
+  _gbLibTiers.forEach(function(t,i){
+    h+='<div class="gb-tier"><span style="font-size:11px;color:var(--c-text-muted);white-space:nowrap">起订量≥</span>'+
+       '<input type="number" class="form-input" value="'+t.min+'" oninput="_gbLibTiers['+i+'].min=parseFloat(this.value)||0">'+
+       '<span style="font-size:11px;color:var(--c-text-muted);white-space:nowrap">出厂价</span>'+
+       '<input type="number" class="form-input" value="'+t.price+'" oninput="_gbLibTiers['+i+'].price=parseFloat(this.value)||0">'+
+       '<button class="btn btn-sm gb-del" onclick="_gbLibTiers.splice('+i+',1);gbLibRenderTiers()">删除档位</button></div>';
+  });
+  h+='<div class="gb-mt"><button class="btn btn-primary btn-sm" onclick="_gbLibTiers.push({min:50,price:0});gbLibRenderTiers()">+ 阶梯档位</button></div>';
+  box.innerHTML=h;
+}
+function gbLibEdit(id){
+  _gbLibEditId=id||'';
+  var t=id?DB.getById('gbProducts', id):null;
+  var isBundle=!!(t&&t.type==='bundle');
+  _gbLibTiers=JSON.parse(JSON.stringify((t&&t.tiers)||[{min:100,price:0}]));
+  var h='';
+  h+='<div class="form-row"><label class="form-label">名称</label><input class="form-input" id="gbl_name" value="'+esc((t&&t.name)||'')+'" placeholder="商品名"></div>';
+  if(isBundle){
+    h+='<div class="form-row"><label class="form-label">套装成员</label><div style="font-size:12px;color:var(--c-text-muted)">'+
+       ((t.members||[]).map(function(m){ return gbEsc(m.name)+' ×'+(m.qty||1); }).join('、')||'（无成员）')+
+       '</div></div>';
+    h+='<div style="font-size:12px;color:var(--c-text-muted)">套装的组成请在「价目计算」的套装卡里调整后重新「保存模板」。</div>';
+  } else {
+    h+='<div class="form-row"><label class="form-label">起订量</label><input type="number" class="form-input" id="gbl_moq" value="'+((t&&t.moq)||100)+'"></div>';
+    h+='<div class="form-row"><label class="form-label">打样费<span class="calc-card-hint">（元）</span></label><input type="number" class="form-input" id="gbl_sampleFee" value="'+((t&&t.sampleFee)||0)+'"></div>';
+    h+='<div class="form-row"><label class="form-label">备瑕比例<span class="calc-card-hint">（%）</span></label><input type="number" class="form-input" id="gbl_defectRate" value="'+((t&&t.defectRate!=null?t.defectRate:3))+'"></div>';
+    h+='<div class="form-row"><label class="form-label">阶梯档位</label></div>';
+    h+='<div id="gbl_tiers"></div>';
+  }
+  openModal(id?'编辑商品':'新增商品', h, [
+    {label:'取消', class:'btn-outline', action:function(){ closeModal(); }},
+    {label:'保存', class:'btn-primary', action:gbLibSave}
+  ]);
+  if(!isBundle) gbLibRenderTiers();
+}
+function gbLibSave(){
+  var el=$('#gbl_name');
+  var name=(el&&el.value||'').trim();
+  if(!name){ Toast.info('请填写商品名'); return; }
+  var t=_gbLibEditId?DB.getById('gbProducts',_gbLibEditId):null;
+  if(t&&t.type==='bundle'){ DB.update('gbProducts',t.id,{name:name}); }
+  else if(t){
+    DB.update('gbProducts',t.id,{name:name, moq:parseFloat($('#gbl_moq').value)||0, sampleFee:parseFloat($('#gbl_sampleFee').value)||0,
+      defectRate:parseFloat($('#gbl_defectRate').value)||0, tiers:_gbLibTiers});
+  } else {
+    DB.add('gbProducts',{type:'item', name:name, moq:parseFloat($('#gbl_moq').value)||0, sampleFee:parseFloat($('#gbl_sampleFee').value)||0,
+      defectRate:parseFloat($('#gbl_defectRate').value)||0, tiers:_gbLibTiers, shipFee:'', sellable:true, locked:false, lockedPrice:null, pmode:'margin', pval:0});
+  }
+  closeModal(); renderGbLibPage(); Toast.success('已保存');
 }
 /* 价目计算：套装卡「从商品库导入」折叠列表（只列套装） */
 function gbToggleBundleImport(bi){
