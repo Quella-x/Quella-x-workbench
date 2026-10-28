@@ -4152,6 +4152,8 @@ function renderListPage(pageKey, mod) {
   }
   html += `<button class="btn btn-primary" onclick="openAddForm('${pageKey}')">+ 新增记录</button>`;
   html += '</div>';
+  /* v1057：开团记录页商品库（价目计算保存的商品/套装模板，可一键导入价目计算） */
+  if (pageKey === 'groupbuy-records') html += gbLibCardHTML();
 
   // 年份筛选按钮（按年筛选，默认当年）：七模块 + 接稿排期列表视图
   if (YEAR_FILTER_MODULES.includes(pageKey)) {
@@ -6294,14 +6296,15 @@ function renderPriceCalc() {
   html += '<div class="calc-card"><div class="calc-card-title price-calc-title">成本参数 <span class="calc-card-hint">（输入各项成本自动计算）</span>';
   html += '<span class="cd-cp-switch"><button class="lbt-btn active" id="gbBtnShop" onclick="gbSetMode(\'shop\')">小店</button><button class="lbt-btn" id="gbBtnGroup" onclick="gbSetMode(\'group\')">开团</button></span></div>';
   // v1056：常用参数与输入框同一行（.gb-cp-line：输入框 + 单位提示 + 「存为常用」+ 已存值按钮）
+  // v1057：单位并入标签右侧提示词（她："单位不要放后面"，照 v935 提示词位置规则），输入框后只留「存为常用」+ 常用值
   html += '<div id="shopParams">';
-  html += '<div class="form-row"><label class="form-label">单品成本</label><div class="gb-cp-line"><input type="number" class="form-input" id="calc_itemCost" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">元</span><span class="gb-cp-inline" id="gbCp_calc_itemCost">'+gbCpControls('calc_itemCost')+'</span></div></div>';
-  html += '<div class="form-row"><label class="form-label">样品成本</label><div class="gb-cp-line"><input type="number" class="form-input" id="calc_sampleCost" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">元</span><span class="gb-cp-inline" id="gbCp_calc_sampleCost">'+gbCpControls('calc_sampleCost')+'</span></div></div>';
-  html += '<div class="form-row"><label class="form-label">人工成本</label><div class="gb-cp-line"><input type="number" class="form-input" id="calc_laborCost" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">元/件</span><span class="gb-cp-inline" id="gbCp_calc_laborCost">'+gbCpControls('calc_laborCost')+'</span></div></div>';
-  html += '<div class="form-row"><label class="form-label">运费</label><div class="gb-cp-line"><input type="number" class="form-input" id="calc_shipping" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">元/件</span><span class="gb-cp-inline" id="gbCp_calc_shipping">'+gbCpControls('calc_shipping')+'</span></div></div>';
+  html += '<div class="form-row"><label class="form-label">单品成本<span class="calc-card-hint">（元）</span></label><div class="gb-cp-line"><input type="number" class="form-input" id="calc_itemCost" value="" placeholder="0" oninput="calcPrice()"><span class="gb-cp-inline" id="gbCp_calc_itemCost">'+gbCpControls('calc_itemCost')+'</span></div></div>';
+  html += '<div class="form-row"><label class="form-label">样品成本<span class="calc-card-hint">（元）</span></label><div class="gb-cp-line"><input type="number" class="form-input" id="calc_sampleCost" value="" placeholder="0" oninput="calcPrice()"><span class="gb-cp-inline" id="gbCp_calc_sampleCost">'+gbCpControls('calc_sampleCost')+'</span></div></div>';
+  html += '<div class="form-row"><label class="form-label">人工成本<span class="calc-card-hint">（元/件）</span></label><div class="gb-cp-line"><input type="number" class="form-input" id="calc_laborCost" value="" placeholder="0" oninput="calcPrice()"><span class="gb-cp-inline" id="gbCp_calc_laborCost">'+gbCpControls('calc_laborCost')+'</span></div></div>';
+  html += '<div class="form-row"><label class="form-label">运费<span class="calc-card-hint">（元/件）</span></label><div class="gb-cp-line"><input type="number" class="form-input" id="calc_shipping" value="" placeholder="0" oninput="calcPrice()"><span class="gb-cp-inline" id="gbCp_calc_shipping">'+gbCpControls('calc_shipping')+'</span></div></div>';
   // v935：平台手续费提示词移到「抽成比例」标签右边（与「成本参数（输入各项成本自动计算）」同一位置样式），不再放输入框下方
-  html += '<div class="form-row"><label class="form-label">抽成比例<span class="calc-card-hint">（平台手续费）</span></label><div class="gb-cp-line"><input type="number" class="form-input" id="calc_commissionRate" value="" placeholder="0" oninput="calcPrice()"><span class="form-hint">%</span><span class="gb-cp-inline" id="gbCp_calc_commissionRate">'+gbCpControls('calc_commissionRate')+'</span></div></div>';
-  html += '<div class="form-row"><label class="form-label">预期利润率</label><div class="gb-cp-line"><input type="number" class="form-input" id="calc_profitMargin" value="30" oninput="calcPrice()"><span class="form-hint">%</span><span class="gb-cp-inline" id="gbCp_calc_profitMargin">'+gbCpControls('calc_profitMargin')+'</span></div></div>';
+  html += '<div class="form-row"><label class="form-label">抽成比例<span class="calc-card-hint">（平台手续费 · %）</span></label><div class="gb-cp-line"><input type="number" class="form-input" id="calc_commissionRate" value="" placeholder="0" oninput="calcPrice()"><span class="gb-cp-inline" id="gbCp_calc_commissionRate">'+gbCpControls('calc_commissionRate')+'</span></div></div>';
+  html += '<div class="form-row"><label class="form-label">预期利润率<span class="calc-card-hint">（%）</span></label><div class="gb-cp-line"><input type="number" class="form-input" id="calc_profitMargin" value="30" oninput="calcPrice()"><span class="gb-cp-inline" id="gbCp_calc_profitMargin">'+gbCpControls('calc_profitMargin')+'</span></div></div>';
   html += '<div class="form-row"><label class="form-label">开团数量</label><div class="gb-cp-line"><input type="number" class="form-input" id="calc_quantity" value="100" oninput="calcPrice()"><span class="gb-cp-inline" id="gbCp_calc_quantity">'+gbCpControls('calc_quantity')+'</span></div></div>';
   html += '<div class="form-row"><label class="form-label">模板名称</label><input type="text" class="form-input" id="calc_templateName" placeholder="保存为模板便于复用"></div>';
   html += '<div style="display:flex;gap:8px;margin-top:12px">';
@@ -6311,8 +6314,8 @@ function renderPriceCalc() {
   html += '</div>'; // /shopParams
   // v1054：开团版参数（宣团礼分摊 / 平台抽成 / 包邮+运费）；v1056：默认全部留空（不再预填 300/0/6），常用值与输入同行
   html += '<div id="groupParams" style="display:none">';
-  html += '<div class="form-row"><label class="form-label">宣团礼/赠品总成本</label><div class="gb-cp-line"><input type="number" class="form-input" id="g_giftCost" value="" placeholder="0" oninput="gbSyncG()"><span class="form-hint">元 · 按货值占比分摊</span><span class="gb-cp-inline" id="gbCp_g_giftCost">'+gbCpControls('g_giftCost')+'</span></div></div>';
-  html += '<div class="form-row"><label class="form-label">平台抽成比例<span class="calc-card-hint">（基数含运费）</span></label><div class="gb-cp-line"><input type="number" class="form-input" id="g_rate" value="" placeholder="0" oninput="gbSyncG()"><span class="form-hint">%</span><span class="gb-cp-inline" id="gbCp_g_rate">'+gbCpControls('g_rate')+'</span></div></div>';
+  html += '<div class="form-row"><label class="form-label">宣团礼/赠品总成本<span class="calc-card-hint">（元 · 按货值占比分摊）</span></label><div class="gb-cp-line"><input type="number" class="form-input" id="g_giftCost" value="" placeholder="0" oninput="gbSyncG()"><span class="gb-cp-inline" id="gbCp_g_giftCost">'+gbCpControls('g_giftCost')+'</span></div></div>';
+  html += '<div class="form-row"><label class="form-label">平台抽成比例<span class="calc-card-hint">（基数含运费 · %）</span></label><div class="gb-cp-line"><input type="number" class="form-input" id="g_rate" value="" placeholder="0" oninput="gbSyncG()"><span class="gb-cp-inline" id="gbCp_g_rate">'+gbCpControls('g_rate')+'</span></div></div>';
   html += '<div class="gb-ship-row">';
   html += '<label class="form-label" style="margin:0;display:flex;align-items:center;gap:6px"><input type="checkbox" id="g_freeShip" onchange="gbToggleFreeShip()" style="width:auto">包邮</label>';
   html += '<span class="form-hint gb-hint-long">开启后运费计入成本与抽成基数</span>';
@@ -6327,6 +6330,9 @@ function renderPriceCalc() {
   html += '<div class="calc-card-title">商品池 <span class="calc-card-hint">（主制品、可售卖赠品/宣团礼 平级；每条独立配置）</span></div>';
   html += '<div id="poolRows"></div>';
   html += '<button class="btn btn-primary" style="width:100%;margin-top:10px" onclick="gbAddItem()">+ 添加商品</button>';
+  /* v1057：商品库入口——商品库本体在「开团记录」页，这里点开折叠列表直接导入 */
+  html += '<button class="btn btn-outline" style="width:100%;margin-top:8px" onclick="gbToggleImport()">从商品库导入</button>';
+  html += '<div id="gbImportBox" style="display:none;margin-top:8px"></div>';
   html += '</div>';
   // v1054：套装（开团版）
   html += '<div class="calc-card" id="bundleCard" style="display:none">';
@@ -6334,7 +6340,7 @@ function renderPriceCalc() {
   html += '<div id="bundleRows"></div>';
   html += '<button class="btn btn-primary" style="width:100%;margin-top:10px" onclick="gbAddBundle()">+ 添加套装</button>';
   html += '</div>';
-  html += '<div id="groupActions" style="display:none;margin-top:12px;gap:8px">';
+  html += '<div id="groupActions" style="display:none;gap:8px">';   /* v1057：去掉 margin-top，间距走父容器 gap:10px 与卡片一致 */
   html += '<button class="btn btn-primary" style="flex:1" onclick="gbRunVerify()">核验报价</button>';
   html += '<button class="btn btn-outline" style="flex:1" onclick="gbSaveRecord()">保存记录</button>';
   html += '</div>';
@@ -6343,8 +6349,8 @@ function renderPriceCalc() {
   html += '<div class="calc-receipt-col">';
   html += '<div id="gbVerifyArea" style="display:none"></div>';
   html += '<div class="calc-receipt" id="calcResult"></div>';
-  // v1056：开团模式此卡=商品库（存商品/套装模板，可导入）；小店模式仍是常用模板
-  html += `<div class="calc-card"><div class="calc-card-title">${lucide('clipboard-list',16)} <span id="tplCardTitle">常用模板</span></div>`;
+  // v1057：商品库移到「开团记录」页；此卡固定=常用模板（开团模式也显示）
+  html += `<div class="calc-card"><div class="calc-card-title">${lucide('clipboard-list',16)} 常用模板</div>`;
   html += '<div id="shopTplBox">';
   if (templates.length) {
     html += '<div class="template-list">';
@@ -6354,7 +6360,6 @@ function renderPriceCalc() {
     html += '</div>';
   } else { html += '<div style="font-size:12px;color:var(--c-text-muted);padding:8px">暂无模板</div>'; }
   html += '</div>';
-  html += '<div id="gbTplNote" class="gb-lib" style="display:none"></div>';
   html += '</div>';
   html += `<div class="calc-card"><div class="calc-card-title">${lucide('clock',14)} 历史计算</div>`;
   html += '<div id="shopHisBox">';
@@ -6372,8 +6377,10 @@ function renderPriceCalc() {
   html += '</div></div>';
   body.innerHTML = html;
   gbInitState();
-  gbRenderLib(); gbRenderHis();   /* v1056：商品库/开团历史列表 */
+  gbRenderHis();   /* v1056：开团历史列表（商品库已移至开团记录页） */
   gbSetMode('shop');
+  /* v1057：从「开团记录」页商品库点「去导入」→ 跳转本页自动切开团模式并导入 */
+  if(gbPendingLibId){ var _pid=gbPendingLibId; gbPendingLibId=null; gbSetMode('group'); gbImportLib(_pid); }
 }
 function calcPrice() {
   const get = id => parseFloat($(id).value) || 0;
@@ -6454,11 +6461,8 @@ function gbSetMode(m){
   $('#bundleCard').style.display = m==='group'?'':'none';
   $('#groupActions').style.display = m==='group'?'':'none';
   $('#calcResult').style.display = m==='shop'?'':'none';
-  $('#shopTplBox').style.display = m==='shop'?'':'none';
   $('#shopHisBox').style.display = m==='shop'?'':'none';
-  $('#gbTplNote').style.display = m==='group'?'':'none';
   $('#gbHisNote').style.display = m==='group'?'':'none';
-  var tt=$('#tplCardTitle'); if(tt) tt.textContent = m==='group'?'商品库':'常用模板';
   gbVerifyOpen = (m==='group');
   if(m==='group'){ gbRenderVerify(); }
   else { $('#gbVerifyArea').style.display='none'; }
@@ -6755,8 +6759,8 @@ function gbRenderPool(){
     h+='</div>';
     /* 建议售价：商品卡底部 = 报价单结尾蓝块同款（她拍板"和底下清单的一样"） */
     h+='<div class="dc-r-final" style="margin-top:14px" id="ps_'+idx+'"></div>';
-    /* 删除商品：卡片最末尾，右对齐；v1056：旁加「保存模板」存入商品库 */
-    h+='<div class="gb-del-foot"><button class="btn btn-sm" onclick="gbSaveItemTpl('+idx+')">保存模板</button><button class="btn btn-sm gb-del" onclick="gbDelItem('+idx+')">删除商品</button></div>';
+    /* 删除商品：卡片最末尾，右对齐；v1057：保存模板改 btn-outline（白底蓝边，与删除按钮同造型） */
+    h+='<div class="gb-del-foot"><button class="btn btn-sm btn-outline" onclick="gbSaveItemTpl('+idx+')">保存模板</button><button class="btn btn-sm gb-del" onclick="gbDelItem('+idx+')">删除商品</button></div>';
     h+='</div>';
   });
   $('#poolRows').innerHTML=h;
@@ -6813,8 +6817,8 @@ function gbRenderBundles(){
     if(b.locked){ h+='<span style="font-size:12px;white-space:nowrap">锁定套装价</span><input type="number" class="form-input" style="width:100px;flex:none" value="'+(b.lockedPrice==null?'':b.lockedPrice)+'" oninput="gbBundles['+bi+'].lockedPrice=this.value;gbLiveRefresh()">'; }
     h+='</div>';
     h+='<div class="dc-r-final" style="margin-top:14px" id="bsum_'+bi+'"></div>';
-    /* 删除套装：卡片最末尾，右对齐（与单品「删除商品」位置一致）；v1056：旁加「保存模板」存入商品库 */
-    h+='<div class="gb-del-foot"><button class="btn btn-sm" onclick="gbSaveBundleTpl('+bi+')">保存模板</button><button class="btn btn-sm gb-del" onclick="gbDelBundle('+bi+')">删除套装</button></div></div>';
+    /* 删除套装：卡片最末尾，右对齐（与单品「删除商品」位置一致）；v1057：保存模板改 btn-outline */
+    h+='<div class="gb-del-foot"><button class="btn btn-sm btn-outline" onclick="gbSaveBundleTpl('+bi+')">保存模板</button><button class="btn btn-sm gb-del" onclick="gbDelBundle('+bi+')">删除套装</button></div></div>';
   });
   $('#bundleRows').innerHTML=h;
   gbRefreshBundlesLive();
@@ -6890,8 +6894,8 @@ function gbRenderVerify(){
     if(gbBundleFixed(b)){
       b.members.forEach(function(m,mi){
         var it=gbItemById(m.itemId);
-        /* v1056：成员行右侧加该制品「单品建议售价」（基准档=自身起订量档，与①清单同口径） */
-        if(it) h+='<div class="dc-rr"><span>└ '+gbEsc(it.name)+' ×'+(m.qty||1)+'</span><span>'+gbMoney(gbCalcAt(it,it.moq||1).price)+'</span></div>';
+        /* v1056：成员行右侧加该制品「单品建议售价」（基准档=自身起订量档，与①清单同口径）；v1057：金额加粗 700 对齐「套装成本」行 */
+        if(it) h+='<div class="dc-rr"><span>└ '+gbEsc(it.name)+' ×'+(m.qty||1)+'</span><span style="font-weight:700">'+gbMoney(gbCalcAt(it,it.moq||1).price)+'</span></div>';
       });
       h+='<div class="dc-rr total"><span>套装成本</span><span>'+gbMoney(b._cost)+'</span></div>'+
          '<div class="dc-rr"><span>单套利润</span><span>'+gbMoney(b._profit)+'</span></div>';
@@ -6903,7 +6907,7 @@ function gbRenderVerify(){
           if(!it) return;
           /* v43：成员名回退到下一层级=3格（她："还是到下一层级吧"），成员明细 4格；间距保持 2px
              v1056：成员名行右侧加该制品「单品建议售价」（按当前档位件数 T=t.min 从①单品清单同口径取值） */
-          h+='<div class="dc-rr" style="margin-top:2px"><span style="font-weight:600">　　　'+gbEsc(it.name)+' ×'+(m.qty||1)+'</span><span style="font-weight:600">'+gbMoney(gbCalcAt(it,t.min).price)+'</span></div>'+
+          h+='<div class="dc-rr" style="margin-top:2px"><span style="font-weight:600">　　　'+gbEsc(it.name)+' ×'+(m.qty||1)+'</span><span style="font-weight:700">'+gbMoney(gbCalcAt(it,t.min).price)+'</span></div>'+
              gbTierRows4(4,mm.fp,mm.s,Math.round((mm.d+mm.g+mm.ship+mm.comm)*100)/100,null);
         });
         h+='<div class="dc-rr total"><span>套装成本</span><span>'+gbMoney(t.cost)+'</span></div>'+
@@ -6964,7 +6968,7 @@ function gbUseCommon(fid,v){
 function gbInitState(){
   /* v1056：每次进入价目计算页一律空白开局（不再恢复上次草稿——她反馈"再次进去里面还是有商品信息"；
      要留存就显式用「保存记录/保存模板/存为常用」，恢复用历史记录或商品库导入） */
-  gbItems=[]; gbBundles=[];
+  gbItems=[gbNewItem('',100,[{min:100,price:0}],0,3)]; gbBundles=[];   /* v1057：留一条空白单品（她："留一个空白的单品啊"） */
   gbG={giftCost:'', rate:'', freeShip:false, ship:''};
   try{ gbCommonParams=JSON.parse(localStorage.getItem('gbCommonParams')||'{}')||{}; }catch(e){ gbCommonParams={}; }
 }
@@ -6980,7 +6984,7 @@ function gbSaveItemTpl(idx){
   var i=gbItems[idx]; if(!i) return;
   if(!String(i.name||'').trim()){ Toast.info('请先填商品名再保存模板'); return; }
   var o=gbCleanItem(i); o.type='item';
-  DB.add('gbProducts', o); gbRenderLib();
+  DB.add('gbProducts', o); gbRenderImportBox();
   Toast.success('已存入商品库：'+o.name);
 }
 /* 套装卡「保存模板」→ 成员按商品名+数量存入商品库（导入时按名匹配商品池） */
@@ -6991,21 +6995,28 @@ function gbSaveBundleTpl(bi){
                          .filter(function(m){ return m.name; });
   if(!ms.length){ Toast.info('套装里还没有商品'); return; }
   DB.add('gbProducts', {type:'bundle', name:b.name, members:ms, customPrice:(b.customPrice||''), locked:false, lockedPrice:null});
-  gbRenderLib();
+  gbRenderImportBox();
   Toast.success('已存入商品库：'+b.name);
 }
-/* 商品库列表（渲染进 #gbTplNote，开团模式显示） */
-function gbRenderLib(){
-  var box=$('#gbTplNote'); if(!box) return;
+/* ---------- v1056：商品库（DB store 'gbProducts'，云端同步）+ 开团计算记录（'gbRecords'） ----------
+   v1057：商品库本体移到「开团记录」页（gbLibCardHTML）；价目计算商品池里只留「从商品库导入」折叠列表 */
+var gbPendingLibId=null;   /* 开团记录页点「去导入」→ navigate('groupbuy-calc') 后自动导入 */
+function gbLibGoImport(id){ gbPendingLibId=id; navigate('groupbuy-calc'); }
+/* 价目计算：商品池「从商品库导入」折叠列表 */
+function gbToggleImport(){
+  var b=$('#gbImportBox'); if(!b) return;
+  var show=(b.style.display==='none');
+  b.style.display=show?'':'none';
+  if(show) gbRenderImportBox();
+}
+function gbRenderImportBox(){
+  var box=$('#gbImportBox'); if(!box) return;
   var list=DB.list('gbProducts');
-  if(!list.length){ box.innerHTML='<div style="font-size:12px;color:var(--c-text-muted);padding:8px">暂无商品。点商品/套装卡右下角「保存模板」存入，之后在此一键导入。</div>'; return; }
+  if(!list.length){ box.innerHTML='<div style="font-size:12px;color:var(--c-text-muted);padding:8px">商品库还是空的。去「开团记录」页的商品库看看，或在下方商品/套装卡右下角点「保存模板」存入。</div>'; return; }
   var h='<div class="template-list">';
   list.forEach(function(t){
     h+='<div class="template-item"><span class="template-name">'+gbEsc(t.name)+(t.type==='bundle'?'（套装）':'')+'</span>'+
-       '<div class="template-actions">'+
-       '<button class="btn btn-sm btn-outline" onclick="gbImportLib(\''+t.id+'\')">导入</button>'+
-       '<button class="btn-icon danger" onclick="gbDelLib(\''+t.id+'\')">'+lucide('trash-2',16)+'</button>'+
-       '</div></div>';
+       '<div class="template-actions"><button class="btn btn-sm btn-outline" onclick="gbImportLib(\''+t.id+'\')">导入</button></div></div>';
   });
   h+='</div>';
   box.innerHTML=h;
@@ -7031,7 +7042,27 @@ function gbImportLib(id){
     Toast.success('已导入商品：'+(it.name||''));
   }
 }
-function gbDelLib(id){ DB.remove('gbProducts', id); gbRenderLib(); Toast.success('已从商品库删除'); }
+function gbDelLib(id){ DB.remove('gbProducts', id); if(currentPage==='groupbuy-records'){ renderListPage('groupbuy-records', MODULES['groupbuy-records']); } else { gbRenderImportBox(); } Toast.success('已从商品库删除'); }
+/* v1057：开团记录页「商品库」卡片（列表+去导入+删除） */
+function gbLibCardHTML(){
+  var list=DB.list('gbProducts');
+  var h='<div class="calc-card" style="margin-top:10px"><div class="calc-card-title">'+lucide('package',16)+' 商品库 <span class="calc-card-hint">（在「开团 · 价目计算」的商品/套装卡右下角点「保存模板」存入；点「去导入」进价目计算自动加入）</span></div>';
+  if(!list.length){
+    h+='<div style="font-size:12px;color:var(--c-text-muted);padding:8px 0">暂无商品。去「开团 · 价目计算」添加商品/套装后，点卡片右下角「保存模板」存入。</div>';
+  } else {
+    h+='<div class="template-list">';
+    list.forEach(function(t){
+      h+='<div class="template-item"><span class="template-name">'+gbEsc(t.name)+(t.type==='bundle'?'（套装）':'（单品）')+'</span>'+
+         '<div class="template-actions">'+
+         '<button class="btn btn-sm btn-outline" onclick="gbLibGoImport(\''+t.id+'\')">去导入</button>'+
+         '<button class="btn btn-sm gb-del" onclick="gbDelLib(\''+t.id+'\')">删除</button>'+
+         '</div></div>';
+    });
+    h+='</div>';
+  }
+  h+='</div>';
+  return h;
+}
 /* 「保存记录」（核验报价旁）→ 整单快照存入 gbRecords */
 function gbSaveRecord(){
   gbSyncG();
