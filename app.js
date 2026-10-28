@@ -1122,7 +1122,7 @@ function lucide(name, size, cls) {
 /* v686：导航图标改用 Lucide 图标名（原为 emoji），取值即 LUCIDE_SVG 的键名 */
 const DEFAULT_NAV_ICONS = {
   'home': 'house', 'groupbuy': 'package', 'groupbuy-records': 'package', 'groupbuy-factories': 'warehouse',
-  'groupbuy-samples': 'cog', 'groupbuy-priceref': 'tag', 'groupbuy-calc': 'barcode', 'design': 'palette', 'design-inspiration': 'lightbulb',
+  'groupbuy-samples': 'cog', 'groupbuy-priceref': 'tag', 'groupbuy-calc': 'barcode', 'groupbuy-lib': 'package', 'design': 'palette', 'design-inspiration': 'lightbulb',
   'design-commission': 'calendar-clock', 'design-commission-detail': 'file-text', 'design-calc': 'calculator', 'design-auth': 'scroll-text', 'design-pricelist': 'clipboard-list',
   'oc': 'user', 'oc-profiles': 'users', 'oc-relations': 'link', 'oc-stories': 'book-open', 'oc-timeline': 'clock', 'oc-commission': 'palette',
   'life-checkin': 'calendar-check', 'life-record': 'notebook-pen'
@@ -2731,6 +2731,7 @@ const NAV = [
     { key: 'groupbuy-samples', label: '打样记录' },
     { key: 'groupbuy-priceref', label: '价格参考' },
     { key: 'groupbuy-calc', label: '价目计算' },
+    { key: 'groupbuy-lib', label: '商品库' },
   ]},
   { key: 'design', label: '美工', group: true, children: [
     { key: 'design-inspiration', label: '灵感记录' },
@@ -2750,7 +2751,7 @@ const NAV = [
 ];
 const PAGE_TITLES = {
   'home': '首页 · 自媒体发布记录', 'groupbuy-records': '开团 · 开团记录', 'groupbuy-factories': '开团 · 厂家记录',
-  'groupbuy-samples': '开团 · 打样记录', 'groupbuy-priceref': '开团 · 价格参考', 'groupbuy-calc': '开团 · 价目计算', 'design-inspiration': '美工 · 灵感记录',
+  'groupbuy-samples': '开团 · 打样记录', 'groupbuy-priceref': '开团 · 价格参考', 'groupbuy-calc': '开团 · 价目计算', 'groupbuy-lib': '开团 · 商品库', 'design-inspiration': '美工 · 灵感记录',
   'design-commission': '美工 · 接稿排期', 'design-commission-detail': '美工 · 接稿详情', 'design-calc': '美工 · 报价计算', 'design-auth': '美工 · 授权记录', 'design-pricelist': '美工 · 价目表',
   'oc-profiles': 'OC · 人物档案', 'oc-relations': 'OC · 人物关系', 'oc-stories': 'OC · 故事小记', 'oc-timeline': 'OC · 时间线', 'oc-commission': 'OC · 约稿记录',
   'life-checkin': '生活 · 每日打卡', 'life-record': '生活 · 每日记录',
@@ -3895,6 +3896,7 @@ function navigate(page) {
   setTimeout(() => body.classList.remove('fade-in'), 300);
   if (page === 'home') return renderHome();
   if (page === 'groupbuy-calc') return renderPriceCalc();
+  if (page === 'groupbuy-lib') return renderGbLibPage();
   if (page === 'oc-relations') return renderRelations();
   if (page === 'oc-timeline') return renderTimeline();
   if (page === 'design-pricelist') return renderPriceList();
@@ -4152,8 +4154,6 @@ function renderListPage(pageKey, mod) {
   }
   html += `<button class="btn btn-primary" onclick="openAddForm('${pageKey}')">+ 新增记录</button>`;
   html += '</div>';
-  /* v1057：开团记录页商品库（价目计算保存的商品/套装模板，可一键导入价目计算） */
-  if (pageKey === 'groupbuy-records') html += gbLibCardHTML();
 
   // 年份筛选按钮（按年筛选，默认当年）：七模块 + 接稿排期列表视图
   if (YEAR_FILTER_MODULES.includes(pageKey)) {
@@ -6331,6 +6331,9 @@ function renderPriceCalc() {
   html += '<div class="calc-card-title">商品池 <span class="calc-card-hint">（主制品、可售卖赠品/宣团礼 平级；每条独立配置）</span></div>';
   html += '<div id="poolRows"></div>';
   html += '<button class="btn btn-primary" style="width:100%;margin-top:10px" onclick="gbAddItem()">+ 添加商品</button>';
+  /* v1059：恢复「从商品库导入」（她的原始需求："价目计算的商品可以直接从商品库导入"；商品库本体在侧边栏「开团 · 商品库」页） */
+  html += '<button class="btn btn-outline" style="width:100%;margin-top:8px" onclick="gbToggleImport()">从商品库导入</button>';
+  html += '<div id="gbImportBox" style="display:none;margin-top:8px"></div>';
   html += '</div>';
   // v1054：套装（开团版）
   html += '<div class="calc-card" id="bundleCard" style="display:none">';
@@ -6348,7 +6351,7 @@ function renderPriceCalc() {
   html += '<div class="calc-receipt-col">';
   html += '<div id="gbVerifyArea" style="display:none"></div>';
   html += '<div class="calc-receipt" id="calcResult"></div>';
-  // v1058：常用模板=小店专用（她："常用模板是小店的，不是开团的"），开团模式整卡隐藏
+  // v1059：常用模板两种模式都显示（她："开团也要常用模板啊"）
   html += `<div class="calc-card" id="tplCard"><div class="calc-card-title">${lucide('clipboard-list',16)} 常用模板</div>`;
   html += '<div id="shopTplBox">';
   if (templates.length) {
@@ -6463,7 +6466,6 @@ function gbSetMode(m){
   $('#bundleCard').style.display = m==='group'?'':'none';
   $('#groupActions').style.display = m==='group'?'':'none';
   $('#calcResult').style.display = m==='shop'?'':'none';
-  var tc=$('#tplCard'); if(tc) tc.style.display = m==='shop'?'':'none';   /* v1058：常用模板=小店专用 */
   $('#shopHisBox').style.display = m==='shop'?'':'none';
   $('#gbHisNote').style.display = m==='group'?'':'none';
   gbVerifyOpen = (m==='group');
@@ -6811,7 +6813,7 @@ function gbRenderBundles(){
     b.members.forEach(function(m,mi){
       h+='<div class="gb-tier"><div class="combobox-wrapper gb-combo" style="width:140px;flex:none"><input class="form-input combobox-input" readonly value="'+(gbItemById(m.itemId)?gbEsc(gbItemById(m.itemId).name):'?')+'" onclick="event.stopPropagation();gbComboToggle(this)"><button type="button" class="combobox-toggle" onclick="event.stopPropagation();gbComboToggle(this)">▼</button><div class="combobox-dropdown">';
       gbItems.forEach(function(it){ h+='<div class="combobox-option'+(it.id===m.itemId?' selected':'')+'" onclick="gbSetBundleItem('+bi+','+mi+','+it.id+',this)">'+gbEsc(it.name)+'</div>'; });
-      h+='</div></div><span style="font-size:11px;color:var(--c-text-muted);white-space:nowrap;margin-bottom:8px">数量</span><input type="number" class="form-input" style="width:70px" value="'+m.qty+'" oninput="gbBundles['+bi+'].members['+mi+'].qty=parseFloat(this.value)||1;gbLiveRefresh()">';
+      h+='</div></div><span style="font-size:11px;color:var(--c-text-muted);white-space:nowrap;align-self:center">数量</span><input type="number" class="form-input" style="width:70px" value="'+m.qty+'" oninput="gbBundles['+bi+'].members['+mi+'].qty=parseFloat(this.value)||1;gbLiveRefresh()">';
       h+='<button class="btn btn-sm gb-del" style="margin-bottom:4px" onclick="gbDelBundleMember('+bi+','+mi+')">移除</button></div>';
     });
     /* 手填行：锁价在此，间距拉开 */
@@ -6949,11 +6951,13 @@ function gbSaveState(){
 /* v1056：常用参数——每个参数框后挂自己的「存为常用」+ 已存常用值按钮（点值即套用）。结构 {fieldId:[v1,v2,...]} 存 localStorage */
 function gbCpControls(fid){
   var arr=gbCommonParams[fid]||[];
-  var h='<button type="button" class="lbt-btn gb-cp-save" onclick="gbSaveCommon(\''+fid+'\')">存为常用</button>';
+  var h='';
+  /* v1059：常用值在前、「存为常用」放最后（她："存为常用按钮放最后"） */
   for(var i=0;i<arr.length;i++){
     var v=arr[i];
     h+='<button type="button" class="lbt-btn gb-cp-chip" onclick="gbUseCommon(\''+fid+'\',\''+gbEsc(v)+'\')">'+gbEsc(v)+'</button>';
   }
+  h+='<button type="button" class="lbt-btn gb-cp-save" onclick="gbSaveCommon(\''+fid+'\')">存为常用</button>';
   return h;
 }
 function gbSaveCommon(fid){
@@ -7016,7 +7020,7 @@ function gbSaveItemTpl(idx){
   var i=gbItems[idx]; if(!i) return;
   if(!String(i.name||'').trim()){ Toast.info('请先填商品名再保存模板'); return; }
   var o=gbCleanItem(i); o.type='item';
-  DB.add('gbProducts', o); if(currentPage==='groupbuy-records'){ renderListPage('groupbuy-records', MODULES['groupbuy-records']); }
+  DB.add('gbProducts', o); if(currentPage==='groupbuy-lib'){ renderGbLibPage(); }
   Toast.success('已存入商品库：'+o.name);
 }
 /* 套装卡「保存模板」→ 成员按商品名+数量存入商品库（导入时按名匹配商品池） */
@@ -7027,13 +7031,55 @@ function gbSaveBundleTpl(bi){
                          .filter(function(m){ return m.name; });
   if(!ms.length){ Toast.info('套装里还没有商品'); return; }
   DB.add('gbProducts', {type:'bundle', name:b.name, members:ms, customPrice:(b.customPrice||''), locked:false, lockedPrice:null});
-  if(currentPage==='groupbuy-records'){ renderListPage('groupbuy-records', MODULES['groupbuy-records']); }
+  if(currentPage==='groupbuy-lib'){ renderGbLibPage(); }
   Toast.success('已存入商品库：'+b.name);
 }
 /* ---------- v1056：商品库（DB store 'gbProducts'，云端同步）+ 开团计算记录（'gbRecords'） ----------
-   v1058：商品库只在「开团记录」页（gbLibCardHTML）；价目计算不再放入口（她明确："商品库的位置谁让你放那里了"） */
-var gbPendingLibId=null;   /* 开团记录页点「去导入」→ navigate('groupbuy-calc') 后自动导入 */
+   v1059：商品库=开团侧边栏独立页（她 image#1："说了商品库不要放这"——不放开团记录列表页）；
+   价目计算商品池保留「从商品库导入」折叠列表（她的原始需求："价目计算的商品可以直接从商品库导入"） */
+var gbPendingLibId=null;   /* 商品库页点「去导入」→ navigate('groupbuy-calc') 后自动导入 */
 function gbLibGoImport(id){ gbPendingLibId=id; navigate('groupbuy-calc'); }
+/* 开团 · 商品库 独立页 */
+function renderGbLibPage(){
+  var body=$('#mainBody');
+  var list=DB.list('gbProducts');
+  var h='<div class="fade-in"><div class="calc-card" style="max-width:860px;margin:0 auto">';
+  h+='<div class="calc-card-title">'+lucide('package',16)+' 商品库 <span class="calc-card-hint">（在「开团 · 价目计算」的商品/套装卡右下角点「保存模板」存入；价目计算的商品池可点「从商品库导入」一键加入）</span></div>';
+  if(!list.length){
+    h+='<div style="font-size:12px;color:var(--c-text-muted);padding:8px 0">暂无商品。去「开团 · 价目计算」添加商品/套装后，点卡片右下角「保存模板」存入。</div>';
+  } else {
+    h+='<div class="template-list">';
+    list.forEach(function(t){
+      h+='<div class="template-item"><span class="template-name">'+gbEsc(t.name)+(t.type==='bundle'?'（套装）':'（单品）')+'</span>'+
+         '<div class="template-actions">'+
+         '<button class="btn btn-sm btn-outline" onclick="gbLibGoImport(\''+t.id+'\')">去导入</button>'+
+         '<button class="btn btn-sm gb-del" onclick="gbDelLib(\''+t.id+'\')">删除</button>'+
+         '</div></div>';
+    });
+    h+='</div>';
+  }
+  h+='</div></div>';
+  body.innerHTML=h;
+}
+/* 价目计算：商品池「从商品库导入」折叠列表 */
+function gbToggleImport(){
+  var b=$('#gbImportBox'); if(!b) return;
+  var show=(b.style.display==='none');
+  b.style.display=show?'':'none';
+  if(show) gbRenderImportBox();
+}
+function gbRenderImportBox(){
+  var box=$('#gbImportBox'); if(!box) return;
+  var list=DB.list('gbProducts');
+  if(!list.length){ box.innerHTML='<div style="font-size:12px;color:var(--c-text-muted);padding:8px">商品库还是空的。去「开团 · 商品库」页看看，或在下方商品/套装卡右下角点「保存模板」存入。</div>'; return; }
+  var h='<div class="template-list">';
+  list.forEach(function(t){
+    h+='<div class="template-item"><span class="template-name">'+gbEsc(t.name)+(t.type==='bundle'?'（套装）':'')+'</span>'+
+       '<div class="template-actions"><button class="btn btn-sm btn-outline" onclick="gbImportLib(\''+t.id+'\')">导入</button></div></div>';
+  });
+  h+='</div>';
+  box.innerHTML=h;
+}
 function gbImportLib(id){
   var t=DB.getById('gbProducts', id); if(!t) return;
   if(t.type==='bundle'){
@@ -7055,27 +7101,8 @@ function gbImportLib(id){
     Toast.success('已导入商品：'+(it.name||''));
   }
 }
-function gbDelLib(id){ DB.remove('gbProducts', id); if(currentPage==='groupbuy-records'){ renderListPage('groupbuy-records', MODULES['groupbuy-records']); } Toast.success('已从商品库删除'); }
+function gbDelLib(id){ DB.remove('gbProducts', id); if(currentPage==='groupbuy-lib'){ renderGbLibPage(); } else { gbRenderImportBox(); } Toast.success('已从商品库删除'); }
 /* v1057：开团记录页「商品库」卡片（列表+去导入+删除） */
-function gbLibCardHTML(){
-  var list=DB.list('gbProducts');
-  var h='<div class="calc-card" style="margin-top:10px"><div class="calc-card-title">'+lucide('package',16)+' 商品库 <span class="calc-card-hint">（在「开团 · 价目计算」的商品/套装卡右下角点「保存模板」存入；点「去导入」进价目计算自动加入）</span></div>';
-  if(!list.length){
-    h+='<div style="font-size:12px;color:var(--c-text-muted);padding:8px 0">暂无商品。去「开团 · 价目计算」添加商品/套装后，点卡片右下角「保存模板」存入。</div>';
-  } else {
-    h+='<div class="template-list">';
-    list.forEach(function(t){
-      h+='<div class="template-item"><span class="template-name">'+gbEsc(t.name)+(t.type==='bundle'?'（套装）':'（单品）')+'</span>'+
-         '<div class="template-actions">'+
-         '<button class="btn btn-sm btn-outline" onclick="gbLibGoImport(\''+t.id+'\')">去导入</button>'+
-         '<button class="btn btn-sm gb-del" onclick="gbDelLib(\''+t.id+'\')">删除</button>'+
-         '</div></div>';
-    });
-    h+='</div>';
-  }
-  h+='</div>';
-  return h;
-}
 /* 「保存记录」（核验报价旁）→ 整单快照存入 gbRecords */
 function gbSaveRecord(){
   gbSyncG();
@@ -7089,7 +7116,7 @@ function gbSaveRecord(){
 function gbRenderHis(){
   var box=$('#gbHisNote'); if(!box) return;
   var list=DB.list('gbRecords').sort(function(a,b){ return (b._ct||0)-(a._ct||0); });
-  if(!list.length){ box.innerHTML='<div style="font-size:12px;color:var(--c-text-muted);padding:8px">暂无历史</div>'; return; }
+  if(!list.length){ box.innerHTML='<div style="font-size:12px;color:var(--c-text-muted);padding:8px">（开团版历史 · 与小店版隔离）暂无历史</div>'; return; }   /* v1059：还原 v1055 原文 */
   var h='<div class="template-list">';
   list.forEach(function(r){
     var d=r._ct?fmtDate(new Date(r._ct).toISOString()):'';
