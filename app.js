@@ -7397,14 +7397,15 @@ function gbLibEdit(id){
     return '<div class="combobox-option" data-value="'+gbEsc(c)+'" onclick="selectComboboxOption(\'gblCatDd\',this)">'+gbEsc(c)+'</div>';
   }).join('') || '<div style="padding:8px 10px;font-size:12px;color:var(--c-text-muted)">还没有分类，直接输入一个即可</div>';
   var h='<div class="gb-lib-form">';
-  h+='<div class="form-row"><label class="form-label">名称</label>'+
-     '<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" id="gbl_name" value="'+esc((t&&t.name)||'')+'" placeholder="输入商品名，或从开团记录选" oninput="filterComboboxDropdown(\'gblNameDd\',this.value)">'+
-     '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'gblNameDd\')">▼</button>'+
-     '<div class="combobox-dropdown" id="gblNameDd">'+recOpts+'</div></div></div>';
+  /* v1066：分类放最上面；「名称」改「制品」；提示词改「请选择或输入…」（她 v1065 后第 1 条） */
   h+='<div class="form-row"><label class="form-label">分类</label>'+
-     '<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" id="gbl_cat" value="'+esc((t&&t.cat)||'')+'" placeholder="选择或输入分类（可自定义）" oninput="filterComboboxDropdown(\'gblCatDd\',this.value)">'+
+     '<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" id="gbl_cat" value="'+esc((t&&t.cat)||'')+'" placeholder="请选择或输入分类" oninput="filterComboboxDropdown(\'gblCatDd\',this.value)">'+
      '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'gblCatDd\')">▼</button>'+
      '<div class="combobox-dropdown" id="gblCatDd">'+catOpts+'</div></div></div>';
+  h+='<div class="form-row"><label class="form-label">制品</label>'+
+     '<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" id="gbl_name" value="'+esc((t&&t.name)||'')+'" placeholder="请选择或输入制品" oninput="filterComboboxDropdown(\'gblNameDd\',this.value)">'+
+     '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'gblNameDd\')">▼</button>'+
+     '<div class="combobox-dropdown" id="gblNameDd">'+recOpts+'</div></div></div>';
   if(isBundle){
     h+='<div class="form-row"><label class="form-label">套装成员</label><div style="font-size:12px;color:var(--c-text-muted)">'+
        ((t.members||[]).map(function(m){ return gbEsc(m.name)+' ×'+(m.qty||1); }).join('、')||'（无成员）')+
@@ -7427,7 +7428,7 @@ function gbLibEdit(id){
 function gbLibSave(){
   var el=$('#gbl_name');
   var name=(el&&el.value||'').trim();
-  if(!name){ Toast.info('请填写商品名'); return; }
+  if(!name){ Toast.info('请填写制品名'); return; }
   var catEl=$('#gbl_cat'); var cat=(catEl&&catEl.value||'').trim();
   var t=_gbLibEditId?DB.getById('gbProducts',_gbLibEditId):null;
   if(t&&t.type==='bundle'){ DB.update('gbProducts',t.id,{name:name, cat:cat}); }
@@ -11611,8 +11612,31 @@ function renderDataSettings(html) {
   html += `<button class="btn btn-primary" onclick="exportData()">${lucide('save',14)} 导出数据</button>`;
   html += `<button class="btn btn-outline" onclick="document.getElementById(\'importFile\').click()">${lucide('folder-open',14)} 导入数据</button>`;
   html += '</div>';
+  // ---- v1066：存储容量（她："目前使用了多少内存要能看到，能存储的上限是多少"） ----
+  const _su = storageUsageInfo();
+  html += '<h4 style="font-size:14px;margin:24px 0 8px;color:var(--c-primary)">' + lucide('hard-drive',16) + ' 存储容量</h4>';
+  html += '<div style="max-width:440px">';
+  html += '<div style="height:8px;border-radius:4px;background:var(--c-border);overflow:hidden"><div style="height:100%;width:' + _su.pct + '%;background:' + (_su.pct>85?'var(--c-danger, #e5484d)':'var(--c-primary)') + ';border-radius:4px"></div></div>';
+  html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:8px">已用 <strong style="color:var(--c-text)">' + _su.usedStr + '</strong> / 上限约 5 MB（' + _su.pct + '%）· 共 ' + _su.keys + ' 个数据分组。云端同步的数据存在 Supabase，不占本地容量；本地快满时请先「导出数据」备份，再清理旧记录。</p>';
+  html += '</div>';
   html += '</div>';
   return html;
+}
+
+/* v1066：localStorage 实时用量——浏览器本地存储配额通常为 5MB（超出会保存失败） */
+function storageUsageInfo(){
+  let total = 0, keys = 0;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i) || '';
+      total += k.length + (localStorage.getItem(k) || '').length;
+      keys++;
+    }
+  } catch (e) {}
+  const LIMIT = 5 * 1024 * 1024;   /* 字符数 ≈ 配额口径（UTF-16 code units），Chrome/Firefox 标准 5MB */
+  const pct = Math.min(100, Math.round(total / LIMIT * 1000) / 10);
+  const fmt = n => n >= 1048576 ? (Math.round(n/10485.76)/100) + ' MB' : n >= 1024 ? (Math.round(n/102.4)/10) + ' KB' : n + ' B';
+  return { used: total, limit: LIMIT, pct: pct, usedStr: fmt(total), keys: keys };
 }
 
 /* ===== 展示字段（主界面卡片字段显隐与排序） ===== */
