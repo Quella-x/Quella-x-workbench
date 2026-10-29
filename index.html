@@ -3894,9 +3894,15 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 /* v1062：小店模式「模板名称」输入框(无 .gb-cp-line 包裹被漏掉)与 .gb-gap 按钮行(保存模板/保存记录/一键清除/添加商品/从商品库导入/添加套装)统一 29px */
 #calc_templateName{padding-top:5px;padding-bottom:5px}
 .gb-gap .btn{height:29px;padding-top:0;padding-bottom:0;display:inline-flex;align-items:center;justify-content:center}
-/* v1062：商品库新增/编辑弹窗内输入框与按钮统一 29px（她："输入框高度也不一致"） */
-.gb-lib-form .form-input{padding-top:5px;padding-bottom:5px}
-.gb-lib-form .btn{height:29px;padding-top:0;padding-bottom:0;display:inline-flex;align-items:center;justify-content:center}
+/* v1063：商品库弹窗输入框/按钮恢复全站弹窗默认高度（她："对照其他模块看"——v1062 改 29px 方向搞反了；
+   档位行 .gb-tier 全局 5px 在弹窗内需还原默认 8px） */
+.gb-lib-form .form-input{padding-top:8px;padding-bottom:8px}
+/* v1063：动态列表底部按钮行——「排序」放「+ 添加」旁边（她指定），右对齐 */
+.dl-foot-row{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:8px}
+/* v1063：商品库「从开团记录导入」/「从商品库导入」弹窗（照文案模板库格式：白卡列表+选中高亮+底部操作栏） */
+.gb-imp-tabs{display:inline-flex;gap:0;border:1px solid var(--c-border);border-radius:8px;overflow:hidden}
+.gb-imp-tab{padding:5px 14px;font-size:12px;color:var(--c-text-light);background:var(--c-card);cursor:pointer;border:none}
+.gb-imp-tab.active{background:var(--c-primary);color:#fff}
 /* v1062：动态列表排序改「标题旁排序按钮 + 弹窗」（她："行首▲▼好丑"；复用 .sortable-list 弹窗，表格本身零改动） */
 .dl-label-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .dl-label-row .form-label{margin-bottom:0}
@@ -3963,8 +3969,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1062"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1062 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1063"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1063 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

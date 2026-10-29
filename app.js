@@ -2104,13 +2104,7 @@ function buildDynamicListHTML(field, data, moduleKey) {
   const items = data[field.key] || [];
   const columns = field.columns || [];
   _dynamicConfigs[field.key] = field;
-  let html = `<div class="form-row">`;
-  /* v1062：排序改「标题旁排序按钮 + 弹窗」（她："行首▲▼好丑"），所有动态列表共用；仅一行时无序可排不显示 */
-  html += `<div class="dl-label-row"><label class="form-label">${esc(label)}</label>`;
-  if (items.length > 1) {
-    html += `<button type="button" class="dl-sort-open" onclick="openDynamicSortModal('${esc(field.key)}')">${lucide('arrow-up-down',12)} 排序</button>`;
-  }
-  html += `</div>`;
+  let html = `<div class="form-row"><label class="form-label">${esc(label)}</label>`;
   const containerCls = 'dynamic-list-container';
   html += `<div class="${containerCls}" data-key="${field.key}" data-module="${esc(moduleKey)}">`;
   if (columns.length > 1) {
@@ -2178,7 +2172,13 @@ function buildDynamicListHTML(field, data, moduleKey) {
   html += `</div>`;
   // v777：开团记录制品列表/售后记录、接稿排期制品列表/加价项目/修改项目的「+ 添加」按钮改蓝色主按钮（合作记录等其他列表保持原样）
   const _blueAddKeys = ['products', 'afterSales', 'extraItems', 'modifications', 'cooperationRecords'];
+  /* v1063：「排序」按钮放「+ 添加」旁边（她指定），右对齐一行 */
+  html += `<div class="dl-foot-row">`;
+  if (items.length > 1) {
+    html += `<button type="button" class="dl-sort-open" onclick="openDynamicSortModal('${esc(field.key)}')">${lucide('arrow-up-down',12)} 排序</button>`;
+  }
   html += `<button type="button" class="btn ${_blueAddKeys.indexOf(field.key) > -1 ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="addDynamicRow('${field.key}')">+ 添加</button>`;
+  html += `</div>`;
   html += `</div></div>`;
   return html;
 }
@@ -7268,30 +7268,33 @@ function gbLibSearch(v){
   pageState['groupbuy-lib'].search=v;
   var box=$('#gbLibListWrap'); if(box) box.innerHTML=gbLibListHTML();
 }
-/* v1062：商品库「从开团记录导入」制品信息（她 image#3）——弹窗选开团记录 → 勾选制品 → 导入为商品库单品，同名跳过 */
+/* v1063：数据源改「开团记录」模块（store=groupbuys，她："开团记录和价目计算开团是两个东西"）——
+   制品信息取每条开团记录的 products（制品名称/单价），导入为商品库单品 */
 var _gbRecImp={recId:'', checked:{}};
 function _gbRecImpView(){
-  var recs=DB.list('gbRecords').sort(function(a,b){ return (b._ct||0)-(a._ct||0); });
+  var recs=DB.list('groupbuys').sort(function(a,b){ return (b._ct||0)-(a._ct||0); });
   if(!_gbRecImp.recId){
-    if(!recs.length) return '<div style="font-size:12px;color:var(--c-text-muted);padding:8px">还没有开团计算记录。先在「价目计算」点「保存记录」。</div>';
+    if(!recs.length) return '<div style="font-size:12px;color:var(--c-text-muted);padding:8px">「开团记录」还没有记录，先去开团记录页新增。</div>';
     var h='<div class="template-list">';
     recs.forEach(function(r){
-      h+='<div class="template-item" style="cursor:pointer" onclick="_gbRecImpPick(\''+r.id+'\')"><span class="template-name">'+gbEsc(r.name||'记录')+'</span>'+
-         '<span style="font-size:11px;color:var(--c-text-muted);white-space:nowrap">'+((r.items||[]).length)+' 个制品</span></div>';
+      var pros=r.products||r.items||[];
+      h+='<div class="template-item" style="cursor:pointer" onclick="_gbRecImpPick(\''+r.id+'\')"><span class="template-name">'+gbEsc(r.title||r.name||'开团记录')+'</span>'+
+         '<span style="font-size:11px;color:var(--c-text-muted);white-space:nowrap">'+pros.length+' 个制品</span></div>';
     });
     return h+'</div>';
   }
-  var rec=DB.getById('gbRecords', _gbRecImp.recId);
+  var rec=DB.getById('groupbuys', _gbRecImp.recId);
   if(!rec){ _gbRecImp.recId=''; return _gbRecImpView(); }
-  var h='<div style="font-size:12px;color:var(--c-text-muted);margin-bottom:8px"><span style="color:var(--c-primary);cursor:pointer" onclick="_gbRecImp.recId=\'\';_gbRecImpRender()">← 返回选择记录</span>　'+gbEsc(rec.name||'')+'</div>';
+  var h='<div style="font-size:12px;color:var(--c-text-muted);margin-bottom:8px"><span style="color:var(--c-primary);cursor:pointer" onclick="_gbRecImp.recId=\'\';_gbRecImpRender()">← 返回选择开团记录</span>　'+gbEsc(rec.title||rec.name||'')+'</div>';
   h+='<div class="template-list">';
-  (rec.items||[]).forEach(function(it,i){
-    var k=String(it.id!=null?it.id:i);
-    var exist=DB.list('gbProducts').some(function(t){ return (t.name||'')===(it.name||'') && t.type==='item'; });
+  var pros=rec.products||rec.items||[];
+  pros.forEach(function(p,i){
+    var k=String(p.id!=null?p.id:i);
+    var exist=DB.list('gbProducts').some(function(t){ return (t.name||'')===(p.name||'') && t.type==='item'; });
     h+='<div class="template-item"><span style="display:inline-flex;align-items:center;gap:6px;min-width:0;flex:1">'+
        '<input type="checkbox"'+(_gbRecImp.checked[k]!==false?' checked':'')+' onchange="_gbRecImp.checked[\''+k+'\']=this.checked">'+
-       '<span class="template-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+gbEsc(it.name||'未命名')+'</span></span>'+
-       '<span style="font-size:11px;color:'+(exist?'var(--c-danger)':'var(--c-text-muted)')+';white-space:nowrap">'+(exist?'同名已存在，将跳过':'起订 '+(it.moq||0))+'</span></div>';
+       '<span class="template-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+gbEsc(p.name||'未命名')+'</span></span>'+
+       '<span style="font-size:11px;color:'+(exist?'var(--c-danger)':'var(--c-text-muted)')+';white-space:nowrap">'+(exist?'同名已存在，将跳过':('单价 ¥'+(p.price!=null?p.price:0)))+'</span></div>';
   });
   return h+'</div>';
 }
@@ -7302,16 +7305,17 @@ function openGbRecImportModal(){
   openModal('从开团记录导入', '', [
     {label:'取消', class:'btn-outline', action:function(){ closeModal(); }},
     {label:'导入所选', class:'btn-primary', action:function(){
-      var rec=DB.getById('gbRecords', _gbRecImp.recId);
+      var rec=DB.getById('groupbuys', _gbRecImp.recId);
       if(!rec){ Toast.info('请先选择一条开团记录'); return; }
       var added=0, skipped=0;
-      (rec.items||[]).forEach(function(it,i){
-        var k=String(it.id!=null?it.id:i);
+      var pros=rec.products||rec.items||[];
+      pros.forEach(function(p,i){
+        var k=String(p.id!=null?p.id:i);
         if(_gbRecImp.checked[k]===false) return;
-        if(DB.list('gbProducts').some(function(t){ return (t.name||'')===(it.name||'') && t.type==='item'; })){ skipped++; return; }
-        DB.add('gbProducts',{type:'item', name:it.name||'', moq:it.moq||100, sampleFee:it.sampleFee||0, defectRate:(it.defectRate!=null?it.defectRate:3),
-          tiers:JSON.parse(JSON.stringify(it.tiers||[{min:100,price:0}])), shipFee:(it.shipFee==null?'':it.shipFee),
-          sellable:it.sellable!==false, locked:!!it.locked, lockedPrice:(it.lockedPrice==null?null:it.lockedPrice), pmode:(it.pmode||'margin'), pval:(it.pval||0)});
+        if(DB.list('gbProducts').some(function(t){ return (t.name||'')===(p.name||'') && t.type==='item'; })){ skipped++; return; }
+        var price=parseFloat(p.price)||0;
+        DB.add('gbProducts',{type:'item', name:p.name||'', moq:100, sampleFee:0, defectRate:3,
+          tiers:[{min:100, price:price}], shipFee:'', sellable:true, locked:false, lockedPrice:null, pmode:'margin', pval:0});
         added++;
       });
       closeModal();
@@ -7390,31 +7394,56 @@ function gbLibSave(){
   closeModal(); renderGbLibPage(); Toast.success('已保存');
 }
 /* 价目计算：套装卡「从商品库导入」折叠列表（只列套装） */
-/* v1062：「从商品库导入」改弹窗选择（她："要出现弹窗选择导入"）——商品池列全部，套装卡只列套装；
-   弹窗内每条点「导入」立即生效并可连续导入，「完成」关闭 */
+/* v1063：「从商品库导入」弹窗照「文案模板库」格式重做（她："文案库是什么样的格式，照着来"）——
+   白色大圆角卡(.tpl-white-card)装列表(.tpl-folder-list/.tpl-item)、点行选中高亮、底部操作栏「导入」；
+   商品池模式带 全部/单品/套装 tab，套装模式只列套装 */
+var _gbImpSelId='', _gbImpMode='pool', _gbImpCat='all';
+function gbImpRenderTabs(){
+  var box=$('#gbImpTabs'); if(!box) return;
+  var cats=[{key:'all',label:'全部'},{key:'item',label:'单品'},{key:'bundle',label:'套装'}];
+  box.innerHTML='<div class="gb-imp-tabs">'+cats.map(function(c){
+    return '<button type="button" class="gb-imp-tab'+(_gbImpCat===c.key?' active':'')+'" onclick="gbImpSetCat(\''+c.key+'\')">'+c.label+'</button>';
+  }).join('')+'</div>';
+}
+function gbImpSetCat(k){ _gbImpCat=k; gbImpRenderTabs(); gbImpRenderList(); }
+function gbImpRenderList(){
+  var list=$('#gbImpList'); if(!list) return;
+  var items=DB.list('gbProducts').filter(function(t){ return _gbImpMode==='bundle' ? t.type==='bundle' : (_gbImpCat==='all' ? true : t.type===_gbImpCat); });
+  if(!items.length){
+    list.innerHTML='<div class="tpl-empty"><div class="tpl-empty-title">没有可导入的商品</div><div class="tpl-empty-hint">去「开团 · 商品库」页添加，或在商品/套装卡右下角点「保存模板」存入</div></div>';
+    gbImpUpdateBtn(); return;
+  }
+  list.innerHTML=items.map(function(t){
+    var sel=_gbImpSelId===t.id;
+    var tag=t.type==='bundle'
+      ? '<span class="tpl-locked-tag">套装 · '+((t.members||[]).length)+' 个商品</span>'
+      : '<span class="tpl-locked-tag">单品</span>';
+    return '<div class="tpl-item'+(sel?' selected':'')+'" role="option" tabindex="0" aria-selected="'+sel+'" onclick="gbImpSel(\''+t.id+'\')">'+
+           '<div class="tpl-item-name">'+gbEsc(t.name||'未命名')+'</div>'+tag+'</div>';
+  }).join('');
+  gbImpUpdateBtn();
+}
+function gbImpSel(id){ _gbImpSelId=(_gbImpSelId===id?'':id); gbImpRenderList(); }
+function gbImpUpdateBtn(){ var b=$('#gbImpBtn'); if(b) b.disabled=!_gbImpSelId; }
+function gbImpDoImport(){
+  if(!_gbImpSelId) return;
+  var ok=true;
+  try{ gbImportLib(_gbImpSelId); }catch(e){ ok=false; }
+  if(ok){ _gbImpSelId=''; gbImpRenderList(); }
+}
 function gbOpenImportModal(mode){
-  var render=function(){
-    var list=DB.list('gbProducts').filter(function(t){ return mode==='bundle' ? t.type==='bundle' : true; });
-    var h='';
-    if(!list.length){
-      h='<div style="font-size:12px;color:var(--c-text-muted);padding:8px">'+(mode==='bundle'
-        ?'商品库里还没有套装。在套装卡右下角点「保存模板」存入。'
-        :'商品库还是空的。去「开团 · 商品库」页添加，或在商品/套装卡右下角点「保存模板」存入。')+'</div>';
-    } else {
-      h='<div class="template-list">';
-      list.forEach(function(t){
-        var meta=t.type==='bundle' ? ('（套装 · '+((t.members||[]).length)+' 个商品）') : '（单品）';
-        h+='<div class="template-item"><span class="template-name">'+gbEsc(t.name||'未命名')+meta+'</span>'+
-           '<div class="template-actions"><button class="btn btn-sm btn-outline" onclick="gbImportLib(\''+t.id+'\')">导入</button></div></div>';
-      });
-      h+='</div>';
-    }
-    $('#modalBody').innerHTML=h;
-  };
-  openModal(mode==='bundle'?'从商品库导入套装':'从商品库导入', '', [
-    {label:'完成', class:'btn-primary', action:function(){ closeModal(); }}
-  ]);
-  render();
+  _gbImpMode=mode||'pool'; _gbImpSelId=''; _gbImpCat='all';
+  var html='<div class="tpl-lib-folder">'+
+    '<div class="tpl-new-title">'+(_gbImpMode==='bundle'?'选择要导入的套装':'选择要导入的商品')+'</div>'+
+    (_gbImpMode==='pool'?'<div class="tpl-top-row"><div id="gbImpTabs"></div></div>':'')+
+    '<div class="tpl-white-card"><div class="tpl-folder-list" id="gbImpList"></div></div>'+
+    '<div class="tpl-lib-actions"><button type="button" class="btn btn-primary" id="gbImpBtn" disabled onclick="gbImpDoImport()">导入</button></div>'+
+    '</div>';
+  openModal(_gbImpMode==='bundle'?'从商品库导入套装':'从商品库导入', html, [
+    {label:'关闭', class:'btn-ghost', action:closeModal}
+  ], 'notes-sm tpl-lib-modal');
+  if(_gbImpMode==='pool') gbImpRenderTabs();
+  gbImpRenderList();
 }
 function gbImportLib(id){
   var t=DB.getById('gbProducts', id); if(!t) return;
