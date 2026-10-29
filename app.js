@@ -6516,7 +6516,10 @@ function renderPriceCalc() {
   body.innerHTML = html;
   gbInitState();
   gbRenderHis(); gbRenderTplList();   /* v1060：开团历史 + 常用模板（支持排序） */
-  gbSetMode('shop');
+  /* v1064：恢复上次的小店/开团模式（她："走之前是价目计算开团模式，再次回来怎么又跳回小店了"）；
+     开团草稿/小店草稿本就随 gbCalcState 持久化，之前只有模式被硬编码重置 */
+  var _lastGbMode='shop'; try{ if(localStorage.getItem('gbCalcMode')==='group') _lastGbMode='group'; }catch(e){}
+  gbSetMode(_lastGbMode);
   /* v1058：小店参数草稿回填（第二次进保留上次输入） */
   if(gbShopVals){ gbShopIds.forEach(function(id){ var el=$('#'+id); if(el && gbShopVals[id]!=null) el.value=gbShopVals[id]; }); calcPrice(); }
   /* v1057：从「开团记录」页商品库点「去导入」→ 跳转本页自动切开团模式并导入 */
@@ -6628,6 +6631,7 @@ function gbEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 
 function gbSetMode(m){
   gbMode=m;
+  try{ localStorage.setItem('gbCalcMode', m); }catch(e){}   /* v1064：记住模式，切模块回来不再跳回小店 */
   $('#gbBtnShop').className='lbt-btn'+(m==='shop'?' active':'');
   $('#gbBtnGroup').className='lbt-btn'+(m==='group'?' active':'');
   $('#shopParams').style.display = m==='shop'?'':'none';
@@ -7268,62 +7272,78 @@ function gbLibSearch(v){
   pageState['groupbuy-lib'].search=v;
   var box=$('#gbLibListWrap'); if(box) box.innerHTML=gbLibListHTML();
 }
-/* v1063：数据源改「开团记录」模块（store=groupbuys，她："开团记录和价目计算开团是两个东西"）——
-   制品信息取每条开团记录的 products（制品名称/单价），导入为商品库单品 */
-var _gbRecImp={recId:'', checked:{}};
-function _gbRecImpView(){
-  var recs=DB.list('groupbuys').sort(function(a,b){ return (b._ct||0)-(a._ct||0); });
-  if(!_gbRecImp.recId){
-    if(!recs.length) return '<div style="font-size:12px;color:var(--c-text-muted);padding:8px">「开团记录」还没有记录，先去开团记录页新增。</div>';
-    var h='<div class="template-list">';
-    recs.forEach(function(r){
-      var pros=r.products||r.items||[];
-      h+='<div class="template-item" style="cursor:pointer" onclick="_gbRecImpPick(\''+r.id+'\')"><span class="template-name">'+gbEsc(r.title||r.name||'开团记录')+'</span>'+
-         '<span style="font-size:11px;color:var(--c-text-muted);white-space:nowrap">'+pros.length+' 个制品</span></div>';
-    });
-    return h+'</div>';
-  }
-  var rec=DB.getById('groupbuys', _gbRecImp.recId);
-  if(!rec){ _gbRecImp.recId=''; return _gbRecImpView(); }
-  var h='<div style="font-size:12px;color:var(--c-text-muted);margin-bottom:8px"><span style="color:var(--c-primary);cursor:pointer" onclick="_gbRecImp.recId=\'\';_gbRecImpRender()">← 返回选择开团记录</span>　'+gbEsc(rec.title||rec.name||'')+'</div>';
-  h+='<div class="template-list">';
+/* v1064：从开团记录导入照「文案库」(openTextTemplatePicker) 格式重做（她 image#2/#3："哪里一样了"）——
+   数据源仍是开团记录模块（store=groupbuys，v1063 口径不动）；选择开团记录下拉 + 制品行右侧「选择」按钮 +
+   底部「关闭」；点「选择」= 立即导入该制品为商品库单品并关闭（同文案库：选择即用即关）。
+   同名商品不重复导入，明确 Toast 提示（不再静默跳过）；单价取开团记录制品的单价 */
+var _gbRecImpRecId='';
+function gbImpClose(){ var ov=document.getElementById('gbImpPickerOverlay'); if(ov) ov.remove(); }
+function gbRecImpRows(rec){
+  if(!rec) return '<div class="tpl-empty">暂无开团记录，先去「开团记录」页新增。</div>';
   var pros=rec.products||rec.items||[];
-  pros.forEach(function(p,i){
-    var k=String(p.id!=null?p.id:i);
-    var exist=DB.list('gbProducts').some(function(t){ return (t.name||'')===(p.name||'') && t.type==='item'; });
-    h+='<div class="template-item"><span style="display:inline-flex;align-items:center;gap:6px;min-width:0;flex:1">'+
-       '<input type="checkbox"'+(_gbRecImp.checked[k]!==false?' checked':'')+' onchange="_gbRecImp.checked[\''+k+'\']=this.checked">'+
-       '<span class="template-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+gbEsc(p.name||'未命名')+'</span></span>'+
-       '<span style="font-size:11px;color:'+(exist?'var(--c-danger)':'var(--c-text-muted)')+';white-space:nowrap">'+(exist?'同名已存在，将跳过':('单价 ¥'+(p.price!=null?p.price:0)))+'</span></div>';
-  });
-  return h+'</div>';
+  if(!pros.length) return '<div class="tpl-empty">该开团记录下暂无制品。</div>';
+  return pros.map(function(p,i){
+    var name=p.name||'未命名';
+    var exist=DB.list('gbProducts').some(function(t){ return (t.name||'')===name && t.type!=='bundle'; });
+    var txt=name+'　单价 ¥'+(p.price!=null?p.price:0)+(exist?'（已在商品库）':'');
+    return '<div class="txt-tpl-row"><div class="txt-tpl-row-text">'+gbEsc(txt)+'</div>'+
+           '<button type="button" class="txt-tpl-choose" onclick="gbRecImpPick(\''+rec.id+'\','+i+')">选择</button></div>';
+  }).join('');
 }
-function _gbRecImpRender(){ var b=$('#modalBody'); if(b) b.innerHTML=_gbRecImpView(); }
-function _gbRecImpPick(id){ _gbRecImp.recId=id; _gbRecImp.checked={}; _gbRecImpRender(); }
+function gbRecImpPick(recId, idx){
+  var rec=DB.getById('groupbuys', recId); if(!rec){ gbImpClose(); return; }
+  var pros=rec.products||rec.items||[];
+  var p=pros[idx]; if(!p) return;
+  var name=p.name||'';
+  if(!name){ Toast.warning('该制品没有名称，无法导入'); return; }
+  if(DB.list('gbProducts').some(function(t){ return (t.name||'')===name && t.type!=='bundle'; })){
+    Toast.info('「'+name+'」已在商品库，未重复导入'); return;
+  }
+  var price=parseFloat(p.price)||0;
+  DB.add('gbProducts',{type:'item', name:name, moq:100, sampleFee:0, defectRate:3,
+    tiers:[{min:100, price:price}], shipFee:'', sellable:true, locked:false, lockedPrice:null, pmode:'margin', pval:0});
+  Toast.success('已导入商品：'+name);
+  gbImpClose();
+  if(currentPage==='groupbuy-lib') renderGbLibPage();
+}
+function gbRecImpSetRec(){
+  var el=document.getElementById('gbRecImpRecCb');
+  var raw=el?(el.value||'').trim():'';
+  DB.list('groupbuys').forEach(function(r){ if((r.title||r.name||'未命名开团')===raw) _gbRecImpRecId=r.id; });
+  var cur=DB.getById('groupbuys', _gbRecImpRecId);
+  var box=document.getElementById('gbRecImpList');
+  if(box) box.innerHTML=gbRecImpRows(cur);
+}
 function openGbRecImportModal(){
-  _gbRecImp={recId:'', checked:{}};
-  openModal('从开团记录导入', '', [
-    {label:'取消', class:'btn-outline', action:function(){ closeModal(); }},
-    {label:'导入所选', class:'btn-primary', action:function(){
-      var rec=DB.getById('groupbuys', _gbRecImp.recId);
-      if(!rec){ Toast.info('请先选择一条开团记录'); return; }
-      var added=0, skipped=0;
-      var pros=rec.products||rec.items||[];
-      pros.forEach(function(p,i){
-        var k=String(p.id!=null?p.id:i);
-        if(_gbRecImp.checked[k]===false) return;
-        if(DB.list('gbProducts').some(function(t){ return (t.name||'')===(p.name||'') && t.type==='item'; })){ skipped++; return; }
-        var price=parseFloat(p.price)||0;
-        DB.add('gbProducts',{type:'item', name:p.name||'', moq:100, sampleFee:0, defectRate:3,
-          tiers:[{min:100, price:price}], shipFee:'', sellable:true, locked:false, lockedPrice:null, pmode:'margin', pval:0});
-        added++;
-      });
-      closeModal();
-      if(currentPage==='groupbuy-lib') renderGbLibPage();
-      Toast.success(added?('已导入 '+added+' 个商品'+(skipped?('，跳过同名 '+skipped+' 个'):'')):'没有可导入的制品');
-    }}
-  ]);
-  _gbRecImpRender();
+  gbImpClose();
+  var recs=DB.list('groupbuys').slice().sort(function(a,b){ return (b._ct||0)-(a._ct||0); });
+  var bodyHTML;
+  if(!recs.length){
+    bodyHTML='<div class="tpl-empty">暂无开团记录，先去「开团记录」页新增。</div>';
+  } else {
+    if(!recs.some(function(r){ return r.id===_gbRecImpRecId; })) _gbRecImpRecId=recs[0].id;
+    var ddId='gbRecImpRecCb-dropdown';
+    var opts=recs.map(function(r){
+      var nm=r.title||r.name||'未命名开团';
+      return '<div class="combobox-option" data-value="'+gbEsc(nm)+'" onclick="selectComboboxOption(\''+ddId+'\',this);gbRecImpSetRec()">'+gbEsc(nm)+'</div>';
+    }).join('');
+    var cur=DB.getById('groupbuys', _gbRecImpRecId);
+    var combo='<div class="txt-tpl-picker-cat"><label class="form-label">选择开团记录</label>'+
+      '<div class="combobox-wrapper" style="flex:1;max-width:none">'+
+      '<input type="text" class="form-input combobox-input" id="gbRecImpRecCb" value="'+gbEsc(cur?(cur.title||cur.name||'未命名开团'):'')+'" placeholder="选择开团记录" readonly oninput="filterComboboxDropdown(\''+ddId+'\',this.value)">'+
+      '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\''+ddId+'\')">▼</button>'+
+      '<div class="combobox-dropdown" id="'+ddId+'">'+opts+'</div></div></div>';
+    bodyHTML=combo+'<div id="gbRecImpList">'+gbRecImpRows(cur)+'</div>';
+  }
+  var ov=document.createElement('div');
+  ov.id='gbImpPickerOverlay';
+  ov.className='txt-tpl-picker-overlay';
+  ov.innerHTML='<div class="txt-tpl-picker-card">'+
+    '<div class="txt-tpl-picker-head">从开团记录导入<button type="button" class="txt-tpl-picker-close" onclick="gbImpClose()">✕</button></div>'+
+    '<div class="txt-tpl-picker-body">'+bodyHTML+'</div>'+
+    '<div class="txt-tpl-picker-foot"><button type="button" class="btn btn-ghost" onclick="gbImpClose()">关闭</button></div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function(e){ if(e.target===ov) gbImpClose(); });
 }
 function gbLibMove(id,dir){
   var arr=gbLibSorted();
@@ -7393,67 +7413,65 @@ function gbLibSave(){
   }
   closeModal(); renderGbLibPage(); Toast.success('已保存');
 }
-/* 价目计算：套装卡「从商品库导入」折叠列表（只列套装） */
-/* v1063：「从商品库导入」弹窗照「文案模板库」格式重做（她："文案库是什么样的格式，照着来"）——
-   白色大圆角卡(.tpl-white-card)装列表(.tpl-folder-list/.tpl-item)、点行选中高亮、底部操作栏「导入」；
-   商品池模式带 全部/单品/套装 tab，套装模式只列套装 */
-var _gbImpSelId='', _gbImpMode='pool', _gbImpCat='all';
-function gbImpRenderTabs(){
-  var box=$('#gbImpTabs'); if(!box) return;
-  var cats=[{key:'all',label:'全部'},{key:'item',label:'单品'},{key:'bundle',label:'套装'}];
-  box.innerHTML='<div class="gb-imp-tabs">'+cats.map(function(c){
-    return '<button type="button" class="gb-imp-tab'+(_gbImpCat===c.key?' active':'')+'" onclick="gbImpSetCat(\''+c.key+'\')">'+c.label+'</button>';
-  }).join('')+'</div>';
-}
-function gbImpSetCat(k){ _gbImpCat=k; gbImpRenderTabs(); gbImpRenderList(); }
-function gbImpRenderList(){
-  var list=$('#gbImpList'); if(!list) return;
-  var items=DB.list('gbProducts').filter(function(t){ return _gbImpMode==='bundle' ? t.type==='bundle' : (_gbImpCat==='all' ? true : t.type===_gbImpCat); });
-  if(!items.length){
-    list.innerHTML='<div class="tpl-empty"><div class="tpl-empty-title">没有可导入的商品</div><div class="tpl-empty-hint">去「开团 · 商品库」页添加，或在商品/套装卡右下角点「保存模板」存入</div></div>';
-    gbImpUpdateBtn(); return;
-  }
-  list.innerHTML=items.map(function(t){
-    var sel=_gbImpSelId===t.id;
-    var tag=t.type==='bundle'
-      ? '<span class="tpl-locked-tag">套装 · '+((t.members||[]).length)+' 个商品</span>'
-      : '<span class="tpl-locked-tag">单品</span>';
-    return '<div class="tpl-item'+(sel?' selected':'')+'" role="option" tabindex="0" aria-selected="'+sel+'" onclick="gbImpSel(\''+t.id+'\')">'+
-           '<div class="tpl-item-name">'+gbEsc(t.name||'未命名')+'</div>'+tag+'</div>';
+/* v1064：「从商品库导入」照「文案库」格式重做（她 image#2/#3："哪里一样了"）——
+   独立叠加层复用 txt-tpl-picker-* 类（与文案库同款外观：圆角卡+标题行✕+底部关闭），
+   分类筛选改「选择分类」下拉框（单品/套装，无 tab），行右侧蓝色「选择」按钮；
+   点「选择」= 立即导入该条并关闭（同文案库行为）。入口 mode 只决定初始分类 */
+var _gbImpCat='单品';
+function gbImpLibRows(){
+  var items=DB.list('gbProducts').filter(function(t){ return _gbImpCat==='套装' ? t.type==='bundle' : t.type!=='bundle'; });
+  if(!items.length) return '<div class="tpl-empty">该分类下暂无商品。去「开团 · 商品库」页添加，或在商品/套装卡右下角点「保存模板」存入。</div>';
+  return items.map(function(t){
+    var txt=(t.name||'未命名')+(_gbImpCat==='套装' ? '（'+((t.members||[]).length)+' 个商品）' : '');
+    return '<div class="txt-tpl-row"><div class="txt-tpl-row-text">'+gbEsc(txt)+'</div>'+
+           '<button type="button" class="txt-tpl-choose" onclick="gbImpLibPick(\''+t.id+'\')">选择</button></div>';
   }).join('');
-  gbImpUpdateBtn();
 }
-function gbImpSel(id){ _gbImpSelId=(_gbImpSelId===id?'':id); gbImpRenderList(); }
-function gbImpUpdateBtn(){ var b=$('#gbImpBtn'); if(b) b.disabled=!_gbImpSelId; }
-function gbImpDoImport(){
-  if(!_gbImpSelId) return;
-  var ok=true;
-  try{ gbImportLib(_gbImpSelId); }catch(e){ ok=false; }
-  if(ok){ _gbImpSelId=''; gbImpRenderList(); }
+function gbImpLibPick(id){
+  var t=DB.getById('gbProducts', id);
+  if(!t){ gbImpClose(); return; }
+  var ok=gbImportLib(id);   /* v1064：失败（如套装成员不在商品池）时弹窗留在原地，Toast 已提示原因 */
+  if(ok) gbImpClose();
+}
+function gbImpSetCat(){
+  var el=document.getElementById('gbImpCatCb');
+  var raw=el?(el.value||'').trim():'';
+  if(raw==='单品'||raw==='套装') _gbImpCat=raw;
+  if(el) el.value=_gbImpCat;
+  var box=document.getElementById('gbImpLibList');
+  if(box) box.innerHTML=gbImpLibRows();
 }
 function gbOpenImportModal(mode){
-  _gbImpMode=mode||'pool'; _gbImpSelId=''; _gbImpCat='all';
-  var html='<div class="tpl-lib-folder">'+
-    '<div class="tpl-new-title">'+(_gbImpMode==='bundle'?'选择要导入的套装':'选择要导入的商品')+'</div>'+
-    (_gbImpMode==='pool'?'<div class="tpl-top-row"><div id="gbImpTabs"></div></div>':'')+
-    '<div class="tpl-white-card"><div class="tpl-folder-list" id="gbImpList"></div></div>'+
-    '<div class="tpl-lib-actions"><button type="button" class="btn btn-primary" id="gbImpBtn" disabled onclick="gbImpDoImport()">导入</button></div>'+
-    '</div>';
-  openModal(_gbImpMode==='bundle'?'从商品库导入套装':'从商品库导入', html, [
-    {label:'关闭', class:'btn-ghost', action:closeModal}
-  ], 'notes-sm tpl-lib-modal');
-  if(_gbImpMode==='pool') gbImpRenderTabs();
-  gbImpRenderList();
+  gbImpClose();
+  _gbImpCat=(mode==='bundle')?'套装':'单品';
+  var ddId='gbImpCatCb-dropdown';
+  var opts=['单品','套装'].map(function(c){
+    return '<div class="combobox-option" data-value="'+c+'" onclick="selectComboboxOption(\''+ddId+'\',this);gbImpSetCat()">'+c+'</div>';
+  }).join('');
+  var combo='<div class="txt-tpl-picker-cat"><label class="form-label">选择分类</label>'+
+    '<div class="combobox-wrapper" style="flex:1;max-width:none">'+
+    '<input type="text" class="form-input combobox-input" id="gbImpCatCb" value="'+_gbImpCat+'" placeholder="选择分类" readonly oninput="filterComboboxDropdown(\''+ddId+'\',this.value)">'+
+    '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\''+ddId+'\')">▼</button>'+
+    '<div class="combobox-dropdown" id="'+ddId+'">'+opts+'</div></div></div>';
+  var ov=document.createElement('div');
+  ov.id='gbImpPickerOverlay';
+  ov.className='txt-tpl-picker-overlay';
+  ov.innerHTML='<div class="txt-tpl-picker-card">'+
+    '<div class="txt-tpl-picker-head">从商品库导入<button type="button" class="txt-tpl-picker-close" onclick="gbImpClose()">✕</button></div>'+
+    '<div class="txt-tpl-picker-body">'+combo+'<div id="gbImpLibList">'+gbImpLibRows()+'</div></div>'+
+    '<div class="txt-tpl-picker-foot"><button type="button" class="btn btn-ghost" onclick="gbImpClose()">关闭</button></div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function(e){ if(e.target===ov) gbImpClose(); });
 }
 function gbImportLib(id){
-  var t=DB.getById('gbProducts', id); if(!t) return;
+  var t=DB.getById('gbProducts', id); if(!t) return false;
   if(t.type==='bundle'){
     var members=[];
     (t.members||[]).forEach(function(m){
       var it=gbItems.filter(function(x){return x.name===m.name;})[0];
       if(it) members.push({itemId:it.id, qty:m.qty||1});
     });
-    if(!members.length){ Toast.error('商品池中没有同名商品，请先添加/导入商品'); return; }
+    if(!members.length){ Toast.error('商品池中没有同名商品，请先添加/导入商品'); return false; }
     gbBundles.push({id:gbUid++, name:t.name||'', members:members, customPrice:(t.customPrice||''), locked:false, lockedPrice:null});
     gbRenderBundles();
     Toast.success('已导入套装：'+(t.name||''));
@@ -7465,6 +7483,7 @@ function gbImportLib(id){
     gbRenderPool(); gbRenderBundles();
     Toast.success('已导入商品：'+(it.name||''));
   }
+  return true;   /* v1064：返回成败，导入弹窗失败时留在原地 */
 }
 function gbDelLib(id){ DB.remove('gbProducts', id); if(currentPage==='groupbuy-lib'){ renderGbLibPage(); } Toast.success('已从商品库删除'); }
 /* v1057：开团记录页「商品库」卡片（列表+去导入+删除） */
