@@ -3955,7 +3955,61 @@ const COMM_LIST_STYLE_MODULES = ['groupbuy-records', 'groupbuy-factories', 'grou
 const CAL_VIEW_STYLE_MODULES = COMM_LIST_STYLE_MODULES.filter(k => k !== 'design-commission');
 
 /* ===== Router ===== */
+/* ===== v1065：会话内各模块滚动位置记忆 =====
+   她："正在用的时候刚刚停哪儿切回去就还是哪儿；退出app/网页重进的时候可以回到最顶上"。
+   用内存 Map（不落 localStorage）→ 刷新/重进自动清空 = 回顶部；同一次会话内切走再切回 = 停在原处。
+   滚动容器不止一个：网页版 #mainBody 内滚、APK 文档滚动、价目计算 .calc-input-col/.calc-receipt-col、
+   开团两列 .gb-left/.gb-right，统统按「#mainBody 内的 childIndex 路径」记录，DOM 重建后按路径还原。 */
+var _navScrollMemo = {};
+function _navScrollAll(){
+  var out=[], root=document.getElementById('mainBody');
+  out.push(document.scrollingElement||document.documentElement);
+  if(root){
+    out.push(root);
+    root.querySelectorAll('*').forEach(function(el){
+      if(el.scrollHeight<=el.clientHeight+1) return;   /* 先快速过滤，避免全量 getComputedStyle */
+      var cs; try{ cs=getComputedStyle(el); }catch(e){ return; }
+      if(cs.overflowY==='auto'||cs.overflowY==='scroll') out.push(el);
+    });
+  }
+  return out;
+}
+function _navScrollPath(el){
+  var root=document.getElementById('mainBody');
+  if(el===root) return 'root';
+  if(el===document.scrollingElement||el===document.documentElement) return 'doc';
+  var parts=[], cur=el;
+  while(cur && cur!==root){
+    var p=cur.parentNode; if(!p||p===document) return null;
+    parts.unshift(Array.prototype.indexOf.call(p.children, cur));
+    cur=p;
+  }
+  return cur===root ? parts.join('.') : null;
+}
+function _navScrollByPath(path){
+  if(path==='doc') return document.scrollingElement||document.documentElement;
+  var root=document.getElementById('mainBody'); if(!root) return null;
+  if(path==='root') return root;
+  var el=root, ps=path.split('.');
+  for(var i=0;i<ps.length;i++){ if(!el) return null; el=el.children[+ps[i]]; }
+  return el||null;
+}
+function _navScrollCapture(pageKey){
+  if(!pageKey) return;
+  var list=[];
+  _navScrollAll().forEach(function(el){
+    var t=el.scrollTop||0;
+    if(t>0){ var p=_navScrollPath(el); if(p) list.push({p:p,t:t}); }
+  });
+  _navScrollMemo[pageKey]=list;
+}
+function _navScrollRestore(pageKey){
+  var list=_navScrollMemo[pageKey];
+  if(!list||!list.length) return;   /* 没记录（首次进入/刷新重进）→ 保持顶部 */
+  list.forEach(function(o){ var el=_navScrollByPath(o.p); if(el) el.scrollTop=o.t; });
+}
 function navigate(page) {
+  _navScrollCapture(currentPage);   /* v1065：切走前记住当前模块滚动位置 */
   currentPage = page;
   healScrollLock(); // v799: 页面切换前自愈滚动锁（同步后 navigate 重渲染场景）
   // v777: 记录退出时的页面与日期——同一天再开恢复到上次页面，跨天回首页（与是否清后台无关）
@@ -3967,19 +4021,24 @@ function navigate(page) {
   const body = $('#mainBody');
   body.innerHTML = ''; body.classList.remove('two-col-fixed'); body.classList.add('fade-in');
   setTimeout(() => body.classList.remove('fade-in'), 300);
-  if (page === 'home') return renderHome();
-  if (page === 'groupbuy-calc') return renderPriceCalc();
-  if (page === 'groupbuy-lib') return renderGbLibPage();
-  if (page === 'oc-relations') return renderRelations();
-  if (page === 'oc-timeline') return renderTimeline();
-  if (page === 'design-pricelist') return renderPriceList();
-  if (page === 'design-calc') return renderDesignCalc();
-  if (page === 'life-checkin') return renderLifeCheckin();
-  if (page === 'life-record') return renderLifeRecord();
-  if (page === 'design-commission-detail') return renderCommissionDetailPage();
-  const mod = MODULES[page];
-  if (mod) return renderListPage(page, mod);
-  body.innerHTML = `<div class="empty-state"><div class="empty-icon">${lucide('wrench',32)}</div><div class="empty-text">页面开发中...</div></div>`;
+  let _navR;
+  if (page === 'home') _navR = renderHome();
+  else if (page === 'groupbuy-calc') _navR = renderPriceCalc();
+  else if (page === 'groupbuy-lib') _navR = renderGbLibPage();
+  else if (page === 'oc-relations') _navR = renderRelations();
+  else if (page === 'oc-timeline') _navR = renderTimeline();
+  else if (page === 'design-pricelist') _navR = renderPriceList();
+  else if (page === 'design-calc') _navR = renderDesignCalc();
+  else if (page === 'life-checkin') _navR = renderLifeCheckin();
+  else if (page === 'life-record') _navR = renderLifeRecord();
+  else if (page === 'design-commission-detail') _navR = renderCommissionDetailPage();
+  else {
+    const mod = MODULES[page];
+    if (mod) _navR = renderListPage(page, mod);
+    else body.innerHTML = `<div class="empty-state"><div class="empty-icon">${lucide('wrench',32)}</div><div class="empty-text">页面开发中...</div></div>`;
+  }
+  _navScrollRestore(page);   /* v1065：渲染完成后恢复该模块上次的滚动位置 */
+  return _navR;
 }
 
 /* ===== Sidebar Rendering ===== */
@@ -7228,7 +7287,7 @@ function gbLibRow(t,isFirst,isLast){
   else { meta='起订 '+(t.moq||0)+' · '+(((t.tiers||[]).map(function(x){ return '≥'+x.min+' ¥'+x.price; }).join(' / '))||'未设档位'); }
   return '<div class="pricelist-menu-item gb-lib-item" onclick="gbLibEdit(\''+t.id+'\')">'+
     '<span class="lib-name">'+gbEsc(t.name||'未命名')+'</span>'+
-    '<span class="lib-type">'+(t.type==='bundle'?'套装':'单品')+'</span>'+
+    '<span class="lib-type">'+esc(String(t.cat||'').trim()||(t.type==='bundle'?'套装':'单品'))+'</span>'+
     '<span class="lib-meta">'+esc(meta)+'</span>'+
     '<span class="opt-sort-btns">'+
     '<button type="button" class="df-btn df-sort-btn"'+(isFirst?' disabled':'')+' title="上移" aria-label="上移" onclick="event.stopPropagation();gbLibMove(\''+t.id+'\',-1)">▲</button>'+
@@ -7261,7 +7320,6 @@ function renderGbLibPage(){
   h+='<div class="toolbar">';
   h+='<div class="search-box"><input type="text" placeholder="搜索商品" value="'+esc(ps.search||'')+'" oninput="gbLibSearch(this.value)"><span class="search-icon">'+lucide('search',16)+'</span></div>';
   h+='<div class="spacer"></div>';
-  h+='<button class="btn btn-outline" onclick="openGbRecImportModal()">从开团记录导入</button>';
   h+='<button class="btn btn-primary" onclick="gbLibEdit(\'\')">+ 新增商品</button>';
   h+='</div>';
   h+='<div id="gbLibListWrap">'+gbLibListHTML()+'</div>';
@@ -7272,78 +7330,32 @@ function gbLibSearch(v){
   pageState['groupbuy-lib'].search=v;
   var box=$('#gbLibListWrap'); if(box) box.innerHTML=gbLibListHTML();
 }
-/* v1064：从开团记录导入照「文案库」(openTextTemplatePicker) 格式重做（她 image#2/#3："哪里一样了"）——
-   数据源仍是开团记录模块（store=groupbuys，v1063 口径不动）；选择开团记录下拉 + 制品行右侧「选择」按钮 +
-   底部「关闭」；点「选择」= 立即导入该制品为商品库单品并关闭（同文案库：选择即用即关）。
-   同名商品不重复导入，明确 Toast 提示（不再静默跳过）；单价取开团记录制品的单价 */
-var _gbRecImpRecId='';
+/* v1065：删掉「从开团记录导入」独立按钮（她："不需要这个按钮啊，这个应该是直接在新增商品里就能解决的"）——
+   改为在「新增商品」弹窗的名称下拉里直接选开团记录制品并带出单价。
+   商品库「分类」= 商品自己的自定义标签（可自己输入），下拉选项从已有商品去重（不再写死 单品/套装）。 */
 function gbImpClose(){ var ov=document.getElementById('gbImpPickerOverlay'); if(ov) ov.remove(); }
-function gbRecImpRows(rec){
-  if(!rec) return '<div class="tpl-empty">暂无开团记录，先去「开团记录」页新增。</div>';
-  var pros=rec.products||rec.items||[];
-  if(!pros.length) return '<div class="tpl-empty">该开团记录下暂无制品。</div>';
-  return pros.map(function(p,i){
-    var name=p.name||'未命名';
-    var exist=DB.list('gbProducts').some(function(t){ return (t.name||'')===name && t.type!=='bundle'; });
-    var txt=name+'　单价 ¥'+(p.price!=null?p.price:0)+(exist?'（已在商品库）':'');
-    return '<div class="txt-tpl-row"><div class="txt-tpl-row-text">'+gbEsc(txt)+'</div>'+
-           '<button type="button" class="txt-tpl-choose" onclick="gbRecImpPick(\''+rec.id+'\','+i+')">选择</button></div>';
-  }).join('');
+function gbLibCatOptions(){
+  var seen={}, out=[];
+  DB.list('gbProducts').forEach(function(t){ var c=String(t.cat||'').trim(); if(c&&!seen[c]){ seen[c]=1; out.push(c); } });
+  return out.sort(function(a,b){ return a.localeCompare(b,'zh-Hans-CN'); });
 }
-function gbRecImpPick(recId, idx){
-  var rec=DB.getById('groupbuys', recId); if(!rec){ gbImpClose(); return; }
-  var pros=rec.products||rec.items||[];
-  var p=pros[idx]; if(!p) return;
-  var name=p.name||'';
-  if(!name){ Toast.warning('该制品没有名称，无法导入'); return; }
-  if(DB.list('gbProducts').some(function(t){ return (t.name||'')===name && t.type!=='bundle'; })){
-    Toast.info('「'+name+'」已在商品库，未重复导入'); return;
-  }
-  var price=parseFloat(p.price)||0;
-  DB.add('gbProducts',{type:'item', name:name, moq:100, sampleFee:0, defectRate:3,
-    tiers:[{min:100, price:price}], shipFee:'', sellable:true, locked:false, lockedPrice:null, pmode:'margin', pval:0});
-  Toast.success('已导入商品：'+name);
-  gbImpClose();
-  if(currentPage==='groupbuy-lib') renderGbLibPage();
+function gbLibRecProdOptions(){
+  var seen={}, out=[];
+  DB.list('groupbuys').forEach(function(r){
+    (r.products||r.items||[]).forEach(function(p){
+      var n=String(p.name||'').trim(); if(!n||seen[n]) return; seen[n]=1;
+      out.push({name:n, price:parseFloat(p.price)||0});
+    });
+  });
+  return out;
 }
-function gbRecImpSetRec(){
-  var el=document.getElementById('gbRecImpRecCb');
-  var raw=el?(el.value||'').trim():'';
-  DB.list('groupbuys').forEach(function(r){ if((r.title||r.name||'未命名开团')===raw) _gbRecImpRecId=r.id; });
-  var cur=DB.getById('groupbuys', _gbRecImpRecId);
-  var box=document.getElementById('gbRecImpList');
-  if(box) box.innerHTML=gbRecImpRows(cur);
-}
-function openGbRecImportModal(){
-  gbImpClose();
-  var recs=DB.list('groupbuys').slice().sort(function(a,b){ return (b._ct||0)-(a._ct||0); });
-  var bodyHTML;
-  if(!recs.length){
-    bodyHTML='<div class="tpl-empty">暂无开团记录，先去「开团记录」页新增。</div>';
-  } else {
-    if(!recs.some(function(r){ return r.id===_gbRecImpRecId; })) _gbRecImpRecId=recs[0].id;
-    var ddId='gbRecImpRecCb-dropdown';
-    var opts=recs.map(function(r){
-      var nm=r.title||r.name||'未命名开团';
-      return '<div class="combobox-option" data-value="'+gbEsc(nm)+'" onclick="selectComboboxOption(\''+ddId+'\',this);gbRecImpSetRec()">'+gbEsc(nm)+'</div>';
-    }).join('');
-    var cur=DB.getById('groupbuys', _gbRecImpRecId);
-    var combo='<div class="txt-tpl-picker-cat"><label class="form-label">选择开团记录</label>'+
-      '<div class="combobox-wrapper" style="flex:1;max-width:none">'+
-      '<input type="text" class="form-input combobox-input" id="gbRecImpRecCb" value="'+gbEsc(cur?(cur.title||cur.name||'未命名开团'):'')+'" placeholder="选择开团记录" readonly oninput="filterComboboxDropdown(\''+ddId+'\',this.value)">'+
-      '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\''+ddId+'\')">▼</button>'+
-      '<div class="combobox-dropdown" id="'+ddId+'">'+opts+'</div></div></div>';
-    bodyHTML=combo+'<div id="gbRecImpList">'+gbRecImpRows(cur)+'</div>';
-  }
-  var ov=document.createElement('div');
-  ov.id='gbImpPickerOverlay';
-  ov.className='txt-tpl-picker-overlay';
-  ov.innerHTML='<div class="txt-tpl-picker-card">'+
-    '<div class="txt-tpl-picker-head">从开团记录导入<button type="button" class="txt-tpl-picker-close" onclick="gbImpClose()">✕</button></div>'+
-    '<div class="txt-tpl-picker-body">'+bodyHTML+'</div>'+
-    '<div class="txt-tpl-picker-foot"><button type="button" class="btn btn-ghost" onclick="gbImpClose()">关闭</button></div></div>';
-  document.body.appendChild(ov);
-  ov.addEventListener('click', function(e){ if(e.target===ov) gbImpClose(); });
+function gbLibPickRec(el){
+  var n=el.getAttribute('data-name')||'';
+  var p=parseFloat(el.getAttribute('data-price'))||0;
+  var inp=document.getElementById('gbl_name'); if(inp) inp.value=n;
+  if(_gbLibTiers&&_gbLibTiers.length) _gbLibTiers[0].price=p;
+  gbLibRenderTiers();
+  cbClose(document.getElementById('gblNameDd'));
 }
 function gbLibMove(id,dir){
   var arr=gbLibSorted();
@@ -7376,9 +7388,23 @@ function gbLibEdit(id){
   var t=id?DB.getById('gbProducts', id):null;
   var isBundle=!!(t&&t.type==='bundle');
   _gbLibTiers=JSON.parse(JSON.stringify((t&&t.tiers)||[{min:100,price:0}]));
-  /* v1062：整块包 .gb-lib-form —— 弹窗内输入框/按钮统一 29px（她 image#4："输入框高度也不一致"） */
+  /* v1065：名称=可输入，也能从「开团记录」制品下拉选（选中带出单价）；新增「分类」自定义标签下拉。
+     她："不需要这个按钮啊，这个应该是直接在新增商品里就能解决的" + "分类的选项也没有" */
+  var recOpts=gbLibRecProdOptions().map(function(o){
+    return '<div class="combobox-option" data-value="'+gbEsc(o.name)+'" data-name="'+gbEsc(o.name)+'" data-price="'+o.price+'" onclick="gbLibPickRec(this)">'+gbEsc(o.name)+'　<span style="color:var(--c-text-muted);font-size:11px">¥'+o.price+'</span></div>';
+  }).join('') || '<div style="padding:8px 10px;font-size:12px;color:var(--c-text-muted)">开团记录里还没有制品，可直接输入名称</div>';
+  var catOpts=gbLibCatOptions().map(function(c){
+    return '<div class="combobox-option" data-value="'+gbEsc(c)+'" onclick="selectComboboxOption(\'gblCatDd\',this)">'+gbEsc(c)+'</div>';
+  }).join('') || '<div style="padding:8px 10px;font-size:12px;color:var(--c-text-muted)">还没有分类，直接输入一个即可</div>';
   var h='<div class="gb-lib-form">';
-  h+='<div class="form-row"><label class="form-label">名称</label><input class="form-input" id="gbl_name" value="'+esc((t&&t.name)||'')+'" placeholder="商品名"></div>';
+  h+='<div class="form-row"><label class="form-label">名称</label>'+
+     '<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" id="gbl_name" value="'+esc((t&&t.name)||'')+'" placeholder="输入商品名，或从开团记录选" oninput="filterComboboxDropdown(\'gblNameDd\',this.value)">'+
+     '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'gblNameDd\')">▼</button>'+
+     '<div class="combobox-dropdown" id="gblNameDd">'+recOpts+'</div></div></div>';
+  h+='<div class="form-row"><label class="form-label">分类</label>'+
+     '<div class="combobox-wrapper"><input type="text" class="form-input combobox-input" id="gbl_cat" value="'+esc((t&&t.cat)||'')+'" placeholder="选择或输入分类（可自定义）" oninput="filterComboboxDropdown(\'gblCatDd\',this.value)">'+
+     '<button type="button" class="combobox-toggle" onclick="toggleComboboxDropdown(\'gblCatDd\')">▼</button>'+
+     '<div class="combobox-dropdown" id="gblCatDd">'+catOpts+'</div></div></div>';
   if(isBundle){
     h+='<div class="form-row"><label class="form-label">套装成员</label><div style="font-size:12px;color:var(--c-text-muted)">'+
        ((t.members||[]).map(function(m){ return gbEsc(m.name)+' ×'+(m.qty||1); }).join('、')||'（无成员）')+
@@ -7402,13 +7428,14 @@ function gbLibSave(){
   var el=$('#gbl_name');
   var name=(el&&el.value||'').trim();
   if(!name){ Toast.info('请填写商品名'); return; }
+  var catEl=$('#gbl_cat'); var cat=(catEl&&catEl.value||'').trim();
   var t=_gbLibEditId?DB.getById('gbProducts',_gbLibEditId):null;
-  if(t&&t.type==='bundle'){ DB.update('gbProducts',t.id,{name:name}); }
+  if(t&&t.type==='bundle'){ DB.update('gbProducts',t.id,{name:name, cat:cat}); }
   else if(t){
-    DB.update('gbProducts',t.id,{name:name, moq:parseFloat($('#gbl_moq').value)||0, sampleFee:parseFloat($('#gbl_sampleFee').value)||0,
+    DB.update('gbProducts',t.id,{name:name, cat:cat, moq:parseFloat($('#gbl_moq').value)||0, sampleFee:parseFloat($('#gbl_sampleFee').value)||0,
       defectRate:parseFloat($('#gbl_defectRate').value)||0, tiers:_gbLibTiers});
   } else {
-    DB.add('gbProducts',{type:'item', name:name, moq:parseFloat($('#gbl_moq').value)||0, sampleFee:parseFloat($('#gbl_sampleFee').value)||0,
+    DB.add('gbProducts',{type:'item', name:name, cat:cat, moq:parseFloat($('#gbl_moq').value)||0, sampleFee:parseFloat($('#gbl_sampleFee').value)||0,
       defectRate:parseFloat($('#gbl_defectRate').value)||0, tiers:_gbLibTiers, shipFee:'', sellable:true, locked:false, lockedPrice:null, pmode:'margin', pval:0});
   }
   closeModal(); renderGbLibPage(); Toast.success('已保存');
@@ -7417,12 +7444,25 @@ function gbLibSave(){
    独立叠加层复用 txt-tpl-picker-* 类（与文案库同款外观：圆角卡+标题行✕+底部关闭），
    分类筛选改「选择分类」下拉框（单品/套装，无 tab），行右侧蓝色「选择」按钮；
    点「选择」= 立即导入该条并关闭（同文案库行为）。入口 mode 只决定初始分类 */
-var _gbImpCat='单品';
+var _gbImpCat='全部', _gbImpMode='pool';
+/* v1065：分类下拉 = 商品库里真实存在的分类（商品自带 cat，去重），不再写死「单品/套装」。
+   她 image#1："这个分类是商品库里面的分类，只有单品没有套装"——没有的分类不出现在下拉里 */
+function gbImpCatList(){
+  var seen={}, out=[];
+  DB.list('gbProducts').forEach(function(t){
+    if(_gbImpMode==='bundle' ? t.type!=='bundle' : t.type==='bundle') return;
+    var c=String(t.cat||'').trim();
+    if(c&&!seen[c]){ seen[c]=1; out.push(c); }
+  });
+  out.sort(function(a,b){ return a.localeCompare(b,'zh-Hans-CN'); });
+  return ['全部'].concat(out);
+}
 function gbImpLibRows(){
-  var items=DB.list('gbProducts').filter(function(t){ return _gbImpCat==='套装' ? t.type==='bundle' : t.type!=='bundle'; });
-  if(!items.length) return '<div class="tpl-empty">该分类下暂无商品。去「开团 · 商品库」页添加，或在商品/套装卡右下角点「保存模板」存入。</div>';
+  var all=DB.list('gbProducts').filter(function(t){ return _gbImpMode==='bundle' ? t.type==='bundle' : t.type!=='bundle'; });
+  var items=(_gbImpCat==='全部')?all:all.filter(function(t){ return String(t.cat||'').trim()===_gbImpCat; });
+  if(!items.length) return '<div class="tpl-empty">该分类下暂无商品。去「开团 · 商品库」页新增商品并设置分类，或在商品/套装卡右下角点「保存模板」存入。</div>';
   return items.map(function(t){
-    var txt=(t.name||'未命名')+(_gbImpCat==='套装' ? '（'+((t.members||[]).length)+' 个商品）' : '');
+    var txt=(t.name||'未命名')+(_gbImpMode==='bundle'&&t.type==='bundle' ? '（'+((t.members||[]).length)+' 个商品）' : '');
     return '<div class="txt-tpl-row"><div class="txt-tpl-row-text">'+gbEsc(txt)+'</div>'+
            '<button type="button" class="txt-tpl-choose" onclick="gbImpLibPick(\''+t.id+'\')">选择</button></div>';
   }).join('');
@@ -7436,17 +7476,19 @@ function gbImpLibPick(id){
 function gbImpSetCat(){
   var el=document.getElementById('gbImpCatCb');
   var raw=el?(el.value||'').trim():'';
-  if(raw==='单品'||raw==='套装') _gbImpCat=raw;
+  var valid=gbImpCatList();
+  _gbImpCat=(valid.indexOf(raw)>=0)?raw:'全部';
   if(el) el.value=_gbImpCat;
   var box=document.getElementById('gbImpLibList');
   if(box) box.innerHTML=gbImpLibRows();
 }
 function gbOpenImportModal(mode){
   gbImpClose();
-  _gbImpCat=(mode==='bundle')?'套装':'单品';
+  _gbImpMode=(mode==='bundle')?'bundle':'pool';
+  _gbImpCat='全部';
   var ddId='gbImpCatCb-dropdown';
-  var opts=['单品','套装'].map(function(c){
-    return '<div class="combobox-option" data-value="'+c+'" onclick="selectComboboxOption(\''+ddId+'\',this);gbImpSetCat()">'+c+'</div>';
+  var opts=gbImpCatList().map(function(c){
+    return '<div class="combobox-option" data-value="'+gbEsc(c)+'" onclick="selectComboboxOption(\''+ddId+'\',this);gbImpSetCat()">'+gbEsc(c)+'</div>';
   }).join('');
   var combo='<div class="txt-tpl-picker-cat"><label class="form-label">选择分类</label>'+
     '<div class="combobox-wrapper" style="flex:1;max-width:none">'+
