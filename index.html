@@ -3891,15 +3891,17 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .gb-cp-line .form-input,.gb-row .form-input,.gb-tier .form-input,.gb-inline .form-input,.gb-ship-row .form-input,.gb-combo .form-input{padding-top:5px;padding-bottom:5px}
 /* v1061：价目计算内所有按钮统一尺寸（= 输入框 29px；原 .gb-tier 内 btn-sm 被 stretch 撑到 35、卡尾 btn-sm 28，同一张卡内混排） */
 .gb-row .btn,.gb-cp-line .btn,.gb-tier .btn,.gb-inline .btn,.gb-del-foot .btn,.gb-ship-row .btn{height:29px;padding-top:0;padding-bottom:0;display:inline-flex;align-items:center;justify-content:center;align-self:auto}
-/* v1061：动态列表行首 ▲▼ 排序（她："所有模块、内容都要支持修改排序"；行尾已无位置故放行首）。
-   刻意做成「绝对定位 + 第一列让出 26px」而**不新增列**——实测新增 48px 列会让行总宽 716→768、
-   超出桌面弹窗容器 732px 冒出横向滚动条（违反"不能影响当前格式"），故总宽保持原值不变。 */
-.dynamic-list-row.dl-sortable{position:relative}
-.dynamic-list-row.dl-sortable > .dl-sort-abs{position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:2;display:inline-flex;align-items:center;gap:2px;flex-wrap:nowrap}
-.dynamic-list-row.dl-sortable > *:nth-child(2){padding-left:26px!important;box-sizing:border-box}
-.dynamic-list-header.dl-sortable-hdr > span:first-child{padding-left:26px}
-.dynamic-list-row.dl-sortable > .dl-sort-abs .df-sort-btn{width:11px;height:22px;flex:0 0 11px;font-size:10px;line-height:1;border-radius:3px}
-.dynamic-list-row.dl-sortable > .dl-sort-abs .df-sort-btn:disabled{background:transparent;color:var(--c-border);opacity:1;cursor:not-allowed}
+/* v1062：小店模式「模板名称」输入框(无 .gb-cp-line 包裹被漏掉)与 .gb-gap 按钮行(保存模板/保存记录/一键清除/添加商品/从商品库导入/添加套装)统一 29px */
+#calc_templateName{padding-top:5px;padding-bottom:5px}
+.gb-gap .btn{height:29px;padding-top:0;padding-bottom:0;display:inline-flex;align-items:center;justify-content:center}
+/* v1062：商品库新增/编辑弹窗内输入框与按钮统一 29px（她："输入框高度也不一致"） */
+.gb-lib-form .form-input{padding-top:5px;padding-bottom:5px}
+.gb-lib-form .btn{height:29px;padding-top:0;padding-bottom:0;display:inline-flex;align-items:center;justify-content:center}
+/* v1062：动态列表排序改「标题旁排序按钮 + 弹窗」（她："行首▲▼好丑"；复用 .sortable-list 弹窗，表格本身零改动） */
+.dl-label-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.dl-label-row .form-label{margin-bottom:0}
+.dl-sort-open{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;font-size:12px;font-weight:500;color:var(--c-primary);background:var(--c-card);border:1px solid var(--c-primary-light);border-radius:var(--radius-sm);cursor:pointer;white-space:nowrap}
+.dl-sort-open:hover{background:var(--c-primary-bg)}
 /* v1061：模块「调整排序」按钮——手机端(≤640px)隐藏「调整」二字只留「排序」，避免 toolbar 4 按钮挤压换行 */
 @media (max-width:640px){ .sort-long{display:none} }
 /* v1061：商品库单表（照「价目表」格式：一行一条，点行编辑） */
@@ -3961,8 +3963,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1061"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1061 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1062"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1062 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

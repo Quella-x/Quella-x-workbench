@@ -2032,33 +2032,71 @@ function removeDynamicRow(btn) {
   }
 }
 /* v1061：动态列表 ▲▼ 上移/下移（她："所有模块、内容都要支持修改排序"） */
-function moveDynamicRow(btn, dir) {
-  const row = btn.closest('.dynamic-list-row');
-  if (!row) return;
-  const wrap = row.parentElement;
-  if (!wrap) return;
-  if (dir < 0) {
-    const prev = row.previousElementSibling;
-    if (!prev) return;
-    wrap.insertBefore(row, prev);
-  } else {
-    const next = row.nextElementSibling;
-    if (!next) return;
-    wrap.insertBefore(next, row);
-  }
-  resortDynamicRows(wrap);
-}
-/* v1061：重排序号 + 刷新每条的首尾 ▲▼ 禁用态 */
+/* v1062：重排序号（排序入口改「标题旁排序按钮 + 弹窗」，行首 ▲▼ 已按她的要求移除） */
 function resortDynamicRows(wrap) {
   if (!wrap) return;
   const rows = wrap.querySelectorAll('.dynamic-list-row');
   rows.forEach((r, i) => {
     const s = r.querySelector('.dl-seq');
     if (s) s.textContent = String(i + 1).padStart(2, '0');
-    const us = r.querySelectorAll('.df-sort-btn');
-    if (us[0]) us[0].disabled = (i === 0);
-    if (us[1]) us[1].disabled = (i === rows.length - 1);
   });
+}
+
+/* v1062：动态列表排序弹窗（她选定方案：标题旁「排序」按钮 → 弹窗 ▲▼ 上下移 → 保存回填；复用 .sortable-list 结构）。
+   独立第二层 overlay（z-index 1100 > 主弹窗 1000）——排序入口在编辑弹窗内，不能顶掉正在编辑的表单（弹窗叠弹窗）。 */
+function openDynamicSortModal(key) {
+  const wrap = document.getElementById(key + '_rows');
+  if (!wrap) return;
+  const rows = Array.prototype.slice.call(wrap.querySelectorAll('.dynamic-list-row'));
+  if (rows.length < 2) { Toast.info('只有一行，无需排序'); return; }
+  window._dynSortRows = rows;
+  window._dynSortKey = key;
+  let ov = document.getElementById('dynSortOverlay');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'dynSortOverlay'; ov.className = 'modal-overlay'; ov.style.zIndex = '1100';
+    ov.innerHTML = '<div class="modal" style="width:520px">' +
+      '<div class="modal-header"><span class="modal-title">调整排序</span><button class="modal-close" onclick="closeDynSortLayer()">&times;</button></div>' +
+      '<div class="modal-body" id="dynSortBody"></div>' +
+      '<div class="modal-footer"><button class="btn btn-outline" onclick="closeDynSortLayer()">取消</button>' +
+      '<button class="btn btn-primary" onclick="saveDynSort()">保存</button></div></div>';
+    document.body.appendChild(ov);
+  }
+  const labelOf = (row) => {
+    const inp = row.querySelector('input,select');
+    const v = inp && inp.value ? String(inp.value).trim() : '';
+    return v || '（空）';
+  };
+  window._dynSortRender = () => {
+    let html = '<div class="sortable-list">';
+    window._dynSortRows.forEach((r, i) => {
+      html += `<div class="sortable-item"><span class="sortable-name">${String(i + 1).padStart(2, '0')} · ${esc(labelOf(r))}</span>`;
+      html += '<div class="sortable-actions">';
+      html += `<button class="btn btn-ghost btn-sm" ${i === 0 ? 'disabled' : ''} onclick="_dynSortMove(${i},-1)">▲</button>`;
+      html += `<button class="btn btn-ghost btn-sm" ${i === window._dynSortRows.length - 1 ? 'disabled' : ''} onclick="_dynSortMove(${i},1)">▼</button>`;
+      html += '</div></div>';
+    });
+    html += '</div>';
+    $('#dynSortBody').innerHTML = html;
+  };
+  window._dynSortMove = (idx, dir) => {
+    const j = idx + dir;
+    if (j < 0 || j >= window._dynSortRows.length) return;
+    const t = window._dynSortRows[idx]; window._dynSortRows[idx] = window._dynSortRows[j]; window._dynSortRows[j] = t;
+    window._dynSortRender();
+  };
+  window.closeDynSortLayer = () => { ov.classList.remove('show'); };
+  window.saveDynSort = () => {
+    const live = document.getElementById(window._dynSortKey + '_rows');
+    if (live) {
+      window._dynSortRows.forEach(r => live.appendChild(r));
+      resortDynamicRows(live);
+    }
+    closeDynSortLayer();
+    Toast.success('排序已保存');
+  };
+  window._dynSortRender();
+  ov.classList.add('show');
 }
 
 function buildDynamicListHTML(field, data, moduleKey) {
@@ -2066,12 +2104,17 @@ function buildDynamicListHTML(field, data, moduleKey) {
   const items = data[field.key] || [];
   const columns = field.columns || [];
   _dynamicConfigs[field.key] = field;
-  let html = `<div class="form-row"><label class="form-label">${esc(label)}</label>`;
+  let html = `<div class="form-row">`;
+  /* v1062：排序改「标题旁排序按钮 + 弹窗」（她："行首▲▼好丑"），所有动态列表共用；仅一行时无序可排不显示 */
+  html += `<div class="dl-label-row"><label class="form-label">${esc(label)}</label>`;
+  if (items.length > 1) {
+    html += `<button type="button" class="dl-sort-open" onclick="openDynamicSortModal('${esc(field.key)}')">${lucide('arrow-up-down',12)} 排序</button>`;
+  }
+  html += `</div>`;
   const containerCls = 'dynamic-list-container';
   html += `<div class="${containerCls}" data-key="${field.key}" data-module="${esc(moduleKey)}">`;
   if (columns.length > 1) {
-    /* v1061：动态列表支持排序——表头第一列让出 26px 承载行首 ▲▼（不加列、不加总宽，避免桌面弹窗出现横向滚动条） */
-    html += `<div class="dynamic-list-header dl-sortable-hdr">`;
+    html += `<div class="dynamic-list-header">`;
     columns.forEach(col => {
       html += `<span data-subkey="${esc(col.subkey)}">${esc(col.label)}</span>`;
     });
@@ -2080,14 +2123,7 @@ function buildDynamicListHTML(field, data, moduleKey) {
   html += `<div class="dynamic-list-rows" id="${field.key}_rows">`;
   const rows = items.length > 0 ? items : [{}];
   rows.forEach((item, idx) => {
-    const _isFirst = idx === 0, _isLast = idx === rows.length - 1;
-    html += `<div class="dynamic-list-row dl-sortable">`;
-    /* v1061：行首 ▲▼ 排序（沿用既有 .df-sort-btn 三角标准；行尾已被「删除」占满）。
-       绝对定位到行最左侧，不进入 flex 流——否则总宽 +52px 会让桌面弹窗出现横向滚动条（违反"不能影响当前格式"）。 */
-    html += `<span class="dl-sort-abs">`+
-            `<button type="button" class="df-btn df-sort-btn"${_isFirst ? ' disabled' : ''} title="上移" aria-label="上移" onclick="moveDynamicRow(this,-1)">▲</button>`+
-            `<button type="button" class="df-btn df-sort-btn"${_isLast ? ' disabled' : ''} title="下移" aria-label="下移" onclick="moveDynamicRow(this,1)">▼</button>`+
-            `</span>`;
+    html += `<div class="dynamic-list-row">`;
     columns.forEach(col => {
       // v984: const→let——数组值（多选补偿方式）要在这里塌缩成首项，const 会直接抛 TypeError，
       // 导致含多选数据的记录整个编辑弹窗渲染失败（v983「无法更改内容」的底层原因）
@@ -6439,9 +6475,8 @@ function renderPriceCalc() {
   /* v1060：并排两按钮（她 image#1："改成并排的"） */
   html += '<div class="gb-gap gb-mt">';
   html += '<button class="btn btn-primary" style="flex:1" onclick="gbAddItem()">+ 添加商品</button>';
-  html += '<button class="btn btn-outline" style="flex:1" onclick="gbToggleImport()">从商品库导入</button>';
+  html += '<button class="btn btn-outline" style="flex:1" onclick="gbOpenImportModal(\'pool\')">从商品库导入</button>';
   html += '</div>';
-  html += '<div id="gbImportBox" class="gb-mt" style="display:none"></div>';
   html += '</div>';
   // v1054：套装（开团版）
   html += '<div class="calc-card" id="bundleCard" style="display:none">';
@@ -6463,7 +6498,7 @@ function renderPriceCalc() {
   html += `<div class="calc-card" id="tplCard"><div class="calc-card-title">${lucide('clipboard-list',16)} 常用模板</div>`;
   html += '<div id="shopTplBox"><div id="tplList"></div></div>';
   html += '</div>';
-  html += '</div>';
+  /* v1062：「历史计算」移回右栏（v1059 起被误移到整页底部全宽，她："为什么要动它的位置"；v1054~v1058 一直在右栏常用模板下方） */
   html += `<div class="calc-card"><div class="calc-card-title">${lucide('clock',14)} 历史计算</div>`;
   html += '<div id="shopHisBox">';
   if (history.length) {
@@ -6944,8 +6979,7 @@ function gbRenderBundles(){
     h+='<div class="gb-inline" style="margin-top:0;gap:14px">';
     h+='<span style="font-size:11px;color:var(--c-text-muted);white-space:nowrap">套装名</span><input class="form-input" style="width:140px" value="'+gbEsc(b.name)+'" oninput="gbBundles['+bi+'].name=this.value;gbSaveState()">';
     h+='<button class="btn btn-primary btn-sm" onclick="gbAddBundleMember('+bi+')">+ 加入商品</button>';
-    h+='<button class="btn btn-outline btn-sm" onclick="gbToggleBundleImport('+bi+')">从商品库导入</button>';
-    h+='<div id="gbBimp_'+bi+'" style="display:none;width:100%"></div>';
+    h+='<button class="btn btn-outline btn-sm" onclick="gbOpenImportModal(\'bundle\')">从商品库导入</button>';
     h+='</div>';
     b.members.forEach(function(m,mi){
       h+='<div class="gb-tier"><div class="combobox-wrapper gb-combo" style="width:140px;flex:none"><input class="form-input combobox-input" readonly value="'+(gbItemById(m.itemId)?gbEsc(gbItemById(m.itemId).name):'?')+'" onclick="event.stopPropagation();gbComboToggle(this)"><button type="button" class="combobox-toggle" onclick="event.stopPropagation();gbComboToggle(this)">▼</button><div class="combobox-dropdown">';
@@ -7223,6 +7257,7 @@ function renderGbLibPage(){
   h+='<div class="toolbar">';
   h+='<div class="search-box"><input type="text" placeholder="搜索商品" value="'+esc(ps.search||'')+'" oninput="gbLibSearch(this.value)"><span class="search-icon">'+lucide('search',16)+'</span></div>';
   h+='<div class="spacer"></div>';
+  h+='<button class="btn btn-outline" onclick="openGbRecImportModal()">从开团记录导入</button>';
   h+='<button class="btn btn-primary" onclick="gbLibEdit(\'\')">+ 新增商品</button>';
   h+='</div>';
   h+='<div id="gbLibListWrap">'+gbLibListHTML()+'</div>';
@@ -7232,6 +7267,59 @@ function renderGbLibPage(){
 function gbLibSearch(v){
   pageState['groupbuy-lib'].search=v;
   var box=$('#gbLibListWrap'); if(box) box.innerHTML=gbLibListHTML();
+}
+/* v1062：商品库「从开团记录导入」制品信息（她 image#3）——弹窗选开团记录 → 勾选制品 → 导入为商品库单品，同名跳过 */
+var _gbRecImp={recId:'', checked:{}};
+function _gbRecImpView(){
+  var recs=DB.list('gbRecords').sort(function(a,b){ return (b._ct||0)-(a._ct||0); });
+  if(!_gbRecImp.recId){
+    if(!recs.length) return '<div style="font-size:12px;color:var(--c-text-muted);padding:8px">还没有开团计算记录。先在「价目计算」点「保存记录」。</div>';
+    var h='<div class="template-list">';
+    recs.forEach(function(r){
+      h+='<div class="template-item" style="cursor:pointer" onclick="_gbRecImpPick(\''+r.id+'\')"><span class="template-name">'+gbEsc(r.name||'记录')+'</span>'+
+         '<span style="font-size:11px;color:var(--c-text-muted);white-space:nowrap">'+((r.items||[]).length)+' 个制品</span></div>';
+    });
+    return h+'</div>';
+  }
+  var rec=DB.getById('gbRecords', _gbRecImp.recId);
+  if(!rec){ _gbRecImp.recId=''; return _gbRecImpView(); }
+  var h='<div style="font-size:12px;color:var(--c-text-muted);margin-bottom:8px"><span style="color:var(--c-primary);cursor:pointer" onclick="_gbRecImp.recId=\'\';_gbRecImpRender()">← 返回选择记录</span>　'+gbEsc(rec.name||'')+'</div>';
+  h+='<div class="template-list">';
+  (rec.items||[]).forEach(function(it,i){
+    var k=String(it.id!=null?it.id:i);
+    var exist=DB.list('gbProducts').some(function(t){ return (t.name||'')===(it.name||'') && t.type==='item'; });
+    h+='<div class="template-item"><span style="display:inline-flex;align-items:center;gap:6px;min-width:0;flex:1">'+
+       '<input type="checkbox"'+(_gbRecImp.checked[k]!==false?' checked':'')+' onchange="_gbRecImp.checked[\''+k+'\']=this.checked">'+
+       '<span class="template-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+gbEsc(it.name||'未命名')+'</span></span>'+
+       '<span style="font-size:11px;color:'+(exist?'var(--c-danger)':'var(--c-text-muted)')+';white-space:nowrap">'+(exist?'同名已存在，将跳过':'起订 '+(it.moq||0))+'</span></div>';
+  });
+  return h+'</div>';
+}
+function _gbRecImpRender(){ var b=$('#modalBody'); if(b) b.innerHTML=_gbRecImpView(); }
+function _gbRecImpPick(id){ _gbRecImp.recId=id; _gbRecImp.checked={}; _gbRecImpRender(); }
+function openGbRecImportModal(){
+  _gbRecImp={recId:'', checked:{}};
+  openModal('从开团记录导入', '', [
+    {label:'取消', class:'btn-outline', action:function(){ closeModal(); }},
+    {label:'导入所选', class:'btn-primary', action:function(){
+      var rec=DB.getById('gbRecords', _gbRecImp.recId);
+      if(!rec){ Toast.info('请先选择一条开团记录'); return; }
+      var added=0, skipped=0;
+      (rec.items||[]).forEach(function(it,i){
+        var k=String(it.id!=null?it.id:i);
+        if(_gbRecImp.checked[k]===false) return;
+        if(DB.list('gbProducts').some(function(t){ return (t.name||'')===(it.name||'') && t.type==='item'; })){ skipped++; return; }
+        DB.add('gbProducts',{type:'item', name:it.name||'', moq:it.moq||100, sampleFee:it.sampleFee||0, defectRate:(it.defectRate!=null?it.defectRate:3),
+          tiers:JSON.parse(JSON.stringify(it.tiers||[{min:100,price:0}])), shipFee:(it.shipFee==null?'':it.shipFee),
+          sellable:it.sellable!==false, locked:!!it.locked, lockedPrice:(it.lockedPrice==null?null:it.lockedPrice), pmode:(it.pmode||'margin'), pval:(it.pval||0)});
+        added++;
+      });
+      closeModal();
+      if(currentPage==='groupbuy-lib') renderGbLibPage();
+      Toast.success(added?('已导入 '+added+' 个商品'+(skipped?('，跳过同名 '+skipped+' 个'):'')):'没有可导入的制品');
+    }}
+  ]);
+  _gbRecImpRender();
 }
 function gbLibMove(id,dir){
   var arr=gbLibSorted();
@@ -7264,7 +7352,8 @@ function gbLibEdit(id){
   var t=id?DB.getById('gbProducts', id):null;
   var isBundle=!!(t&&t.type==='bundle');
   _gbLibTiers=JSON.parse(JSON.stringify((t&&t.tiers)||[{min:100,price:0}]));
-  var h='';
+  /* v1062：整块包 .gb-lib-form —— 弹窗内输入框/按钮统一 29px（她 image#4："输入框高度也不一致"） */
+  var h='<div class="gb-lib-form">';
   h+='<div class="form-row"><label class="form-label">名称</label><input class="form-input" id="gbl_name" value="'+esc((t&&t.name)||'')+'" placeholder="商品名"></div>';
   if(isBundle){
     h+='<div class="form-row"><label class="form-label">套装成员</label><div style="font-size:12px;color:var(--c-text-muted)">'+
@@ -7278,6 +7367,7 @@ function gbLibEdit(id){
     h+='<div class="form-row"><label class="form-label">阶梯档位</label></div>';
     h+='<div id="gbl_tiers"></div>';
   }
+  h+='</div>';
   openModal(id?'编辑商品':'新增商品', h, [
     {label:'取消', class:'btn-outline', action:function(){ closeModal(); }},
     {label:'保存', class:'btn-primary', action:gbLibSave}
@@ -7300,39 +7390,31 @@ function gbLibSave(){
   closeModal(); renderGbLibPage(); Toast.success('已保存');
 }
 /* 价目计算：套装卡「从商品库导入」折叠列表（只列套装） */
-function gbToggleBundleImport(bi){
-  var b=$('#gbBimp_'+bi); if(!b) return;
-  var show=(b.style.display==='none');
-  b.style.display=show?'':'none';
-  if(!show) return;
-  var list=DB.list('gbProducts').filter(function(t){ return t.type==='bundle'; });
-  if(!list.length){ b.innerHTML='<div style="font-size:12px;color:var(--c-text-muted);padding:8px">商品库里还没有套装。在套装卡右下角点「保存模板」存入。</div>'; return; }
-  var h='<div class="template-list">';
-  list.forEach(function(t){
-    h+='<div class="template-item"><span class="template-name">'+gbEsc(t.name)+'（'+((t.members||[]).length)+' 个商品）</span>'+
-       '<div class="template-actions"><button class="btn btn-sm btn-outline" onclick="gbImportLib(\''+t.id+'\')">导入</button></div></div>';
-  });
-  h+='</div>';
-  b.innerHTML=h;
-}
-/* 价目计算：商品池「从商品库导入」折叠列表 */
-function gbToggleImport(){
-  var b=$('#gbImportBox'); if(!b) return;
-  var show=(b.style.display==='none');
-  b.style.display=show?'':'none';
-  if(show) gbRenderImportBox();
-}
-function gbRenderImportBox(){
-  var box=$('#gbImportBox'); if(!box) return;
-  var list=DB.list('gbProducts');
-  if(!list.length){ box.innerHTML='<div style="font-size:12px;color:var(--c-text-muted);padding:8px">商品库还是空的。去「开团 · 商品库」页看看，或在下方商品/套装卡右下角点「保存模板」存入。</div>'; return; }
-  var h='<div class="template-list">';
-  list.forEach(function(t){
-    h+='<div class="template-item"><span class="template-name">'+gbEsc(t.name)+(t.type==='bundle'?'（套装）':'')+'</span>'+
-       '<div class="template-actions"><button class="btn btn-sm btn-outline" onclick="gbImportLib(\''+t.id+'\')">导入</button></div></div>';
-  });
-  h+='</div>';
-  box.innerHTML=h;
+/* v1062：「从商品库导入」改弹窗选择（她："要出现弹窗选择导入"）——商品池列全部，套装卡只列套装；
+   弹窗内每条点「导入」立即生效并可连续导入，「完成」关闭 */
+function gbOpenImportModal(mode){
+  var render=function(){
+    var list=DB.list('gbProducts').filter(function(t){ return mode==='bundle' ? t.type==='bundle' : true; });
+    var h='';
+    if(!list.length){
+      h='<div style="font-size:12px;color:var(--c-text-muted);padding:8px">'+(mode==='bundle'
+        ?'商品库里还没有套装。在套装卡右下角点「保存模板」存入。'
+        :'商品库还是空的。去「开团 · 商品库」页添加，或在商品/套装卡右下角点「保存模板」存入。')+'</div>';
+    } else {
+      h='<div class="template-list">';
+      list.forEach(function(t){
+        var meta=t.type==='bundle' ? ('（套装 · '+((t.members||[]).length)+' 个商品）') : '（单品）';
+        h+='<div class="template-item"><span class="template-name">'+gbEsc(t.name||'未命名')+meta+'</span>'+
+           '<div class="template-actions"><button class="btn btn-sm btn-outline" onclick="gbImportLib(\''+t.id+'\')">导入</button></div></div>';
+      });
+      h+='</div>';
+    }
+    $('#modalBody').innerHTML=h;
+  };
+  openModal(mode==='bundle'?'从商品库导入套装':'从商品库导入', '', [
+    {label:'完成', class:'btn-primary', action:function(){ closeModal(); }}
+  ]);
+  render();
 }
 function gbImportLib(id){
   var t=DB.getById('gbProducts', id); if(!t) return;
@@ -7355,7 +7437,7 @@ function gbImportLib(id){
     Toast.success('已导入商品：'+(it.name||''));
   }
 }
-function gbDelLib(id){ DB.remove('gbProducts', id); if(currentPage==='groupbuy-lib'){ renderGbLibPage(); } else { gbRenderImportBox(); } Toast.success('已从商品库删除'); }
+function gbDelLib(id){ DB.remove('gbProducts', id); if(currentPage==='groupbuy-lib'){ renderGbLibPage(); } Toast.success('已从商品库删除'); }
 /* v1057：开团记录页「商品库」卡片（列表+去导入+删除） */
 /* 「保存记录」（核验报价旁）→ 整单快照存入 gbRecords */
 function gbSaveRecord(){
