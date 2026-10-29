@@ -1184,10 +1184,10 @@ html.apk.modal-lock{overflow:hidden!important}
 .gb-remark-row .td-wrap{text-align:left}
 /* 接稿排期制品完成勾选（DN轮） */
 .detail-table td.comm-prod-done{text-align:center;white-space:nowrap}
-.detail-table td.comm-prod-done label{display:inline-flex;align-items:center;gap:2px;cursor:pointer;font-size:12px;color:var(--c-green)}
+.detail-table td.comm-prod-done label{display:inline-flex;align-items:center;justify-content:center;gap:2px;cursor:pointer;font-size:12px;color:var(--c-green);vertical-align:middle}
 .detail-table td.comm-prod-done input{width:16px;height:16px;accent-color:var(--c-green)}
 .detail-table td.comm-prod-urgent{text-align:center;white-space:nowrap}
-.detail-table td.comm-prod-urgent label{display:inline-flex;align-items:center;justify-content:center;gap:2px;cursor:pointer;font-size:12px;color:var(--c-red)}
+.detail-table td.comm-prod-urgent label{display:inline-flex;align-items:center;justify-content:center;gap:2px;cursor:pointer;font-size:12px;color:var(--c-red);vertical-align:middle}
 .detail-table td.comm-prod-urgent input{width:16px;height:16px;accent-color:var(--c-red)}
 .detail-table tr.prod-done td{text-decoration:line-through;color:var(--c-text-muted);opacity:.7}
 /* v844: 接稿排期详情制品列表列宽合理化（桌面）——原序号/柄图/价格/数量/加急/完成挤到表头竖排、制品/同模巨宽。
@@ -3903,7 +3903,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 /* v1062：动态列表排序改「标题旁排序按钮 + 弹窗」（她："行首▲▼好丑"；复用 .sortable-list 弹窗，表格本身零改动） */
 .dl-label-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .dl-label-row .form-label{margin-bottom:0}
-.dl-sort-open{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;font-size:12px;font-weight:500;color:var(--c-primary);background:var(--c-card);border:1px solid var(--c-primary-light);border-radius:var(--radius-sm);cursor:pointer;white-space:nowrap}
+.dl-sort-open{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;font-size:12px;font-weight:500;color:var(--c-primary);background:var(--c-card);border:1px solid var(--c-primary-light);border-radius:var(--radius-sm);cursor:pointer;white-space:nowrap}
+/* v1068：与 .btn-sm 同高（原来上下 padding 3px，比「+ 添加」矮一截） */
 .dl-sort-open:hover{background:var(--c-primary-bg)}
 /* v1061：模块「调整排序」按钮——手机端(≤640px)隐藏「调整」二字只留「排序」，避免 toolbar 4 按钮挤压换行 */
 @media (max-width:640px){ .sort-long{display:none} }
@@ -3966,8 +3967,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1067"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1067 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1068"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1068 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

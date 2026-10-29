@@ -2172,11 +2172,11 @@ function buildDynamicListHTML(field, data, moduleKey) {
   html += `</div>`;
   // v777：开团记录制品列表/售后记录、接稿排期制品列表/加价项目/修改项目的「+ 添加」按钮改蓝色主按钮（合作记录等其他列表保持原样）
   const _blueAddKeys = ['products', 'afterSales', 'extraItems', 'modifications', 'cooperationRecords'];
-  /* v1063：「排序」按钮放「+ 添加」旁边（她指定），右对齐一行 */
+  /* v1063：「排序」按钮放「+ 添加」旁边（她指定），右对齐一行
+     v1068：不再按行数隐藏——一行也显示（她：接稿排期只有一行时排序按钮消失=「排序还是没有」），
+     点击时行数<2 由 openDynamicSortModal Toast 提示 */
   html += `<div class="dl-foot-row">`;
-  if (items.length > 1) {
-    html += `<button type="button" class="dl-sort-open" onclick="openDynamicSortModal('${esc(field.key)}')">${lucide('arrow-up-down',12)} 排序</button>`;
-  }
+  html += `<button type="button" class="dl-sort-open" onclick="openDynamicSortModal('${esc(field.key)}')">${lucide('arrow-up-down',12)} 排序</button>`;
   html += `<button type="button" class="btn ${_blueAddKeys.indexOf(field.key) > -1 ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="addDynamicRow('${field.key}')">+ 添加</button>`;
   html += `</div>`;
   html += `</div></div>`;
@@ -11629,24 +11629,30 @@ function renderDataSettings(html) {
   html += `<button class="btn btn-primary" onclick="exportData()">${lucide('save',14)} 导出数据</button>`;
   html += `<button class="btn btn-outline" onclick="document.getElementById(\'importFile\').click()">${lucide('folder-open',14)} 导入数据</button>`;
   html += '</div>';
-  // ---- v1066/v1067：存储容量（她要看本机/云端各多少、文字和图片分别多少） ----
+  // ---- v1066~v1068：存储容量（她要看本机/云端各多少、文字和图片分别多少） ----
   const _su = storageUsageInfo();
   html += '<h4 style="font-size:14px;margin:24px 0 8px;color:var(--c-primary)">' + lucide('hard-drive',16) + ' 存储容量</h4>';
   const B = function(v){ return '<strong style="color:var(--c-text)">' + v + '</strong>'; };
-  html += '<div style="max-width:440px">';
-  /* 云端放最上面：她要看的是云端量（本机只是浏览器/APP 本地缓存） */
-  html += '<p id="syncUsageLine" style="font-size:12px;color:var(--c-text-muted);margin:0 0 8px">云端同步（Supabase）：统计中…</p>';
-  html += '<p style="font-size:12px;color:var(--c-text-muted);margin:10px 0 6px">本机存储：文字 ' + B(_fmtBytes(_su.text)) + ' · 图片 ' + B(_fmtBytes(_su.img)) + ' · 合计 ' + B(_su.totalStr) + ' / 上限约 5 MB（' + _su.pct + '%）· 共 ' + _su.keys + ' 个数据分组</p>';
+  /* v1068：去掉 440px 宽度限制（她：后面空这么多干嘛）；进度条云端/本地各一条；
+     云端图片改从 Supabase 图片存储统计（v784 起图片不进数据库/本机，记录里只存链接） */
+  html += '<p id="syncUsageLine" style="font-size:12px;color:var(--c-text-muted);margin:0 0 6px">云端同步（Supabase）：统计中…</p>';
+  html += '<div style="height:8px;border-radius:4px;background:var(--c-border);overflow:hidden"><div id="syncUsageBar" style="height:100%;width:0%;background:var(--c-primary);border-radius:4px"></div></div>';
+  html += '<p id="syncUsageQuota" style="font-size:11px;color:var(--c-text-light);margin:4px 0 0">云端上限：数据库约 500 MB + 图片存储约 1 GB</p>';
+  html += '<p style="font-size:12px;color:var(--c-text-muted);margin:14px 0 6px">本机存储：文字 ' + B(_fmtBytes(_su.text)) + ' · 图片 ' + B(_fmtBytes(_su.img)) + ' · 合计 ' + B(_su.totalStr) + '（' + _su.keys + ' 个数据分组）</p>';
   html += '<div style="height:8px;border-radius:4px;background:var(--c-border);overflow:hidden"><div style="height:100%;width:' + _su.pct + '%;background:' + (_su.pct>85?'var(--c-danger, #e5484d)':'var(--c-primary)') + ';border-radius:4px"></div></div>';
-  html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:6px">图片以 base64 存在数据里，本机与云端都计入。本地快满时请先「导出数据」备份，再清理旧记录。</p>';
-  html += '</div>';
+  html += '<p style="font-size:11px;color:var(--c-text-light);margin:4px 0 0">本机上限约 5 MB（' + _su.pct + '%）· 图片压缩后存在 Supabase「图片存储」，记录里只保存链接，所以本机和云端数据库里几乎统计不到图片体积。本地快满时请先「导出数据」备份，再清理旧记录。</p>';
   setTimeout(function(){
     syncUsageStats().then(function(st){
       const el = document.getElementById('syncUsageLine');
+      const bar = document.getElementById('syncUsageBar');
       if (!el || !st) return;
       if (st.err) { el.textContent = '云端同步（Supabase）：' + st.err; return; }
-      const pct = Math.min(100, Math.round(st.total / (500 * 1024 * 1024) * 1000) / 10);
-      el.innerHTML = '云端同步（Supabase）：文字 ' + B(_fmtBytes(st.text)) + ' · 图片 ' + B(_fmtBytes(st.img)) + ' · 合计 ' + B(_fmtBytes(st.total)) + ' / 上限约 500 MB（' + pct + '%）· ' + st.stores + ' 个数据分组';
+      const LIMIT_C = (500 + 1024) * 1024 * 1024;   /* 数据库 500MB + 图片存储 1GB */
+      const pct = Math.min(100, Math.round(st.total / LIMIT_C * 1000) / 10);
+      el.innerHTML = '云端同步（Supabase）：文字 ' + B(_fmtBytes(st.text)) + ' · 图片 ' + B(_fmtBytes(st.img)) + ' · 合计 ' + B(_fmtBytes(st.total)) + '（' + st.stores + ' 个数据分组，' + pct + '%）';
+      if (bar) { bar.style.width = pct + '%'; bar.style.background = pct>85 ? 'var(--c-danger, #e5484d)' : 'var(--c-primary)'; }
+      const q = document.getElementById('syncUsageQuota');
+      if (q && st.imgCount != null) q.textContent = '云端上限：数据库约 500 MB + 图片存储约 1 GB（图片 ' + st.imgCount + ' 张）';
     });
   }, 60);
   html += '</div>';
@@ -11701,8 +11707,33 @@ async function syncUsageStats(){
       if (typeof d === 'string') { try { d = JSON.parse(d); } catch (e) {} }
       _walkStr(d, s => { const b = new TextEncoder().encode(s).length; if (s.indexOf('data:image') === 0) img += b; else text += b; });
     });
-    return { text: text, img: img, total: text + img, stores: rows.length };
+    /* v1068：v784 起图片存 Supabase Storage（oc-images 桶），数据库里只有 https 链接——
+       云端图片体积必须到图片存储里统计，否则永远显示 0（她：云端的怎么也这么少） */
+    let imgCount = null;
+    const st = await imgCloudUsage();
+    if (st && !st.err) { img += st.bytes; imgCount = st.count; }
+    return { text: text, img: img, total: text + img, stores: rows.length, imgCount: imgCount };
   } catch (e) { return { err: '统计失败（' + e.message + '）' }; }
+}
+/* v1068：Supabase Storage 图片存储用量——按同步分组前缀列 oc-images 桶目录，累加文件大小 */
+async function imgCloudUsage(){
+  if (typeof Sync === 'undefined' || !Sync || !Sync.enabled()) return null;
+  try {
+    const base = (Sync.cfg.url || '').replace(/\/+$/, '');
+    let offset = 0, bytes = 0, count = 0, got = 0;
+    do {
+      const r = await fetch(base + '/storage/v1/object/list/' + ImgCloud.BUCKET, {
+        method: 'POST', headers: Sync.headers(),
+        body: JSON.stringify({ prefix: Sync.gkey() + '/', limit: 500, offset: offset, sortBy: { column: 'name', order: 'asc' } })
+      });
+      if (!r.ok) return { err: true };
+      const arr = await r.json();
+      got = Array.isArray(arr) ? arr.length : 0;
+      arr.forEach(o => { if (o && o.metadata && typeof o.metadata.size === 'number') { bytes += o.metadata.size; count++; } });
+      offset += got;
+    } while (got >= 500 && offset < 20000);
+    return { bytes: bytes, count: count };
+  } catch (e) { return { err: true }; }
 }
 
 /* ===== 展示字段（主界面卡片字段显隐与排序） ===== */
