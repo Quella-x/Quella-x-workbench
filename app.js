@@ -1020,7 +1020,7 @@ const LUCIDE_SVG = {
   "flashlight": '<!-- @license lucide-static v0.544.0 - ISC --> <svg class="lucide lucide-flashlight" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M18 6c0 2-2 2-2 4v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V10c0-2-2-2-2-4V2h12z" /> <line x1="6" x2="18" y1="6" y2="6" /> <line x1="12" x2="12" y1="12" y2="12" />',
   "frown": '<!-- @license lucide-static v0.544.0 - ISC --> <svg class="lucide lucide-frown" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <circle cx="12" cy="12" r="10" /> <path d="M16 16s-1.5-2-4-2-4 2-4 2" /> <line x1="9" x2="9.01" y1="9" y2="9" /> <line x1="15" x2="15.01" y1="9" y2="9" />',
   "gift": '<!-- @license lucide-static v0.544.0 - ISC --> <svg class="lucide lucide-gift" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <rect x="3" y="8" width="18" height="4" rx="1" /> <path d="M12 8v13" /> <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" /> <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" />',
-  "hard-drive": '<!-- @license lucide-static v0.544.0 - ISC --> <svg class="lucide lucide-hard-drive" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <line x1="22" x2="2" y1="12" y2="12" /> <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /> <line x1="6" x2="6.01" y1="16" y2="16" /> <line x1="10" x2="10.01" y1="16" y2="16" />',
+  "hard-drive": '<!-- @license lucide-static v0.544.0 - ISC -->  <line x1="22" x2="2" y1="12" y2="12" /> <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /> <line x1="6" x2="6.01" y1="16" y2="16" /> <line x1="10" x2="10.01" y1="16" y2="16" />',
   "headphones": '<!-- @license lucide-static v0.544.0 - ISC --> <svg class="lucide lucide-headphones" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3" />',
   "heart": '<!-- @license lucide-static v0.544.0 - ISC --> <svg class="lucide lucide-heart" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5" />',
   "heart-off": '<!-- @license lucide-static v0.544.0 - ISC --> <svg class="lucide lucide-heart-off" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.5 4.893a5.5 5.5 0 0 1 1.091.931.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 1.872-1.002 3.356-2.187 4.655" /> <path d="m16.967 16.967-3.459 3.346a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5a5.5 5.5 0 0 1 2.747-4.761" /> <path d="m2 2 20 20" />',
@@ -2267,6 +2267,14 @@ function fillDynamicPrice(input, lookupType) {
   } else if (lookupType === 'modify') {
     item = priceList.find(p => p.product === name && p.category === '修改类型');
     priceSubkey = 'modifyPrice';
+  } else if (lookupType === 'gbProduct') {
+    /* v1067：开团记录制品名称从「商品库」选（她："商品库的商品也要支持在开团记录导入"）——
+       带出商品库阶梯档位里最低起订档的单价 */
+    const t = DB.list('gbProducts').find(x => x.type !== 'bundle' && x.name === name);
+    if (t) {
+      const ts = (t.tiers || []).slice().sort((a, b) => (a.min || 0) - (b.min || 0));
+      item = { price: (ts[0] ? (parseFloat(ts[0].price) || 0) : 0) };
+    }
   }
   if (item) {
     const priceInput = row.querySelector('[data-subkey="' + priceSubkey + '"]');
@@ -5324,12 +5332,21 @@ function prepareFields(pageKey, fields) {
   }
   if (pageKey === 'groupbuy-records') {
     const facs = DB.list('factories').map(fc => fc.name);
-    const priceList = DB.list('priceList');
-    const productNames = [...new Set(priceList.filter(p => PRODUCT_CATEGORIES.includes(p.category) && p.product).map(p => p.product))];
     const prodField = f.find(ff => ff.key === 'products');
     if (prodField) {
       const nameCol = prodField.columns.find(c => c.subkey === 'name');
-      if (nameCol) { nameCol.datalistId = 'gb_product_dl'; }
+      if (nameCol) {
+        /* v1067：制品名称下拉 = 商品库商品（她："商品库的商品也要支持在开团记录导入"），
+           选中经 priceLookup:'gbProduct' 自动带出阶梯档位最低档单价；仍可自由输入 */
+        const libNames = [], seenN = {};
+        DB.list('gbProducts').forEach(t => {
+          if (t.type === 'bundle') return;
+          const n = String(t.name || '').trim();
+          if (n && !seenN[n]) { seenN[n] = 1; libNames.push(n); }
+        });
+        nameCol.options = libNames.map(n => ({ value: n, label: n }));
+        nameCol.priceLookup = 'gbProduct';
+      }
       const facCol = prodField.columns.find(c => c.subkey === 'factory');
       if (facCol) { facCol.options = facs.map(n => ({ value: n, label: n })); facCol.datalistId = 'gb_factory_dl'; }
       const disbandedCol = prodField.columns.find(c => c.subkey === 'isDisbanded');
@@ -11612,31 +11629,80 @@ function renderDataSettings(html) {
   html += `<button class="btn btn-primary" onclick="exportData()">${lucide('save',14)} 导出数据</button>`;
   html += `<button class="btn btn-outline" onclick="document.getElementById(\'importFile\').click()">${lucide('folder-open',14)} 导入数据</button>`;
   html += '</div>';
-  // ---- v1066：存储容量（她："目前使用了多少内存要能看到，能存储的上限是多少"） ----
+  // ---- v1066/v1067：存储容量（她要看本机/云端各多少、文字和图片分别多少） ----
   const _su = storageUsageInfo();
   html += '<h4 style="font-size:14px;margin:24px 0 8px;color:var(--c-primary)">' + lucide('hard-drive',16) + ' 存储容量</h4>';
+  const B = function(v){ return '<strong style="color:var(--c-text)">' + v + '</strong>'; };
   html += '<div style="max-width:440px">';
+  /* 云端放最上面：她要看的是云端量（本机只是浏览器/APP 本地缓存） */
+  html += '<p id="syncUsageLine" style="font-size:12px;color:var(--c-text-muted);margin:0 0 8px">云端同步（Supabase）：统计中…</p>';
+  html += '<p style="font-size:12px;color:var(--c-text-muted);margin:10px 0 6px">本机存储：文字 ' + B(_fmtBytes(_su.text)) + ' · 图片 ' + B(_fmtBytes(_su.img)) + ' · 合计 ' + B(_su.totalStr) + ' / 上限约 5 MB（' + _su.pct + '%）· 共 ' + _su.keys + ' 个数据分组</p>';
   html += '<div style="height:8px;border-radius:4px;background:var(--c-border);overflow:hidden"><div style="height:100%;width:' + _su.pct + '%;background:' + (_su.pct>85?'var(--c-danger, #e5484d)':'var(--c-primary)') + ';border-radius:4px"></div></div>';
-  html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:8px">已用 <strong style="color:var(--c-text)">' + _su.usedStr + '</strong> / 上限约 5 MB（' + _su.pct + '%）· 共 ' + _su.keys + ' 个数据分组。云端同步的数据存在 Supabase，不占本地容量；本地快满时请先「导出数据」备份，再清理旧记录。</p>';
+  html += '<p style="font-size:12px;color:var(--c-text-muted);margin-top:6px">图片以 base64 存在数据里，本机与云端都计入。本地快满时请先「导出数据」备份，再清理旧记录。</p>';
   html += '</div>';
+  setTimeout(function(){
+    syncUsageStats().then(function(st){
+      const el = document.getElementById('syncUsageLine');
+      if (!el || !st) return;
+      if (st.err) { el.textContent = '云端同步（Supabase）：' + st.err; return; }
+      const pct = Math.min(100, Math.round(st.total / (500 * 1024 * 1024) * 1000) / 10);
+      el.innerHTML = '云端同步（Supabase）：文字 ' + B(_fmtBytes(st.text)) + ' · 图片 ' + B(_fmtBytes(st.img)) + ' · 合计 ' + B(_fmtBytes(st.total)) + ' / 上限约 500 MB（' + pct + '%）· ' + st.stores + ' 个数据分组';
+    });
+  }, 60);
   html += '</div>';
   return html;
 }
 
-/* v1066：localStorage 实时用量——浏览器本地存储配额通常为 5MB（超出会保存失败） */
+/* v1066/v1067：存储用量统计——本机 localStorage + 云端 Supabase（文字/图片分开，她要看） */
+function _fmtBytes(n){ return n>=1048576 ? (Math.round(n/10485.76)/100) + ' MB' : n>=1024 ? (Math.round(n/102.4)/10) + ' KB' : n + ' B'; }
 function storageUsageInfo(){
-  let total = 0, keys = 0;
+  /* v1067：本机也要按「文字 / 图片」分开统计——图片以 base64(data:image…) 存在数据里 */
+  let text = 0, img = 0, keys = 0;
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i) || '';
-      total += k.length + (localStorage.getItem(k) || '').length;
+      const v = localStorage.getItem(k) || '';
       keys++;
+      text += new TextEncoder().encode(k).length;
+      let d = null;
+      try { d = JSON.parse(v); } catch (e) {}
+      if (d !== null && typeof d === 'object') {
+        _walkStr(d, s => { const b = new TextEncoder().encode(s).length; if (s.indexOf('data:image') === 0) img += b; else text += b; });
+      } else {
+        const b = new TextEncoder().encode(v).length;
+        if (v.indexOf('data:image') === 0) img += b; else text += b;
+      }
     }
   } catch (e) {}
-  const LIMIT = 5 * 1024 * 1024;   /* 字符数 ≈ 配额口径（UTF-16 code units），Chrome/Firefox 标准 5MB */
+  const total = text + img;
+  const LIMIT = 5 * 1024 * 1024;   /* 浏览器/APP 本地 localStorage 配额口径，约 5 MB */
   const pct = Math.min(100, Math.round(total / LIMIT * 1000) / 10);
-  const fmt = n => n >= 1048576 ? (Math.round(n/10485.76)/100) + ' MB' : n >= 1024 ? (Math.round(n/102.4)/10) + ' KB' : n + ' B';
-  return { used: total, limit: LIMIT, pct: pct, usedStr: fmt(total), keys: keys };
+  return { text: text, img: img, total: total, limit: LIMIT, pct: pct, totalStr: _fmtBytes(total), keys: keys };
+}
+/* v1067：云端同步（sync_store）用量——遍历每行 data 的所有字符串，
+   以 data:image 开头的（base64 图片，readAsDataURL 存入）算图片，其余算文字 */
+function _walkStr(v, cb){
+  if (typeof v === 'string') cb(v);
+  else if (Array.isArray(v)) v.forEach(x => _walkStr(x, cb));
+  else if (v && typeof v === 'object') Object.keys(v).forEach(k => _walkStr(v[k], cb));
+}
+async function syncUsageStats(){
+  /* 注意：Sync 是 const 顶层声明，不挂在 window 上，这里只能用 typeof 判断 */
+  if (typeof Sync === 'undefined' || !Sync || !Sync.enabled()) return { err: '尚未配置云端同步' };
+  try {
+    const url = (Sync.cfg.url || '').replace(/\/+$/, '');
+    const key = Sync.cfg.anonKey;
+    const res = await fetch(url + '/rest/v1/sync_store?select=store,data&group_key=eq.' + encodeURIComponent(Sync.gkey()), { headers: { 'apikey': key, 'Authorization': 'Bearer ' + key } });
+    if (!res.ok) return { err: '统计失败（HTTP ' + res.status + '）' };
+    const rows = await res.json();
+    let text = 0, img = 0;
+    rows.forEach(r => {
+      let d = r.data;
+      if (typeof d === 'string') { try { d = JSON.parse(d); } catch (e) {} }
+      _walkStr(d, s => { const b = new TextEncoder().encode(s).length; if (s.indexOf('data:image') === 0) img += b; else text += b; });
+    });
+    return { text: text, img: img, total: text + img, stores: rows.length };
+  } catch (e) { return { err: '统计失败（' + e.message + '）' }; }
 }
 
 /* ===== 展示字段（主界面卡片字段显隐与排序） ===== */
