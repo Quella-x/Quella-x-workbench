@@ -6575,7 +6575,7 @@ function renderPriceCalc() {
   html += '<div id="shopTplBox"><div id="tplList"></div></div>';
   html += '</div>';
   /* v1062：「历史计算」移回右栏（v1059 起被误移到整页底部全宽，她："为什么要动它的位置"；v1054~v1058 一直在右栏常用模板下方） */
-  html += `<div class="calc-card"><div class="calc-card-title">${lucide('clock',14)} 历史计算</div>`;
+  html += `<div class="calc-card" id="historyCard"><div class="calc-card-title">${lucide('clock',14)} 历史计算</div>`;
   html += '<div id="shopHisBox">';
   if (history.length) {
     html += '<div class="template-list">';
@@ -6661,7 +6661,8 @@ function tplSorted(list){
 }
 function gbRenderTplList(){
   var box=$('#tplList'); if(!box) return;
-  var templates=tplSorted(DB.list('calcTemplates'));
+  /* v1069：常用模板按模式分离（小店/开团各看各的，像历史计算那样各自独立） */
+  var templates=tplSorted(DB.list('calcTemplates').filter(function(t){ return (t.mode||'shop')===gbMode; }));
   var h='';
   if (templates.length) {
     h += '<div class="template-list">';
@@ -6686,9 +6687,58 @@ function moveCalcTemplate(id,dir){
   DB.update('calcTemplates', arr[j].id, {order:arr[idx].order});
   gbRenderTplList();
 }
-function saveCalcTemplate() { DB.add('calcTemplates', readCalcData($('#calc_templateName').value || '模板' + (DB.list('calcTemplates').length + 1))); Toast.success('模板已保存'); renderPriceCalc(); }
+function saveCalcTemplate() {
+  var nameEl = document.getElementById('calc_templateName') || document.getElementById('calc_templateName_g');
+  var raw = nameEl ? nameEl.value : '';
+  if (gbMode === 'group') {
+    /* v1069：开团模板单独存（存当前商品池/套装/参数状态） */
+    var gn = raw || ('开团模板' + (DB.list('calcTemplates').filter(function(t){ return t.mode==='group'; }).length + 1));
+    DB.add('calcTemplates', { mode:'group', name:gn,
+      items: JSON.parse(JSON.stringify(gbItems)),
+      bundles: JSON.parse(JSON.stringify(gbBundles)),
+      g: JSON.parse(JSON.stringify(gbG)) });
+    Toast.success('开团模板已保存'); renderPriceCalc();
+  } else {
+    var sn = raw || ('模板' + (DB.list('calcTemplates').length + 1));
+    DB.add('calcTemplates', Object.assign(readCalcData(sn), { mode:'shop' }));
+    Toast.success('模板已保存'); renderPriceCalc();
+  }
+}
 function saveCalcHistory() { DB.add('calcRecords', readCalcData($('#calc_templateName').value || '计算记录')); Toast.success('记录已保存'); renderPriceCalc(); }
-function loadCalcTemplate(id) { const t = DB.getById('calcTemplates', id); if (!t) return; $('#calc_itemCost').value = t.itemCost||''; $('#calc_sampleCost').value=t.sampleCost||''; $('#calc_laborCost').value=t.laborCost||''; $('#calc_shipping').value=t.shipping||''; $('#calc_commissionRate').value=t.commissionRate||''; $('#calc_profitMargin').value=t.profitMargin||30; $('#calc_quantity').value=t.quantity||100; $('#calc_templateName').value=t.name||''; calcPrice(); Toast.info('已加载模板'); }
+function loadCalcTemplate(id) {
+  const t = DB.getById('calcTemplates', id); if (!t) return;
+  if (t.mode === 'group') {
+    /* v1069：开团模板加载——恢复商品池/套装/参数（与保存时一致，开团也能读回自己的模板） */
+    gbItems = JSON.parse(JSON.stringify(t.items || []));
+    gbBundles = JSON.parse(JSON.stringify(t.bundles || []));
+    gbG = JSON.parse(JSON.stringify(t.g || {giftCost:'', rate:'', freeShip:false, ship:''}));
+    /* gbUid 取已存 id 最大值+1，避免新增商品与模板内 id 撞号 */
+    var _mx = 0;
+    gbItems.forEach(function(i){ if ((i.id||0) > _mx) _mx = i.id; });
+    gbBundles.forEach(function(b){ if ((b.id||0) > _mx) _mx = b.id; });
+    gbUid = _mx + 1;
+    gbSetMode('group');
+    /* 回填 g 参数输入框（gbSetMode 不会自动填 input） */
+    $('#g_giftCost').value = (gbG.giftCost !== '' && gbG.giftCost != null) ? gbG.giftCost : '';
+    $('#g_rate').value = (gbG.rate !== '' && gbG.rate != null) ? gbG.rate : '';
+    $('#g_ship').value = (gbG.ship !== '' && gbG.ship != null) ? gbG.ship : '';
+    $('#g_freeShip').checked = !!gbG.freeShip;
+    gbRenderPool(); gbRenderBundles(); gbLiveRefresh();
+    Toast.info('已加载开团模板');
+  } else {
+    gbSetMode('shop');
+    $('#calc_itemCost').value = t.itemCost||'';
+    $('#calc_sampleCost').value=t.sampleCost||'';
+    $('#calc_laborCost').value=t.laborCost||'';
+    $('#calc_shipping').value=t.shipping||'';
+    $('#calc_commissionRate').value=t.commissionRate||'';
+    $('#calc_profitMargin').value=t.profitMargin||30;
+    $('#calc_quantity').value=t.quantity||100;
+    $('#calc_templateName').value=t.name||'';
+    calcPrice();
+    Toast.info('已加载模板');
+  }
+}
 function loadCalcHistory(id) { loadCalcTemplate(id); Toast.info('已加载历史记录'); }
 function deleteCalcTemplate(id) { DB.remove('calcTemplates', id); Toast.success('已删除'); renderPriceCalc(); }
 
@@ -6722,6 +6772,9 @@ function gbSetMode(m){
   if(m==='group'){ gbRenderVerify(); }
   else { $('#gbVerifyArea').style.display='none'; }
   if(m==='shop') calcPrice(); else { $('#groupActions').style.display='flex'; gbRenderPool(); gbRenderBundles(); }
+  /* v1069：手机端把「常用模板」上移到三个按钮紧下方、报价清单之前——靠 .calc-group-mode 触发布局（仅开团模式生效，小店布局不动） */
+  var _grid = document.querySelector('.calc-page-grid');
+  if(_grid) _grid.classList.toggle('calc-group-mode', m==='group');
 }
 
 /* ---------- 小店版：复刻现有 calcPrice ---------- */
@@ -7301,11 +7354,15 @@ function gbLibSorted(){
 function gbLibRow(t,isFirst,isLast){
   var meta;
   if(t.type==='bundle'){ meta=((t.members||[]).length)+' 个商品'; }
-  else { meta='起订 '+(t.moq||0)+' · '+(((t.tiers||[]).map(function(x){ return '≥'+x.min+' ¥'+x.price; }).join(' / '))||'未设档位'); }
+  else {
+    /* v1069：去掉与首档重复的「起订 X ·」前缀（首档 min 即起订量），档位逐行竖排（不再挤一行，手机端放得下） */
+    var _tiers=(t.tiers||[]);
+    meta = _tiers.length ? _tiers.map(function(x){ return '≥'+x.min+' ¥'+x.price; }).join('<br>') : '未设档位';
+  }
   return '<div class="pricelist-menu-item gb-lib-item" onclick="gbLibEdit(\''+t.id+'\')">'+
     '<span class="lib-name">'+gbEsc(t.name||'未命名')+'</span>'+
     '<span class="lib-type">'+esc(String(t.cat||'').trim()||(t.type==='bundle'?'套装':'单品'))+'</span>'+
-    '<span class="lib-meta">'+esc(meta)+'</span>'+
+    '<span class="lib-meta">'+meta+'</span>'+
     '<span class="opt-sort-btns">'+
     '<button type="button" class="df-btn df-sort-btn"'+(isFirst?' disabled':'')+' title="上移" aria-label="上移" onclick="event.stopPropagation();gbLibMove(\''+t.id+'\',-1)">▲</button>'+
     '<button type="button" class="df-btn df-sort-btn"'+(isLast?' disabled':'')+' title="下移" aria-label="下移" onclick="event.stopPropagation();gbLibMove(\''+t.id+'\',1)">▼</button>'+
