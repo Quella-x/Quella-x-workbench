@@ -4216,7 +4216,11 @@ window.addEventListener('resize', () => {
    实现：渲染 HTML 时在「顶部区块 / 内容区」边界插入空标记 <div class="pf-split">，
    渲染结束后由 applyPageFixed 按标记把 .fade-in 的子节点切成 .pf-head（固定）+ .pf-body（滚动）。
    原型阶段只对白名单模块生效，其余模块插入标记但不切分（视觉零变化），确认手感后再全站铺开。 */
-var PF_MODULES = ['groupbuy-records'];   /* v1077 原型：开团记录 */
+/* v1077 第一批：她点名的通用列表页模块（开团/厂家/打样/价格参考/灵感/授权/人物档案/故事小记/约稿）。
+   电脑端这 5 个 two-col 模块 v808 本就固定，本批主要补手机端；其余 4 个两端一起补。
+   第二批（独立渲染函数，需逐个处理）：商品库 renderGbLibPage / 时间线 renderTimeline /
+   接稿排期日历视图（日历固定）/ 接稿详情 / 价目表 / 每日打卡。 */
+var PF_MODULES = ['groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'groupbuy-priceref', 'design-inspiration', 'design-auth', 'oc-profiles', 'oc-stories', 'oc-commission'];
 function applyPageFixed(body) {
   if (!body) return;
   body.classList.remove('pf-on');
