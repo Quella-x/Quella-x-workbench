@@ -4066,7 +4066,7 @@ function navigate(page) {
   $('#sidebar').classList.remove('show');
   $('#sidebarOverlay').classList.remove('show');
   const body = $('#mainBody');
-  body.innerHTML = ''; body.classList.remove('two-col-fixed'); body.classList.add('fade-in');
+  body.innerHTML = ''; body.classList.remove('two-col-fixed'); body.classList.remove('pf-on'); body.classList.remove('pf-lr'); body.classList.add('fade-in');
   setTimeout(() => body.classList.remove('fade-in'), 300);
   let _navR;
   if (page === 'home') _navR = renderHome();
@@ -4210,6 +4210,32 @@ window.addEventListener('resize', () => {
   }, 150);
 });
 /* === v1049 masonry RR end === */
+
+/* ===== v1077：顶部固定 + 底部独立滚动（原型阶段） =====
+   她：「顶部XX固定位置，滚动时只有底部模块滚动」——方案1（顶部 0 位移，底部独立滚动区）。
+   实现：渲染 HTML 时在「顶部区块 / 内容区」边界插入空标记 <div class="pf-split">，
+   渲染结束后由 applyPageFixed 按标记把 .fade-in 的子节点切成 .pf-head（固定）+ .pf-body（滚动）。
+   原型阶段只对白名单模块生效，其余模块插入标记但不切分（视觉零变化），确认手感后再全站铺开。 */
+var PF_MODULES = ['groupbuy-records'];   /* v1077 原型：开团记录 */
+function applyPageFixed(body) {
+  if (!body) return;
+  body.classList.remove('pf-on');
+  var mk = body.querySelector('.pf-split');
+  if (!mk) return;
+  var parent = mk.parentNode;
+  if (!parent) return;
+  var kids = Array.prototype.slice.call(parent.childNodes);
+  var i = kids.indexOf(mk);
+  if (i < 0) return;
+  var head = document.createElement('div'); head.className = 'pf-head';
+  var rest = document.createElement('div'); rest.className = 'pf-body';
+  kids.slice(0, i).forEach(function (n) { head.appendChild(n); });
+  kids.slice(i + 1).forEach(function (n) { rest.appendChild(n); });
+  parent.innerHTML = '';
+  parent.appendChild(head);
+  parent.appendChild(rest);
+  body.classList.add('pf-on');
+}
 
 function renderListPage(pageKey, mod) {
   const body = $('#mainBody');
@@ -4396,6 +4422,8 @@ function renderListPage(pageKey, mod) {
   }
 
   // 双栏：工具栏/日历之上独占一行，记录与详情预览并列（左右等宽卡片一一对应）
+  // v1077：顶部固定 / 底部滚动的切分边界（日历视图暂不参与——日历属于左列布局，需单独处理）
+  if (!commissionAllRecords) html += '<div class="pf-split"></div>';
   if (isCommDual) html += '<div class="comm-dual">';
 
   // Records
@@ -4635,6 +4663,8 @@ function renderListPage(pageKey, mod) {
   if (_prMasonryEl) masonryRRApply(_prMasonryEl, 'pr');
   // v808：仅五模块两列加独立滚动标记（接稿排期日历视图 v808 起恢复整页滚动=v679 定稿；navigate 切页时清除）
   body.classList.toggle('two-col-fixed', isGbTwoCol);
+  /* v1077：顶部固定 + 底部独立滚动（原型白名单） */
+  if (PF_MODULES.indexOf(pageKey) >= 0) applyPageFixed(body);
 }
 
 function _restoreSearchFocus(sel) {
@@ -14352,6 +14382,8 @@ function renderLifeRecord() {
     </div>
   </div>`;
   body.innerHTML = html;
+  /* v1077 原型：每日记录——左列（顶部卡片 + 睡眠/饮食按钮 + 日期条|周导航图表）固定，右列（记录块）滚动 */
+  body.classList.add('pf-lr');
 }
 function lifeRecordSetDate(v) { const ps = pageState['life-record']; ps.date = v; ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; ps.historyAddDate = null; renderLifeRecord(); }
 function lifeRecordGoDate(n) { const ps = pageState['life-record']; ps.date = addDaysStr(ps.date, n); if (ps.date > todayStr()) ps.date = todayStr(); ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; renderLifeRecord(); }

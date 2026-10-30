@@ -292,6 +292,30 @@ html.apk.modal-lock{overflow:hidden!important}
 .btn-sec:hover{background:var(--c-danger-bg);color:var(--c-danger);border-color:var(--c-danger)}
 .btn-danger{background:var(--c-danger);color:#fff}
 .btn-danger:hover{background:#d9363b}
+/* ===== v1077：顶部固定 + 底部独立滚动（方案1）=====
+   她：「顶部XX固定位置，滚动时只有底部模块滚动」——顶部 0 位移，底部内容区自己出滚动条。
+   网页端（含手机网页）走真·独立滚动区；APK 走 sticky 吸顶
+   （v798 铁律：#app 100dvh/flex + 内部 overflow 链在部分 Android WebView 失效 → 必须文档滚动）。
+   原型阶段仅两个模块生效：开团记录(.pf-on) / 每日记录(.pf-lr)。 */
+#mainBody.pf-on{display:flex;flex-direction:column;overflow:hidden}
+#mainBody.pf-on > .fade-in{display:flex;flex-direction:column;flex:1;min-height:0}
+.pf-head{flex:0 0 auto}
+.pf-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+/* 两列模块（开团记录等）：pf-body 内继续 flex 撑满，左右列各自内滚，保持 v808 行为 */
+.main-body.two-col-fixed.pf-on .pf-body{display:flex;flex-direction:column;flex:1 1 0;min-height:0}
+/* 每日记录：左列（顶卡+睡眠/饮食按钮+日期条|周导航）固定，右列（记录块）滚动 */
+#mainBody.pf-lr{display:flex;flex-direction:column;overflow:hidden}
+#mainBody.pf-lr > .fade-in{display:flex;flex-direction:column;flex:1;min-height:0}
+#mainBody.pf-lr .lr-2col{display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:0;flex:1 1 0;height:auto}
+#mainBody.pf-lr .lr-2col > .lr-left{min-height:0;overflow:visible;height:auto}
+#mainBody.pf-lr .lr-2col > .lr-right{min-height:0;overflow-y:auto}
+html.apk #mainBody.pf-on,html.apk #mainBody.pf-lr{display:block;overflow:visible}
+html.apk #mainBody.pf-on > .fade-in,html.apk #mainBody.pf-lr > .fade-in{display:block}
+html.apk .pf-body{overflow:visible}
+html.apk .main-body.two-col-fixed.pf-on .pf-body{display:block;flex:none}
+html.apk .pf-head,html.apk #mainBody.pf-lr .lr-2col > .lr-left{position:sticky;top:0;z-index:20;background:var(--c-bg)}
+html.apk #mainBody.pf-lr .lr-2col{display:block;height:auto}
+html.apk #mainBody.pf-lr .lr-2col > .lr-right{overflow:visible}
 .btn-sm{padding:5px 10px;font-size:12px}
 .btn-icon{
   width:26px;height:26px;border-radius:5px;
@@ -621,6 +645,10 @@ html.apk.modal-lock{overflow:hidden!important}
   .lr-2col{display:block}
   .lr-2col>.lr-left{position:static;max-height:none;overflow:visible}
   .lr-2col>.lr-right{position:static;max-height:none;overflow:visible}
+  /* v1077：手机端每日记录也走「左列固定 + 右列独立滚动」（与电脑端同规则，只是上下堆叠） */
+  #mainBody.pf-lr .lr-2col{display:flex;flex-direction:column;gap:0;flex:1 1 0;min-height:0}
+  #mainBody.pf-lr .lr-2col>.lr-left{flex:0 0 auto}
+  #mainBody.pf-lr .lr-2col>.lr-right{flex:1 1 0;min-height:0;overflow-y:auto}
   /* v714：首页 toolbar 手机端也走 grid 1fr 1fr 等宽（原 grid 规则在 min-width:641 内，手机端落到 flex 导致筛选/新增不等宽、间距 6px≠状态栏 8px） */
   .toolbar.home-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center}
   .toolbar.home-toolbar .search-box{grid-column:1 / -1}
@@ -4002,8 +4030,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1076"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1076 —— 若这里显示的不是 v1076 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1077"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1077 —— 若这里显示的不是 v1077 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
