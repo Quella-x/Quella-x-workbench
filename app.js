@@ -7363,12 +7363,22 @@ function gbLibRow(t,isFirst,isLast){
     '<span class="lib-name">'+gbEsc(t.name||'未命名')+'</span>'+
     '<span class="lib-type">'+esc(String(t.cat||'').trim()||(t.type==='bundle'?'套装':'单品'))+'</span>'+
     '<span class="lib-meta">'+meta+'</span>'+
-    '<span class="opt-sort-btns">'+
-    '<button type="button" class="df-btn df-sort-btn"'+(isFirst?' disabled':'')+' title="上移" aria-label="上移" onclick="event.stopPropagation();gbLibMove(\''+t.id+'\',-1)">▲</button>'+
-    '<button type="button" class="df-btn df-sort-btn"'+(isLast?' disabled':'')+' title="下移" aria-label="下移" onclick="event.stopPropagation();gbLibMove(\''+t.id+'\',1)">▼</button>'+
-    '</span>'+
-    '<button class="btn-icon danger" title="删除" onclick="event.stopPropagation();gbDelLib(\''+t.id+'\')">'+lucide('trash-2',14)+'</button>'+
+    '<button type="button" class="gb-row-ops-btn" title="操作" aria-label="操作" onclick="event.stopPropagation();gbLibRowOps(\''+t.id+'\')">'+lucide('more-vertical',18)+'</button>'+
     '</div>';
+}
+/* v1070：商品库行内「排序▲▼ + 删除」收进「操作」弹窗（她：行内挤、间距乱、要像价目表那样进弹窗）；
+   弹窗内 上移/下移/删除 各自独立按钮 */
+function gbLibRowOps(id){
+  var list=gbLibSorted();
+  var idx=list.findIndex(function(t){ return t.id===id; });
+  if(idx<0) return;
+  var isFirst=idx===0, isLast=idx===list.length-1;
+  var h='<div class="gb-row-ops-modal">';
+  h+='<button type="button" class="btn btn-outline btn-sm" '+(isFirst?'disabled':'')+' onclick="event.stopPropagation();gbLibMove(\''+id+'\',-1);closeModal()">'+lucide('arrow-up',16)+' 上移</button>';
+  h+='<button type="button" class="btn btn-outline btn-sm" '+(isLast?'disabled':'')+' onclick="event.stopPropagation();gbLibMove(\''+id+'\',1);closeModal()">'+lucide('arrow-down',16)+' 下移</button>';
+  h+='<button type="button" class="btn btn-danger btn-sm" onclick="event.stopPropagation();gbDelLib(\''+id+'\');closeModal()">'+lucide('trash-2',16)+' 删除</button>';
+  h+='</div>';
+  openModal('操作', h, [{label:'关闭', class:'btn-ghost', action:closeModal}], 'notes-sm');
 }
 function gbLibListHTML(){
   var ps=pageState['groupbuy-lib']||{};
