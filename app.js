@@ -7359,26 +7359,34 @@ function gbLibRow(t,isFirst,isLast){
     var _tiers=(t.tiers||[]);
     meta = _tiers.length ? _tiers.map(function(x){ return '≥'+x.min+' ¥'+x.price; }).join(' | ') : '未设档位';
   }
+  /* v1072：行尾 ⋮ 去掉（她："后面这是什么鬼东西，谁要了，删掉"）；排序照「价目表」走工具栏「调整排序」弹窗 */
   return '<div class="pricelist-menu-item gb-lib-item" onclick="gbLibEdit(\''+t.id+'\')">'+
     '<span class="lib-name">'+gbEsc(t.name||'未命名')+'</span>'+
     '<span class="lib-type">'+esc(String(t.cat||'').trim()||(t.type==='bundle'?'套装':'单品'))+'</span>'+
     '<span class="lib-meta">'+meta+'</span>'+
-    '<button type="button" class="gb-row-ops-btn" title="操作" aria-label="操作" onclick="event.stopPropagation();gbLibRowOps(\''+t.id+'\')">'+lucide('more-vertical',18)+'</button>'+
     '</div>';
 }
-/* v1070：商品库行内「排序▲▼ + 删除」收进「操作」弹窗（她：行内挤、间距乱、要像价目表那样进弹窗）；
-   弹窗内 上移/下移/删除 各自独立按钮 */
-function gbLibRowOps(id){
+/* v1072：商品库排序照「价目表」——工具栏「调整排序」按钮 + 排序弹窗（每项右侧 ▲▼，点完原地刷新）。
+   行尾不再放任何按钮（⋮ 已删），点整行进「编辑商品」弹窗（内有删除）。 */
+function openGbLibSort(){
   var list=gbLibSorted();
-  var idx=list.findIndex(function(t){ return t.id===id; });
-  if(idx<0) return;
-  var isFirst=idx===0, isLast=idx===list.length-1;
-  var h='<div class="gb-row-ops-modal">';
-  h+='<button type="button" class="btn btn-outline btn-sm" '+(isFirst?'disabled':'')+' onclick="event.stopPropagation();gbLibMove(\''+id+'\',-1);closeModal()">'+lucide('arrow-up',16)+' 上移</button>';
-  h+='<button type="button" class="btn btn-outline btn-sm" '+(isLast?'disabled':'')+' onclick="event.stopPropagation();gbLibMove(\''+id+'\',1);closeModal()">'+lucide('arrow-down',16)+' 下移</button>';
-  h+='<button type="button" class="btn btn-danger btn-sm" onclick="event.stopPropagation();gbDelLib(\''+id+'\');closeModal()">'+lucide('trash-2',16)+' 删除</button>';
+  if(!list.length){ Toast.info('商品库还是空的'); return; }
+  var h='<div class="pricelist-sort-panel">';
+  h+='<div class="pricelist-sort-category">商品库</div>';
+  list.forEach(function(t,i){
+    var isFirst=i===0, isLast=i===list.length-1;
+    var right = t.type==='bundle' ? ((t.members||[]).length)+' 个商品'
+              : (((t.tiers||[]).length)? ((t.tiers||[]).map(function(x){ return '≥'+x.min+' ¥'+x.price; }).join(' | ')) : '未设档位');
+    h+='<div class="pricelist-sort-item">'+
+       '<span class="sort-name">'+gbEsc(t.name||'未命名')+'</span>'+
+       '<span class="sort-price">'+esc(right)+'</span>'+
+       '<span class="sort-btns">'+
+       '<button type="button" class="btn btn-ghost btn-sm" '+(isFirst?'disabled':'')+' onclick="event.stopPropagation();gbLibMove(\''+t.id+'\',-1);openGbLibSort()">▲</button>'+
+       '<button type="button" class="btn btn-ghost btn-sm" '+(isLast?'disabled':'')+' onclick="event.stopPropagation();gbLibMove(\''+t.id+'\',1);openGbLibSort()">▼</button>'+
+       '</span></div>';
+  });
   h+='</div>';
-  openModal('操作', h, [{label:'关闭', class:'btn-ghost', action:closeModal}], 'notes-sm');
+  openModal('调整商品库排序', h, [{label:'完成', class:'btn-primary', action:function(){ closeModal(); renderGbLibPage(); }}], 'notes-sm');
 }
 function gbLibListHTML(){
   var ps=pageState['groupbuy-lib']||{};
@@ -7404,6 +7412,8 @@ function renderGbLibPage(){
   h+='<div class="toolbar">';
   h+='<div class="search-box"><input type="text" placeholder="搜索商品" value="'+esc(ps.search||'')+'" oninput="gbLibSearch(this.value)"><span class="search-icon">'+lucide('search',16)+'</span></div>';
   h+='<div class="spacer"></div>';
+  /* v1072：排序照「价目表」——工具栏「调整排序」按钮（行尾 ⋮ 已删） */
+  h+='<button class="btn btn-outline toolbar-eq" onclick="openGbLibSort()">'+lucide('arrow-up-down',16)+' <span class="sort-long">调整</span>排序</button>';
   h+='<button class="btn btn-primary" onclick="gbLibEdit(\'\')">+ 新增商品</button>';
   h+='</div>';
   h+='<div id="gbLibListWrap">'+gbLibListHTML()+'</div>';
