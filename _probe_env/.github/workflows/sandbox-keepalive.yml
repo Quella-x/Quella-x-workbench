@@ -1,0 +1,26 @@
+name: sandbox-keepalive
+
+# v778: 每 5 分钟 ping 一次 CloudStudio 沙盒，防止闲置停机导致约稿单公网链接「工作空间已停止」。
+# wb.link 域名恢复后如切换正式域名，把 SANDBOX_URL 换掉即可。
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping sandbox
+        run: |
+          SANDBOX_URL="https://3000-0b9f822813e042afaed3792e9df14ff8.e2b.sh7.sandbox.cloudstudio.club/"
+          for i in 1 2 3; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$SANDBOX_URL" || echo "000")
+            echo "attempt $i: HTTP $code"
+            if [ "$code" = "200" ]; then
+              echo "sandbox alive"
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "::warning::sandbox not responding after 3 attempts (may be hibernating; next run will retry)"

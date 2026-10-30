@@ -1,0 +1,26 @@
+name: Supabase Keepalive
+
+# 目的：每天制造一次 Supabase API 活动，防止免费项目因「7 天不活跃」被自动暂停。
+# 原理：轻量 GET 一次 sync_store 表（读 1 行），属于正常 API 使用。
+# 说明：publishable key 是公开密钥（与网页前端内嵌的同一把），写入本文件无安全风险。
+# 手动触发：仓库 Actions 页 → Supabase Keepalive → Run workflow 可随时手动验证。
+
+on:
+  schedule:
+    - cron: '23 21 * * *' # UTC 21:23 = 北京时间每天 05:23（非整点避开调度高峰）
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        run: |
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "apikey: sb_publishable_wdiDs289DD9SzqRDg21w4w_1PUBXVrS" \
+            -H "Authorization: Bearer sb_publishable_wdiDs289DD9SzqRDg21w4w_1PUBXVrS" \
+            "https://ihghmlgtuafovrfdyfgd.supabase.co/rest/v1/sync_store?select=group_key&limit=1")
+          echo "Supabase keepalive ping -> HTTP $CODE"
+          if [ "$CODE" != "200" ]; then
+            echo "::warning::Supabase ping returned HTTP $CODE (项目可能被暂停或配置变更)"
+          fi

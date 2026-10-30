@@ -1770,6 +1770,7 @@ function renderCustomTimePicker() {
       </div>
       <div class="time-picker-footer">
         <button type="button" onclick="clearCustomTimePicker()">清除</button>
+        <button type="button" onclick="nowCustomTimePicker()">此刻</button>
         <button type="button" onclick="confirmCustomTimePicker()">确定</button>
       </div>
     </div>`;
@@ -1794,6 +1795,23 @@ function renderCustomTimePicker() {
 function syncTimePreview() {
   const el = document.getElementById('timePickerPreview');
   if (el) el.textContent = `${String(customTimePickerState.hh).padStart(2, '0')}:${String(customTimePickerState.mm).padStart(2, '0')}`;
+}
+
+/* v1076：时间选择器「此刻」——填入当前系统时间（只更新选中态与预览，不关闭，方便再微调时分） */
+function nowCustomTimePicker() {
+  const d = new Date();
+  customTimePickerState.hh = d.getHours();
+  customTimePickerState.mm = d.getMinutes();
+  const m = document.getElementById('customTimePicker');
+  if (m) {
+    m.querySelectorAll('#tpHours .time-picker-cell').forEach(c => c.classList.toggle('selected', +c.dataset.h === customTimePickerState.hh));
+    m.querySelectorAll('#tpMins .time-picker-cell').forEach(c => c.classList.toggle('selected', +c.dataset.m === customTimePickerState.mm));
+    const ch = m.querySelector('#tpHours .time-picker-cell.selected');
+    const cm = m.querySelector('#tpMins .time-picker-cell.selected');
+    if (ch && ch.scrollIntoView) ch.scrollIntoView({ block: 'nearest' });
+    if (cm && cm.scrollIntoView) cm.scrollIntoView({ block: 'nearest' });
+  }
+  syncTimePreview();
 }
 
 function confirmCustomTimePicker() {
@@ -7294,7 +7312,7 @@ function gbRenderVerify(){
     var pd=(indent>0)?'　'.repeat(indent):'';
     return '<div class="dc-rr tier-hdr" style="'+(first?'margin-top:0':'')+'"><span>'+pd+txt+'<i class="th-note">此档明细如下</i></span></div>';
   }
-  h+='<div class="calc-receipt gbv"><div class="dc-r-title">① 单品清单</div>';
+  h+='<div class="calc-receipt gbv"><div class="dc-r-title">单品清单</div>';
   gbItems.forEach(function(i,pi){
     var no=(pi+1<10?'0':'')+(pi+1);
     var rs=gbSortedTiers(i).map(function(x){return gbCalcAt(i,x.min);});
@@ -7315,7 +7333,7 @@ function gbRenderVerify(){
        '</div>';
   });
   h+='</div>';
-  h+='<div class="calc-receipt gbv" style="margin-top:10px"><div class="dc-r-title">② 套装清单</div>';
+  h+='<div class="calc-receipt gbv" style="margin-top:10px"><div class="dc-r-title">套装清单</div>';
   gbBundles.forEach(function(b,bi){
     var no=(bi+1<10?'0':'')+(bi+1);
     h+='<div class="dc-r-section">'+
@@ -7794,7 +7812,7 @@ function gbDelLib(id){ DB.remove('gbProducts', id); if(currentPage==='groupbuy-l
 function gbSaveRecord(){
   gbSyncG();
   var rs=DB.list('gbRecords');
-  var name='记录'+(rs.length+1)+' · '+nowStamp().replace('_',' ');
+  var name='记录'+(rs.length+1);   /* v1076：自动命名不再拼日期时间（列表右侧本就有日期列），要区分可点「重命名」 */
   DB.add('gbRecords', {name:name, G:JSON.parse(JSON.stringify(gbG)),
     items:JSON.parse(JSON.stringify(gbItems)), bundles:JSON.parse(JSON.stringify(gbBundles))});
   gbRenderHis();

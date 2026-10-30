@@ -44,6 +44,8 @@
   --c-success:#7ec678;
   --c-warning:#faad14;
   --c-danger:#e8857e;
+  --c-danger-light:#f4c9c5;   /* v1076：取消/关闭按钮（.btn-sec）红框/红底用 */
+  --c-danger-bg:#fdeceb;
   --c-info:#9DC8FF;
   --c-red:#e8857e;
   --c-green:#7ec678;
@@ -162,8 +164,7 @@ html.apk.modal-lock{overflow:hidden!important}
 .nav-item.active::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#7eb8e8;border-radius:0 2px 2px 0}
 /* v690：nav-icon 改为 1em 继承父级字号，让图标盒子 = 文字盒子，flex align-items:center 完美对齐（之前 font-size:16px/width:20px 让盒子大于文字 13px，居中后图标偏下） */
 .nav-item .nav-icon{font-size:inherit;width:1em;height:1em;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transform:translateY(1px)}
-/* v1075：商品库图标上移 1px（基础值 translateY(1px) → 0；她："商品库前面的图标往上移1px，感觉位置有点偏下了"） */
-.nav-item[data-key="groupbuy-lib"] .nav-icon{transform:translateY(0)}
+/* v1075 曾把商品库图标单独上移 1px；v1076 她确认「不用上移了」→ 撤销，所有导航图标统一用基础 translateY(1px) */
 .nav-item .nav-label{transition:opacity .2s}
 .sidebar.collapsed .nav-item{justify-content:center;padding:10px 0}
 .sidebar.collapsed .nav-item .nav-label{opacity:0;width:0;overflow:hidden}
@@ -286,9 +287,9 @@ html.apk.modal-lock{overflow:hidden!important}
    行内「编辑/删除」等 50+ 处一律变蓝框）。次要按钮（取消/关闭）改用 .btn-sec，只在弹窗页脚生效 */
 .btn-ghost{background:transparent;color:var(--c-text-light);box-shadow:none}
 .btn-ghost:hover{background:var(--c-primary-bg);color:var(--c-primary)}
-/* v1074：弹窗页脚的次要按钮（取消/关闭）= 白底蓝字蓝框 */
-.btn-sec{background:var(--c-card);color:var(--c-primary);border:1px solid var(--c-primary-light);box-shadow:none}
-.btn-sec:hover{background:var(--c-primary-bg);color:var(--c-primary);border-color:var(--c-primary)}
+/* v1074：弹窗页脚的次要按钮（取消/关闭）= 白底蓝字蓝框；v1076：她要改成红色（白底 + 红字 + 红边框） */
+.btn-sec{background:var(--c-card);color:var(--c-danger);border:1px solid var(--c-danger-light);box-shadow:none}
+.btn-sec:hover{background:var(--c-danger-bg);color:var(--c-danger);border-color:var(--c-danger)}
 .btn-danger{background:var(--c-danger);color:#fff}
 .btn-danger:hover{background:#d9363b}
 .btn-sm{padding:5px 10px;font-size:12px}
@@ -4001,8 +4002,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1075"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1075 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1076"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1076 —— 若这里显示的不是 v1076 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

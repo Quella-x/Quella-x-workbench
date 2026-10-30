@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="zh-CN" data-page-node-id="NMBVhgeFWUdkO97MeBqU7L">
+<head data-page-node-id="wTwoo0kk8P0aKFje1m37sZ">
+<meta charset="utf-8" data-page-node-id="eVwgEqGXKcFBtN0eapYEcF">
+<meta name="viewport" content="width=device-width, initial-scale=1" data-page-node-id="Ud8zEcBuQWmSnpXZq9q20V">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="U2OdPhipgaGiWCShAIYILK">
+<meta http-equiv="Pragma" content="no-cache" data-page-node-id="Z0hIgFOLcBFAA1vvoGO2NF">
+<meta http-equiv="Expires" content="0" data-page-node-id="rYjEpc7ITF2lYNSWmFV09D">
+<title>小筱工作台 · 手机预览</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{min-height:100%}
+  body{margin:0;background:#e9eef3;font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+  .header{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;flex-direction:column;align-items:center;
+    gap:6px;padding:8px 10px;background:rgba(233,238,243,.95);backdrop-filter:blur(4px);border-bottom:1px solid #d6dde4}
+  .toolbar{display:flex;gap:8px;align-items:center;color:#456;font-size:13px;flex-wrap:wrap;justify-content:center}
+  .toolbar button{cursor:pointer;border:1px solid #c7d2db;background:#fff;border-radius:8px;padding:5px 11px;font-size:13px}
+  .toolbar button.active{background:#2e7d32;color:#fff;border-color:#2e7d32}
+  .hint{color:#7a8896;font-size:11px;text-align:center;max-width:520px;line-height:1.4}
+  .stage{min-height:100vh;display:flex;justify-content:center;transition:padding .2s}
+  .phone-wrap{transform-origin:top center;transition:transform .2s}
+  .phone{position:relative;width:390px;height:844px;background:#0b0b0c;border-radius:46px;padding:12px;
+    box-shadow:0 20px 60px rgba(0,0,0,.28);transition:width .2s,height .2s}
+  .screen{position:relative;width:100%;height:100%;background:#fff;border-radius:36px;overflow:hidden;
+    display:flex;flex-direction:column}
+  .statusbar{height:32px;flex:none;background:#fff;display:flex;align-items:center;justify-content:space-between;
+    padding:0 20px;font-size:13px;color:#1a1a1a;font-weight:600}
+  .statusbar .right{display:flex;gap:6px;align-items:center;font-size:12px}
+  .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:140px;height:26px;
+    background:#0b0b0c;border-radius:0 0 16px 16px;z-index:5}
+  iframe{flex:1;width:100%;border:0;background:#fff}
+  @keyframes phonePop{0%{transform:scale(.985);opacity:.55}55%{opacity:1}100%{transform:scale(1)}}
+  .phone.pop{animation:phonePop .4s ease}
+
+  :root{--phone-width:412px}
+
+  /* 全屏模式（隐藏手机框）：固定机型宽度、隐藏预览工具栏与仿真状态栏 */
+  body.content-only .header{display:none}
+  body.content-only .stage{padding-top:0;align-items:flex-start}
+  body.content-only .phone-wrap{transform:none !important;margin:0 !important;width:auto !important;max-width:none !important}
+  body.content-only .phone{width:var(--phone-width) !important;height:100vh !important;background:transparent;padding:0;box-shadow:none;border-radius:0;max-width:none !important}
+  body.content-only .notch{display:none}
+  body.content-only .statusbar{display:none}
+  body.content-only .screen{border-radius:0;height:100%}
+  body.content-only iframe{height:100%}
+  body.content-only .exit-frame{display:block}
+
+  .exit-frame{display:none;position:fixed;top:8px;left:50%;transform:translateX(-50%);right:auto;z-index:200;cursor:pointer;border:1px solid #c7d2db;background:#fff;border-radius:8px;padding:6px 10px;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+  .diag{color:#c33;font-size:12px;text-align:center;max-width:520px;line-height:1.5;margin-top:4px}
+  .diag a{color:#2e7d32;text-decoration:underline;cursor:pointer}
+</style>
+</head>
+<body data-page-node-id="IkocESADg0uKte8kwMTFs9">
+  <div class="header" data-page-node-id="hXwkAdOaBDgVE9VL1JRjHE">
+    <div class="toolbar" data-page-node-id="BsACUwtbAb0pPAiOk3kuaB">
+      <span data-page-node-id="R6GVT1tklfi1pWn77NJwnE">机型：</span>
+      <button data-w="412" data-h="898" class="active" data-page-node-id="T5mbUgoGx2GWodew1C3Fke">OPPO Reno16 Pro</button>
+      <button data-w="375" data-h="812" data-page-node-id="7MGcZPwHbU4s7p3GQDC3WN">通用 375</button>
+      <button data-w="390" data-h="844" data-page-node-id="GOwDYGVYkh9DRtCZ4nFl3U">iPhone 12/13</button>
+      <button data-w="414" data-h="896" data-page-node-id="OIZ7GvZjnG5umrPlaIE491">大屏 414</button>
+      <button id="toggleFrame" style="margin-left:6px;border-color:#7a8896;color:#345" data-page-node-id="EhvQjyadRobjgYCuKmp4WP">隐藏手机框</button>
+      <button id="hardReload" style="margin-left:6px;border-color:#e0603a;color:#e0603a;font-weight:600" data-page-node-id="lKyQKUIbZc2CHf0rqAVsiK">🧹 强刷清缓存</button>
+    </div>
+    <div class="hint" data-page-node-id="AKhDTvqdeSJOPBuurFB5Ka">顶部 32dp 为仿真状态栏；默认显示手机框，点「隐藏手机框」可全屏，全屏时点「显示手机框」切回。</div>
+    <div id="loadStatus" style="font-size:12px;color:#7a8896;min-height:18px;text-align:center;margin-top:2px" data-page-node-id="m55c4KoeRzw79dohVB2Abj"></div>
+    <div id="diag" class="diag" style="display:none" data-page-node-id="H2KRYHrwl1ozUXFJB06Irs"></div>
+  </div>
+  <button id="exitFrame" class="exit-frame" title="显示手机框" data-page-node-id="hDJA8tiFDx9jP9jruTGKkx">📱 显示手机框</button>
+  <div class="stage" id="stage" data-page-node-id="h8F4RSw2GCkVjiRJ2dWi0I">
+    <div class="phone-wrap" id="wrap" data-page-node-id="uvYwaJlPvzsbyTe3JNz9Qv">
+      <div class="phone" id="phone" data-page-node-id="cFG2khv1w8f4lDr5DDhFQd">
+        <div class="notch" data-page-node-id="o8KrnRdgGBU2iKVlNykoG3"></div>
+        <div class="screen" data-page-node-id="KvNptrplM3NkMgqqLMclsk">
+          <div class="statusbar" data-page-node-id="tMdD2emgR9iYPfRoNPOAa9"><span id="clock" data-page-node-id="3DB0BXoeUoTP6EZls4cIfc">9:41</span><span class="right" data-page-node-id="f3FCRN5i2PxqlTj0k1C84M">📶 5G 🔋</span></div>
+          <iframe src="about:blank" id="appframe" allow="fullscreen" data-page-node-id="8582fmj7FIDyZgYKh3nKfX"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const phone=document.getElementById('phone');
+    const wrap=document.getElementById('wrap');
+    const stage=document.getElementById('stage');
+    const body=document.body;
+    const diag=document.getElementById('diag');
+    // 保险：默认强制显示手机框；并尝试绕过 file:// 协议的顽固缓存
+    body.classList.remove('content-only');
+    if(location.protocol==='file:' && !/[?&]_refreshed=1/.test(location.search)){
+      const sep=location.search?'&':'?';
+      try{ location.replace(location.href+sep+'_refreshed=1&_t='+Date.now()); }catch(e){}
+    }
+    // 初始化 CSS 变量为当前机型宽度，供 content-only 模式使用
+    document.documentElement.style.setProperty('--phone-width', activeWidth()+'px');
+    function activeWidth(){
+      const b=document.querySelector('.toolbar button[data-w].active');
+      return b?+b.dataset.w:412;
+    }
+    function fit(){
+      const hdr=document.querySelector('.header').offsetHeight;
+      if(body.classList.contains('content-only')){
+        stage.style.paddingTop='0';
+        return;
+      }
+      stage.style.paddingTop=(hdr+10)+'px';
+      const avail=innerHeight-hdr-20;
+      const h=phone.offsetHeight;
+      const s=Math.min(1,avail/h);
+      wrap.style.transform='scale('+s+')';
+      wrap.style.marginBottom=-(h*(1-s))+'px';
+    }
+    function setSize(w,h,btn){
+      document.documentElement.style.setProperty('--phone-width', w+'px');
+      if(!body.classList.contains('content-only')){
+        phone.style.width=w+'px';
+        phone.style.height=h+'px';
+      }
+      document.querySelectorAll('.toolbar button[data-w]').forEach(x=>x.classList.remove('active'));
+      if(btn) btn.classList.add('active');
+      requestAnimationFrame(fit);
+    }
+    document.querySelectorAll('.toolbar button[data-w]').forEach(b=>{
+      b.onclick=()=>setSize(+b.dataset.w,+b.dataset.h,b);
+    });
+    const toggleFrameBtn=document.getElementById('toggleFrame');
+    toggleFrameBtn.onclick=()=>{
+      if(body.classList.contains('content-only')){
+        body.classList.remove('content-only');
+        phone.style.width=activeWidth()+'px';
+        phone.style.height=(document.querySelector('.toolbar button[data-w].active')?.dataset.h||898)+'px';
+        toggleFrameBtn.textContent='隐藏手机框';
+      }else{
+        body.classList.add('content-only');
+        phone.style.width='';
+        phone.style.height='';
+        toggleFrameBtn.textContent='显示手机框';
+      }
+      requestAnimationFrame(fit);
+    };
+    document.getElementById('exitFrame').onclick=()=>{
+      body.classList.remove('content-only');
+      phone.style.width=activeWidth()+'px';
+      phone.style.height=(document.querySelector('.toolbar button[data-w].active')?.dataset.h||898)+'px';
+      toggleFrameBtn.textContent='隐藏手机框';
+      requestAnimationFrame(fit);
+    };
+    document.addEventListener('keydown',e=>{
+      if(e.key==='Escape' && body.classList.contains('content-only')){
+        document.getElementById('exitFrame').click();
+      }
+    });
+    function tick(){const d=new Date();const h=d.getHours().toString().padStart(2,'0');
+      const m=d.getMinutes().toString().padStart(2,'0');document.getElementById('clock').textContent=h+':'+m;}
+    tick();setInterval(tick,10000);
+
+    const APP_VERSION=1074;
+    const frame=document.getElementById('appframe');
+    let loadTimer=null;
+    function clearSwFromWindow(w){
+      return new Promise(resolve=>{
+        try{
+          if(w && w.navigator && w.navigator.serviceWorker){
+            w.navigator.serviceWorker.getRegistrations().then(regs=>{
+              regs.forEach(r=>r.unregister());
+              resolve(regs.length);
+            }).catch(()=>resolve(0));
+          }else{
+            resolve(0);
+          }
+        }catch(e){ resolve(0); }
+      });
+    }
+    function clearCachesFromWindow(w){
+      return new Promise(resolve=>{
+        try{
+          if(w && w.caches){
+            w.caches.keys().then(ks=>{
+              Promise.all(ks.map(k=>w.caches.delete(k))).then(()=>resolve(ks.length));
+            }).catch(()=>resolve(0));
+          }else{
+            resolve(0);
+          }
+        }catch(e){ resolve(0); }
+      });
+    }
+    let loadStatus='';
+    function setStatus(msg,type){
+      loadStatus=msg;
+      const el=document.getElementById('loadStatus');
+      if(!el) return;
+      el.textContent=msg;
+      el.style.color=type==='err'?'#c33':(type==='ok'?'#2e7d32':'#7a8896');
+    }
+    function showDiag(html){
+      if(!diag) return;
+      diag.style.display='block';
+      diag.innerHTML=html;
+    }
+    function hideDiag(){
+      if(!diag) return;
+      diag.style.display='none';
+    }
+    async function hardReloadApp(){
+      hideDiag();
+      setStatus('正在清除缓存…');
+      const url='index.html?preview=1&v='+APP_VERSION+'&_t='+Date.now();
+      await clearSwFromWindow(window);
+      await clearSwFromWindow(frame.contentWindow);
+      await clearCachesFromWindow(window);
+      await clearCachesFromWindow(frame.contentWindow);
+      setStatus('正在加载应用…');
+      if(loadTimer) clearTimeout(loadTimer);
+      loadTimer=setTimeout(()=>{
+        setStatus('加载超时，请点「强刷清缓存」重试','err');
+        showDiag('本地 file:// 预览容易被浏览器缓存/安全策略影响，建议优先使用线上链接。');
+      },5000);
+      frame.src=url;
+    }
+    document.getElementById('hardReload').onclick=hardReloadApp;
+
+    window.addEventListener('message',e=>{
+      if(e.source!==frame.contentWindow) return;
+      const d=e.data||{};
+      if(d.type==='preview-error'){
+        setStatus('iframe 报错：'+d.msg,'err');
+        if(loadTimer){clearTimeout(loadTimer);loadTimer=null;}
+      }else if(d.type==='preview-log'){
+        console.log('[app]',d.msg);
+      }else if(d.type==='preview-ready'){
+        setStatus('应用已加载','ok');
+        if(loadTimer){clearTimeout(loadTimer);loadTimer=null;}
+      }
+    });
+    frame.onload=()=>{
+      try{
+        const cw=frame.contentWindow;
+        if(cw && cw.location && cw.location.href && cw.location.href!=='about:blank'){
+          setStatus('应用已加载','ok');
+          if(loadTimer){clearTimeout(loadTimer);loadTimer=null;}
+          const p=document.getElementById('phone');
+          p.classList.remove('pop');
+          void p.offsetWidth;
+          p.classList.add('pop');
+        }
+      }catch(e){}
+    };
+
+    hardReloadApp();
+
+    window.addEventListener('resize',fit);
+    window.addEventListener('load',fit);
+    fit();
+  </script>
+</body>
+</html>
