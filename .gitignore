@@ -12,3 +12,6 @@ Thumbs.db
 # 凭据保险箱内置云端入口：只随 APK 打包，不发布到 GitHub Pages
 # （里面是 Supabase 公开值，但配合 4 位密码会大幅降低暴力破解成本，故不公开托管）
 assets/vault-cfg.js
+
+# 本地验证用临时副本（headless 探针），不入库
+_probe_env/
