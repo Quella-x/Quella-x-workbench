@@ -280,9 +280,13 @@ html.apk.modal-lock{overflow:hidden!important}
 .btn-primary:hover{background:var(--c-primary-dark);box-shadow:none}
 .btn-outline{background:var(--c-card);color:var(--c-primary);border:1px solid var(--c-primary-light);box-shadow:none}
 .btn-outline:hover{background:var(--c-primary-bg)}
-/* v1072：次要按钮（取消/关闭）改「蓝字蓝框」，与 .btn-outline 完全一致（v1070 的灰框深字她仍说样式不对） */
-.btn-ghost{background:var(--c-card);color:var(--c-primary);border:1px solid var(--c-primary-light);box-shadow:none}
-.btn-ghost:hover{background:var(--c-primary-bg);color:var(--c-primary);border-color:var(--c-primary)}
+/* v1074：.btn-ghost 还原成原本的「轻量文字按钮」（v1072 把它改成蓝字蓝框，误伤了日历「上月/本月/下月」、
+   行内「编辑/删除」等 50+ 处一律变蓝框）。次要按钮（取消/关闭）改用 .btn-sec，只在弹窗页脚生效 */
+.btn-ghost{background:transparent;color:var(--c-text-light);box-shadow:none}
+.btn-ghost:hover{background:var(--c-primary-bg);color:var(--c-primary)}
+/* v1074：弹窗页脚的次要按钮（取消/关闭）= 白底蓝字蓝框 */
+.btn-sec{background:var(--c-card);color:var(--c-primary);border:1px solid var(--c-primary-light);box-shadow:none}
+.btn-sec:hover{background:var(--c-primary-bg);color:var(--c-primary);border-color:var(--c-primary)}
 .btn-danger{background:var(--c-danger);color:#fff}
 .btn-danger:hover{background:#d9363b}
 .btn-sm{padding:5px 10px;font-size:12px}
@@ -3992,8 +3996,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1073"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1073 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1074"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1074 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

@@ -533,7 +533,15 @@ function openModal(title, bodyHTML, footerBtns, size = '') {
   $('#modalTitle').textContent = title; $('#modalBody').innerHTML = bodyHTML;
   const fc = $('#modalFooter'); fc.innerHTML = ''; fc.style.display = '';
   if (footerBtns && footerBtns.length) {
-    footerBtns.forEach(b => { const btn = document.createElement('button'); btn.className = 'btn ' + (b.class || 'btn-primary'); btn.textContent = b.label; btn.onclick = () => b.action && b.action(); fc.appendChild(btn); });
+    footerBtns.forEach(b => {
+      const btn = document.createElement('button');
+      /* v1074：页脚的 btn-ghost（取消/关闭）一律补 btn-sec = 白底蓝字蓝框；不再污染全站 btn-ghost */
+      const cls = b.class || 'btn-primary';
+      btn.className = 'btn ' + cls + (cls.indexOf('btn-ghost') > -1 ? ' btn-sec' : '');
+      /* v1074：footerBtns 支持 icon（如「恢复默认」带 ↺），label 仍做转义 */
+      btn.innerHTML = (b.icon ? lucide(b.icon, 16) : '') + esc(b.label);
+      btn.onclick = () => b.action && b.action(); fc.appendChild(btn);
+    });
   } else { fc.style.display = 'none'; }
   $('#modal').style.height = ''; $('#modal').className = 'modal' + (size ? ' ' + size : '');
   killAutofill($('#modalBody')); // v784: 禁掉浏览器表单历史联想
@@ -2061,9 +2069,9 @@ function openDynamicSortModal(key) {
     ov.innerHTML = '<div class="modal" style="width:520px">' +
       '<div class="modal-header"><span class="modal-title">调整排序</span><button class="modal-close" onclick="closeDynSortLayer()">&times;</button></div>' +
       '<div class="modal-body" id="dynSortBody"></div>' +
-      /* v1073：恢复默认——回到打开弹窗时的原始顺序，点「保存」生效 */
-      '<div class="modal-footer"><button class="btn btn-outline" onclick="resetDynSort()">恢复默认</button>' +
-      '<button class="btn btn-outline" onclick="closeDynSortLayer()">取消</button>' +
+      /* v1073：恢复默认——回到打开弹窗时的原始顺序，点「保存」生效（v1074：带 ↺ 图标，与取消/关闭区分） */
+      '<div class="modal-footer"><button class="btn btn-outline" onclick="resetDynSort()">' + lucide('rotate-ccw',16) + ' 恢复默认</button>' +
+      '<button class="btn btn-ghost btn-sec" onclick="closeDynSortLayer()">取消</button>' +
       '<button class="btn btn-primary" onclick="saveDynSort()">保存</button></div></div>';
     document.body.appendChild(ov);
   }
@@ -5258,7 +5266,7 @@ function openProfileSortModal() {
     Toast.info('已恢复默认排序，点「保存」生效');
   };
   openModal('调整人物档案排序', '', [
-    { label: '恢复默认', class: 'btn-outline', action: profileSortReset },
+    { label: '恢复默认', class: 'btn-outline', icon: 'rotate-ccw', action: profileSortReset },
     { label: '取消', class: 'btn-outline', action: () => closeModal() },
     { label: '保存', class: 'btn-primary', action: () => {
       DB.save('ocCharacters', list);
@@ -5332,7 +5340,7 @@ function openModuleSortModal(pageKey) {
     Toast.info('已恢复默认排序，点「保存」生效');
   };
   openModal('调整排序', '', [
-    { label: '恢复默认', class: 'btn-outline', action: moduleSortReset },
+    { label: '恢复默认', class: 'btn-outline', icon: 'rotate-ccw', action: moduleSortReset },
     { label: '取消', class: 'btn-outline', action: () => closeModal() },
     { label: '保存', class: 'btn-primary', action: () => {
       DB.save(mod.store, list);
@@ -5392,7 +5400,7 @@ function openPriceRefSortModal() {
     Toast.info('已恢复默认排序，点「保存」生效');
   };
   openModal('调整价格参考排序', '', [
-    { label: '恢复默认', class: 'btn-outline', action: resetDefault },
+    { label: '恢复默认', class: 'btn-outline', icon: 'rotate-ccw', action: resetDefault },
     { label: '取消', class: 'btn-outline', action: () => closeModal() },
     { label: '保存', class: 'btn-primary', action: () => {
       DB.save('priceRef', rows);
@@ -7403,17 +7411,27 @@ function gbInitState(){
   /* v1058：首次进入=空白（一条空白单品）；之后进入恢复上次状态（草稿随每次输入自动存 gbCalcState——她："第二次、第三次进保留之前的状态"） */
   var blank=function(){ gbItems=[gbNewItem('',100,[{min:100,price:0}],0,3)]; gbBundles=[]; };
   try{
-    /* v1073：先取云端/DB 的草稿（手机端上传的为准），DB 里还没有才把本地旧草稿迁进来 */
-    var rec=(DB.list('gbCalcState')||[])[0];
-    if(!rec){
-      var s=JSON.parse(localStorage.getItem('gbCalcState')||'null');
-      if(s && s.items && s.items.length){
-        rec={id:GB_DRAFT_ID, G:s.G||s.gbG||{giftCost:'',rate:'',freeShip:false,ship:''}, items:s.items,
-             bundles:s.bundles||[], uid:s.uid||1000, shop:s.shop||null};
-        DB.add('gbCalcState', rec);
-      }
+    var _defG={giftCost:'',rate:'',freeShip:false,ship:''};
+    var _local=null;
+    try{ _local=JSON.parse(localStorage.getItem('gbCalcState')||'null'); }catch(e){}
+    var _localOK = !!(_local && _local.items && _local.items.length);
+    var _localRec = function(){ return {G:_local.G||_local.gbG||_defG, items:_local.items, bundles:_local.bundles||[], uid:_local.uid||1000, shop:_local.shop||null}; };
+    var _first = localStorage.getItem('gbCalcSynced')!=='1';
+    var rec=null;
+    if(_first && _localOK){
+      /* v1074：本端第一次升到「草稿同步」版本——先把本端已有的草稿上传一次覆盖云端，
+         保证本端内容不会被另一端顶掉（她：这一次要以手机端为准）。之后两端都按「最后保存的为准」 */
+      var _p=_localRec();
+      var _a=DB.list('gbCalcState')||[];
+      if(_a.length) DB.update('gbCalcState', _a[0].id, _p); else DB.add('gbCalcState', Object.assign({id:GB_DRAFT_ID},_p));
+      localStorage.setItem('gbCalcSynced','1');
+      rec=_p;
+    }else{
+      localStorage.setItem('gbCalcSynced','1');
+      rec=(DB.list('gbCalcState')||[])[0];
+      if(!rec && _localOK){ rec=_localRec(); DB.add('gbCalcState', Object.assign({id:GB_DRAFT_ID}, rec)); }
     }
-    if(rec && rec.items && rec.items.length){ gbG=rec.G||{giftCost:'',rate:'',freeShip:false,ship:''}; gbItems=rec.items; gbBundles=rec.bundles||[]; gbUid=rec.uid||1000; }
+    if(rec && rec.items && rec.items.length){ gbG=rec.G||_defG; gbItems=rec.items; gbBundles=rec.bundles||[]; gbUid=rec.uid||1000; }
     else blank();
     gbCommonParams=JSON.parse(localStorage.getItem('gbCommonParams')||'{}')||{};
     gbShopVals=(rec && rec.shop) || null;
@@ -7525,7 +7543,7 @@ function openGbLibSort(){
     openGbLibSort();
   };
   openModal('调整商品库排序', h, [
-    {label:'恢复默认', class:'btn-outline', action:gbLibSortReset},
+    {label:'恢复默认', class:'btn-outline', icon:'rotate-ccw', action:gbLibSortReset},
     {label:'完成', class:'btn-primary', action:function(){ closeModal(); renderGbLibPage(); }}
   ], 'notes-sm');
 }
@@ -7742,7 +7760,7 @@ function gbOpenImportModal(mode){
   ov.innerHTML='<div class="txt-tpl-picker-card">'+
     '<div class="txt-tpl-picker-head">从商品库导入<button type="button" class="txt-tpl-picker-close" onclick="gbImpClose()">✕</button></div>'+
     '<div class="txt-tpl-picker-body">'+combo+'<div id="gbImpLibList">'+gbImpLibRows()+'</div></div>'+
-    '<div class="txt-tpl-picker-foot"><button type="button" class="btn btn-ghost" onclick="gbImpClose()">关闭</button></div></div>';
+    '<div class="txt-tpl-picker-foot"><button type="button" class="btn btn-ghost btn-sec" onclick="gbImpClose()">关闭</button></div></div>';
   document.body.appendChild(ov);
   ov.addEventListener('click', function(e){ if(e.target===ov) gbImpClose(); });
 }
@@ -9926,7 +9944,7 @@ function renderDesignCalc() {
   html += '<select class="calc-rate-input" id="dcNewDiscType" style="width:auto;font-size:12px"><option value="rate">折扣率</option><option value="amount">减免额</option></select>';
   html += '<input type="number" class="calc-rate-input" id="dcNewDiscVal" step="0.01" placeholder="数值" style="width:60px;font-size:13px">';
   html += '<button type="button" class="btn btn-primary btn-sm" onclick="dcConfirmAddCustomDisc()" style="padding:4px 10px;font-size:12px">确认</button>';
-  html += '<button type="button" class="btn btn-ghost btn-sm" onclick="dcCancelAddCustomDisc()" style="padding:4px 10px;font-size:12px">取消</button>';
+  html += '<button type="button" class="btn btn-ghost btn-sm btn-sec" onclick="dcCancelAddCustomDisc()" style="padding:4px 10px;font-size:12px">取消</button>';
   html += '</div>';
   html += '</div>';
   html += '<div style="margin-top:4px">';
@@ -11289,7 +11307,7 @@ function openPriceListSort() {
     openPriceListSort();
   };
   openModal('调整价目排序', html, [
-    { label: '恢复默认', class: 'btn-outline', action: priceSortReset },
+    { label: '恢复默认', class: 'btn-outline', icon: 'rotate-ccw', action: priceSortReset },
     { label: '完成', class: 'btn-primary', action: () => { closeModal(); renderPriceList(); } }
   ], 'notes-sm');
 }
@@ -16371,7 +16389,7 @@ function addTextTemplateCat() {
     `<div class="tpl-sub-head"><div class="tpl-sub-title">新建分类</div><button type="button" class="tpl-sub-close" onclick="closeTplNewCatSub()">✕</button></div>` +
     `<div class="tpl-new-hint" style="margin:6px 0 10px">输入一个新分类名称，用于归类零散文案</div>` +
     `<input class="form-input" id="newCatInput" maxlength="20">` +
-    `<div class="tpl-sub-foot"><button type="button" class="btn btn-ghost" onclick="closeTplNewCatSub()">取消</button><button type="button" class="btn btn-primary" onclick="submitTplNewCatSub()">确定</button></div>` +
+    `<div class="tpl-sub-foot"><button type="button" class="btn btn-ghost btn-sec" onclick="closeTplNewCatSub()">取消</button><button type="button" class="btn btn-primary" onclick="submitTplNewCatSub()">确定</button></div>` +
     `</div>`;
   ov.addEventListener('click', e => { if (e.target === ov) closeTplNewCatSub(); });
   document.body.appendChild(ov);
@@ -16569,7 +16587,7 @@ function openTextTemplatePicker(fieldKey) {
   const ov = document.createElement('div');
   ov.id = 'txtTplPickerOverlay';
   ov.className = 'txt-tpl-picker-overlay';
-  ov.innerHTML = `<div class="txt-tpl-picker-card"><div class="txt-tpl-picker-head">文案库<button type="button" class="txt-tpl-picker-close" onclick="closeTextTemplatePicker()">✕</button></div><div class="txt-tpl-picker-body">${bodyHTML}</div><div class="txt-tpl-picker-foot"><button type="button" class="btn btn-ghost" onclick="closeTextTemplatePicker()">关闭</button></div></div>`;
+  ov.innerHTML = `<div class="txt-tpl-picker-card"><div class="txt-tpl-picker-head">文案库<button type="button" class="txt-tpl-picker-close" onclick="closeTextTemplatePicker()">✕</button></div><div class="txt-tpl-picker-body">${bodyHTML}</div><div class="txt-tpl-picker-foot"><button type="button" class="btn btn-ghost btn-sec" onclick="closeTextTemplatePicker()">关闭</button></div></div>`;
   document.body.appendChild(ov);
   ov.addEventListener('click', e => { if (e.target === ov) closeTextTemplatePicker(); });
 }
