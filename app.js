@@ -7355,9 +7355,9 @@ function gbLibRow(t,isFirst,isLast){
   var meta;
   if(t.type==='bundle'){ meta=((t.members||[]).length)+' 个商品'; }
   else {
-    /* v1069：去掉与首档重复的「起订 X ·」前缀（首档 min 即起订量），档位逐行竖排（不再挤一行，手机端放得下） */
+    /* v1071：她要求档位仍放一排、用「 | 」分隔（前后空格），不再逐行竖排 */
     var _tiers=(t.tiers||[]);
-    meta = _tiers.length ? _tiers.map(function(x){ return '≥'+x.min+' ¥'+x.price; }).join('<br>') : '未设档位';
+    meta = _tiers.length ? _tiers.map(function(x){ return '≥'+x.min+' ¥'+x.price; }).join(' | ') : '未设档位';
   }
   return '<div class="pricelist-menu-item gb-lib-item" onclick="gbLibEdit(\''+t.id+'\')">'+
     '<span class="lib-name">'+gbEsc(t.name||'未命名')+'</span>'+
@@ -7503,10 +7503,15 @@ function gbLibEdit(id){
     h+='<div id="gbl_tiers"></div>';
   }
   h+='</div>';
-  openModal(id?'编辑商品':'新增商品', h, [
+  var _footer=[
     {label:'取消', class:'btn-outline', action:function(){ closeModal(); }},
     {label:'保存', class:'btn-primary', action:gbLibSave}
-  ]);
+  ];
+  /* v1071：编辑已有商品时底部加「删除」按钮（她："删除呢"——编辑弹窗里也该能删整条商品） */
+  if(id){
+    _footer.splice(1,0,{label:'删除', class:'btn-danger', action:function(){ closeModal(); gbDelLib(id); }});
+  }
+  openModal(id?'编辑商品':'新增商品', h, _footer);
   if(!isBundle) gbLibRenderTiers();
 }
 function gbLibSave(){
