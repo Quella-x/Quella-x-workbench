@@ -1131,8 +1131,9 @@ function lucide(name, size, cls) {
 /* ===== Settings System ===== */
 /* v686：导航图标改用 Lucide 图标名（原为 emoji），取值即 LUCIDE_SVG 的键名 */
 const DEFAULT_NAV_ICONS = {
-  'home': 'house', 'groupbuy': 'package', 'groupbuy-records': 'package', 'groupbuy-factories': 'warehouse',
-  'groupbuy-samples': 'cog', 'groupbuy-priceref': 'tag', 'groupbuy-calc': 'barcode', 'groupbuy-lib': 'database', 'design': 'palette', 'design-inspiration': 'lightbulb',
+  /* v1075：开团记录与商品库图标对调（她："开团记录和商品库前面的图标调换一下"） */
+  'home': 'house', 'groupbuy': 'package', 'groupbuy-records': 'database', 'groupbuy-factories': 'warehouse',
+  'groupbuy-samples': 'cog', 'groupbuy-priceref': 'tag', 'groupbuy-calc': 'barcode', 'groupbuy-lib': 'package', 'design': 'palette', 'design-inspiration': 'lightbulb',
   'design-commission': 'calendar-clock', 'design-commission-detail': 'file-text', 'design-calc': 'calculator', 'design-auth': 'scroll-text', 'design-pricelist': 'clipboard-list',
   'oc': 'user', 'oc-profiles': 'users', 'oc-relations': 'link', 'oc-stories': 'book-open', 'oc-timeline': 'clock', 'oc-commission': 'palette',
   'life-checkin': 'calendar-check', 'life-record': 'notebook-pen'
@@ -4072,11 +4073,12 @@ function navigate(page) {
 /* ===== Sidebar Rendering ===== */
 function renderSidebar() {
   const nav = $('#sidebarNav');
-  let html = `<div class="nav-item ${currentPage === 'home' ? 'active' : ''}" onclick="navigate('home')"><span class="nav-icon">${lucide(getNavIcon('home'), 18)}</span><span class="nav-label">${esc(getNavLabel('home', '首页'))}</span></div>`;
+  /* v1075：加 data-key，便于对单个导航项做定位微调（商品库图标上移 1px） */
+  let html = `<div class="nav-item ${currentPage === 'home' ? 'active' : ''}" data-key="home" onclick="navigate('home')"><span class="nav-icon">${lucide(getNavIcon('home'), 18)}</span><span class="nav-label">${esc(getNavLabel('home', '首页'))}</span></div>`;
   NAV.slice(1).forEach(group => {
     html += `<div class="nav-group"><div class="nav-group-title">${esc(group.label)}</div>`;
     group.children.forEach(child => {
-      html += `<div class="nav-item ${currentPage === child.key ? 'active' : ''}" onclick="navigate('${child.key}')"><span class="nav-icon">${lucide(getNavIcon(child.key), 18)}</span><span class="nav-label">${esc(getNavLabel(child.key, child.label))}</span></div>`;
+      html += `<div class="nav-item ${currentPage === child.key ? 'active' : ''}" data-key="${child.key}" onclick="navigate('${child.key}')"><span class="nav-icon">${lucide(getNavIcon(child.key), 18)}</span><span class="nav-label">${esc(getNavLabel(child.key, child.label))}</span></div>`;
     });
     html += '</div>';
   });
@@ -7292,7 +7294,7 @@ function gbRenderVerify(){
     var pd=(indent>0)?'　'.repeat(indent):'';
     return '<div class="dc-rr tier-hdr" style="'+(first?'margin-top:0':'')+'"><span>'+pd+txt+'<i class="th-note">此档明细如下</i></span></div>';
   }
-  h+='<div class="calc-receipt gbv"><div class="dc-r-title">① 单品商品清单</div>';
+  h+='<div class="calc-receipt gbv"><div class="dc-r-title">① 单品清单</div>';
   gbItems.forEach(function(i,pi){
     var no=(pi+1<10?'0':'')+(pi+1);
     var rs=gbSortedTiers(i).map(function(x){return gbCalcAt(i,x.min);});
@@ -7313,7 +7315,7 @@ function gbRenderVerify(){
        '</div>';
   });
   h+='</div>';
-  h+='<div class="calc-receipt gbv" style="margin-top:10px"><div class="dc-r-title">② 套装汇总</div>';
+  h+='<div class="calc-receipt gbv" style="margin-top:10px"><div class="dc-r-title">② 套装清单</div>';
   gbBundles.forEach(function(b,bi){
     var no=(bi+1<10?'0':'')+(bi+1);
     h+='<div class="dc-r-section">'+
@@ -7805,9 +7807,11 @@ function gbRenderHis(){
   var h='<div class="template-list">';
   list.forEach(function(r){
     var d=r._ct?fmtDate(new Date(r._ct).toISOString()):'';
+    /* v1075：日期与删除按钮同一行且垂直居中（.template-actions 补 align-items:center，原来小字被拉高贴顶）；新增「重命名」 */
     h+='<div class="template-item" onclick="gbLoadRecord(\''+r.id+'\')"><span class="template-name">'+gbEsc(r.name||'记录')+'</span>'+
-       '<div class="template-actions"><span style="font-size:11px;color:var(--c-text-muted)">'+d+'</span>'+
-       '<button class="btn-icon danger" onclick="event.stopPropagation();gbDelRecord(\''+r.id+'\')">'+lucide('trash-2',16)+'</button>'+
+       '<div class="template-actions"><span class="tpl-date">'+d+'</span>'+
+       '<button class="btn-icon" title="重命名" onclick="event.stopPropagation();gbRenameRecord(\''+r.id+'\')">'+lucide('pencil',16)+'</button>'+
+       '<button class="btn-icon danger" title="删除" onclick="event.stopPropagation();gbDelRecord(\''+r.id+'\')">'+lucide('trash-2',16)+'</button>'+
        '</div></div>';
   });
   h+='</div>';
@@ -7829,6 +7833,18 @@ function gbLoadRecord(id){
   Toast.info('已加载记录');
 }
 function gbDelRecord(id){ DB.remove('gbRecords', id); gbRenderHis(); Toast.success('记录已删除'); }
+/* v1075：历史计算支持重命名（她："这个历史计算也要支持重命名"） */
+function gbRenameRecord(id){
+  var r=DB.getById('gbRecords', id); if(!r) return;
+  openModal('重命名记录', '<div class="form-row"><label class="form-label">名称</label><input type="text" class="form-input" id="gbRecNameInp" value="'+esc(r.name||'')+'" placeholder="输入新名称"></div>', [
+    {label:'取消', class:'btn-ghost', action:closeModal},
+    {label:'确定', class:'btn-primary', action:function(){
+      var el=$('#gbRecNameInp'); var v=el?(el.value||'').trim():'';
+      if(!v){ Toast.error('名称不能为空'); return; }
+      DB.update('gbRecords', id, {name:v}); gbRenderHis(); Toast.success('已重命名'); closeModal();
+    }}
+  ]);
+}
 
 /* ===== OC Timeline — 时间轨迹 (需求4) ===== */
 const TIMELINE_COLORS = {
