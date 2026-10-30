@@ -41,7 +41,9 @@ const DB = {
 
 /* ===== Cloud Sync (Supabase REST) ===== */
 /* 同步集合：这些 store 会参与云端同步；其余（ui_state、customOpts_*、syncCfg 等）仅本地 */
-const SYNC_STORES = ['publishRecords','groupbuys','factories','samples','calcTemplates','calcRecords','gbProducts','gbRecords','inspirations','commissions','authorizations','priceList','priceRef','ocCharacters','ocRelations','ocStories','ocTimeline','ocCommissions','appSettings','customCategories','lifeCheckins','lifeRecords','lifeCheckinDefs','commissionDetails','textTemplates','textTemplateCats'];
+/* v1073：gbCalcState=价目计算「当前草稿」（商品池/套装/参数），纳入云端同步，两端共用一份
+   （她："同步啊，现在先用手机端覆盖电脑端的"——单条固定 id，按 _mt 后写覆盖先写） */
+const SYNC_STORES = ['publishRecords','groupbuys','factories','samples','calcTemplates','calcRecords','gbProducts','gbRecords','gbCalcState','inspirations','commissions','authorizations','priceList','priceRef','ocCharacters','ocRelations','ocStories','ocTimeline','ocCommissions','appSettings','customCategories','lifeCheckins','lifeRecords','lifeCheckinDefs','commissionDetails','textTemplates','textTemplateCats'];
 
 function hashStr(str) {
   let h = 0;
@@ -2050,6 +2052,7 @@ function openDynamicSortModal(key) {
   const rows = Array.prototype.slice.call(wrap.querySelectorAll('.dynamic-list-row'));
   if (rows.length < 2) { Toast.info('只有一行，无需排序'); return; }
   window._dynSortRows = rows;
+  window._dynSortOriginal = rows.slice();   /* v1073：恢复默认用的原始顺序快照 */
   window._dynSortKey = key;
   let ov = document.getElementById('dynSortOverlay');
   if (!ov) {
@@ -2058,7 +2061,9 @@ function openDynamicSortModal(key) {
     ov.innerHTML = '<div class="modal" style="width:520px">' +
       '<div class="modal-header"><span class="modal-title">调整排序</span><button class="modal-close" onclick="closeDynSortLayer()">&times;</button></div>' +
       '<div class="modal-body" id="dynSortBody"></div>' +
-      '<div class="modal-footer"><button class="btn btn-outline" onclick="closeDynSortLayer()">取消</button>' +
+      /* v1073：恢复默认——回到打开弹窗时的原始顺序，点「保存」生效 */
+      '<div class="modal-footer"><button class="btn btn-outline" onclick="resetDynSort()">恢复默认</button>' +
+      '<button class="btn btn-outline" onclick="closeDynSortLayer()">取消</button>' +
       '<button class="btn btn-primary" onclick="saveDynSort()">保存</button></div></div>';
     document.body.appendChild(ov);
   }
@@ -2072,8 +2077,9 @@ function openDynamicSortModal(key) {
     window._dynSortRows.forEach((r, i) => {
       html += `<div class="sortable-item"><span class="sortable-name">${String(i + 1).padStart(2, '0')} · ${esc(labelOf(r))}</span>`;
       html += '<div class="sortable-actions">';
-      html += `<button class="btn btn-ghost btn-sm" ${i === 0 ? 'disabled' : ''} onclick="_dynSortMove(${i},-1)">▲</button>`;
-      html += `<button class="btn btn-ghost btn-sm" ${i === window._dynSortRows.length - 1 ? 'disabled' : ''} onclick="_dynSortMove(${i},1)">▼</button>`;
+      /* v1073：▲▼ 统一用全站既有小三角（=「设置」里/接稿排期日历格那款），原 btn-ghost 方块太大且改蓝字后发浅 */
+      html += `<button type="button" class="df-btn df-sort-btn" title="上移" aria-label="上移" ${i === 0 ? 'disabled' : ''} onclick="_dynSortMove(${i},-1)">▲</button>`;
+      html += `<button type="button" class="df-btn df-sort-btn" title="下移" aria-label="下移" ${i === window._dynSortRows.length - 1 ? 'disabled' : ''} onclick="_dynSortMove(${i},1)">▼</button>`;
       html += '</div></div>';
     });
     html += '</div>';
@@ -2086,6 +2092,12 @@ function openDynamicSortModal(key) {
     window._dynSortRender();
   };
   window.closeDynSortLayer = () => { ov.classList.remove('show'); };
+  /* v1073：恢复默认——还原成打开弹窗时的行顺序 */
+  window.resetDynSort = () => {
+    window._dynSortRows = window._dynSortOriginal.slice();
+    window._dynSortRender();
+    Toast.info('已恢复默认排序，点「保存」生效');
+  };
   window.saveDynSort = () => {
     const live = document.getElementById(window._dynSortKey + '_rows');
     if (live) {
@@ -4294,8 +4306,13 @@ function renderListPage(pageKey, mod) {
   if (pageKey === 'oc-profiles') {
     html += `<button class="btn btn-outline toolbar-eq" onclick="openProfileSortModal()">${lucide('arrow-up-down',16)} 调整排序</button>`;
   } else if (MODULES[pageKey] && MODULES[pageKey].store) {
-    /* v1061：所有模块都支持调整排序（手机端「调整」二字由 CSS 隐藏，只留「排序」） */
-    html += `<button class="btn btn-outline toolbar-eq" onclick="openModuleSortModal('${pageKey}')">${lucide('arrow-up-down',16)} <span class="sort-long">调整</span>排序</button>`;
+    if (pageKey === 'groupbuy-priceref') {
+      /* v1073：价格参考按「单个品类（制品）」排序（毛毯/围巾…一个一行），不走通用记录排序 */
+      html += `<button class="btn btn-outline toolbar-eq" onclick="openPriceRefSortModal()">${lucide('arrow-up-down',16)} <span class="sort-long">调整</span>排序</button>`;
+    } else {
+      /* v1061：所有模块都支持调整排序（手机端「调整」二字由 CSS 隐藏，只留「排序」） */
+      html += `<button class="btn btn-outline toolbar-eq" onclick="openModuleSortModal('${pageKey}')">${lucide('arrow-up-down',16)} <span class="sort-long">调整</span>排序</button>`;
+    }
   }
   html += `<button class="btn btn-primary" onclick="openAddForm('${pageKey}')">+ 新增记录</button>`;
   html += '</div>';
@@ -4362,8 +4379,22 @@ function renderListPage(pageKey, mod) {
       if (!_map.has(k)) _map.set(k, []);
       _map.get(k).push(r);
     });
+    /* v1073：排过序的按制品 order（排序弹窗里调的），没排过仍按制品名 A-Z */
+    const _prOrd = k => {
+      const rs = _map.get(k) || [];
+      let v = 1e15;
+      rs.forEach(r => { if (r.order != null && r.order < v) v = r.order; });
+      return v;
+    };
+    const _hasOrd = [..._map.keys()].some(k => _prOrd(k) !== 1e15);
     records = [..._map.entries()]
-      .sort((a, b) => priceRefSortKey(a[0]).localeCompare(priceRefSortKey(b[0]), 'zh-Hans-CN'))
+      .sort((a, b) => {
+        if (_hasOrd) {
+          const oa = _prOrd(a[0]), ob = _prOrd(b[0]);
+          if (oa !== ob) return oa - ob;
+        }
+        return priceRefSortKey(a[0]).localeCompare(priceRefSortKey(b[0]), 'zh-Hans-CN');
+      })
       .map(([k, rs]) => {
         const sorted = rs.slice().sort((x, y) => (parseFloat(x.price) || 0) - (parseFloat(y.price) || 0));
         return { id: sorted[0].id, _aggName: k, _aggRows: sorted };
@@ -5195,8 +5226,9 @@ function openProfileSortModal() {
     list.forEach((r, i) => {
       html += `<div class="sortable-item"><span class="sortable-name">${esc(r.name || '未命名')}</span>`;
       html += `<div class="sortable-actions">`;
-      html += `<button class="btn btn-ghost btn-sm" ${i === 0 ? 'disabled' : ''} onclick="profileSortMove(${i},-1)">▲</button>`;
-      html += `<button class="btn btn-ghost btn-sm" ${i === list.length - 1 ? 'disabled' : ''} onclick="profileSortMove(${i},1)">▼</button>`;
+      /* v1073：▲▼ 统一用全站既有小三角 .df-btn.df-sort-btn */
+      html += `<button type="button" class="df-btn df-sort-btn" title="上移" aria-label="上移" ${i === 0 ? 'disabled' : ''} onclick="profileSortMove(${i},-1)">▲</button>`;
+      html += `<button type="button" class="df-btn df-sort-btn" title="下移" aria-label="下移" ${i === list.length - 1 ? 'disabled' : ''} onclick="profileSortMove(${i},1)">▼</button>`;
       html += '</div></div>';
     });
     html += '</div>';
@@ -5217,7 +5249,16 @@ function openProfileSortModal() {
     });
     render();
   };
+  /* v1073：恢复默认——清掉手动 order，回到按创建时间正序（需再点「保存」落库） */
+  const profileSortReset = () => {
+    list.forEach(r => { delete r.order; });
+    list.sort((a, b) => (a._ct || 0) - (b._ct || 0));
+    list.forEach((r, i) => { r.order = i; });
+    render();
+    Toast.info('已恢复默认排序，点「保存」生效');
+  };
   openModal('调整人物档案排序', '', [
+    { label: '恢复默认', class: 'btn-outline', action: profileSortReset },
     { label: '取消', class: 'btn-outline', action: () => closeModal() },
     { label: '保存', class: 'btn-primary', action: () => {
       DB.save('ocCharacters', list);
@@ -5264,8 +5305,9 @@ function openModuleSortModal(pageKey) {
     list.forEach((r, i) => {
       html += `<div class="sortable-item"><span class="sortable-name">${esc(moduleRecordLabel(pageKey, r))}</span>`;
       html += '<div class="sortable-actions">';
-      html += `<button class="btn btn-ghost btn-sm" ${i === 0 ? 'disabled' : ''} onclick="moduleSortMove(${i},-1)">▲</button>`;
-      html += `<button class="btn btn-ghost btn-sm" ${i === list.length - 1 ? 'disabled' : ''} onclick="moduleSortMove(${i},1)">▼</button>`;
+      /* v1073：▲▼ 统一用全站既有小三角 .df-btn.df-sort-btn */
+      html += `<button type="button" class="df-btn df-sort-btn" title="上移" aria-label="上移" ${i === 0 ? 'disabled' : ''} onclick="moduleSortMove(${i},-1)">▲</button>`;
+      html += `<button type="button" class="df-btn df-sort-btn" title="下移" aria-label="下移" ${i === list.length - 1 ? 'disabled' : ''} onclick="moduleSortMove(${i},1)">▼</button>`;
       html += '</div></div>';
     });
     html += '</div>';
@@ -5281,13 +5323,82 @@ function openModuleSortModal(pageKey) {
     list.sort(byOrder);
     render();
   };
+  /* v1073：恢复默认——清掉手动 order，回到按创建时间正序（需再点「保存」落库） */
+  const moduleSortReset = () => {
+    list.forEach(r => { delete r.order; });
+    list.sort((a, b) => (a._ct || 0) - (b._ct || 0));
+    list.forEach((r, i) => { r.order = i; });
+    render();
+    Toast.info('已恢复默认排序，点「保存」生效');
+  };
   openModal('调整排序', '', [
+    { label: '恢复默认', class: 'btn-outline', action: moduleSortReset },
     { label: '取消', class: 'btn-outline', action: () => closeModal() },
     { label: '保存', class: 'btn-primary', action: () => {
       DB.save(mod.store, list);
       Toast.success('排序已保存');
       closeModal();
       if (currentPage === pageKey) navigate(pageKey);
+    }}
+  ]);
+  render();
+}
+
+/* ===== v1073：价格参考排序（她："价格参考的排序按单个品类来，毛毯、围巾这样"）=====
+   一个制品（品类）一行，不再把同名制品的多条价位重复列出来；移动时同步该制品名下全部记录的 order。 */
+function openPriceRefSortModal() {
+  const rows = (DB.list('priceRef') || []).slice();
+  const groups = {};
+  rows.forEach(r => { const n = String(r.name || '').trim(); if (n) (groups[n] = groups[n] || []).push(r); });
+  let names = Object.keys(groups);
+  if (!names.length) { Toast.info('还没有可排序的制品'); return; }
+  const ordOf = n => { let v = 1e15; groups[n].forEach(r => { if (r.order != null && r.order < v) v = r.order; }); return v; };
+  const sortNames = () => {
+    names.sort((a, b) => {
+      const oa = ordOf(a), ob = ordOf(b);
+      if (oa !== ob) return oa - ob;
+      return priceRefSortKey(a).localeCompare(priceRefSortKey(b), 'zh-Hans-CN');
+    });
+  };
+  sortNames();
+  /* 没排过序的先按 A-Z 补 order，保证后续交换有效 */
+  names.forEach((n, i) => { if (ordOf(n) === 1e15) groups[n].forEach(r => { r.order = i; }); });
+  sortNames();
+  const setOrder = (n, v) => { groups[n].forEach(r => { r.order = v; }); };
+  const render = () => {
+    let html = '<div class="sortable-list">';
+    names.forEach((n, i) => {
+      html += `<div class="sortable-item"><span class="sortable-name">${esc(n)}</span>`;
+      html += '<div class="sortable-actions">';
+      html += `<button type="button" class="df-btn df-sort-btn" title="上移" aria-label="上移" ${i === 0 ? 'disabled' : ''} onclick="priceRefSortMove(${i},-1)">▲</button>`;
+      html += `<button type="button" class="df-btn df-sort-btn" title="下移" aria-label="下移" ${i === names.length - 1 ? 'disabled' : ''} onclick="priceRefSortMove(${i},1)">▼</button>`;
+      html += '</div></div>';
+    });
+    html += '</div>';
+    $('#modalBody').innerHTML = html;
+  };
+  window.priceRefSortMove = (i, dir) => {
+    const j = i + dir;
+    if (j < 0 || j >= names.length) return;
+    const oi = ordOf(names[i]), oj = ordOf(names[j]);
+    setOrder(names[i], oj); setOrder(names[j], oi);
+    sortNames(); render();
+  };
+  const resetDefault = () => {
+    names.forEach(n => { groups[n].forEach(r => { delete r.order; }); });
+    names.sort((a, b) => priceRefSortKey(a).localeCompare(priceRefSortKey(b), 'zh-Hans-CN'));
+    names.forEach((n, i) => setOrder(n, i));
+    sortNames(); render();
+    Toast.info('已恢复默认排序，点「保存」生效');
+  };
+  openModal('调整价格参考排序', '', [
+    { label: '恢复默认', class: 'btn-outline', action: resetDefault },
+    { label: '取消', class: 'btn-outline', action: () => closeModal() },
+    { label: '保存', class: 'btn-primary', action: () => {
+      DB.save('priceRef', rows);
+      Toast.success('排序已保存');
+      closeModal();
+      if (currentPage === 'groupbuy-priceref') navigate('groupbuy-priceref');
     }}
   ]);
   render();
@@ -7243,13 +7354,17 @@ function gbRunVerify(){
   $('#gbVerifyArea').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-/* ---------- v1054 持久化：开团草稿存 localStorage（页面切换/刷新不丢） ---------- */
+/* ---------- v1054 持久化：开团草稿（v1073 起改存 DB 并云端同步；localStorage 仅作旧草稿迁移源） ---------- */
 var gbShopIds=['calc_itemCost','calc_sampleCost','calc_laborCost','calc_shipping','calc_commissionRate','calc_profitMargin','calc_quantity','calc_templateName'];
+var GB_DRAFT_ID='calc-draft';
 function gbSaveState(){
   try{
     var sv={};
     gbShopIds.forEach(function(id){ var el=$('#'+id); if(el) sv[id]=el.value; });   /* v1058：$ 是 querySelector，必须带 # */
-    localStorage.setItem('gbCalcState', JSON.stringify({G:gbG,items:gbItems,bundles:gbBundles,uid:gbUid,shop:sv}));
+    var payload={G:gbG,items:gbItems,bundles:gbBundles,uid:gbUid,shop:sv};
+    var arr=DB.list('gbCalcState')||[];
+    if(arr.length){ DB.update('gbCalcState', arr[0].id, payload); }
+    else { DB.add('gbCalcState', Object.assign({id:GB_DRAFT_ID}, payload)); }
   }catch(e){}
 }
 /* v1056：常用参数——每个参数框后挂自己的「存为常用」+ 已存常用值按钮（点值即套用）。结构 {fieldId:[v1,v2,...]} 存 localStorage */
@@ -7288,16 +7403,32 @@ function gbInitState(){
   /* v1058：首次进入=空白（一条空白单品）；之后进入恢复上次状态（草稿随每次输入自动存 gbCalcState——她："第二次、第三次进保留之前的状态"） */
   var blank=function(){ gbItems=[gbNewItem('',100,[{min:100,price:0}],0,3)]; gbBundles=[]; };
   try{
-    var s=JSON.parse(localStorage.getItem('gbCalcState')||'null');
-    if(s && s.items && s.items.length){ gbG=s.gbG||{giftCost:'',rate:'',freeShip:false,ship:''}; gbItems=s.items; gbBundles=s.bundles||[]; gbUid=s.uid||1000; }
+    /* v1073：先取云端/DB 的草稿（手机端上传的为准），DB 里还没有才把本地旧草稿迁进来 */
+    var rec=(DB.list('gbCalcState')||[])[0];
+    if(!rec){
+      var s=JSON.parse(localStorage.getItem('gbCalcState')||'null');
+      if(s && s.items && s.items.length){
+        rec={id:GB_DRAFT_ID, G:s.G||s.gbG||{giftCost:'',rate:'',freeShip:false,ship:''}, items:s.items,
+             bundles:s.bundles||[], uid:s.uid||1000, shop:s.shop||null};
+        DB.add('gbCalcState', rec);
+      }
+    }
+    if(rec && rec.items && rec.items.length){ gbG=rec.G||{giftCost:'',rate:'',freeShip:false,ship:''}; gbItems=rec.items; gbBundles=rec.bundles||[]; gbUid=rec.uid||1000; }
     else blank();
     gbCommonParams=JSON.parse(localStorage.getItem('gbCommonParams')||'{}')||{};
-    gbShopVals=(s && s.shop) || null;
+    gbShopVals=(rec && rec.shop) || null;
   }catch(e){ blank(); gbCommonParams={}; gbShopVals=null; }
 }
 /* v1058：一键清除（同报价计算 dcClearProducts）——清全部输入与草稿，回到一条空白单品 */
 function gbClearAll(){
-  try{ localStorage.removeItem('gbCalcState'); }catch(e){}
+  /* v1073：草稿同步后，清除要走 DB 更新（不能用 remove——墓碑 id 固定，后续再存同 id 会在别端复活成旧草稿） */
+  try{
+    localStorage.removeItem('gbCalcState');
+    var _arr=DB.list('gbCalcState')||[];
+    var _blank={G:{giftCost:'',rate:'',freeShip:false,ship:''},items:[gbNewItem('',100,[{min:100,price:0}],0,3)],bundles:[],uid:gbUid,shop:{}};
+    if(_arr.length) DB.update('gbCalcState', _arr[0].id, _blank);
+    else DB.add('gbCalcState', Object.assign({id:GB_DRAFT_ID}, _blank));
+  }catch(e){}
   gbG={giftCost:'', rate:'', freeShip:false, ship:''};
   gbItems=[gbNewItem('',100,[{min:100,price:0}],0,3)];
   gbBundles=[];
@@ -7381,12 +7512,22 @@ function openGbLibSort(){
        '<span class="sort-name">'+gbEsc(t.name||'未命名')+'</span>'+
        '<span class="sort-price">'+esc(right)+'</span>'+
        '<span class="sort-btns">'+
-       '<button type="button" class="btn btn-ghost btn-sm" '+(isFirst?'disabled':'')+' onclick="event.stopPropagation();gbLibMove(\''+t.id+'\',-1);openGbLibSort()">▲</button>'+
-       '<button type="button" class="btn btn-ghost btn-sm" '+(isLast?'disabled':'')+' onclick="event.stopPropagation();gbLibMove(\''+t.id+'\',1);openGbLibSort()">▼</button>'+
+       /* v1073：▲▼ 统一用全站既有小三角 .df-btn.df-sort-btn */
+       '<button type="button" class="df-btn df-sort-btn" title="上移" aria-label="上移" '+(isFirst?'disabled':'')+' onclick="event.stopPropagation();gbLibMove(\''+t.id+'\',-1);openGbLibSort()">▲</button>'+
+       '<button type="button" class="df-btn df-sort-btn" title="下移" aria-label="下移" '+(isLast?'disabled':'')+' onclick="event.stopPropagation();gbLibMove(\''+t.id+'\',1);openGbLibSort()">▼</button>'+
        '</span></div>';
   });
   h+='</div>';
-  openModal('调整商品库排序', h, [{label:'完成', class:'btn-primary', action:function(){ closeModal(); renderGbLibPage(); }}], 'notes-sm');
+  /* v1073：恢复默认——清掉手动 order，回到按创建时间倒序（商品库即时生效） */
+  var gbLibSortReset=function(){
+    gbLibSorted().forEach(function(t){ DB.update('gbProducts', t.id, {order:null}); });
+    Toast.info('已恢复默认排序');
+    openGbLibSort();
+  };
+  openModal('调整商品库排序', h, [
+    {label:'恢复默认', class:'btn-outline', action:gbLibSortReset},
+    {label:'完成', class:'btn-primary', action:function(){ closeModal(); renderGbLibPage(); }}
+  ], 'notes-sm');
 }
 function gbLibListHTML(){
   var ps=pageState['groupbuy-lib']||{};
@@ -11127,13 +11268,30 @@ function openPriceListSort() {
       const _us = _pu === '元' ? '' : (_pu === '元/起' ? '+' : _pu.replace('元', ''));
       html += `<span class="sort-price">¥${esc(r.price || 0)}${esc(_us)}</span>`;
       html += `<span class="sort-btns">`;
-      html += `<button class="btn btn-ghost btn-sm" ${isFirst ? 'disabled' : ''} onclick="event.stopPropagation();priceItemMove('${r.id}',-1);openPriceListSort();">▲</button>`;
-      html += `<button class="btn btn-ghost btn-sm" ${isLast ? 'disabled' : ''} onclick="event.stopPropagation();priceItemMove('${r.id}',1);openPriceListSort();">▼</button>`;
+      /* v1073：▲▼ 统一用全站既有小三角 .df-btn.df-sort-btn */
+      html += `<button type="button" class="df-btn df-sort-btn" title="上移" aria-label="上移" ${isFirst ? 'disabled' : ''} onclick="event.stopPropagation();priceItemMove('${r.id}',-1);openPriceListSort();">▲</button>`;
+      html += `<button type="button" class="df-btn df-sort-btn" title="下移" aria-label="下移" ${isLast ? 'disabled' : ''} onclick="event.stopPropagation();priceItemMove('${r.id}',1);openPriceListSort();">▼</button>`;
       html += '</span></div>';
     });
   });
   html += '</div>';
-  openModal('调整价目排序', html, [{ label: '完成', class: 'btn-primary', action: () => { closeModal(); renderPriceList(); } }], 'notes-sm');
+  /* v1073：恢复默认——每个分类内按创建时间重排 sort（价目表即时生效） */
+  const priceSortReset = () => {
+    const all = DB.list('priceList');
+    const g2 = {};
+    all.forEach(r => { const c = r.category || '未分类'; (g2[c] = g2[c] || []).push(r); });
+    Object.keys(g2).forEach(c => {
+      g2[c].sort((a, b) => (a._ct || 0) - (b._ct || 0));
+      g2[c].forEach((r, i) => { r.sort = i; });
+    });
+    DB.save('priceList', all);
+    Toast.info('已恢复默认排序');
+    openPriceListSort();
+  };
+  openModal('调整价目排序', html, [
+    { label: '恢复默认', class: 'btn-outline', action: priceSortReset },
+    { label: '完成', class: 'btn-primary', action: () => { closeModal(); renderPriceList(); } }
+  ], 'notes-sm');
 }
 
 function openPriceListNotes() {

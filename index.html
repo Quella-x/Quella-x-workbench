@@ -1832,12 +1832,13 @@ html.apk.modal-lock{overflow:hidden!important}
 .pricelist-sort-panel{max-height:60vh;overflow-y:auto;padding-right:4px}
 .pricelist-sort-category{font-size:14px;font-weight:700;color:var(--c-text);margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--c-border)}
 .pricelist-sort-category:first-child{margin-top:0}
-.pricelist-sort-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dotted var(--c-border-light);font-size:13px}
+.pricelist-sort-item{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px dotted var(--c-border-light);font-size:13px}
 .pricelist-sort-item:last-child{border-bottom:none}
 .pricelist-sort-item .sort-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pricelist-sort-item .sort-price{font-weight:700;color:var(--c-primary-dark);margin:0 10px;white-space:nowrap}
-.pricelist-sort-item .sort-btns{display:flex;gap:4px}
-.pricelist-sort-item .sort-btns button{padding:2px 8px;font-size:12px;min-width:0}
+.pricelist-sort-item .sort-btns{display:flex;gap:4px;align-items:center}
+/* v1073：▲▼ 改 .df-btn.df-sort-btn，去掉原先 padding:2px 8px —— 它会撑破 22×22 的小三角 */
+.pricelist-sort-item .sort-btns button{min-width:0}
 
 /* ===== Nav Icon Editor ===== */
 .nav-icon-edit-list{display:flex;flex-direction:column;gap:0;margin-top:8px;background:var(--c-primary-bg);border-radius:var(--radius-sm);padding:6px 10px}
@@ -2351,16 +2352,16 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 }
 
 /* ===== v15/v29-fix2: OC Profile 排序弹窗 ===== */
-.sortable-list{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;padding-right:4px}
+/* v1073：行高压缩（她："排序每条内容的高度怎么这么高"）——padding 10→6、行间距 8→6 */
+.sortable-list{display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow-y:auto;padding-right:4px}
 .sortable-item{
   display:flex;align-items:center;justify-content:space-between;
-  gap:12px;padding:10px 12px;background:var(--c-card-bg,#fff);
+  gap:12px;padding:6px 10px;background:var(--c-card-bg,#fff);
   border:1px solid var(--c-border-light);border-radius:10px;
 }
 .sortable-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
-.sortable-actions{display:flex;gap:6px}
-.sortable-actions .btn-ghost{width:32px;height:32px;padding:0;display:flex;align-items:center;justify-content:center}
-.sortable-actions .btn-ghost:disabled{opacity:.35;cursor:not-allowed}
+/* v1073：排序 ▲▼ 统一用全站既有小三角 .df-btn.df-sort-btn（=「设置」里/接稿排期日历格那款：22×22、无边框、透明底） */
+.sortable-actions{display:flex;gap:4px;align-items:center}
 
 /* ===== v15/v32: Timeline (时间轨迹) ===== */
 /* AH轮修正：时间线选中胶囊加高(垂直padding)、外框内边距取消；全局toolbar间距回16px */
@@ -3671,8 +3672,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .pricelist-menu-item{padding-top:4px;padding-bottom:4px}
 .pricelist-menu-item .menu-dots{margin-right:8px;margin-left:8px}
 .pricelist-menu-category{margin-bottom:8px}
-.pricelist-sort-category{margin-top:16px;margin-bottom:8px}
-.pricelist-sort-item{padding-top:8px;padding-bottom:8px}
+.pricelist-sort-category{margin-top:12px;margin-bottom:6px}
+.pricelist-sort-item{padding-top:5px;padding-bottom:5px}
 .pricelist-sort-item .sort-price{margin-right:8px;margin-left:8px}
 .life-quick-checkin{padding-top:16px;padding-bottom:16px;margin-bottom:16px}
 .lqc-hd{gap:8px}
@@ -3925,7 +3926,9 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .gb-lib-list{max-width:860px;margin:0 auto}
 /* v1072：行内只留 名称/标签/价位（行尾 ⋮ 已删）；统一 gap，行内容垂直居中
    （v1070 改成 flex-start 让内容贴顶——档位 v1071 已改回一排，不再需要，还原为居中） */
-.gb-lib-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--c-border);cursor:pointer}
+/* v1073：padding 左右改回 16px（与 .pricelist-menu-item 一致）——
+   v1072 写成 6px 0 让 hover/选中高亮块左右贴边没有空余（她："选择后的底色左右两边没有空余"） */
+.gb-lib-item{display:flex;align-items:center;gap:8px;padding:6px 16px;border-bottom:1px solid var(--c-border);cursor:pointer}
 .gb-lib-item:hover{background:var(--c-primary-bg);border-radius:4px}
 .gb-lib-item .lib-name{flex:1;min-width:0;font-size:13px;color:var(--c-text);line-height:1.5}
 .gb-lib-item .lib-meta{font-size:12px;color:var(--c-text-muted);white-space:nowrap;line-height:1.4}
@@ -3989,8 +3992,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1072"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1072 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1073"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1073 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
