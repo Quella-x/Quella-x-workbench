@@ -1373,6 +1373,16 @@ html.apk #mainBody.pf-lr .lr-2col > .lr-right{overflow:visible}
 .settings-section{display:none;max-height:62vh;overflow-y:auto}
 .settings-section.active{display:block !important;min-height:120px;max-height:62vh;overflow-y:auto}
 .modal-body{min-height:0}
+/* ===== v1079：她拍板的三件小事 =====
+   ① 接稿排期日历视图：日历本身不固定（随内容滚），日历下方年度导航栏 sticky 吸顶（滚上去后贴住）；
+   ② 设置弹窗：「选择模块」下拉条吸顶（「展示字段/版块设置」页内容滚动时保持可见）；
+   ③ 设置弹窗滚动条调细（她：「现在这个好粗」）。 */
+.comm-cal-yearnav{position:sticky;top:0;z-index:15;background:var(--c-bg)}
+/* JS 接管版吸顶（sticky 在 grid 左列内吸附范围不够，见 applyPageFixed 注释） */
+.comm-cal-yearnav.pf-stuck{position:fixed;z-index:30;background:var(--c-bg);margin:0;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.settings-section > .module-selector{position:sticky;top:0;z-index:5;background:var(--c-card);margin-bottom:0;padding-bottom:16px}
+.settings-section::-webkit-scrollbar{width:3px;height:3px}
+.settings-section::-webkit-scrollbar-thumb{background:rgba(120,140,160,.3);border-radius:2px}
 .color-picker-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
 .color-picker-row label{font-size:13px;width:100px;flex-shrink:0}
 .color-picker-row input[type="color"]{width:40px;height:32px;border:1px solid var(--c-border);border-radius:4px;cursor:pointer}
@@ -4030,8 +4040,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1078"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1078 —— 若这里显示的不是 v1078 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1079"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1079 —— 若这里显示的不是 v1079 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

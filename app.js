@@ -4220,7 +4220,7 @@ window.addEventListener('resize', () => {
    电脑端这 5 个 two-col 模块 v808 本就固定，本批主要补手机端；其余 4 个两端一起补。
    第二批（独立渲染函数，需逐个处理）：商品库 renderGbLibPage / 时间线 renderTimeline /
    接稿排期日历视图（日历固定）/ 接稿详情 / 价目表 / 每日打卡。 */
-var PF_MODULES = ['groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'groupbuy-priceref', 'design-inspiration', 'design-auth', 'oc-profiles', 'oc-stories', 'oc-commission'];
+var PF_MODULES = ['groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'groupbuy-priceref', 'design-inspiration', 'design-auth', 'oc-profiles', 'oc-stories', 'oc-commission', 'design-commission'];
 function applyPageFixed(body) {
   if (!body) return;
   body.classList.remove('pf-on');
@@ -4239,6 +4239,37 @@ function applyPageFixed(body) {
   parent.appendChild(head);
   parent.appendChild(rest);
   body.classList.add('pf-on');
+  /* v1079：接稿排期日历视图——日历下方的年度导航栏「滑上去后吸顶」（她拍板）。
+     不能用 CSS sticky：.comm-cal-two-col{align-items:start}（v679 定稿布局）左列不拉伸，
+     sticky 吸附范围只有左列自身高度，滚过就没了。改 JS：滚动越过年导航原位时给它 position:fixed 贴住，
+     并留等高占位符防跳动。切月/切年重渲染后本函数重跑，自动重新挂监听。 */
+  var yn = rest.querySelector('.comm-cal-yearnav');
+  if (yn && !yn.dataset.pfWatch) {
+    yn.dataset.pfWatch = '1';
+    var ph = document.createElement('div');
+    ph.className = 'yn-ph';
+    ph.style.height = '0';
+    yn.parentNode.insertBefore(ph, yn);
+    var stuckNow = false;
+    var onScroll = function () {
+      var pr = rest.getBoundingClientRect();
+      var yr = ph.getBoundingClientRect();
+      var stuck = yr.top < pr.top + 1;
+      if (stuck === stuckNow) return;
+      stuckNow = stuck;
+      if (stuck) {
+        ph.style.height = yn.offsetHeight + 'px';
+        yn.style.left = yr.left + 'px';
+        yn.style.width = yr.width + 'px';
+        yn.style.top = pr.top + 'px';
+      } else {
+        ph.style.height = '0';
+      }
+      yn.classList.toggle('pf-stuck', stuck);
+    };
+    rest.addEventListener('scroll', onScroll);
+    window.addEventListener('scroll', onScroll);   /* APK 文档滚动不经过 rest，挂 window 兜底 */
+  }
 }
 
 function renderListPage(pageKey, mod) {
@@ -4397,6 +4428,9 @@ function renderListPage(pageKey, mod) {
     records = calFiltered;
   }
 
+  // v1079（她拍板）：切分边界统一在日历容器之前——固定区=搜索+按钮工具栏（列表视图还有年度导航）；
+  // 日历本身不固定、随内容滚，日历下方的年度导航栏改 sticky 吸顶（滚上去后贴住）。
+  html += '<div class="pf-split"></div>';
   // Commission calendar view rendered before records (日历在上，列表在下)
   if (commissionAllRecords) {
     html += '<div class="comm-cal-two-col">';
@@ -4419,15 +4453,13 @@ function renderListPage(pageKey, mod) {
     // v704：接稿排期日历视图年份导航移入左侧日历列（日历下方、展示模块上方），并居中
     if (YEAR_FILTER_MODULES.includes(pageKey)) {
       if (ps.yearFilter == null) ps.yearFilter = new Date().getFullYear();
-      html += '<div class="comm-yearnav comm-cal-yearnav" style="position:relative">' + renderYearNavHTML(pageKey, ps) + '</div>';
+      html += '<div class="comm-yearnav comm-cal-yearnav">' + renderYearNavHTML(pageKey, ps) + '</div>';
     }
     html += '</div>'; // close .comm-cal-col left
     html += '<div class="comm-cal-col comm-cal-col-list">'; // right column for record list
   }
 
   // 双栏：工具栏/日历之上独占一行，记录与详情预览并列（左右等宽卡片一一对应）
-  // v1077：顶部固定 / 底部滚动的切分边界（日历视图暂不参与——日历属于左列布局，需单独处理）
-  if (!commissionAllRecords) html += '<div class="pf-split"></div>';
   if (isCommDual) html += '<div class="comm-dual">';
 
   // Records
@@ -6296,6 +6328,7 @@ async function priceRefDeleteProduct(name) {
 /* ===== Home Page (v5: 平台按钮一排4个, 进平台隐藏日历, 图表在统计上) ===== */
 function renderHome() {
   const body = $('#mainBody');
+  let homeTwoCol = false;   /* v1079: 平台视图桌面双列标记（platform 分支内赋值，末尾 toggle 用） */
   const now = new Date();
   const thisYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   if (!pageState.home) pageState.home = { tab: null, calYear: now.getFullYear(), calMonth: now.getMonth(), view: 'main', search: '', dateFilter: thisYM, chartYear: now.getFullYear(), statsScope: 'year', contentTypeFilter: '', monthPickerOpen: false, monthPickerY: null };
@@ -6398,12 +6431,16 @@ function renderHome() {
     const homePaged = filteredRecords.slice((ps.homePageNo - 1) * homePageSize, ps.homePageNo * homePageSize);
 
     // v682：桌面端平台视图始终双列（含空态），左侧展示列表/空态，右侧固定图表+统计，对齐开团记录
-    const homeTwoCol = window.innerWidth >= 641;
+    homeTwoCol = window.innerWidth >= 641;
     if (homeTwoCol) {
+      /* v1079：桌面端 = 顶部固定（平台按钮行+工具栏），下面两列照开团记录 v808 各自内滚 */
+      html += '<div class="pf-split"></div>';
       html += '<div class="gb-records-2col"><div class="gb-left">';
       html += '<div class="home-filter-stack">' + homeStatusHtml + homeMonthHtml + '</div>';
     } else {
+      /* v1079：手机端 = 平台按钮行+工具栏+状态筛选+月份导航固定，之后的内容滚动 */
       html += homeStatusHtml + homeMonthHtml;
+      html += '<div class="pf-split"></div>';
     }
 
     if (!filteredRecords.length) {
@@ -6465,6 +6502,9 @@ function renderHome() {
 
   html += '</div>';
   body.innerHTML = html;
+  /* v1079：首页平台视图 = 顶部固定+底部滚动（日历视图不切分、整页照旧）；桌面端两列各自内滚对齐开团记录 */
+  body.classList.toggle('two-col-fixed', ps.view === 'platform' && homeTwoCol);
+  if (ps.view === 'platform') applyPageFixed(body);
 }
 
 function renderHomeRecordCard(r) {
