@@ -4237,11 +4237,17 @@ function updateApkHdrH() {
     var heads = document.querySelectorAll('.pf-head');
     for (var i = 0; i < heads.length; i++) {
       var ph = heads[i];
+      /* v1090：她实测「整个格式都变了」——pf-head 在带左右边距的容器里，直接 left:0;width:100%
+         会铺满全屏丢边距。改 fixed 前先量它在文档流里的横向位置/宽度，照原样定位；
+         已 fixed 的先临时还原再量（同一帧 JS 内完成，无中间绘制、无闪烁），转屏/resize 也正确。 */
+      var wasFixed = ph.style.position === 'fixed';
+      if (wasFixed) { ph.style.position = ''; ph.style.left = ''; ph.style.width = ''; }
+      var r = ph.getBoundingClientRect();
       ph.style.position = 'fixed';
       ph.style.top = t;
-      ph.style.left = '0';
-      ph.style.right = '0';
-      ph.style.width = '100%';
+      ph.style.left = Math.round(r.left) + 'px';
+      ph.style.width = Math.round(r.width) + 'px';
+      ph.style.right = 'auto';
       ph.style.zIndex = '25';
       var hh = ph.offsetHeight + 'px';
       var nxt = ph.nextElementSibling;
