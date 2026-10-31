@@ -4342,7 +4342,10 @@ function applyPageFixed(body) {
         ph.style.height = yn.offsetHeight + 'px';
         yn.style.left = yr.left + 'px';
         yn.style.width = yr.width + 'px';
-        yn.style.top = hb + 'px';
+        /* v1094：top 必须停在 hb+上边距——v1093 贴死 hb 再向上画同色带，带子压在 pf-head
+           最后一行（筛选按钮）下半截上把按钮吞了（她实测）。挪下来后阴影带落在按钮行下方
+           的空隙区，那里只有滚动经过的内容，被同色带遮住正是想要的「内容从间距下穿过」。 */
+        yn.style.top = (hb + ynMT) + 'px';
         yn.style.boxShadow = '0 -' + ynMT + 'px 0 0 var(--c-bg), 0 ' + ynMB + 'px 0 0 var(--c-bg)';
       } else {
         ph.style.height = '0';
