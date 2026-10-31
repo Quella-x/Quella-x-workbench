@@ -6409,7 +6409,7 @@ function renderHome() {
     html += '<button class="btn btn-primary" onclick="openAddForm(\'home\')">+ 新增记录</button>';
     html += '</div>';
 
-    // 待发布/已发布/月份导航：桌面端移入左列顶部（像每日记录睡眠/饮食按钮），手机端保持原样
+    // 待发布/已发布/月份导航：桌面端放在左列顶部并 sticky 钉住（像每日记录睡眠/饮食按钮），手机端保持原样在头部
     const homeStatusHtml = renderHomeStatusFilterBar();
     const homeMonthHtml = renderHomeMonthNav();
 
@@ -6436,10 +6436,10 @@ function renderHome() {
     // v682：桌面端平台视图始终双列（含空态），左侧展示列表/空态，右侧固定图表+统计，对齐开团记录
     homeTwoCol = window.innerWidth >= 641;
     if (homeTwoCol) {
-      /* v1082：桌面端 = 平台按钮行+工具栏+状态筛选+月份导航 整组固定在顶部，下面两列照开团记录各自内滚 */
-      html += '<div class="home-filter-stack">' + homeStatusHtml + homeMonthHtml + '</div>';
+      /* v1083：桌面端 = 平台按钮行+工具栏固定在顶部 head；状态筛选+月份导航回到左列顶部并 sticky 钉住（像每日记录睡眠/饮食按钮），记录列表在下方滚动 */
       html += '<div class="pf-split"></div>';
       html += '<div class="gb-records-2col"><div class="gb-left">';
+      html += '<div class="home-filter-stack">' + homeStatusHtml + homeMonthHtml + '</div>';
     } else {
       /* v1082：手机端 = 平台按钮行+工具栏+状态筛选+月份导航固定，之后的内容滚动 */
       html += homeStatusHtml + homeMonthHtml;

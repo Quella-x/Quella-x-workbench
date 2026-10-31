@@ -1738,6 +1738,8 @@ html.apk #mainBody.pf-lr .lr-2col > .lr-right{overflow:visible}
 .home-filter-stack{margin-bottom:8px}
 .home-filter-stack .home-status-filter{margin:0 0 8px}
 .home-filter-stack .cd-month-nav{margin:0;justify-content:flex-start;padding:0}
+/* v1083：桌面端两列模式下，状态筛选+月份导航在左列顶部 sticky 钉住（左列自身 overflow-y:auto 滚动记录） */
+.main-body.two-col-fixed .gb-left .home-filter-stack{position:sticky;top:0;z-index:5;background:var(--c-bg);padding:2px 0 6px;margin-bottom:0}
 
 .home-status-btn{
   flex:1;min-width:0;padding:0 12px;border-radius:var(--radius-sm);cursor:pointer;
@@ -4040,8 +4042,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1082"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1082 —— 若这里显示的不是 v1082 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1083"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1083 —— 若这里显示的不是 v1083 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
