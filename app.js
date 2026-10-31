@@ -6436,12 +6436,12 @@ function renderHome() {
     // v682：桌面端平台视图始终双列（含空态），左侧展示列表/空态，右侧固定图表+统计，对齐开团记录
     homeTwoCol = window.innerWidth >= 641;
     if (homeTwoCol) {
-      /* v1079：桌面端 = 顶部固定（平台按钮行+工具栏），下面两列照开团记录 v808 各自内滚 */
+      /* v1082：桌面端 = 平台按钮行+工具栏+状态筛选+月份导航 整组固定在顶部，下面两列照开团记录各自内滚 */
+      html += '<div class="home-filter-stack">' + homeStatusHtml + homeMonthHtml + '</div>';
       html += '<div class="pf-split"></div>';
       html += '<div class="gb-records-2col"><div class="gb-left">';
-      html += '<div class="home-filter-stack">' + homeStatusHtml + homeMonthHtml + '</div>';
     } else {
-      /* v1079：手机端 = 平台按钮行+工具栏+状态筛选+月份导航固定，之后的内容滚动 */
+      /* v1082：手机端 = 平台按钮行+工具栏+状态筛选+月份导航固定，之后的内容滚动 */
       html += homeStatusHtml + homeMonthHtml;
       html += '<div class="pf-split"></div>';
     }
