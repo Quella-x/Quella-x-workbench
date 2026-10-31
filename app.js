@@ -4243,12 +4243,15 @@ function updateApkHdrH() {
       var wasFixed = ph.style.position === 'fixed';
       if (wasFixed) { ph.style.position = ''; ph.style.left = ''; ph.style.width = ''; ph.style.paddingTop = ''; }
       var r = ph.getBoundingClientRect();
-      /* v1091：她实测（v1.2.2）「间距还是没回来」——v1090 把 pf-head fixed 在 top=导航栏底边，
-         头部直接贴住导航栏，把 .main-body 的 16px 顶部间距吃掉了（电脑端头部在滚动区外、
-         间距永远在，所以电脑端正常）。修法：fixed 仍贴导航栏底，但用头部自身 padding-top
-         垫回原间距——头部有页面底色背景，垫出的空隙和电脑端视觉完全一致，滚动时内容从
-         空隙下方穿过被遮住。间距按实测文档位置算（头部文档 top 减导航栏底），不硬编码。 */
-      var gap = Math.max(0, Math.round(r.top + (window.scrollY || 0) - h.getBoundingClientRect().bottom));
+      /* v1092：她真机（v1.2.3）「上面空一大截/直接空了」——v1091 的 gap 用「头部文档位置减
+         导航栏屏幕 bottom」计算，而她真机 WebView 连导航栏的 sticky 都吸不住（v1087/v1089
+         已两次证实），导航栏随文档滚走后 bottom=53-滚动量，gap 被吹大几百上千 px（headless
+         模拟实测 pt=1192px，整屏垫空）。v1092 先试 offsetTop 链，headless 模拟发现它同样被
+         滚动污染（模拟下 docTop 随滚动漂移）——最终直接读 #mainBody 的 computed paddingTop：
+         导航栏与内容的间距本源就是它（v804 实测 69=53+16 完全吻合），纯样式值，滚动/sticky/
+         布局时机全免疫。 */
+      var mbEl = document.querySelector('#mainBody');
+      var gap = mbEl ? Math.max(0, Math.round(parseFloat(getComputedStyle(mbEl).paddingTop) || 0)) : 0;
       ph.style.position = 'fixed';
       ph.style.top = t;
       ph.style.paddingTop = gap + 'px';
@@ -4267,7 +4270,12 @@ function updateApkHdrH() {
       }
     }
     var lrs = document.querySelectorAll('#mainBody.pf-lr .lr-2col > .lr-left');
-    for (var j = 0; j < lrs.length; j++) lrs[j].style.top = t;
+    for (var j = 0; j < lrs.length; j++) {
+      /* v1092：每日记录 lr-left 吸顶时同样贴住导航栏丢间距——用 box-shadow 向上垫出同款
+         间隙（不占布局：静止时垫在同色页面背景上不可见，吸住时就是导航栏下方的间距）。 */
+      lrs[j].style.top = t;
+      lrs[j].style.boxShadow = '0 -' + gap + 'px 0 0 var(--c-bg)';
+    }
   } catch (e) {}
 }
 window.addEventListener('resize', updateApkHdrH);
@@ -4313,17 +4321,25 @@ function applyPageFixed(body) {
     ph.style.height = '0';
     yn.parentNode.insertBefore(ph, yn);
     var stuckNow = false;
+    /* v1092：她真机「日历视图年度导航滑上去不吸顶」——v1079 判据是占位符 top < pf-body 顶边，
+       但 apk 是文档滚动（v798），pf-body 和占位符一起动、差值恒定，永远不触发。
+       改判「占位符 top < pf-head 底边」：apk 端 pf-head 是 fixed（恒定），PC 端 pf-head
+       是静态固定区（内滚时也恒定），两端通用；吸住后 top 直接贴 pf-head 底边。 */
+    var headBottom = function () {
+      var p = document.querySelector('.pf-head');
+      return p ? p.getBoundingClientRect().bottom : 53;
+    };
     var onScroll = function () {
-      var pr = rest.getBoundingClientRect();
       var yr = ph.getBoundingClientRect();
-      var stuck = yr.top < pr.top + 1;
+      var hb = headBottom();
+      var stuck = yr.top < hb + 1;
       if (stuck === stuckNow) return;
       stuckNow = stuck;
       if (stuck) {
         ph.style.height = yn.offsetHeight + 'px';
         yn.style.left = yr.left + 'px';
         yn.style.width = yr.width + 'px';
-        yn.style.top = pr.top + 'px';
+        yn.style.top = hb + 'px';
       } else {
         ph.style.height = '0';
       }
