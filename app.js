@@ -4234,7 +4234,11 @@ function updateApkHdrH() {
     if (!h) return;
     var t = h.offsetHeight + 'px';
     document.documentElement.style.setProperty('--hdr-h', t);
-    var heads = document.querySelectorAll('.pf-head');
+    /* v1093：每日记录 lr-left 并入 pf-head 同款处理——v1092 的 box-shadow 垫距画在元素上方，
+       吸顶 top=53 时垫出的 16px 落在 37~53 区间，被 z30 的不透明导航栏盖住（她实测「间距还没有」）。
+       手机端 .lr-2col 是 block、lr-left 全宽，与 pf-head 结构等价，直接用同一套
+       fixed + 自身 paddingTop 垫距 + pf-ph 占位（占位撑住文档流，内容位置不变）。 */
+    var heads = document.querySelectorAll('.pf-head, #mainBody.pf-lr .lr-2col > .lr-left');
     for (var i = 0; i < heads.length; i++) {
       var ph = heads[i];
       /* v1090：她实测「整个格式都变了」——pf-head 在带左右边距的容器里，直接 left:0;width:100%
@@ -4268,13 +4272,6 @@ function updateApkHdrH() {
         d.style.height = hh;
         ph.parentNode.insertBefore(d, ph.nextSibling);
       }
-    }
-    var lrs = document.querySelectorAll('#mainBody.pf-lr .lr-2col > .lr-left');
-    for (var j = 0; j < lrs.length; j++) {
-      /* v1092：每日记录 lr-left 吸顶时同样贴住导航栏丢间距——用 box-shadow 向上垫出同款
-         间隙（不占布局：静止时垫在同色页面背景上不可见，吸住时就是导航栏下方的间距）。 */
-      lrs[j].style.top = t;
-      lrs[j].style.boxShadow = '0 -' + gap + 'px 0 0 var(--c-bg)';
     }
   } catch (e) {}
 }
@@ -4324,11 +4321,17 @@ function applyPageFixed(body) {
     /* v1092：她真机「日历视图年度导航滑上去不吸顶」——v1079 判据是占位符 top < pf-body 顶边，
        但 apk 是文档滚动（v798），pf-body 和占位符一起动、差值恒定，永远不触发。
        改判「占位符 top < pf-head 底边」：apk 端 pf-head 是 fixed（恒定），PC 端 pf-head
-       是静态固定区（内滚时也恒定），两端通用；吸住后 top 直接贴 pf-head 底边。 */
+       是静态固定区（内滚时也恒定），两端通用；吸住后 top 直接贴 pf-head 底边。
+       v1093：她实测「这一圈阴影是什么？原本的间距格式也没了」——pf-stuck 的装饰阴影去掉；
+       吸顶后用同色 box-shadow 垫回它原来的上下外边距（手机端 15px 上 / 5px 下），
+       视觉与其他模块的年份导航完全一致（上方间距压在 pf-head 同色底上、不露内容）。 */
     var headBottom = function () {
       var p = document.querySelector('.pf-head');
       return p ? p.getBoundingClientRect().bottom : 53;
     };
+    var ynCS = getComputedStyle(yn);
+    var ynMT = Math.round(parseFloat(ynCS.marginTop) || 0);
+    var ynMB = Math.round(parseFloat(ynCS.marginBottom) || 0);
     var onScroll = function () {
       var yr = ph.getBoundingClientRect();
       var hb = headBottom();
@@ -4340,8 +4343,10 @@ function applyPageFixed(body) {
         yn.style.left = yr.left + 'px';
         yn.style.width = yr.width + 'px';
         yn.style.top = hb + 'px';
+        yn.style.boxShadow = '0 -' + ynMT + 'px 0 0 var(--c-bg), 0 ' + ynMB + 'px 0 0 var(--c-bg)';
       } else {
         ph.style.height = '0';
+        yn.style.boxShadow = '';
       }
       yn.classList.toggle('pf-stuck', stuck);
     };
@@ -15066,6 +15071,10 @@ function renderCommissionDetailPage() {
 
   html += '</div>';
   body.innerHTML = html;
+  /* v1093：她实测「接稿详情一会儿不固定一会儿又固定」——切品类/切月/搜索/翻页都直接走本函数
+     重建 innerHTML，pf-head 随之消失，只有重新导航才会重新固定。补调 applyPageFixed：
+     无 pf-split 时 no-op、有则重新切分并吸顶（与 renderListPage 内部同款收尾）。 */
+  applyPageFixed(body);
   /* v1049：接稿详情列表 masonry 兜底（浏览器不支持原生 grid masonry 时轮转列分组） */
   const _cdMasonryEl = body.querySelector('.cd-rec-list');
   if (_cdMasonryEl) masonryRRApply(_cdMasonryEl, 'cd');
