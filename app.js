@@ -4084,6 +4084,9 @@ function navigate(page) {
     if (mod) _navR = renderListPage(page, mod);
     else body.innerHTML = `<div class="empty-state"><div class="empty-icon">${lucide('wrench',32)}</div><div class="empty-text">页面开发中...</div></div>`;
   }
+  /* v1080：商品库/时间线/价目表/接稿详情/每日打卡 等独立渲染模块不走 renderListPage，
+     在此统一套用「顶部固定+底部滚动」（renderListPage 内部已调过，二次调用因 pf-split 已消费而自动 no-op） */
+  if (PF_MODULES.indexOf(page) >= 0) applyPageFixed(body);
   _navScrollRestore(page);   /* v1065：渲染完成后恢复该模块上次的滚动位置 */
   return _navR;
 }
@@ -4220,7 +4223,7 @@ window.addEventListener('resize', () => {
    电脑端这 5 个 two-col 模块 v808 本就固定，本批主要补手机端；其余 4 个两端一起补。
    第二批（独立渲染函数，需逐个处理）：商品库 renderGbLibPage / 时间线 renderTimeline /
    接稿排期日历视图（日历固定）/ 接稿详情 / 价目表 / 每日打卡。 */
-var PF_MODULES = ['groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'groupbuy-priceref', 'design-inspiration', 'design-auth', 'oc-profiles', 'oc-stories', 'oc-commission', 'design-commission'];
+var PF_MODULES = ['groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'groupbuy-priceref', 'design-inspiration', 'design-auth', 'oc-profiles', 'oc-stories', 'oc-commission', 'design-commission', 'groupbuy-lib', 'oc-timeline', 'design-pricelist', 'design-commission-detail', 'life-checkin'];
 function applyPageFixed(body) {
   if (!body) return;
   body.classList.remove('pf-on');
@@ -7669,6 +7672,7 @@ function renderGbLibPage(){
   h+='<button class="btn btn-outline toolbar-eq" onclick="openGbLibSort()">'+lucide('arrow-up-down',16)+' <span class="sort-long">调整</span>排序</button>';
   h+='<button class="btn btn-primary" onclick="gbLibEdit(\'\')">+ 新增商品</button>';
   h+='</div>';
+  h+='<div class="pf-split"></div>';
   h+='<div id="gbLibListWrap">'+gbLibListHTML()+'</div>';
   h+='</div>';
   body.innerHTML=h;
@@ -8001,6 +8005,7 @@ function renderTimeline() {
     html += `<div class="timeline-color-filter${cls}" data-color="${esc(c)}" onclick="timelineColorFilter('${esc(c)}')"><span class="timeline-color-label">${esc(tc.label)}</span></div>`;
   });
   html += '</div>';
+  html += '<div class="pf-split"></div>';
 
   // Timeline
   if (!records.length) {
@@ -11283,6 +11288,7 @@ function renderPriceList() {
   html += `<button class="btn btn-outline toolbar-eq" onclick="openPriceListSort()">${lucide('arrow-up-down',16)} 调整排序</button>`;
   html += '<button class="btn btn-primary" onclick="openAddForm(\'design-pricelist\')">+ 新增价目</button>';
   html += '</div>';
+  html += '<div class="pf-split"></div>';
 
   if (!records.length) {
     html += `<div class="empty-state"><div class="empty-icon">${lucide('wallet',32)}</div><div class="empty-text">暂无价目，点击「新增价目」开始添加</div></div>`;
@@ -13491,6 +13497,7 @@ function renderLifeCheckin() {
   }
   html += '</div>';
   html += '<div class="life-picker-backdrop" id="lifePickerBackdrop" onclick="lifeCheckinClosePickers()"></div>';
+  html += '<div class="pf-split"></div>';
   if (block === 'year') {
     try { html += renderLifeYearOverview(lifeCheckinYearView); } catch (e) { console.error('年视图渲染失败', e); html += '<div class="empty-state"><div class="empty-text">年视图加载失败，请重试</div></div>'; }
   } else if (block === 'week') {
@@ -14902,6 +14909,7 @@ function renderCommissionDetailPage() {
   if (ps.cdPickerOpen) html += '<div class="life-picker-backdrop" onclick="cdToggleMonthPicker()"></div>';
   html += `<button class="cd-unlinked-btn ${ps.showUnlinked ? 'active' : ''}" onclick="cdToggleUnlinked()">未关联</button>`;
   html += `</div>`;
+  html += '<div class="pf-split"></div>';
 
   // 当前月记录（支持跨月：关联接稿排期的开稿月~截稿月均显示）
   let monthRecs = recs.filter(r => {
