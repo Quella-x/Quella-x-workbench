@@ -4088,6 +4088,7 @@ function navigate(page) {
      在此统一套用「顶部固定+底部滚动」（renderListPage 内部已调过，二次调用因 pf-split 已消费而自动 no-op） */
   if (PF_MODULES.indexOf(page) >= 0) applyPageFixed(body);
   _navScrollRestore(page);   /* v1065：渲染完成后恢复该模块上次的滚动位置 */
+  updateApkHdrH();           /* v1085：apk 模式导航栏吸顶后，刷新 pf-head/lr-left 吸顶起点 --hdr-h */
   return _navR;
 }
 
@@ -4213,6 +4214,20 @@ window.addEventListener('resize', () => {
   }, 150);
 });
 /* === v1049 masonry RR end === */
+
+/* ===== v1085：手机端（apk）顶部导航栏吸顶联动 =====
+   她 11-01 报「手机端最上面的导航栏不固定」：.main-header 此前从未 sticky（只有各模块
+   pf-head / lr-left 有）。导航栏钉住后，pf-head / 每日记录 lr-left 的吸顶起点要让出
+   导航栏实际高度——用 CSS 变量 --hdr-h 写到 <html>（CSS 回退 69px），适配字体缩放/换行。
+   桌面端不走 html.apk，完全不受影响。 */
+function updateApkHdrH() {
+  try {
+    if (!document.documentElement.classList.contains('apk')) return;
+    var h = document.querySelector('.main-header');
+    if (h) document.documentElement.style.setProperty('--hdr-h', h.offsetHeight + 'px');
+  } catch (e) {}
+}
+window.addEventListener('resize', updateApkHdrH);
 
 /* ===== v1077：顶部固定 + 底部独立滚动（原型阶段） =====
    她：「顶部XX固定位置，滚动时只有底部模块滚动」——方案1（顶部 0 位移，底部独立滚动区）。
