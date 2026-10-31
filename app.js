@@ -4339,7 +4339,10 @@ function applyPageFixed(body) {
       if (stuck === stuckNow) return;
       stuckNow = stuck;
       if (stuck) {
-        ph.style.height = yn.offsetHeight + 'px';
+        /* v1095：她实测「日期导航栏刚碰上，底下的版块就也滑进去了，太快了」——吸住瞬间 yn
+           脱离文档流，占位符此前只补自身高度，yn 上下外边距（上15+下5）从流里消失，
+           底下内容瞬间上跳 20px。占位符把外边距一起补上，吸住瞬间几何完全连续。 */
+        ph.style.height = (yn.offsetHeight + ynMT + ynMB) + 'px';
         yn.style.left = yr.left + 'px';
         yn.style.width = yr.width + 'px';
         /* v1094：top 必须停在 hb+上边距——v1093 贴死 hb 再向上画同色带，带子压在 pf-head
