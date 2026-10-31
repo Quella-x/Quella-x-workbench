@@ -1838,11 +1838,11 @@ function closeCustomTimePicker(silent) {
 }
 // 将任意可解析日期归一化为 YYYY-MM-DD（已是规范格式则不动；与 📅 选择器输出格式完全一致）
 // v854：手输常见写法全部认：2026-9-9 / 2026.9.9 / 2026/9/9 / 2026年9月9日 / 20260909 / 26-9-9 / 26.9.9 / 26/9/9 / 26年9月9日 / 260909 / 9.9 / 9-9
-function normalizeDateValue(inp) {
-  if (!inp || !inp.value) return;
-  const raw = String(inp.value).trim();
-  if (!raw) return;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return;
+// v1086：补「横杠漏打」连写——2026-1031 / 20261031 / 261031 / 1031（纯数字去分隔符按位数认：8位=Y年M月D日、6位=YYMMDD、4位=MMDD 补当前年）
+function normalizeDateStr(raw) {
+  raw = String(raw == null ? '' : raw).trim();
+  if (!raw) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
   const pad = n => String(n).padStart(2, '0');
   const mk = (y, m, d) => { const dt = new Date(+y, +m - 1, +d); return (dt.getMonth() === +m - 1 && dt.getDate() === +d) ? `${y}-${pad(m)}-${pad(d)}` : ''; };
   let out = '';
@@ -1857,16 +1857,20 @@ function normalizeDateValue(inp) {
     m = s.match(/^(\d{1,2})-(\d{1,2})$/);
     if (m) out = mk(new Date().getFullYear(), m[1], m[2]); // 只写月日 -> 补当前年份
   }
+  /* v1086：横杠漏打散写兜底——不管分隔符，纯数字按位数认（2026-1031 → 8位 → 2026-10-31） */
   if (!out) {
-    m = s.match(/^(\d{4})(\d{2})(\d{2})$/);
-    if (m) out = mk(m[1], m[2], m[3]);
-  }
-  if (!out) {
-    m = s.match(/^(\d{2})(\d{2})(\d{2})$/);
-    if (m) out = mk('20' + m[1], m[2], m[3]); // YYMMDD -> 补 20
+    const dg = raw.replace(/\D/g, '');
+    if (dg.length === 8) out = mk(dg.slice(0, 4), dg.slice(4, 6), dg.slice(6, 8));
+    else if (dg.length === 6) out = mk('20' + dg.slice(0, 2), dg.slice(2, 4), dg.slice(4, 6));
+    else if (dg.length === 4) out = mk(new Date().getFullYear(), dg.slice(0, 2), dg.slice(2, 4));
   }
   if (!out) { const d = new Date(raw); if (!isNaN(d.getTime())) out = fmtDate(d); }
-  if (out) inp.value = out;
+  return out;
+}
+function normalizeDateValue(inp) {
+  if (!inp || !inp.value) return;
+  const v = normalizeDateStr(inp.value);
+  if (v) inp.value = v;
 }
 // v853：手输时间归一化（与 🕐 选择器输出 HH:MM 一致）；认 9:30 / 9点30 / 9点半 / 0930 等
 function normalizeTimeValue(inp) {
@@ -5779,6 +5783,13 @@ function setupFormInteractions(pageKey) {
 
 function saveForm(pageKey, mod, id) {
   const data = readForm($('#modalBody'));
+  /* v1086：date 字段保存时兜底归一（如手输 2026-1031 → 2026-10-31；防 onchange 漏网） */
+  (mod.fields || []).forEach(f => {
+    if (f.type === 'date' && data[f.key]) {
+      const v = normalizeDateStr(data[f.key]);
+      if (v) data[f.key] = v;
+    }
+  });
   // 人物关系：保存前把人物姓名归一为纯姓名（去「(道号/外号)」后缀），确保双向绑定匹配稳定
   if (pageKey === 'oc-relations') {
     data.charA = pureOcName(data.charA);
@@ -16981,12 +16992,39 @@ async function cdSubmitClientOrder(data) {
 }
 
 /* ===== Init ===== */
+/* ===== v1086：一次性修复历史坏日期 =====
+   她 11-01 发现开团样品「打样时间」显示 2026-1031（手输时漏打一个横杠，v854 归一没认出就原样入库）。
+   遍历所有 MODULES 仓库的 date 字段，能用 normalizeDateStr 修好的就 DB.update 修掉；
+   用 ui_dateNormV1086 标记只跑一次。 */
+function migrateBadDatesV1086() {
+  try {
+    if (DB.get('ui_dateNormV1086', false)) return;
+    let n = 0;
+    Object.keys(MODULES).forEach(pk => {
+      const mod = MODULES[pk];
+      if (!mod || !mod.fields || !mod.store) return;
+      const dateKeys = mod.fields.filter(f => f.type === 'date').map(f => f.key);
+      if (!dateKeys.length) return;
+      DB.list(mod.store).forEach(r => {
+        const patch = {};
+        dateKeys.forEach(k => {
+          if (r[k]) { const v = normalizeDateStr(r[k]); if (v && v !== r[k]) patch[k] = v; }
+        });
+        if (Object.keys(patch).length) { DB.update(mod.store, r.id, patch); n++; }
+      });
+    });
+    DB.set('ui_dateNormV1086', true);
+    if (n) Toast.info('已自动修正 ' + n + ' 条手输格式的日期');
+  } catch (e) {}
+}
+
 function init() {
   const s = getSettings();
   applyTheme(s.theme);
   setInterval(healScrollLock, 3000); // v799: 滚动锁兜底自愈（弹窗全关时每 3 秒检查一次，防同步/异步时序卡锁）
   if (DB.get('ui_sidebar_collapsed', false)) $('#sidebar').classList.add('collapsed');
   migrateData();
+  migrateBadDatesV1086();   /* v1086：一次性修复历史「横杠漏打」的坏日期（如 2026-1031） */
   // v784: 先清理历史本地图片释放 localStorage 配额（配额满时删除/保存都会静默失败）
   try { const _purged = purgeLocalImageData(); if (_purged > 0) Toast.info('已清理 ' + _purged + ' 张本地缓存图片，存储空间已释放'); } catch (e) {}
   normalizeOcRelationsAlias();
