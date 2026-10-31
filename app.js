@@ -1434,7 +1434,7 @@ function buildFormField(f, data, moduleKey, wrap) {
   const belowHint = (!showInlineHint && f.hint) ? `<span class="form-hint">${esc(hintText)}</span>` : '';
   let inner = '';
   if (f.type === 'textarea') {
-    inner = `${labelHTML}<textarea class="form-textarea" data-key="${f.key}" placeholder="${esc(f.placeholder || '')}">${esc(valStr)}</textarea>${belowHint}`;
+    inner = `${labelHTML}<textarea class="form-textarea" data-key="${f.key}"${f.rows ? ` rows="${f.rows}"` : ''} placeholder="${esc(f.placeholder || '')}">${esc(valStr)}</textarea>${belowHint}`;
   } else if (f.type === 'combobox') {
     const opts = moduleKey ? getFieldOpts(moduleKey, f.key, f.options) : (f.options || []);
     const shouldSort = !f.noSort && (['factory', 'product', 'category'].includes(f.key) || f.label === '厂家');
@@ -3019,7 +3019,7 @@ MODULES['groupbuy-factories'] = {
     { key: 'category', label: '主营品类', type: 'text' },
     { key: 'platforms', label: '所在平台', type: 'multiselect', options: [{ value: '微信', label: '微信' }, { value: '1688', label: '1688' }, { value: '小红书', label: '小红书' }, { value: '淘宝', label: '淘宝' }, { value: '拼多多', label: '拼多多' }] },
     { key: 'cooperationStatus', label: '合作状态', type: 'multiselect', single: true, default: '临时合作', options: [{ value: '长期合作', label: '长期合作' }, { value: '临时合作', label: '临时合作' }, { value: '暂停合作', label: '暂停合作' }, { value: '暂无合作', label: '暂无合作' }] },
-    { key: 'quote', label: '报价', type: 'textarea', default: '打样：\n\n\n大货：\n\n\n附加项：\n\n\n材质：\n\n\n' },
+    { key: 'quote', label: '报价', type: 'textarea', rows: 14, default: '打样：\n\n\n大货：\n\n\n附加项：\n\n\n材质：\n\n\n' },
     { key: 'cooperationRecords', label: '合作记录', type: 'dynamic-list', columns: [
       { subkey: 'coopType', label: '合作类型', type: 'combobox', options: [{ value: '打样', label: '打样' }, { value: '开团', label: '开团' }, { value: '售卖', label: '售卖' }, { value: '无料', label: '无料' }, { value: '自印', label: '自印' }] },
       { subkey: 'project', label: '项目名称', type: 'text' },
