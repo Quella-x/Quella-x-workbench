@@ -4219,12 +4219,14 @@ window.addEventListener('resize', () => {
 });
 /* === v1049 masonry RR end === */
 
-/* ===== v1085/v1087：手机端（apk）顶部导航栏吸顶联动 =====
+/* ===== v1085/v1087/v1089：手机端（apk）顶部导航栏吸顶联动 =====
    她 11-01 报「手机端最上面的导航栏不固定」：.main-header 此前从未 sticky（只有各模块
    pf-head / lr-left 有）。导航栏钉住后，pf-head / 每日记录 lr-left 的吸顶起点要让出
-   导航栏实际高度。v1087：她实测「滑动时头部会往上滑、钻进导航栏底下（间距没了）」——
-   部分 WebView 对 top:var(--hdr-h) 支持不稳，解析失败会退回上一条的 top:0 正好钻进去；
-   所以除了写 --hdr-h（CSS 回退），再把 top 直接内联写到每个吸顶元素上双保险。 */
+   导航栏实际高度。v1087：她实测「滑动时头部会往上滑、钻进导航栏底下」——top 内联直写。
+   v1089：她实测（v1.2.0）「还是缩了」——她真机 WebView 连 sticky 都会滚动中缩一下
+   （sticky 每帧随滚动重算，合成器滞后），v1087 的 will-change 压不住 → pf-head 彻底
+   弃用 sticky，改 position:fixed + 占位元素（fixed 是合成层定位，不参与滚动重算，
+   物理上不可能滞后/缩）。lr-left 是两栏 flex 的一栏，fixed 会塌布局，维持 sticky+内联。 */
 function updateApkHdrH() {
   try {
     if (!document.documentElement.classList.contains('apk')) return;
@@ -4232,8 +4234,27 @@ function updateApkHdrH() {
     if (!h) return;
     var t = h.offsetHeight + 'px';
     document.documentElement.style.setProperty('--hdr-h', t);
-    var els = document.querySelectorAll('.pf-head, #mainBody.pf-lr .lr-2col > .lr-left');
-    for (var i = 0; i < els.length; i++) els[i].style.top = t;
+    var heads = document.querySelectorAll('.pf-head');
+    for (var i = 0; i < heads.length; i++) {
+      var ph = heads[i];
+      ph.style.position = 'fixed';
+      ph.style.top = t;
+      ph.style.left = '0';
+      ph.style.right = '0';
+      ph.style.width = '100%';
+      ph.style.zIndex = '25';
+      var hh = ph.offsetHeight + 'px';
+      var nxt = ph.nextElementSibling;
+      if (nxt && nxt.classList.contains('pf-ph')) nxt.style.height = hh;
+      else {
+        var d = document.createElement('div');
+        d.className = 'pf-ph';
+        d.style.height = hh;
+        ph.parentNode.insertBefore(d, ph.nextSibling);
+      }
+    }
+    var lrs = document.querySelectorAll('#mainBody.pf-lr .lr-2col > .lr-left');
+    for (var j = 0; j < lrs.length; j++) lrs[j].style.top = t;
   } catch (e) {}
 }
 window.addEventListener('resize', updateApkHdrH);

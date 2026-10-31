@@ -328,7 +328,12 @@ html.apk .pf-head,html.apk #mainBody.pf-lr .lr-2col > .lr-left{top:var(--hdr-h,6
 /* v1087: 她实测「滑动时吸顶头部会往上滑、钻进导航栏底下」——① WebView 对 sticky 滚动合成
    有滞后抖动，提升为独立合成层（will-change+translateZ(0)，只加在吸顶元素自身、不影响其
    sticky 行为）可显著减轻；② top 具体值由 updateApkHdrH 直接内联写入（见 app.js），不单靠变量。 */
-html.apk .main-header,html.apk .pf-head,html.apk #mainBody.pf-lr .lr-2col > .lr-left{will-change:transform;transform:translateZ(0)}
+/* v1089: 她真机（v1.2.0）实测「还是缩了」——WebView sticky 滚动重算滞后，will-change 压不住。
+   pf-head 弃用 sticky：JS（updateApkHdrH）把它改成 position:fixed（top=导航栏实测高度，
+   合成层定位不参与滚动重算，物理上不可能缩/滞后），并在原位置插 .pf-ph 占位元素撑住文档流。
+   CSS 只保留 sticky 作 JS 失效时的回退；.pf-ph 占位默认无样式。 */
+.pf-ph{width:100%}
+html.apk .main-header,html.apk #mainBody.pf-lr .lr-2col > .lr-left{will-change:transform;transform:translateZ(0)}
 .btn-sm{padding:5px 10px;font-size:12px}
 .btn-icon{
   width:26px;height:26px;border-radius:5px;
@@ -4055,8 +4060,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1088"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1088 —— 若这里显示的不是 v1088 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1089"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1089 —— 若这里显示的不是 v1089 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
