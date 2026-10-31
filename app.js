@@ -4226,9 +4226,9 @@ window.addEventListener('resize', () => {
 var PF_MODULES = ['groupbuy-records', 'groupbuy-factories', 'groupbuy-samples', 'groupbuy-priceref', 'design-inspiration', 'design-auth', 'oc-profiles', 'oc-stories', 'oc-commission', 'design-commission', 'groupbuy-lib', 'oc-timeline', 'design-pricelist', 'design-commission-detail', 'life-checkin'];
 function applyPageFixed(body) {
   if (!body) return;
-  body.classList.remove('pf-on');
   var mk = body.querySelector('.pf-split');
   if (!mk) return;
+  body.classList.remove('pf-on');
   var parent = mk.parentNode;
   if (!parent) return;
   var kids = Array.prototype.slice.call(parent.childNodes);
