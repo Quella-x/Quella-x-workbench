@@ -4219,16 +4219,21 @@ window.addEventListener('resize', () => {
 });
 /* === v1049 masonry RR end === */
 
-/* ===== v1085：手机端（apk）顶部导航栏吸顶联动 =====
+/* ===== v1085/v1087：手机端（apk）顶部导航栏吸顶联动 =====
    她 11-01 报「手机端最上面的导航栏不固定」：.main-header 此前从未 sticky（只有各模块
    pf-head / lr-left 有）。导航栏钉住后，pf-head / 每日记录 lr-left 的吸顶起点要让出
-   导航栏实际高度——用 CSS 变量 --hdr-h 写到 <html>（CSS 回退 69px），适配字体缩放/换行。
-   桌面端不走 html.apk，完全不受影响。 */
+   导航栏实际高度。v1087：她实测「滑动时头部会往上滑、钻进导航栏底下（间距没了）」——
+   部分 WebView 对 top:var(--hdr-h) 支持不稳，解析失败会退回上一条的 top:0 正好钻进去；
+   所以除了写 --hdr-h（CSS 回退），再把 top 直接内联写到每个吸顶元素上双保险。 */
 function updateApkHdrH() {
   try {
     if (!document.documentElement.classList.contains('apk')) return;
     var h = document.querySelector('.main-header');
-    if (h) document.documentElement.style.setProperty('--hdr-h', h.offsetHeight + 'px');
+    if (!h) return;
+    var t = h.offsetHeight + 'px';
+    document.documentElement.style.setProperty('--hdr-h', t);
+    var els = document.querySelectorAll('.pf-head, #mainBody.pf-lr .lr-2col > .lr-left');
+    for (var i = 0; i < els.length; i++) els[i].style.top = t;
   } catch (e) {}
 }
 window.addEventListener('resize', updateApkHdrH);
@@ -4261,6 +4266,7 @@ function applyPageFixed(body) {
   parent.appendChild(head);
   parent.appendChild(rest);
   body.classList.add('pf-on');
+  updateApkHdrH();   /* v1087：pf-head 重建后立即补写内联 top（筛选项切换等页内重渲染不走 navigate） */
   /* v1079：接稿排期日历视图——日历下方的年度导航栏「滑上去后吸顶」（她拍板）。
      不能用 CSS sticky：.comm-cal-two-col{align-items:start}（v679 定稿布局）左列不拉伸，
      sticky 吸附范围只有左列自身高度，滚过就没了。改 JS：滚动越过年导航原位时给它 position:fixed 贴住，
@@ -14461,6 +14467,7 @@ function renderLifeRecord() {
   body.innerHTML = html;
   /* v1077 原型：每日记录——左列（顶部卡片 + 睡眠/饮食按钮 + 日期条|周导航图表）固定，右列（记录块）滚动 */
   body.classList.add('pf-lr');
+  updateApkHdrH();   /* v1087：pf-lr 重建后补写 .lr-left 内联 top */
 }
 function lifeRecordSetDate(v) { const ps = pageState['life-record']; ps.date = v; ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; ps.historyAddDate = null; renderLifeRecord(); }
 function lifeRecordGoDate(n) { const ps = pageState['life-record']; ps.date = addDaysStr(ps.date, n); if (ps.date > todayStr()) ps.date = todayStr(); ps.formType = null; ps.editId = null; ps.values = {}; ps.subtype = null; renderLifeRecord(); }
