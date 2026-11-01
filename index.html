@@ -317,7 +317,7 @@ html.apk #mainBody.pf-on,html.apk #mainBody.pf-lr{display:block;overflow:visible
 html.apk #mainBody.pf-on > .fade-in,html.apk #mainBody.pf-lr > .fade-in{display:block}
 html.apk .pf-body{overflow:visible}
 html.apk .main-body.two-col-fixed.pf-on .pf-body{display:block;flex:none}
-html.apk .pf-head,html.apk #mainBody.pf-lr .lr-2col > .lr-left{position:sticky;top:0;z-index:20;background:var(--c-bg)}
+html.apk .pf-head,html.apk #mainBody.pf-lr .lr-2col > .lr-left{position:sticky;top:var(--hdr-h,69px);z-index:20;background:var(--c-bg)}
 html.apk #mainBody.pf-lr .lr-2col{display:block;height:auto}
 html.apk #mainBody.pf-lr .lr-2col > .lr-right{overflow:visible}
 /* v1085: 手机端顶部导航栏也吸顶（此前从未固定，她 11-01 截图红框「最上面的导航栏不固定」）。
@@ -1723,7 +1723,12 @@ html.apk .main-header,html.apk #mainBody.pf-lr .lr-2col > .lr-left{will-change:t
 /* ===== Platform Buttons (Home) ===== */
 .platform-buttons{
   display:flex;flex-wrap:nowrap;gap:6px;margin-bottom:10px;
+  /* v1096：需求2——首页四个平台按钮固定（钉在首页顶部，随首页滚动始终可见；非模块吸顶头） */
+  position:sticky;top:0;z-index:15;background:var(--c-bg);padding-bottom:4px;
+  border-bottom:1px solid var(--c-border);
 }
+/* APK 走文档滚动，导航栏 sticky top:0，按钮需让出导航栏高度 */
+html.apk .platform-buttons{top:var(--hdr-h,69px)}
 .platform-btn{
   flex:1;min-width:0;padding:9px 10px;
   border-radius:var(--radius-sm);color:#fff;font-size:13px;font-weight:600;
@@ -1905,6 +1910,10 @@ html.apk .main-header,html.apk #mainBody.pf-lr .lr-2col > .lr-left{will-change:t
 .pricelist-sort-item .sort-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pricelist-sort-item .sort-price{font-weight:700;color:var(--c-primary-dark);margin:0 10px;white-space:nowrap}
 .pricelist-sort-item .sort-btns{display:flex;gap:4px;align-items:center}
+/* v1096：长按拖动排序的视觉态（浮动克隆 + 占位虚线框） */
+.sort-dragging{opacity:.25}
+.sort-drag-clone{box-shadow:0 4px 14px rgba(0,0,0,.25);background:var(--c-bg);border-radius:6px;opacity:.95}
+.sort-drag-ph{border:1px dashed var(--c-primary);border-radius:6px;background:var(--c-primary-bg);opacity:.5;margin:2px 0}
 /* v1073：▲▼ 改 .df-btn.df-sort-btn，去掉原先 padding:2px 8px —— 它会撑破 22×22 的小三角 */
 .pricelist-sort-item .sort-btns button{min-width:0}
 
@@ -3989,25 +3998,22 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 /* v1068：与 .btn-sm 同高（原来上下 padding 3px，比「+ 添加」矮一截） */
 .dl-sort-open:hover{background:var(--c-primary-bg)}
 /* v1061：模块「调整排序」按钮——手机端(≤640px)隐藏「调整」二字只留「排序」，避免 toolbar 4 按钮挤压换行 */
-@media (max-width:640px){ .sort-long{display:none} }
+/* v1096：手机端不再隐藏 .sort-long，排序按钮统一显示「调整排序」 */
 /* v1061：商品库单表（照「价目表」格式：一行一条，点行编辑） */
 .gb-lib-list{max-width:860px;margin:0 auto}
 /* v1072：行内只留 名称/标签/价位（行尾 ⋮ 已删）；统一 gap，行内容垂直居中
    （v1070 改成 flex-start 让内容贴顶——档位 v1071 已改回一排，不再需要，还原为居中） */
 /* v1073：padding 左右改回 16px（与 .pricelist-menu-item 一致）——
    v1072 写成 6px 0 让 hover/选中高亮块左右贴边没有空余（她："选择后的底色左右两边没有空余"） */
-.gb-lib-item{display:flex;align-items:center;gap:8px;padding:6px 16px;border-bottom:1px solid var(--c-border);cursor:pointer}
+/* v1096：商品库一行改两行——名称/分类第一行，价位（阶梯价）+售价第二行（桌面/手机一致） */
+.gb-lib-item{display:flex;flex-direction:column;gap:2px;padding:6px 16px;border-bottom:1px solid var(--c-border);cursor:pointer}
 .gb-lib-item:hover{background:var(--c-primary-bg);border-radius:4px}
+.gb-lib-item .lib-row1{display:flex;align-items:center;gap:8px;min-width:0}
+.gb-lib-item .lib-row2{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
 .gb-lib-item .lib-name{flex:1;min-width:0;font-size:13px;color:var(--c-text);line-height:1.5}
 .gb-lib-item .lib-meta{font-size:12px;color:var(--c-text-muted);white-space:nowrap;line-height:1.4}
+.gb-lib-item .lib-price{font-size:12px;color:var(--c-text);font-weight:600;white-space:nowrap}
 .gb-lib-item .lib-type{font-size:11px;color:var(--c-primary);background:var(--c-primary-bg);border-radius:4px;padding:1px 6px;white-space:nowrap}
-/* v1072：窄屏价位放不下时竖排到下一行 */
-@media (max-width:768px){
-  .gb-lib-item{flex-wrap:wrap}
-  .gb-lib-item .lib-name{order:1;flex:1 1 auto}
-  .gb-lib-item .lib-type{order:2}
-  .gb-lib-item .lib-meta{order:3;flex:1 1 100%;margin-top:2px}
-}
 </style>
 </head>
 <body>
@@ -4060,8 +4066,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1095"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1095 —— 若这里显示的不是 v1095 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1096"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1096 —— 若这里显示的不是 v1096 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

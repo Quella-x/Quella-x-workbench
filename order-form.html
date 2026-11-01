@@ -56,6 +56,8 @@
   --c-success:#7ec678;
   --c-warning:#faad14;
   --c-danger:#e8857e;
+  --c-danger-light:#f4c9c5;   /* v1076：取消/关闭按钮（.btn-sec）红框/红底用 */
+  --c-danger-bg:#fdeceb;
   --c-info:#9DC8FF;
   --c-red:#e8857e;
   --c-green:#7ec678;
@@ -114,6 +116,10 @@ html.apk::-webkit-scrollbar{width:0;height:0}
 html.apk body{overflow:visible!important}
 html.apk #app{height:auto!important;overflow:visible!important}
 html.apk .main-body{overflow:visible!important}
+/* v1084: 手机端 .main 原 inherit overflow:hidden（行173），使其成为非滚动的 sticky 容器，
+   导致所有 html.apk .pf-head / .lr-left 的 position:sticky 被悄悄废掉（"手机端固定全失效"）。
+   文档滚动模型下 .main 必须放开为 visible，sticky 才能相对 html 视口吸附。仅 apk 生效，桌面端保持 hidden。 */
+html.apk .main{overflow:visible}
 html.apk.modal-lock{overflow:hidden!important}
 
 /* ===== Sidebar ===== */
@@ -174,6 +180,7 @@ html.apk.modal-lock{overflow:hidden!important}
 .nav-item.active::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#7eb8e8;border-radius:0 2px 2px 0}
 /* v690：nav-icon 改为 1em 继承父级字号，让图标盒子 = 文字盒子，flex align-items:center 完美对齐（之前 font-size:16px/width:20px 让盒子大于文字 13px，居中后图标偏下） */
 .nav-item .nav-icon{font-size:inherit;width:1em;height:1em;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transform:translateY(1px)}
+/* v1075 曾把商品库图标单独上移 1px；v1076 她确认「不用上移了」→ 撤销，所有导航图标统一用基础 translateY(1px) */
 .nav-item .nav-label{transition:opacity .2s}
 .sidebar.collapsed .nav-item{justify-content:center;padding:10px 0}
 .sidebar.collapsed .nav-item .nav-label{opacity:0;width:0;overflow:hidden}
@@ -292,10 +299,53 @@ html.apk.modal-lock{overflow:hidden!important}
 .btn-primary:hover{background:var(--c-primary-dark);box-shadow:none}
 .btn-outline{background:var(--c-card);color:var(--c-primary);border:1px solid var(--c-primary-light);box-shadow:none}
 .btn-outline:hover{background:var(--c-primary-bg)}
+/* v1074：.btn-ghost 还原成原本的「轻量文字按钮」（v1072 把它改成蓝字蓝框，误伤了日历「上月/本月/下月」、
+   行内「编辑/删除」等 50+ 处一律变蓝框）。次要按钮（取消/关闭）改用 .btn-sec，只在弹窗页脚生效 */
 .btn-ghost{background:transparent;color:var(--c-text-light);box-shadow:none}
 .btn-ghost:hover{background:var(--c-primary-bg);color:var(--c-primary)}
+/* v1074：弹窗页脚的次要按钮（取消/关闭）= 白底蓝字蓝框；v1076：她要改成红色（白底 + 红字 + 红边框） */
+.btn-sec{background:var(--c-card);color:var(--c-danger);border:1px solid var(--c-danger-light);box-shadow:none}
+.btn-sec:hover{background:var(--c-danger-bg);color:var(--c-danger);border-color:var(--c-danger)}
 .btn-danger{background:var(--c-danger);color:#fff}
 .btn-danger:hover{background:#d9363b}
+/* ===== v1077：顶部固定 + 底部独立滚动（方案1）=====
+   她：「顶部XX固定位置，滚动时只有底部模块滚动」——顶部 0 位移，底部内容区自己出滚动条。
+   网页端（含手机网页）走真·独立滚动区；APK 走 sticky 吸顶
+   （v798 铁律：#app 100dvh/flex + 内部 overflow 链在部分 Android WebView 失效 → 必须文档滚动）。
+   原型阶段仅两个模块生效：开团记录(.pf-on) / 每日记录(.pf-lr)。 */
+#mainBody.pf-on{display:flex;flex-direction:column;overflow:hidden}
+#mainBody.pf-on > .fade-in{display:flex;flex-direction:column;flex:1;min-height:0}
+.pf-head{flex:0 0 auto}
+.pf-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+/* 两列模块（开团记录等）：pf-body 内继续 flex 撑满，左右列各自内滚，保持 v808 行为 */
+.main-body.two-col-fixed.pf-on .pf-body{display:flex;flex-direction:column;flex:1 1 0;min-height:0}
+/* 每日记录：左列（顶卡+睡眠/饮食按钮+日期条|周导航）固定，右列（记录块）滚动 */
+#mainBody.pf-lr{display:flex;flex-direction:column;overflow:hidden}
+#mainBody.pf-lr > .fade-in{display:flex;flex-direction:column;flex:1;min-height:0}
+#mainBody.pf-lr .lr-2col{display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:0;flex:1 1 0;height:auto}
+#mainBody.pf-lr .lr-2col > .lr-left{min-height:0;overflow:visible;height:auto}
+#mainBody.pf-lr .lr-2col > .lr-right{min-height:0;overflow-y:auto}
+html.apk #mainBody.pf-on,html.apk #mainBody.pf-lr{display:block;overflow:visible}
+html.apk #mainBody.pf-on > .fade-in,html.apk #mainBody.pf-lr > .fade-in{display:block}
+html.apk .pf-body{overflow:visible}
+html.apk .main-body.two-col-fixed.pf-on .pf-body{display:block;flex:none}
+html.apk .pf-head,html.apk #mainBody.pf-lr .lr-2col > .lr-left{position:sticky;top:var(--hdr-h,69px);z-index:20;background:var(--c-bg)}
+html.apk #mainBody.pf-lr .lr-2col{display:block;height:auto}
+html.apk #mainBody.pf-lr .lr-2col > .lr-right{overflow:visible}
+/* v1085: 手机端顶部导航栏也吸顶（此前从未固定，她 11-01 截图红框「最上面的导航栏不固定」）。
+   导航栏钉住后，pf-head / 每日记录 lr-left 的吸顶起点要让出导航栏实际高度，
+   用 --hdr-h（JS 按导航栏实测高度写入 html，回退 69px），避免两块吸顶元素重叠。 */
+html.apk .main-header{position:sticky;top:0;z-index:30}
+html.apk .pf-head,html.apk #mainBody.pf-lr .lr-2col > .lr-left{top:var(--hdr-h,69px)}
+/* v1087: 她实测「滑动时吸顶头部会往上滑、钻进导航栏底下」——① WebView 对 sticky 滚动合成
+   有滞后抖动，提升为独立合成层（will-change+translateZ(0)，只加在吸顶元素自身、不影响其
+   sticky 行为）可显著减轻；② top 具体值由 updateApkHdrH 直接内联写入（见 app.js），不单靠变量。 */
+/* v1089: 她真机（v1.2.0）实测「还是缩了」——WebView sticky 滚动重算滞后，will-change 压不住。
+   pf-head 弃用 sticky：JS（updateApkHdrH）把它改成 position:fixed（top=导航栏实测高度，
+   合成层定位不参与滚动重算，物理上不可能缩/滞后），并在原位置插 .pf-ph 占位元素撑住文档流。
+   CSS 只保留 sticky 作 JS 失效时的回退；.pf-ph 占位默认无样式。 */
+.pf-ph{width:100%}
+html.apk .main-header,html.apk #mainBody.pf-lr .lr-2col > .lr-left{will-change:transform;transform:translateZ(0)}
 .btn-sm{padding:5px 10px;font-size:12px}
 .btn-icon{
   width:26px;height:26px;border-radius:5px;
@@ -625,6 +675,10 @@ html.apk.modal-lock{overflow:hidden!important}
   .lr-2col{display:block}
   .lr-2col>.lr-left{position:static;max-height:none;overflow:visible}
   .lr-2col>.lr-right{position:static;max-height:none;overflow:visible}
+  /* v1077：手机端每日记录也走「左列固定 + 右列独立滚动」（与电脑端同规则，只是上下堆叠） */
+  #mainBody.pf-lr .lr-2col{display:flex;flex-direction:column;gap:0;flex:1 1 0;min-height:0}
+  #mainBody.pf-lr .lr-2col>.lr-left{flex:0 0 auto}
+  #mainBody.pf-lr .lr-2col>.lr-right{flex:1 1 0;min-height:0;overflow-y:auto}
   /* v714：首页 toolbar 手机端也走 grid 1fr 1fr 等宽（原 grid 规则在 min-width:641 内，手机端落到 flex 导致筛选/新增不等宽、间距 6px≠状态栏 8px） */
   .toolbar.home-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center}
   .toolbar.home-toolbar .search-box{grid-column:1 / -1}
@@ -1196,10 +1250,10 @@ html.apk.modal-lock{overflow:hidden!important}
 .gb-remark-row .td-wrap{text-align:left}
 /* 接稿排期制品完成勾选（DN轮） */
 .detail-table td.comm-prod-done{text-align:center;white-space:nowrap}
-.detail-table td.comm-prod-done label{display:inline-flex;align-items:center;gap:2px;cursor:pointer;font-size:12px;color:var(--c-green)}
+.detail-table td.comm-prod-done label{display:inline-flex;align-items:center;justify-content:center;gap:2px;cursor:pointer;font-size:12px;color:var(--c-green);vertical-align:middle}
 .detail-table td.comm-prod-done input{width:16px;height:16px;accent-color:var(--c-green)}
 .detail-table td.comm-prod-urgent{text-align:center;white-space:nowrap}
-.detail-table td.comm-prod-urgent label{display:inline-flex;align-items:center;justify-content:center;gap:2px;cursor:pointer;font-size:12px;color:var(--c-red)}
+.detail-table td.comm-prod-urgent label{display:inline-flex;align-items:center;justify-content:center;gap:2px;cursor:pointer;font-size:12px;color:var(--c-red);vertical-align:middle}
 .detail-table td.comm-prod-urgent input{width:16px;height:16px;accent-color:var(--c-red)}
 .detail-table tr.prod-done td{text-decoration:line-through;color:var(--c-text-muted);opacity:.7}
 /* v844: 接稿排期详情制品列表列宽合理化（桌面）——原序号/柄图/价格/数量/加急/完成挤到表头竖排、制品/同模巨宽。
@@ -1332,7 +1386,10 @@ html.apk.modal-lock{overflow:hidden!important}
 }
 .template-item:hover{background:#dce8f7}
 .template-item .template-name{font-size:13px;font-weight:500}
-.template-item .template-actions{display:flex;gap:4px}
+/* v1075：补 align-items:center——历史计算行内同时放小字日期和 28px 按钮时，
+   stretch 会把日期文字顶到行顶（她："历史计算后面的日期没水平居中偏上"） */
+.template-item .template-actions{display:flex;align-items:center;gap:4px}
+.template-item .tpl-date{font-size:11px;color:var(--c-text-muted)}
 
 /* Settings */
 .settings-tabs{display:flex;gap:4px;border-bottom:2px solid var(--c-border);margin-bottom:20px;flex-wrap:wrap}
@@ -1346,6 +1403,16 @@ html.apk.modal-lock{overflow:hidden!important}
 .settings-section{display:none;max-height:62vh;overflow-y:auto}
 .settings-section.active{display:block !important;min-height:120px;max-height:62vh;overflow-y:auto}
 .modal-body{min-height:0}
+/* ===== v1079：她拍板的三件小事 =====
+   ① 接稿排期日历视图：日历本身不固定（随内容滚），日历下方年度导航栏 sticky 吸顶（滚上去后贴住）；
+   ② 设置弹窗：「选择模块」下拉条吸顶（「展示字段/版块设置」页内容滚动时保持可见）；
+   ③ 设置弹窗滚动条调细（她：「现在这个好粗」）。 */
+.comm-cal-yearnav{position:sticky;top:0;z-index:15;background:var(--c-bg)}
+/* JS 接管版吸顶（sticky 在 grid 左列内吸附范围不够，见 applyPageFixed 注释） */
+.comm-cal-yearnav.pf-stuck{position:fixed;z-index:30;background:var(--c-bg);margin:0}
+.settings-section > .module-selector{position:sticky;top:0;z-index:5;background:var(--c-card);margin-bottom:0;padding-bottom:16px}
+.settings-section::-webkit-scrollbar{width:3px;height:3px}
+.settings-section::-webkit-scrollbar-thumb{background:rgba(120,140,160,.3);border-radius:2px}
 .color-picker-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
 .color-picker-row label{font-size:13px;width:100px;flex-shrink:0}
 .color-picker-row input[type="color"]{width:40px;height:32px;border:1px solid var(--c-border);border-radius:4px;cursor:pointer}
@@ -1668,7 +1735,12 @@ html.apk.modal-lock{overflow:hidden!important}
 /* ===== Platform Buttons (Home) ===== */
 .platform-buttons{
   display:flex;flex-wrap:nowrap;gap:6px;margin-bottom:10px;
+  /* v1096：需求2——首页四个平台按钮固定（钉在首页顶部，随首页滚动始终可见；非模块吸顶头） */
+  position:sticky;top:0;z-index:15;background:var(--c-bg);padding-bottom:4px;
+  border-bottom:1px solid var(--c-border);
 }
+/* APK 走文档滚动，导航栏 sticky top:0，按钮需让出导航栏高度 */
+html.apk .platform-buttons{top:var(--hdr-h,69px)}
 .platform-btn{
   flex:1;min-width:0;padding:9px 10px;
   border-radius:var(--radius-sm);color:#fff;font-size:13px;font-weight:600;
@@ -1700,7 +1772,9 @@ html.apk.modal-lock{overflow:hidden!important}
 /* 平台页：待发布/已发布/月份导航 移入左列顶部时的容器内间距（桌面端 .gb-left 内，手机端直接平铺不受影响） */
 .home-filter-stack{margin-bottom:8px}
 .home-filter-stack .home-status-filter{margin:0 0 8px}
-.home-filter-stack .cd-month-nav{margin:0}
+.home-filter-stack .cd-month-nav{margin:0;justify-content:flex-start;padding:0}
+/* v1083：桌面端两列模式下，状态筛选+月份导航在左列顶部 sticky 钉住（左列自身 overflow-y:auto 滚动记录） */
+.main-body.two-col-fixed .gb-left .home-filter-stack{position:sticky;top:0;z-index:5;background:var(--c-bg);padding:2px 0 6px;margin-bottom:0}
 
 .home-status-btn{
   flex:1;min-width:0;padding:0 12px;border-radius:var(--radius-sm);cursor:pointer;
@@ -1843,12 +1917,17 @@ html.apk.modal-lock{overflow:hidden!important}
 .pricelist-sort-panel{max-height:60vh;overflow-y:auto;padding-right:4px}
 .pricelist-sort-category{font-size:14px;font-weight:700;color:var(--c-text);margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--c-border)}
 .pricelist-sort-category:first-child{margin-top:0}
-.pricelist-sort-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dotted var(--c-border-light);font-size:13px}
+.pricelist-sort-item{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px dotted var(--c-border-light);font-size:13px}
 .pricelist-sort-item:last-child{border-bottom:none}
 .pricelist-sort-item .sort-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pricelist-sort-item .sort-price{font-weight:700;color:var(--c-primary-dark);margin:0 10px;white-space:nowrap}
-.pricelist-sort-item .sort-btns{display:flex;gap:4px}
-.pricelist-sort-item .sort-btns button{padding:2px 8px;font-size:12px;min-width:0}
+.pricelist-sort-item .sort-btns{display:flex;gap:4px;align-items:center}
+/* v1096：长按拖动排序的视觉态（浮动克隆 + 占位虚线框） */
+.sort-dragging{opacity:.25}
+.sort-drag-clone{box-shadow:0 4px 14px rgba(0,0,0,.25);background:var(--c-bg);border-radius:6px;opacity:.95}
+.sort-drag-ph{border:1px dashed var(--c-primary);border-radius:6px;background:var(--c-primary-bg);opacity:.5;margin:2px 0}
+/* v1073：▲▼ 改 .df-btn.df-sort-btn，去掉原先 padding:2px 8px —— 它会撑破 22×22 的小三角 */
+.pricelist-sort-item .sort-btns button{min-width:0}
 
 /* ===== Nav Icon Editor ===== */
 .nav-icon-edit-list{display:flex;flex-direction:column;gap:0;margin-top:8px;background:var(--c-primary-bg);border-radius:var(--radius-sm);padding:6px 10px}
@@ -2129,6 +2208,18 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .calc-mode-tab:first-child{border-radius:6px 0 0 6px}
 .calc-mode-tab:last-child{border-radius:0 6px 6px 0;border-left:none}
 .calc-mode-tab.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary)}
+
+/* v1069：手机端（单栏）开团模式——把「常用模板」上移到三个按钮紧下方、报价清单之前。
+   用 display:contents 让两栏卡片成为同一 grid 子项，再用 order 重排；仅 .calc-group-mode（开团）生效，小店布局不动。 */
+@media (max-width:920px){
+  .calc-page-grid.calc-group-mode{grid-template-columns:1fr !important}
+  .calc-page-grid.calc-group-mode > .calc-input-col,
+  .calc-page-grid.calc-group-mode > .calc-receipt-col{display:contents}
+  .calc-page-grid.calc-group-mode #tplCard{order:5}
+  .calc-page-grid.calc-group-mode #gbVerifyArea{order:6}
+  .calc-page-grid.calc-group-mode #calcResult{order:7}
+  .calc-page-grid.calc-group-mode #historyCard{order:8}
+}
 .calc-import-select{width:100%;margin-top:4px}
 /* AT轮: 报价计算制品列表——列序：序号、制品、柄图标识、价格、数量、加急、同模、删除 */
 .dc-product-header{display:none}
@@ -2350,16 +2441,16 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 }
 
 /* ===== v15/v29-fix2: OC Profile 排序弹窗 ===== */
-.sortable-list{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;padding-right:4px}
+/* v1073：行高压缩（她："排序每条内容的高度怎么这么高"）——padding 10→6、行间距 8→6 */
+.sortable-list{display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow-y:auto;padding-right:4px}
 .sortable-item{
   display:flex;align-items:center;justify-content:space-between;
-  gap:12px;padding:10px 12px;background:var(--c-card-bg,#fff);
+  gap:12px;padding:6px 10px;background:var(--c-card-bg,#fff);
   border:1px solid var(--c-border-light);border-radius:10px;
 }
 .sortable-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
-.sortable-actions{display:flex;gap:6px}
-.sortable-actions .btn-ghost{width:32px;height:32px;padding:0;display:flex;align-items:center;justify-content:center}
-.sortable-actions .btn-ghost:disabled{opacity:.35;cursor:not-allowed}
+/* v1073：排序 ▲▼ 统一用全站既有小三角 .df-btn.df-sort-btn（=「设置」里/接稿排期日历格那款：22×22、无边框、透明底） */
+.sortable-actions{display:flex;gap:4px;align-items:center}
 
 /* ===== v15/v32: Timeline (时间轨迹) ===== */
 /* AH轮修正：时间线选中胶囊加高(垂直padding)、外框内边距取消；全局toolbar间距回16px */
@@ -3670,8 +3761,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .pricelist-menu-item{padding-top:4px;padding-bottom:4px}
 .pricelist-menu-item .menu-dots{margin-right:8px;margin-left:8px}
 .pricelist-menu-category{margin-bottom:8px}
-.pricelist-sort-category{margin-top:16px;margin-bottom:8px}
-.pricelist-sort-item{padding-top:8px;padding-bottom:8px}
+.pricelist-sort-category{margin-top:12px;margin-bottom:6px}
+.pricelist-sort-item{padding-top:5px;padding-bottom:5px}
 .pricelist-sort-item .sort-price{margin-right:8px;margin-left:8px}
 .life-quick-checkin{padding-top:16px;padding-bottom:16px;margin-bottom:16px}
 .lqc-hd{gap:8px}
@@ -3830,6 +3921,112 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .cd-toolbar > .search-box{margin-bottom:0 !important;}
 }
 </style>
+
+<style id="gb-calc-css">
+/* v1054: 价目计算·开团版（预览 v43 定稿） */
+/* ===== 预览新增（仅布局栅格，颜色/字号/间距一律沿用现有变量） ===== */
+.gb-row{border:1px solid var(--c-border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px}
+.gb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:14px 16px}
+.gb-f{display:flex;flex-direction:column;gap:8px;min-width:0}
+.gb-f>span{font-size:11px;font-weight:400;color:var(--c-text-muted)}
+.gb-tier{display:flex;align-items:center;gap:6px;margin-top:14px;flex-wrap:wrap}
+.gb-tier .form-input{width:80px;flex:none}
+.gb-inline{display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+/* v1057：常用参数与输入框同一行——输入框 + 单位提示 + 「存为常用」+ 已存值按钮（点值即套用） */
+.gb-cp-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.gb-cp-line .form-input{flex:1 1 110px;min-width:80px;width:auto}
+.gb-cp-inline{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:stretch;align-self:stretch}
+.gb-cp-inline .lbt-btn{padding:3px 10px;font-weight:500;display:inline-flex;align-items:center}   /* v1058：按钮高度拉伸=输入框高度（她："按钮高度要和输入框高度一致"） */
+/* v1060：跟在输入框后面的操作按钮同样拉伸=输入框高度（她 image#3/#4：删除档位/+加入商品/移除） */
+.gb-inline .btn-sm,.gb-tier .btn-sm{align-self:stretch;display:inline-flex;align-items:center;padding-top:0;padding-bottom:0}
+.gb-cp-save{color:var(--c-primary)}
+.gb-cp-chip{background:var(--c-primary-bg);border-color:var(--c-primary-light);color:var(--c-primary)}
+.gb-inline label{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--c-text);white-space:nowrap}
+.gb-combo{display:inline-block}
+.gb-combo .combobox-input{width:100%}
+.gb-combo .combobox-dropdown{white-space:nowrap;left:0;right:auto;min-width:100%;width:max-content;max-width:90vw}
+/* v35：卡片底部建议售价/推荐售卖价块 = 报价单结尾蓝块同款（.dc-r-final），原 .gb-ps/.gb-ps-h/.gb-tr 已删 */
+.gb-del-foot{display:flex;justify-content:flex-end;gap:4px;margin-top:14px}   /* v1060：间距回归全站按钮标准 4px（.record-card-actions/.template-actions 同款） */
+/* ===== 阶梯显示格式（不存在"当前档"） ===== */
+.gb-cv{font-size:20px;font-weight:700;margin-top:2px}
+/* 删除按钮：全站一致红色（.btn 造型 + .gb-del 红字红边） */
+.gb-del{color:var(--c-danger) !important;border-color:var(--c-danger) !important;background:var(--c-card) !important}
+.gb-del:hover{background:#fff0f0 !important;color:var(--c-danger) !important}
+/* v27：档位标题=分区小标题（15px/700，与 13px 明细行拉开层级）；档与档之间浅色分割线（她："分割线呢？"+红框"还是不明确"） */
+/* v37：档位标题字重加粗（字体只有 Bold，700/800/900 渲染相同 → 用 text-stroke 加粗笔画）；竖线加深（浅蓝底上 var(--c-border) 几乎看不见，她："呢？"） */
+.tier-hdr{margin-top:8px}
+.tier-hdr span{background:none;color:var(--c-text);font-size:14px;font-weight:700;border-radius:0;padding:0;-webkit-text-stroke:.4px currentColor}
+.tier-hdr .th-note{font-style:normal;font-size:12px;font-weight:400;color:var(--c-text-muted);display:inline-block;border-left:1px solid #a9bfd6;padding-left:6px;margin-left:6px;vertical-align:1px;-webkit-text-stroke:0}
+/* v30：恢复 v25 的汇总行深色粗线（=真实页面 .dc-rr.total 自带 border-top，v26/v29 删错了，她原话"分割线呢？v25是这样的？"） */
+/* 结果数字加重 */
+.gbv .dc-rr.total span:last-child{font-size:15px;font-weight:700}
+/* 包邮行电脑端强制一行；注释常显（她："其他注释呢？"）；窄屏允许换行防溢出 */
+.gb-ship-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;white-space:nowrap;flex-wrap:nowrap}
+@media(max-width:640px){.gb-ship-row{flex-wrap:wrap;white-space:normal}}
+/* ===== v1061：间距回归定稿（v745 电脑端 10px / v747 手机端 8px）——此前自造 4px/6px/14px 均为错值 ===== */
+@media (min-width:641px){
+  .gb-tier{gap:10px;margin-top:10px}
+  .gb-inline{gap:10px;margin-top:10px}
+  .gb-cp-line{gap:10px}
+  .gb-cp-inline{gap:10px}
+  .gb-f{gap:10px}
+  .gb-grid{gap:10px}
+  .gb-del-foot{gap:10px;margin-top:10px}
+  .gb-row{margin-bottom:10px}
+  .gb-ship-row{gap:10px;margin-bottom:10px}
+  .gb-gap{display:flex;gap:10px}
+  .gb-mt{margin-top:10px}
+}
+@media (max-width:640px){
+  .gb-tier{gap:8px;margin-top:8px}
+  .gb-inline{gap:8px;margin-top:8px}
+  .gb-cp-line{gap:8px}
+  .gb-cp-inline{gap:8px}
+  .gb-f{gap:8px}
+  .gb-grid{gap:8px}
+  .gb-del-foot{gap:8px;margin-top:8px}
+  .gb-row{margin-bottom:8px}
+  .gb-ship-row{gap:8px;margin-bottom:8px}
+  .gb-gap{display:flex;gap:8px}
+  .gb-mt{margin-top:8px}
+}
+/* v1061：价目计算输入框按「报价计算」格式（上下 padding 5px → 实测 29px，与 .dc-product-row 输入框一致；原 8px → 35px 偏高） */
+.gb-cp-line .form-input,.gb-row .form-input,.gb-tier .form-input,.gb-inline .form-input,.gb-ship-row .form-input,.gb-combo .form-input{padding-top:5px;padding-bottom:5px}
+/* v1061：价目计算内所有按钮统一尺寸（= 输入框 29px；原 .gb-tier 内 btn-sm 被 stretch 撑到 35、卡尾 btn-sm 28，同一张卡内混排） */
+.gb-row .btn,.gb-cp-line .btn,.gb-tier .btn,.gb-inline .btn,.gb-del-foot .btn,.gb-ship-row .btn{height:29px;padding-top:0;padding-bottom:0;display:inline-flex;align-items:center;justify-content:center;align-self:auto}
+/* v1062：小店模式「模板名称」输入框(无 .gb-cp-line 包裹被漏掉)与 .gb-gap 按钮行(保存模板/保存记录/一键清除/添加商品/从商品库导入/添加套装)统一 29px */
+#calc_templateName{padding-top:5px;padding-bottom:5px}
+.gb-gap .btn{height:29px;padding-top:0;padding-bottom:0;display:inline-flex;align-items:center;justify-content:center}
+/* v1063：商品库弹窗输入框/按钮恢复全站弹窗默认高度（她："对照其他模块看"——v1062 改 29px 方向搞反了；
+   档位行 .gb-tier 全局 5px 在弹窗内需还原默认 8px） */
+.gb-lib-form .form-input{padding-top:8px;padding-bottom:8px}
+/* v1063：动态列表底部按钮行——「排序」放「+ 添加」旁边（她指定），右对齐 */
+.dl-foot-row{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:8px}
+/* v1064：两个导入弹窗改照「文案库」格式（复用 txt-tpl-picker-* / txt-tpl-row / txt-tpl-choose 既有样式，零新增 CSS） */
+/* v1062：动态列表排序改「标题旁排序按钮 + 弹窗」（她："行首▲▼好丑"；复用 .sortable-list 弹窗，表格本身零改动） */
+.dl-label-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.dl-label-row .form-label{margin-bottom:0}
+.dl-sort-open{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;font-size:12px;font-weight:500;color:var(--c-primary);background:var(--c-card);border:1px solid var(--c-primary-light);border-radius:var(--radius-sm);cursor:pointer;white-space:nowrap}
+/* v1068：与 .btn-sm 同高（原来上下 padding 3px，比「+ 添加」矮一截） */
+.dl-sort-open:hover{background:var(--c-primary-bg)}
+/* v1061：模块「调整排序」按钮——手机端(≤640px)隐藏「调整」二字只留「排序」，避免 toolbar 4 按钮挤压换行 */
+/* v1096：手机端不再隐藏 .sort-long，排序按钮统一显示「调整排序」 */
+/* v1061：商品库单表（照「价目表」格式：一行一条，点行编辑） */
+.gb-lib-list{max-width:860px;margin:0 auto}
+/* v1072：行内只留 名称/标签/价位（行尾 ⋮ 已删）；统一 gap，行内容垂直居中
+   （v1070 改成 flex-start 让内容贴顶——档位 v1071 已改回一排，不再需要，还原为居中） */
+/* v1073：padding 左右改回 16px（与 .pricelist-menu-item 一致）——
+   v1072 写成 6px 0 让 hover/选中高亮块左右贴边没有空余（她："选择后的底色左右两边没有空余"） */
+/* v1096：商品库一行改两行——名称/分类第一行，价位（阶梯价）+售价第二行（桌面/手机一致） */
+.gb-lib-item{display:flex;flex-direction:column;gap:2px;padding:6px 16px;border-bottom:1px solid var(--c-border);cursor:pointer}
+.gb-lib-item:hover{background:var(--c-primary-bg);border-radius:4px}
+.gb-lib-item .lib-row1{display:flex;align-items:center;gap:8px;min-width:0}
+.gb-lib-item .lib-row2{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.gb-lib-item .lib-name{flex:1;min-width:0;font-size:13px;color:var(--c-text);line-height:1.5}
+.gb-lib-item .lib-meta{font-size:12px;color:var(--c-text-muted);white-space:nowrap;line-height:1.4}
+.gb-lib-item .lib-price{font-size:12px;color:var(--c-text);font-weight:600;white-space:nowrap}
+.gb-lib-item .lib-type{font-size:11px;color:var(--c-primary);background:var(--c-primary-bg);border-radius:4px;padding:1px 6px;white-space:nowrap}
+</style>
 </head>
 <body>
 <div id="app">
@@ -3880,8 +4077,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=1095"><\/script>');</script>
-<script>console.log('[小筱工作台] 当前版本 v1053 —— 若这里显示的不是 v1017 说明浏览器缓存了旧页面')</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=1096"><\/script>');</script>
+  <script>console.log('[小筱工作台] 当前版本 v1096 —— 若这里显示的不是 v1096 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

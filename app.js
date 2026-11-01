@@ -2106,7 +2106,7 @@ function openDynamicSortModal(key) {
   window._dynSortRender = () => {
     let html = '<div class="sortable-list">';
     window._dynSortRows.forEach((r, i) => {
-      html += `<div class="sortable-item"><span class="sortable-name">${String(i + 1).padStart(2, '0')} · ${esc(labelOf(r))}</span>`;
+      html += `<div class="sortable-item" data-sid="${i}"><span class="sortable-name">${String(i + 1).padStart(2, '0')} · ${esc(labelOf(r))}</span>`;
       html += '<div class="sortable-actions">';
       /* v1073：▲▼ 统一用全站既有小三角（=「设置」里/接稿排期日历格那款），原 btn-ghost 方块太大且改蓝字后发浅 */
       html += `<button type="button" class="df-btn df-sort-btn" title="上移" aria-label="上移" ${i === 0 ? 'disabled' : ''} onclick="_dynSortMove(${i},-1)">▲</button>`;
@@ -2140,6 +2140,15 @@ function openDynamicSortModal(key) {
   };
   window._dynSortRender();
   ov.classList.add('show');
+  /* v1096：长按拖动排序（保留 ▲▼） */
+  setTimeout(function(){
+    var p=document.getElementById('dynSortBody');
+    if(p) gbSortDragEnable(p, '.sortable-item', 'data-sid', function(ids){
+      var rows=window._dynSortRows||[];
+      var newRows=ids.map(function(id){ return rows[parseInt(id,10)]; }).filter(Boolean);
+      if(newRows.length===rows.length && window._dynSortRender){ window._dynSortRows=newRows; window._dynSortRender(); }
+    });
+  }, 0);
 }
 
 function buildDynamicListHTML(field, data, moduleKey) {
@@ -2315,8 +2324,10 @@ function fillDynamicPrice(input, lookupType) {
        带出商品库阶梯档位里最低起订档的单价 */
     const t = DB.list('gbProducts').find(x => x.type !== 'bundle' && x.name === name);
     if (t) {
+      /* v1096：导入开团记录用「售价」；售价未设时回退阶梯价最低起订档单价 */
       const ts = (t.tiers || []).slice().sort((a, b) => (a.min || 0) - (b.min || 0));
-      item = { price: (ts[0] ? (parseFloat(ts[0].price) || 0) : 0) };
+      const salePrice = (t.price != null && t.price !== 0) ? t.price : (ts[0] ? (parseFloat(ts[0].price) || 0) : 0);
+      item = { price: salePrice };
     }
   }
   if (item) {
@@ -4247,23 +4258,19 @@ function updateApkHdrH() {
       var wasFixed = ph.style.position === 'fixed';
       if (wasFixed) { ph.style.position = ''; ph.style.left = ''; ph.style.width = ''; ph.style.paddingTop = ''; }
       var r = ph.getBoundingClientRect();
-      /* v1092：她真机（v1.2.3）「上面空一大截/直接空了」——v1091 的 gap 用「头部文档位置减
-         导航栏屏幕 bottom」计算，而她真机 WebView 连导航栏的 sticky 都吸不住（v1087/v1089
-         已两次证实），导航栏随文档滚走后 bottom=53-滚动量，gap 被吹大几百上千 px（headless
-         模拟实测 pt=1192px，整屏垫空）。v1092 先试 offsetTop 链，headless 模拟发现它同样被
-         滚动污染（模拟下 docTop 随滚动漂移）——最终直接读 #mainBody 的 computed paddingTop：
-         导航栏与内容的间距本源就是它（v804 实测 69=53+16 完全吻合），纯样式值，滚动/sticky/
-         布局时机全免疫。 */
-      var mbEl = document.querySelector('#mainBody');
-      var gap = mbEl ? Math.max(0, Math.round(parseFloat(getComputedStyle(mbEl).paddingTop) || 0)) : 0;
+      /* v1096：吸顶头贴住位置改用「自身渲染后真实 y（r.top + 文档滚动量）」，不再用导航栏高度 t。
+         旧版 top=t 要求「导航栏高度 == 主体顶部偏移」恒成立；真实 WebView 因状态栏/字体时机
+         导致该等式破裂 → 固定头与下方内容错位（她实测「未滚动就被压住、吞一点」，headless 无法
+         复现因盒模型一致）。r.top 是渲染后真值，占位符改用头部自然盒高（不再内减 gap），
+         间距由 top=r.top 自然保留，几何对任意设备严格一致。 */
+      var sy = window.pageYOffset || document.documentElement.scrollTop || 0;
       ph.style.position = 'fixed';
-      ph.style.top = t;
-      ph.style.paddingTop = gap + 'px';
+      ph.style.top = Math.round(r.top + sy) + 'px';
       ph.style.left = Math.round(r.left) + 'px';
       ph.style.width = Math.round(r.width) + 'px';
       ph.style.right = 'auto';
       ph.style.zIndex = '25';
-      var hh = Math.max(0, ph.offsetHeight - gap) + 'px';
+      var hh = Math.max(0, ph.offsetHeight) + 'px';
       var nxt = ph.nextElementSibling;
       if (nxt && nxt.classList.contains('pf-ph')) nxt.style.height = hh;
       else {
@@ -4276,6 +4283,10 @@ function updateApkHdrH() {
   } catch (e) {}
 }
 window.addEventListener('resize', updateApkHdrH);
+/* v1096：真实 WebView 字体/布局时机晚于首帧，首测 nav 高度/头位置可能漂移 → 复测。 */
+window.addEventListener('load', updateApkHdrH);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(updateApkHdrH);
+if (window.ResizeObserver) { try { var _hh = document.querySelector('.main-header'); if (_hh) new ResizeObserver(updateApkHdrH).observe(_hh); } catch (e) {} }
 
 /* ===== v1077：顶部固定 + 底部独立滚动（原型阶段） =====
    她：「顶部XX固定位置，滚动时只有底部模块滚动」——方案1（顶部 0 位移，底部独立滚动区）。
@@ -5407,7 +5418,7 @@ function openProfileSortModal() {
   const render = () => {
     let html = '<div class="sortable-list">';
     list.forEach((r, i) => {
-      html += `<div class="sortable-item"><span class="sortable-name">${esc(r.name || '未命名')}</span>`;
+      html += `<div class="sortable-item" data-sid="${esc(r.id)}"><span class="sortable-name">${esc(r.name || '未命名')}</span>`;
       html += `<div class="sortable-actions">`;
       /* v1073：▲▼ 统一用全站既有小三角 .df-btn.df-sort-btn */
       html += `<button type="button" class="df-btn df-sort-btn" title="上移" aria-label="上移" ${i === 0 ? 'disabled' : ''} onclick="profileSortMove(${i},-1)">▲</button>`;
@@ -5450,7 +5461,17 @@ function openProfileSortModal() {
       renderListPage('oc-profiles', MODULES['oc-profiles']);
     }}
   ]);
+  window._sortRender = render;
   render();
+  /* v1096：长按拖动排序（保留 ▲▼） */
+  setTimeout(function(){
+    var p=document.querySelector('#modalBody .sortable-list');
+    if(p) gbSortDragEnable(p, '.sortable-item', 'data-sid', function(ids){
+      var rank={}; ids.forEach(function(id,i){ rank[id]=i; });
+      list.forEach(function(r){ if(rank[r.id]!=null) r.order=rank[r.id]; });
+      if(window._sortRender) window._sortRender();
+    });
+  }, 0);
 }
 
 /* ===== v1061：通用模块排序（她："所有模块、内容都要支持修改排序"）=====
@@ -5486,7 +5507,7 @@ function openModuleSortModal(pageKey) {
   const render = () => {
     let html = '<div class="sortable-list">';
     list.forEach((r, i) => {
-      html += `<div class="sortable-item"><span class="sortable-name">${esc(moduleRecordLabel(pageKey, r))}</span>`;
+      html += `<div class="sortable-item" data-sid="${esc(r.id)}"><span class="sortable-name">${esc(moduleRecordLabel(pageKey, r))}</span>`;
       html += '<div class="sortable-actions">';
       /* v1073：▲▼ 统一用全站既有小三角 .df-btn.df-sort-btn */
       html += `<button type="button" class="df-btn df-sort-btn" title="上移" aria-label="上移" ${i === 0 ? 'disabled' : ''} onclick="moduleSortMove(${i},-1)">▲</button>`;
@@ -5524,7 +5545,17 @@ function openModuleSortModal(pageKey) {
       if (currentPage === pageKey) navigate(pageKey);
     }}
   ]);
+  window._sortRender = render;
   render();
+  /* v1096：长按拖动排序（保留 ▲▼） */
+  setTimeout(function(){
+    var p=document.querySelector('#modalBody .sortable-list');
+    if(p) gbSortDragEnable(p, '.sortable-item', 'data-sid', function(ids){
+      var rank={}; ids.forEach(function(id,i){ rank[id]=i; });
+      list.forEach(function(r){ if(rank[r.id]!=null) r.order=rank[r.id]; });
+      if(window._sortRender) window._sortRender();
+    });
+  }, 0);
 }
 
 /* ===== v1073：价格参考排序（她："价格参考的排序按单个品类来，毛毯、围巾这样"）=====
@@ -5551,7 +5582,7 @@ function openPriceRefSortModal() {
   const render = () => {
     let html = '<div class="sortable-list">';
     names.forEach((n, i) => {
-      html += `<div class="sortable-item"><span class="sortable-name">${esc(n)}</span>`;
+      html += `<div class="sortable-item" data-sid="${esc(n)}"><span class="sortable-name">${esc(n)}</span>`;
       html += '<div class="sortable-actions">';
       html += `<button type="button" class="df-btn df-sort-btn" title="上移" aria-label="上移" ${i === 0 ? 'disabled' : ''} onclick="priceRefSortMove(${i},-1)">▲</button>`;
       html += `<button type="button" class="df-btn df-sort-btn" title="下移" aria-label="下移" ${i === names.length - 1 ? 'disabled' : ''} onclick="priceRefSortMove(${i},1)">▼</button>`;
@@ -5584,7 +5615,17 @@ function openPriceRefSortModal() {
       if (currentPage === 'groupbuy-priceref') navigate('groupbuy-priceref');
     }}
   ]);
+  window._priceRefNames = names; window._priceRefSetOrder = setOrder; window._sortRender = render;
   render();
+  /* v1096：长按拖动排序（保留 ▲▼） */
+  setTimeout(function(){
+    var p=document.querySelector('#modalBody .sortable-list');
+    if(p) gbSortDragEnable(p, '.sortable-item', 'data-sid', function(ids){
+      ids.forEach(function(n,i){ if(window._priceRefSetOrder) window._priceRefSetOrder(n, i); });
+      if(window._priceRefNames){ window._priceRefNames.length=0; ids.forEach(function(n){ window._priceRefNames.push(n); }); }
+      if(window._sortRender) window._sortRender();
+    });
+  }, 0);
 }
 
 /* ===== Add/Edit Form ===== */
@@ -7417,11 +7458,12 @@ function gbRenderBundles(){
   var h='';
   gbBundles.forEach(function(b,bi){
     h+='<div class="gb-row">';
-    /* 顶行：套装名 + 加入商品 + 从商品库导入（v1060，她 image#2） */
-    h+='<div class="gb-inline" style="margin-top:0;gap:14px">';
-    h+='<span style="font-size:11px;color:var(--c-text-muted);white-space:nowrap">套装名</span><input class="form-input" style="width:140px" value="'+gbEsc(b.name)+'" oninput="gbBundles['+bi+'].name=this.value;gbSaveState()">';
-    h+='<button class="btn btn-primary btn-sm" onclick="gbAddBundleMember('+bi+')">+ 加入商品</button>';
-    h+='<button class="btn btn-outline btn-sm" onclick="gbOpenImportModal(\'bundle\')">从商品库导入</button>';
+    /* 顶行：套装名 + 加入商品 + 从商品库导入（v1060，她 image#2）。
+       v1096：手机端要一行放下——nowrap + 输入款 flex 收缩，避免「从商品库导入」被挤下去 */
+    h+='<div class="gb-inline gb-bundle-head" style="margin-top:0;gap:8px;flex-wrap:nowrap">';
+    h+='<span style="font-size:11px;color:var(--c-text-muted);white-space:nowrap">套装名</span><input class="form-input" style="width:100px;min-width:0;flex:1 1 80px" value="'+gbEsc(b.name)+'" oninput="gbBundles['+bi+'].name=this.value;gbSaveState()">';
+    h+='<button class="btn btn-primary btn-sm" style="flex:none" onclick="gbAddBundleMember('+bi+')">+ 加入商品</button>';
+    h+='<button class="btn btn-outline btn-sm" style="flex:none" onclick="gbOpenImportModal(\'bundle\')">从商品库导入</button>';
     h+='</div>';
     b.members.forEach(function(m,mi){
       h+='<div class="gb-tier"><div class="combobox-wrapper gb-combo" style="width:140px;flex:none"><input class="form-input combobox-input" readonly value="'+(gbItemById(m.itemId)?gbEsc(gbItemById(m.itemId).name):'?')+'" onclick="event.stopPropagation();gbComboToggle(this)"><button type="button" class="combobox-toggle" onclick="event.stopPropagation();gbComboToggle(this)">▼</button><div class="combobox-dropdown">';
@@ -7684,10 +7726,30 @@ var gbPendingLibId=null;   /* 商品库页点「去导入」→ navigate('groupb
 function gbLibGoImport(id){ gbPendingLibId=id; navigate('groupbuy-calc'); }
 /* 开团 · 商品库 独立页：v1061 改照「价目表」单表格式（toolbar + 一行一条），支持 ▲▼ 手动排序；
    删除 v1060 自加的「从开团记录导入」（她："没有这项功能，我没说过的不要乱加"） */
+/* v1096：可导入的开团记录制品顺序（按 groupbuys 出现先后，首次出现去重）——商品库默认排序依此 */
+function gbRecProdOrder(){
+  var seen={}, out=[];
+  DB.list('groupbuys').forEach(function(r){
+    (r.products||r.items||[]).forEach(function(p){
+      var n=String(p.name||'').trim(); if(!n||seen[n]) return; seen[n]=1; out.push(n);
+    });
+  });
+  return out;
+}
 function gbLibSorted(){
+  var recOrder=gbRecProdOrder();
+  var recRank={}; recOrder.forEach(function(n,i){ recRank[n]=i; });
   return DB.list('gbProducts').slice().sort(function(a,b){
-    var oa=(a.order!=null?a.order:1e15), ob=(b.order!=null?b.order:1e15);
-    return (oa!==ob)?(oa-ob):((b._ct||0)-(a._ct||0));
+    var oa=(a.order!=null?a.order:null), ob=(b.order!=null?b.order:null);
+    if(oa!=null||ob!=null){
+      oa=(oa==null?1e15:oa); ob=(ob==null?1e15:ob);
+      return (oa!==ob)?(oa-ob):((b._ct||0)-(a._ct||0));
+    }
+    /* 默认（无手动排序）：按可导入开团记录制品顺序；其余按创建时间倒序排后 */
+    var ra=(a.name&&recRank[a.name]!=null)?recRank[a.name]:(1e9+recOrder.length);
+    var rb=(b.name&&recRank[b.name]!=null)?recRank[b.name]:(1e9+recOrder.length);
+    if(ra!==rb) return ra-rb;
+    return (b._ct||0)-(a._ct||0);
   });
 }
 function gbLibRow(t,isFirst,isLast){
@@ -7698,11 +7760,12 @@ function gbLibRow(t,isFirst,isLast){
     var _tiers=(t.tiers||[]);
     meta = _tiers.length ? _tiers.map(function(x){ return '≥'+x.min+' ¥'+x.price; }).join(' | ') : '未设档位';
   }
-  /* v1072：行尾 ⋮ 去掉（她："后面这是什么鬼东西，谁要了，删掉"）；排序照「价目表」走工具栏「调整排序」弹窗 */
+  /* v1096：一行改两行（名称/分类第一行，价位+售价第二行）；售价仅在有值时显示 */
+  var priceTxt = (t.type!=='bundle' && t.price!=null && t.price!==0) ? ('售价 ¥'+t.price) : '';
   return '<div class="pricelist-menu-item gb-lib-item" onclick="gbLibEdit(\''+t.id+'\')">'+
-    '<span class="lib-name">'+gbEsc(t.name||'未命名')+'</span>'+
-    '<span class="lib-type">'+esc(String(t.cat||'').trim()||(t.type==='bundle'?'套装':'单品'))+'</span>'+
-    '<span class="lib-meta">'+meta+'</span>'+
+    '<div class="lib-row1"><span class="lib-name">'+gbEsc(t.name||'未命名')+'</span>'+
+    '<span class="lib-type">'+esc(String(t.cat||'').trim()||(t.type==='bundle'?'套装':'单品'))+'</span></div>'+
+    '<div class="lib-row2"><span class="lib-meta">'+meta+'</span>'+(priceTxt?'<span class="lib-price">'+priceTxt+'</span>':'')+'</div>'+
     '</div>';
 }
 /* v1072：商品库排序照「价目表」——工具栏「调整排序」按钮 + 排序弹窗（每项右侧 ▲▼，点完原地刷新）。
@@ -7711,12 +7774,11 @@ function openGbLibSort(){
   var list=gbLibSorted();
   if(!list.length){ Toast.info('商品库还是空的'); return; }
   var h='<div class="pricelist-sort-panel">';
-  h+='<div class="pricelist-sort-category">商品库</div>';
   list.forEach(function(t,i){
     var isFirst=i===0, isLast=i===list.length-1;
     var right = t.type==='bundle' ? ((t.members||[]).length)+' 个商品'
               : (((t.tiers||[]).length)? ((t.tiers||[]).map(function(x){ return '≥'+x.min+' ¥'+x.price; }).join(' | ')) : '未设档位');
-    h+='<div class="pricelist-sort-item">'+
+    h+='<div class="pricelist-sort-item" data-sid="'+t.id+'">'+
        '<span class="sort-name">'+gbEsc(t.name||'未命名')+'</span>'+
        '<span class="sort-price">'+esc(right)+'</span>'+
        '<span class="sort-btns">'+
@@ -7736,6 +7798,15 @@ function openGbLibSort(){
     {label:'恢复默认', class:'btn-outline', icon:'rotate-ccw', action:gbLibSortReset},
     {label:'完成', class:'btn-primary', action:function(){ closeModal(); renderGbLibPage(); }}
   ], 'notes-sm');
+  /* v1096：长按拖动排序（保留 ▲▼） */
+  setTimeout(function(){
+    var p=document.querySelector('#modalBody .pricelist-sort-panel');
+    if(p) gbSortDragEnable(p, '.pricelist-sort-item', 'data-sid', function(ids){
+      var rank={}; ids.forEach(function(id,i){ rank[id]=i; });
+      gbLibSorted().forEach(function(t){ if(rank[t.id]!=null) DB.update('gbProducts', t.id, {order:rank[t.id]}); });
+      openGbLibSort();
+    });
+  }, 0);
 }
 function gbLibListHTML(){
   var ps=pageState['groupbuy-lib']||{};
@@ -7785,9 +7856,12 @@ function gbLibCatOptions(){
 }
 function gbLibRecProdOptions(){
   var seen={}, out=[];
+  /* v1096：已在商品库的单品不再作为「从开团记录导入」候选（避免重复添加） */
+  var libNames={};
+  DB.list('gbProducts').forEach(function(t){ if(t.type!=='bundle'){ libNames[String(t.name||'').trim()]=1; } });
   DB.list('groupbuys').forEach(function(r){
     (r.products||r.items||[]).forEach(function(p){
-      var n=String(p.name||'').trim(); if(!n||seen[n]) return; seen[n]=1;
+      var n=String(p.name||'').trim(); if(!n||seen[n]||libNames[n]) return; seen[n]=1;
       out.push({name:n, price:parseFloat(p.price)||0});
     });
   });
@@ -7797,7 +7871,8 @@ function gbLibPickRec(el){
   var n=el.getAttribute('data-name')||'';
   var p=parseFloat(el.getAttribute('data-price'))||0;
   var inp=document.getElementById('gbl_name'); if(inp) inp.value=n;
-  if(_gbLibTiers&&_gbLibTiers.length) _gbLibTiers[0].price=p;
+  /* v1096：开团记录制品价 → 商品库「售价」字段（导入开团记录用售价） */
+  var priceInp=document.getElementById('gbl_price'); if(priceInp) priceInp.value=p;
   gbLibRenderTiers();
   cbClose(document.getElementById('gblNameDd'));
 }
@@ -7811,6 +7886,64 @@ function gbLibMove(id,dir){
   DB.update('gbProducts', arr[idx].id, {order:arr[j].order});
   DB.update('gbProducts', arr[j].id, {order:arr[idx].order});
   renderGbLibPage();
+}
+/* v1096：通用「长按拖动排序」——手机端长按列表项进入拖动、跟随手指重排；桌面端鼠标拖拽亦可用。
+   仅新增交互，保留现有 ▲▼ 按钮。onReorder(ids) 在松手后回调，ids=新顺序的标识数组，由各弹窗落库/重渲染。 */
+var gbDragCur=null;
+function gbSortDragEnable(panel, itemSel, sidAttr, onReorder){
+  if(!panel || !panel.querySelectorAll) return;
+  var items = Array.prototype.slice.call(panel.querySelectorAll(itemSel));
+  items.forEach(function(it){
+    var sid = it.getAttribute(sidAttr);
+    if(sid==null) sid = it.getAttribute('data-sid');
+    if(sid==null) return;
+    it.setAttribute('data-sid', sid);
+    var startX=0, startY=0, timer=null, dragging=false, longPressed=false, clone=null, ph=null, off=0;
+    function clearTimer(){ if(timer){ clearTimeout(timer); timer=null; } }
+    function teardown(){
+      clearTimer(); dragging=false; longPressed=false; gbDragCur=null;
+      if(clone){ clone.remove(); clone=null; }
+      if(ph){ if(it && it.parentNode) it.parentNode.insertBefore(it, ph); ph.remove(); ph=null; }
+      if(it){ it.style.visibility=''; it.style.touchAction=''; it.classList.remove('sort-dragging'); }
+    }
+    function startDrag(cy){
+      dragging=true; longPressed=true; gbDragCur={endDrag:endDrag};
+      var r=it.getBoundingClientRect(); off = cy - r.top;
+      ph=document.createElement('div'); ph.className='sort-drag-ph'; ph.style.height=r.height+'px';
+      if(it.parentNode) it.parentNode.insertBefore(ph, it);
+      clone=it.cloneNode(true); clone.className=(it.className||'')+' sort-drag-clone';
+      clone.style.position='fixed'; clone.style.left=r.left+'px'; clone.style.top=r.top+'px';
+      clone.style.width=r.width+'px'; clone.style.zIndex='999'; clone.style.pointerEvents='none'; clone.style.margin='0';
+      document.body.appendChild(clone);
+      it.style.visibility='hidden'; it.style.touchAction='none'; it.classList.add('sort-dragging');
+    }
+    function moveDrag(cy){
+      if(!dragging||!clone) return;
+      clone.style.top=(cy-off)+'px';
+      var sibs=Array.prototype.slice.call(panel.querySelectorAll(itemSel));
+      var target=null;
+      for(var i=0;i<sibs.length;i++){ var rr=sibs[i].getBoundingClientRect(); if(cy < rr.top+rr.height/2){ target=sibs[i]; break; } }
+      if(target && target!==it && target!==ph){
+        if(ph && (ph.compareDocumentPosition(target) & Node.DOCUMENT_POSITION_FOLLOWING)) panel.insertBefore(ph, target);
+        else panel.insertBefore(ph, target.nextSibling);
+      } else if(!target && ph && panel.lastChild!==ph){ panel.appendChild(ph); }
+    }
+    function endDrag(){
+      if(!longPressed){ clearTimer(); return; }
+      teardown();
+      var ids=Array.prototype.slice.call(panel.querySelectorAll(itemSel)).map(function(x){ return x.getAttribute('data-sid'); });
+      if(onReorder) onReorder(ids);
+    }
+    it.addEventListener('pointerdown', function(e){ if(e.pointerType==='mouse' && e.button!==0) return; startX=e.clientX; startY=e.clientY; clearTimer(); timer=setTimeout(function(){ if(it) startDrag(startY); }, 380); });
+    it.addEventListener('pointermove', function(e){ if(!dragging){ if(Math.abs(e.clientX-startX)>10||Math.abs(e.clientY-startY)>10) clearTimer(); return; } if(e.cancelable) e.preventDefault(); moveDrag(e.clientY); });
+    it.addEventListener('pointerup', function(e){ if(e.cancelable) e.preventDefault(); endDrag(); });
+    it.addEventListener('pointercancel', teardown);
+  });
+  if(!gbSortDragEnable._docBound){
+    gbSortDragEnable._docBound=true;
+    document.addEventListener('pointerup', function(){ if(gbDragCur) gbDragCur.endDrag(); });
+    document.addEventListener('pointercancel', function(){ if(gbDragCur) gbDragCur.endDrag(); });
+  }
 }
 /* 商品库新增/编辑：单品可编辑档位；套装只读展示成员（改组成请回价目计算重新保存模板） */
 var _gbLibEditId='', _gbLibTiers=[];
@@ -7859,6 +7992,8 @@ function gbLibEdit(id){
     h+='<div class="form-row"><label class="form-label">起订量</label><input type="number" class="form-input" id="gbl_moq" value="'+((t&&t.moq)||100)+'"></div>';
     h+='<div class="form-row"><label class="form-label">打样费<span class="calc-card-hint">（元）</span></label><input type="number" class="form-input" id="gbl_sampleFee" value="'+((t&&t.sampleFee)||0)+'"></div>';
     h+='<div class="form-row"><label class="form-label">备瑕比例<span class="calc-card-hint">（%）</span></label><input type="number" class="form-input" id="gbl_defectRate" value="'+((t&&t.defectRate!=null?t.defectRate:3))+'"></div>';
+    /* v1096：新增「售价」单行字段——导入开团记录用售价；阶梯价（档位）仍用于导入价目计算 */
+    h+='<div class="form-row"><label class="form-label">售价<span class="calc-card-hint">（元，对外卖价）</span></label><input type="number" class="form-input" id="gbl_price" value="'+((t&&t.price!=null?t.price:0))+'"></div>';
     h+='<div class="form-row"><label class="form-label">阶梯档位</label></div>';
     h+='<div id="gbl_tiers"></div>';
   }
@@ -7883,10 +8018,10 @@ function gbLibSave(){
   if(t&&t.type==='bundle'){ DB.update('gbProducts',t.id,{name:name, cat:cat}); }
   else if(t){
     DB.update('gbProducts',t.id,{name:name, cat:cat, moq:parseFloat($('#gbl_moq').value)||0, sampleFee:parseFloat($('#gbl_sampleFee').value)||0,
-      defectRate:parseFloat($('#gbl_defectRate').value)||0, tiers:_gbLibTiers});
+      defectRate:parseFloat($('#gbl_defectRate').value)||0, price:parseFloat($('#gbl_price').value)||0, tiers:_gbLibTiers});
   } else {
     DB.add('gbProducts',{type:'item', name:name, cat:cat, moq:parseFloat($('#gbl_moq').value)||0, sampleFee:parseFloat($('#gbl_sampleFee').value)||0,
-      defectRate:parseFloat($('#gbl_defectRate').value)||0, tiers:_gbLibTiers, shipFee:'', sellable:true, locked:false, lockedPrice:null, pmode:'margin', pval:0});
+      defectRate:parseFloat($('#gbl_defectRate').value)||0, price:parseFloat($('#gbl_price').value)||0, tiers:_gbLibTiers, shipFee:'', sellable:true, locked:false, lockedPrice:null, pmode:'margin', pval:0});
   }
   closeModal(); renderGbLibPage(); Toast.success('已保存');
 }
@@ -11486,7 +11621,7 @@ function openPriceListSort() {
     html += `<div class="pricelist-sort-category">${esc(cat)}</div>`;
     groups[cat].forEach((r, i) => {
       const isFirst = i === 0, isLast = i === groups[cat].length - 1;
-      html += '<div class="pricelist-sort-item">';
+      html += '<div class="pricelist-sort-item" data-sid="'+r.id+'">';
       const sizeTxt = cdPriceListSizeText(r);
       html += `<span class="sort-name">${esc(r.product || '未命名')}${sizeTxt ? `<sub class="menu-size-sub">(${sizeTxt})</sub>` : ''}</span>`;
       const _pu = Array.isArray(r.priceUnit) ? (r.priceUnit[0] || '元') : (r.priceUnit || '元');
@@ -11517,6 +11652,19 @@ function openPriceListSort() {
     { label: '恢复默认', class: 'btn-outline', icon: 'rotate-ccw', action: priceSortReset },
     { label: '完成', class: 'btn-primary', action: () => { closeModal(); renderPriceList(); } }
   ], 'notes-sm');
+  /* v1096：长按拖动排序（保留 ▲▼）；按 DOM 内分类分组重排 sort 后落库 */
+  setTimeout(function(){
+    var p=document.querySelector('#modalBody .pricelist-sort-panel');
+    if(p) gbSortDragEnable(p, '.pricelist-sort-item', 'data-sid', function(){
+      var all=DB.list('priceList'), byId={}; all.forEach(function(r){ byId[r.id]=r; });
+      var idx=-1;
+      Array.prototype.slice.call(p.children).forEach(function(ch){
+        if(ch.classList.contains('pricelist-sort-category')){ idx=-1; }
+        else if(ch.classList.contains('pricelist-sort-item')){ idx++; var r=byId[ch.getAttribute('data-sid')]; if(r) r.sort=idx; }
+      });
+      DB.save('priceList', all); openPriceListSort();
+    });
+  }, 0);
 }
 
 function openPriceListNotes() {
