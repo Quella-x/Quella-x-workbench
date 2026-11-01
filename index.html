@@ -342,14 +342,10 @@ html.apk .pf-head{display:flow-root;background:var(--c-bg)}
 /* v1102：apk 端 pf-head 是 position:fixed，内容滚过其下方时必须用不透明背景遮住，
    否则会从头部空白处「透出」内容，看起来像重叠/吞（图5/6 及多轮「吞模板顶部」根因之一；
    .platform-buttons 早已配 background，此处补齐保持一致）。桌面端 pf-head 非 fixed（pf-body 内滚）无需。 */
-/* v1100：滚动吸附——吸顶头钉住后，在任意位置停稳时边界行可能被切成半行（她 8 图之
-   图2/5/6/8，与图4「正常的边」对比）。文档滚动根容器启用 proximity 吸附：
-   停稳时把最近的块边界自动吸到吸顶头下沿（scroll-padding-top 由 JS 按头部真实底边
-   实时写入），保证停稳永远是整齐边界。proximity 只在接近边界时吸附，不打扰自由滚动。 */
-html.apk{scroll-snap-type:y proximity}
-html.apk .pf-body > *{scroll-snap-align:start}
-html.apk .gb-lib-item{scroll-snap-align:start}
-html.apk .platform-buttons ~ *{scroll-snap-align:start}
+/* v1103：移除 v1100 的滚动吸附（scroll-snap-type/proximity + 各块 scroll-snap-align）。
+   实测证明它让每个模块初始加载就被浏览器自动吸附到非零滚动位置（真机"初始界面全滚进去了"、
+   切模块又回滚进去），且会吃掉底部按钮的下边距。v1.1.93 基线无此特性，移除即回到正确初始顶部。
+   （横向轮播 .cdc-track 的 scroll-snap-type:x mandatory 与此无关，保留。） */
 /* v1099：首页平台按钮也提升合成层——她真机图7「搜索框叠到平台卡片上」：v1089 已实证
    真机 WebView CSS sticky 滚动重算滞后（内容画到吸顶元素上面），导航栏/lr-left 当年靠
    translateZ(0) 提升压住（她从未再报），platform-buttons（v1096 引入 sticky）漏了这条规则。 */
@@ -4088,8 +4084,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1102"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1102 —— 若这里显示的不是 v1102 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1103"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1103 —— 若这里显示的不是 v1103 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

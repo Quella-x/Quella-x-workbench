@@ -4321,15 +4321,7 @@ function updateApkHdrH() {
         ph.parentNode.insertBefore(d, ph.nextSibling);
       }
     }
-    /* v1100：滚动吸附基准——scroll-padding-top=吸顶头真实底边，配合 CSS 的
-       scroll-snap-type:y proximity，停稳时最近的块边界自动吸到头部下沿，
-       消灭「停稳时边界行被切成半行」（她图2/5/6/8 vs 图4「正常的边」）。 */
-    if (heads.length) {
-      /* v1102：吸附基准取最后一个吸顶头（最靠近内容的那个）的底边，避免多头部页面
-         误用首个头（platform-buttons）底边导致内容停在半空、露出多余间隙。 */
-      var _b0 = heads[heads.length - 1].getBoundingClientRect();
-      document.documentElement.style.scrollPaddingTop = Math.round(_b0.bottom) + 'px';
-    }
+    /* v1103：移除 v1100 的 scroll-padding-top 写入——它只为已删除的滚动吸附服务，无吸附则无意义。 */
     /* v1099：给每个 pf-head 挂专属 ResizeObserver——旧版只观察 .main-header，头部自身高度
        变化（真机字体晚到导致按钮行变高等）不会触发复测，占位符滞留旧高度 → 内容永久
        上钻进头部底下（她多轮「被吞」的候选根因之一）。头部高度变 → 立即重算占位/top。
