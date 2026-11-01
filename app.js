@@ -4288,6 +4288,20 @@ function updateApkHdrH() {
         ph.parentNode.insertBefore(d, ph.nextSibling);
       }
     }
+    /* v1099：给每个 pf-head 挂专属 ResizeObserver——旧版只观察 .main-header，头部自身高度
+       变化（真机字体晚到导致按钮行变高等）不会触发复测，占位符滞留旧高度 → 内容永久
+       上钻进头部底下（她多轮「被吞」的候选根因之一）。头部高度变 → 立即重算占位/top。
+       rAF 去抖：多头部同时变化只跑一次；本函数不改变头部高度，无回环。 */
+    if (window.ResizeObserver) {
+      if (!updateApkHdrH._ro) {
+        updateApkHdrH._ro = new ResizeObserver(function(){
+          if (updateApkHdrH._roPend) return;
+          updateApkHdrH._roPend = true;
+          requestAnimationFrame(function(){ updateApkHdrH._roPend = false; try { updateApkHdrH(); } catch(e){} });
+        });
+      }
+      for (var j = 0; j < heads.length; j++) { try { updateApkHdrH._ro.observe(heads[j]); } catch(e){} }
+    }
   } catch (e) {}
 }
 window.addEventListener('resize', updateApkHdrH);

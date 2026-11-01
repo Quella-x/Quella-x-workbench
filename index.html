@@ -339,7 +339,10 @@ html.apk .pf-head,html.apk #mainBody.pf-lr .lr-2col > .lr-left{top:var(--hdr-h,6
    display:flow-root 让 pf-head 成为 BFC，子元素 margin 收进自身高度内，占位/吸住几何完全连续。
    仅 apk 生效；桌面端 .fade-in 是 flex、flex 项的子 margin 本就不塌陷，不受影响。 */
 html.apk .pf-head{display:flow-root}
-html.apk .main-header,html.apk #mainBody.pf-lr .lr-2col > .lr-left{will-change:transform;transform:translateZ(0)}
+/* v1099：首页平台按钮也提升合成层——她真机图7「搜索框叠到平台卡片上」：v1089 已实证
+   真机 WebView CSS sticky 滚动重算滞后（内容画到吸顶元素上面），导航栏/lr-left 当年靠
+   translateZ(0) 提升压住（她从未再报），platform-buttons（v1096 引入 sticky）漏了这条规则。 */
+html.apk .main-header,html.apk .platform-buttons,html.apk #mainBody.pf-lr .lr-2col > .lr-left{will-change:transform;transform:translateZ(0)}
 .btn-sm{padding:5px 10px;font-size:12px}
 .btn-icon{
   width:26px;height:26px;border-radius:5px;
@@ -4079,8 +4082,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1098"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1098 —— 若这里显示的不是 v1098 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1099"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1099 —— 若这里显示的不是 v1099 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
