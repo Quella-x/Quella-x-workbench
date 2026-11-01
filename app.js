@@ -4320,16 +4320,22 @@ function updateApkHdrH() {
     }
     body.style.setProperty('--pf-head-h', Math.round(total) + 'px');
     /* v1107：每日记录 pf-lr——测量 lr-left 高度写 --lr-head-h（含边界折叠：
-       lr-left 末元素 mb 链 vs lr-right 首元素 mt 链取 max，与 v1.1.93 文档流一致）。 */
+       lr-left 末元素 mb 链 vs lr-right 首元素 mt 链取 max，与 v1.1.93 文档流一致）。
+       v1108 修复（她真机 v1.2.19 图2「日期条→睡眠记录间距比之前大」）：旧代码 _llB 取
+       lr-left 整体 rect.bottom——lr-left 是 absolute BFC，末元素（日期条 mb 8px）的 margin
+       已被收进自身高度，再 + max(0, mbL-mtR) 等于把同一笔间距计两次（headless 实测
+       日期条底→睡眠卡顶 = 16px，基线 8px）。改与 pf-on 同款：取「末元素 border-box 底边」
+       （不含已收进的 mb）+ 折叠补偿 max(0, mbUp-mtDown)。实测恢复 8px，逐像素=基线。 */
     if (_isPfLr) {
       var _ll = body.querySelector('.lr-2col > .lr-left');
       var _lr = body.querySelector('.lr-2col > .lr-right');
-      if (_ll && _lr) {
+      if (_ll && _lr && _ll.lastElementChild) {
+        var _lLast = _ll.lastElementChild;
         var _mtR = _lr.firstElementChild ? _collMargin(_lr.firstElementChild, 'Top') : 0;
-        var _mbL = _collMargin(_ll, 'Bottom');
-        var _llB = _ll.getBoundingClientRect().bottom;
+        var _mbL = _collMargin(_lLast, 'Bottom');
+        var _lLastB = _lLast.getBoundingClientRect().bottom;
         var _pfT = body.getBoundingClientRect().top;
-        var _hLr = (_llB - _pfT - (parseFloat(_cs.paddingTop) || 0)) + Math.max(0, _mbL - _mtR);
+        var _hLr = (_lLastB - _pfT - (parseFloat(_cs.paddingTop) || 0)) + Math.max(0, _mbL - _mtR);
         if (isFinite(_hLr) && _hLr >= 0) body.style.setProperty('--lr-head-h', Math.round(_hLr) + 'px');
       }
     }
@@ -8054,18 +8060,34 @@ function gbSortDragEnable(panel, itemSel, sidAttr, onReorder){
 }
 /* 商品库新增/编辑：单品可编辑档位；套装只读展示成员（改组成请回价目计算重新保存模板） */
 var _gbLibEditId='', _gbLibTiers=[];
+/* v1108（她截图红框「备瑕比例旁边得加上换算过来的数量和价格」）：
+   口径与 gbCompute 备瑕自动一致——件数=round(起订量×比例%)，费用=件数×适用档出厂价
+   （档位取「起订量能达标的最小档」，即 gbTierPrice 同款：按 min 升序取最后一个 min≤起订量的档）。
+   起订量/备瑕比例/任一档位输入时实时刷新。 */
+function gbLibDefectCalc(){
+  var el=$('#gbl_defect_calc'); if(!el) return;
+  var moqEl=$('#gbl_moq'), rateEl=$('#gbl_defectRate');
+  var moq=parseFloat(moqEl&&moqEl.value)||0;
+  var rate=parseFloat(rateEl&&rateEl.value)||0;
+  var qty=Math.round(moq*rate/100);
+  var ts=(_gbLibTiers||[]).slice().sort(function(a,b){ return (parseFloat(a.min)||0)-(parseFloat(b.min)||0); });
+  var price=0;
+  ts.forEach(function(t){ if(moq>=(parseFloat(t.min)||0)) price=parseFloat(t.price)||0; });
+  el.textContent='（约 '+qty+' 件 · ¥'+(qty*price).toFixed(2)+'）';
+}
 function gbLibRenderTiers(){
   var box=$('#gbl_tiers'); if(!box) return;
   var h='';
   _gbLibTiers.forEach(function(t,i){
     h+='<div class="gb-tier"><span style="font-size:11px;color:var(--c-text-muted);white-space:nowrap">起订量≥</span>'+
-       '<input type="number" class="form-input" value="'+t.min+'" oninput="_gbLibTiers['+i+'].min=parseFloat(this.value)||0">'+
+       '<input type="number" class="form-input" value="'+t.min+'" oninput="_gbLibTiers['+i+'].min=parseFloat(this.value)||0;gbLibDefectCalc()">'+
        '<span style="font-size:11px;color:var(--c-text-muted);white-space:nowrap">出厂价</span>'+
-       '<input type="number" class="form-input" value="'+t.price+'" oninput="_gbLibTiers['+i+'].price=parseFloat(this.value)||0">'+
+       '<input type="number" class="form-input" value="'+t.price+'" oninput="_gbLibTiers['+i+'].price=parseFloat(this.value)||0;gbLibDefectCalc()">'+
        '<button class="btn btn-sm gb-del" onclick="_gbLibTiers.splice('+i+',1);gbLibRenderTiers()">删除档位</button></div>';
   });
   h+='<div class="gb-mt"><button class="btn btn-primary btn-sm" onclick="_gbLibTiers.push({min:50,price:0});gbLibRenderTiers()">+ 阶梯档位</button></div>';
   box.innerHTML=h;
+  gbLibDefectCalc();
 }
 function gbLibEdit(id){
   _gbLibEditId=id||'';
@@ -8096,11 +8118,11 @@ function gbLibEdit(id){
        '</div></div>';
     h+='<div style="font-size:12px;color:var(--c-text-muted)">套装的组成请在「价目计算」的套装卡里调整后重新「保存模板」。</div>';
   } else {
-    h+='<div class="form-row"><label class="form-label">起订量</label><input type="number" class="form-input" id="gbl_moq" value="'+((t&&t.moq)||100)+'"></div>';
+    h+='<div class="form-row"><label class="form-label">起订量</label><input type="number" class="form-input" id="gbl_moq" value="'+((t&&t.moq)||100)+'" oninput="gbLibDefectCalc()"></div>';
     /* v1097：售价挪到打样费前面（反馈5） */
     h+='<div class="form-row"><label class="form-label">售价<span class="calc-card-hint">（元，对外卖价）</span></label><input type="number" class="form-input" id="gbl_price" value="'+((t&&t.price!=null?t.price:0))+'"></div>';
     h+='<div class="form-row"><label class="form-label">打样费<span class="calc-card-hint">（元）</span></label><input type="number" class="form-input" id="gbl_sampleFee" value="'+((t&&t.sampleFee)||0)+'"></div>';
-    h+='<div class="form-row"><label class="form-label">备瑕比例<span class="calc-card-hint">（%）</span></label><input type="number" class="form-input" id="gbl_defectRate" value="'+((t&&t.defectRate!=null?t.defectRate:3))+'"></div>';
+    h+='<div class="form-row"><label class="form-label">备瑕比例<span class="calc-card-hint">（%）</span><span class="calc-card-hint" id="gbl_defect_calc"></span></label><input type="number" class="form-input" id="gbl_defectRate" value="'+((t&&t.defectRate!=null?t.defectRate:3))+'" oninput="gbLibDefectCalc()"></div>';
     h+='<div class="form-row"><label class="form-label">阶梯档位</label></div>';
     h+='<div id="gbl_tiers"></div>';
   }
@@ -8114,7 +8136,7 @@ function gbLibEdit(id){
     _footer.splice(1,0,{label:'删除', class:'btn-danger', action:function(){ closeModal(); gbDelLib(id); }});
   }
   openModal(id?'编辑商品':'新增商品', h, _footer);
-  if(!isBundle) gbLibRenderTiers();
+  if(!isBundle){ gbLibRenderTiers(); gbLibDefectCalc(); }
 }
 function gbLibSave(){
   var el=$('#gbl_name');

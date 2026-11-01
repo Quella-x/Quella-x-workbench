@@ -304,7 +304,13 @@ html.apk.modal-lock{overflow:hidden!important}
 #mainBody.pf-on{display:flex;flex-direction:column;overflow:hidden}
 #mainBody.pf-on > .fade-in{display:flex;flex-direction:column;flex:1;min-height:0}
 .pf-head{flex:0 0 auto}
-.pf-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+/* v1108（她电脑端「接稿详情约稿单边框不一样/首页和接稿排期日历左右两边、灵感速记边框不对，虚线呢」）：
+   桌面 pf-body 内滚滚动条占位（全局 6px，headless 实测 15px）使内容整体比 v1.1.93 窄——
+   约稿单卡 320 vs 基线 325、日历右缘 722 vs 729，右缘虚线整体内移 = 她说的「边框不一样/虚线没了」。
+   pf-body 滚动条全端隐藏（同 v1106 手机端做法）：内容宽恢复基线；two-col 模块 pf-body 本身
+   不滚（flex 容器，左右列各自内滚）不受影响，v808 行为原样保留。 */
+.pf-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+.pf-body::-webkit-scrollbar{width:0;height:0;display:none}
 /* 两列模块（开团记录等）：pf-body 内继续 flex 撑满，左右列各自内滚，保持 v808 行为 */
 .main-body.two-col-fixed.pf-on .pf-body{display:flex;flex-direction:column;flex:1 1 0;min-height:0}
 /* 每日记录：左列（顶卡+睡眠/饮食按钮+日期条|周导航）固定，右列（记录块）滚动 */
@@ -4108,8 +4114,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1107"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1107 —— 若这里显示的不是 v1107 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1108"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1108 —— 若这里显示的不是 v1108 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
