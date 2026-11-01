@@ -4287,6 +4287,17 @@ window.addEventListener('resize', updateApkHdrH);
 window.addEventListener('load', updateApkHdrH);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(updateApkHdrH);
 if (window.ResizeObserver) { try { var _hh = document.querySelector('.main-header'); if (_hh) new ResizeObserver(updateApkHdrH).observe(_hh); } catch (e) {} }
+/* v1097：真实 WebView 首帧后布局/字体/原生头高度可能再变，首测 top 漂移 → 多次兜底复测（反馈1：顶部被吞） */
+function _hdrResync(){ try{ updateApkHdrH(); }catch(e){} }
+if (document.readyState === 'complete') { requestAnimationFrame(function(){ requestAnimationFrame(_hdrResync); }); }
+else { window.addEventListener('load', function(){ requestAnimationFrame(function(){ requestAnimationFrame(_hdrResync); }); }); }
+[80, 250, 600, 1200, 2200].forEach(function(d){ setTimeout(_hdrResync, d); });
+/* 首次滚动也复测一次，兜住「首屏测量过早」的漂移 */
+var _hdrScrolled = false;
+window.addEventListener('scroll', function(){
+  if(_hdrScrolled) return; _hdrScrolled = true;
+  requestAnimationFrame(_hdrResync);
+}, {passive:true});
 
 /* ===== v1077：顶部固定 + 底部独立滚动（原型阶段） =====
    她：「顶部XX固定位置，滚动时只有底部模块滚动」——方案1（顶部 0 位移，底部独立滚动区）。
@@ -7760,12 +7771,19 @@ function gbLibRow(t,isFirst,isLast){
     var _tiers=(t.tiers||[]);
     meta = _tiers.length ? _tiers.map(function(x){ return '≥'+x.min+' ¥'+x.price; }).join(' | ') : '未设档位';
   }
-  /* v1096：一行改两行（名称/分类第一行，价位+售价第二行）；售价仅在有值时显示 */
-  var priceTxt = (t.type!=='bundle' && t.price!=null && t.price!==0) ? ('售价 ¥'+t.price) : '';
+  /* v1097：第二排按用户要求增加显示 起订量/售价/打样费（原仅价位+售价）；胶囊仍在 name 后第一行（v1072 同款顺序）。
+     起订量恒显（默认100），售价/打样费有值才显，末位接阶梯价。 */
+  var parts=[];
+  if(t.type!=='bundle'){
+    parts.push('<span class="lib-meta">起订量 '+((t.moq!=null)?t.moq:100)+'</span>');
+    if(t.price!=null && t.price!==0) parts.push('<span class="lib-price">售价 ¥'+t.price+'</span>');
+    if(t.sampleFee!=null && t.sampleFee!==0) parts.push('<span class="lib-meta">打样费 ¥'+t.sampleFee+'</span>');
+  }
+  parts.push('<span class="lib-meta">'+meta+'</span>');
   return '<div class="pricelist-menu-item gb-lib-item" onclick="gbLibEdit(\''+t.id+'\')">'+
     '<div class="lib-row1"><span class="lib-name">'+gbEsc(t.name||'未命名')+'</span>'+
     '<span class="lib-type">'+esc(String(t.cat||'').trim()||(t.type==='bundle'?'套装':'单品'))+'</span></div>'+
-    '<div class="lib-row2"><span class="lib-meta">'+meta+'</span>'+(priceTxt?'<span class="lib-price">'+priceTxt+'</span>':'')+'</div>'+
+    '<div class="lib-row2">'+parts.join('')+'</div>'+
     '</div>';
 }
 /* v1072：商品库排序照「价目表」——工具栏「调整排序」按钮 + 排序弹窗（每项右侧 ▲▼，点完原地刷新）。
@@ -7990,10 +8008,10 @@ function gbLibEdit(id){
     h+='<div style="font-size:12px;color:var(--c-text-muted)">套装的组成请在「价目计算」的套装卡里调整后重新「保存模板」。</div>';
   } else {
     h+='<div class="form-row"><label class="form-label">起订量</label><input type="number" class="form-input" id="gbl_moq" value="'+((t&&t.moq)||100)+'"></div>';
+    /* v1097：售价挪到打样费前面（反馈5） */
+    h+='<div class="form-row"><label class="form-label">售价<span class="calc-card-hint">（元，对外卖价）</span></label><input type="number" class="form-input" id="gbl_price" value="'+((t&&t.price!=null?t.price:0))+'"></div>';
     h+='<div class="form-row"><label class="form-label">打样费<span class="calc-card-hint">（元）</span></label><input type="number" class="form-input" id="gbl_sampleFee" value="'+((t&&t.sampleFee)||0)+'"></div>';
     h+='<div class="form-row"><label class="form-label">备瑕比例<span class="calc-card-hint">（%）</span></label><input type="number" class="form-input" id="gbl_defectRate" value="'+((t&&t.defectRate!=null?t.defectRate:3))+'"></div>';
-    /* v1096：新增「售价」单行字段——导入开团记录用售价；阶梯价（档位）仍用于导入价目计算 */
-    h+='<div class="form-row"><label class="form-label">售价<span class="calc-card-hint">（元，对外卖价）</span></label><input type="number" class="form-input" id="gbl_price" value="'+((t&&t.price!=null?t.price:0))+'"></div>';
     h+='<div class="form-row"><label class="form-label">阶梯档位</label></div>';
     h+='<div id="gbl_tiers"></div>';
   }

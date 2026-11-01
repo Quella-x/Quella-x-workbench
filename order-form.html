@@ -1736,8 +1736,9 @@ html.apk .main-header,html.apk #mainBody.pf-lr .lr-2col > .lr-left{will-change:t
 .platform-buttons{
   display:flex;flex-wrap:nowrap;gap:6px;margin-bottom:10px;
   /* v1096：需求2——首页四个平台按钮固定（钉在首页顶部，随首页滚动始终可见；非模块吸顶头） */
-  position:sticky;top:0;z-index:15;background:var(--c-bg);padding-bottom:4px;
-  border-bottom:1px solid var(--c-border);
+  /* v1097：去掉 border-bottom（反馈2：日历自带虚线边框，紧贴显出多余分割线）；
+     间距保持历史值——桌面 10px、手机 8px（index.html:3896 !important 锁定，反馈3 不回归） */
+  position:sticky;top:0;z-index:15;background:var(--c-bg);
 }
 /* APK 走文档滚动，导航栏 sticky top:0，按钮需让出导航栏高度 */
 html.apk .platform-buttons{top:var(--hdr-h,69px)}
@@ -4009,8 +4010,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 .dl-sort-open{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;font-size:12px;font-weight:500;color:var(--c-primary);background:var(--c-card);border:1px solid var(--c-primary-light);border-radius:var(--radius-sm);cursor:pointer;white-space:nowrap}
 /* v1068：与 .btn-sm 同高（原来上下 padding 3px，比「+ 添加」矮一截） */
 .dl-sort-open:hover{background:var(--c-primary-bg)}
-/* v1061：模块「调整排序」按钮——手机端(≤640px)隐藏「调整」二字只留「排序」，避免 toolbar 4 按钮挤压换行 */
-/* v1096：手机端不再隐藏 .sort-long，排序按钮统一显示「调整排序」 */
+/* v1061：模块「调整排序」按钮——手机端(≤640px)隐藏「调整」二字只留「排序」，避免 toolbar 4 按钮挤压换行（v1096 误删，v1097 恢复） */
+@media (max-width:640px){ .sort-long{display:none} }
 /* v1061：商品库单表（照「价目表」格式：一行一条，点行编辑） */
 .gb-lib-list{max-width:860px;margin:0 auto}
 /* v1072：行内只留 名称/标签/价位（行尾 ⋮ 已删）；统一 gap，行内容垂直居中
@@ -4077,8 +4078,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=1096"><\/script>');</script>
-  <script>console.log('[小筱工作台] 当前版本 v1096 —— 若这里显示的不是 v1096 说明浏览器缓存了旧页面')</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=1097"><\/script>');</script>
+  <script>console.log('[小筱工作台] 当前版本 v1097 —— 若这里显示的不是 v1097 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
