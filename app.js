@@ -4249,7 +4249,19 @@ function updateApkHdrH() {
        吸顶 top=53 时垫出的 16px 落在 37~53 区间，被 z30 的不透明导航栏盖住（她实测「间距还没有」）。
        手机端 .lr-2col 是 block、lr-left 全宽，与 pf-head 结构等价，直接用同一套
        fixed + 自身 paddingTop 垫距 + pf-ph 占位（占位撑住文档流，内容位置不变）。 */
-    var heads = document.querySelectorAll('.pf-head, .platform-buttons, #mainBody.pf-lr .lr-2col > .lr-left');
+    /* v1102 修复（她真机图1-6 复测「间距被吞/重叠」根因）：
+       首页平台视图里 .platform-buttons 是 .pf-head 的子元素，原选择器把它和 .pf-head 双双选中 →
+       被「重复固定 + 在 pf-head 内插入嵌套 .pf-ph」：两个头都钉在 top:53 互相重叠、占位算歪、
+       首卡被压 8px、工具栏上方还多出一块占位空白（她图2「下间距宽了」）。故仅当 platform-buttons
+       不在任何 .pf-head 内时才单独固定（在 pf-head 内则随 pf-head 一起固定即可，不重复处理）。 */
+    var rawHeads = document.querySelectorAll('.pf-head, .platform-buttons, #mainBody.pf-lr .lr-2col > .lr-left');
+    var heads = [];
+    for (var _h = 0; _h < rawHeads.length; _h++) {
+      var _el = rawHeads[_h];
+      if (_el.classList.contains('platform-buttons') && _el.closest('.pf-head')) continue;
+      heads.push(_el);
+    }
+    if (!heads.length) return;
     for (var i = 0; i < heads.length; i++) {
       var ph = heads[i];
       /* v1090：她实测「整个格式都变了」——pf-head 在带左右边距的容器里，直接 left:0;width:100%
@@ -4274,6 +4286,11 @@ function updateApkHdrH() {
       var _mcs = getComputedStyle(ph);
       var _mt = parseFloat(_mcs.marginTop) || 0;
       var _mb = parseFloat(_mcs.marginBottom) || 0;
+      /* v1102：固定头部前将其 margin 清零——否则 fixed 元素实际顶边 = top + marginTop
+         （负边距→上移、正边距→下移），整条 fixed 链算歪：platform-buttons 的 margin-top:-16px
+         曾让卡片上移吃掉顶部间距、并把后续 pf-head 的 docY 少算 16px 级联错位。间距由下方占位符的
+         _mt/_mb 与 _pad 兜底还原，公式即严格中性（占位顶=docY-_mt、占位高=原 margin 盒高）。 */
+      ph.style.marginTop = '0'; ph.style.marginBottom = '0';
       /* v1100（她装 v1.2.10 后 8 图再证，此前 headless 探针测不到的两处真机残症）：
          ①「导航栏与吸顶头之间露缝」——v1096 起 top=docY（=导航栏底 + 主体paddingTop），
             两者之间留了一条 padding 高的透明带，滚动时内容从带里穿过（图3「制品数13件」
@@ -4308,7 +4325,9 @@ function updateApkHdrH() {
        scroll-snap-type:y proximity，停稳时最近的块边界自动吸到头部下沿，
        消灭「停稳时边界行被切成半行」（她图2/5/6/8 vs 图4「正常的边」）。 */
     if (heads.length) {
-      var _b0 = heads[0].getBoundingClientRect();
+      /* v1102：吸附基准取最后一个吸顶头（最靠近内容的那个）的底边，避免多头部页面
+         误用首个头（platform-buttons）底边导致内容停在半空、露出多余间隙。 */
+      var _b0 = heads[heads.length - 1].getBoundingClientRect();
       document.documentElement.style.scrollPaddingTop = Math.round(_b0.bottom) + 'px';
     }
     /* v1099：给每个 pf-head 挂专属 ResizeObserver——旧版只观察 .main-header，头部自身高度

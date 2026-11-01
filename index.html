@@ -338,7 +338,10 @@ html.apk .pf-head,html.apk #mainBody.pf-lr .lr-2col > .lr-left{top:var(--hdr-h,6
    第一张卡顶部被吸顶头压住（她真机图2「被吞」；v1095 对 yn 占位总结过同款教训，在 pf-ph 上重演）。
    display:flow-root 让 pf-head 成为 BFC，子元素 margin 收进自身高度内，占位/吸住几何完全连续。
    仅 apk 生效；桌面端 .fade-in 是 flex、flex 项的子 margin 本就不塌陷，不受影响。 */
-html.apk .pf-head{display:flow-root}
+html.apk .pf-head{display:flow-root;background:var(--c-bg)}
+/* v1102：apk 端 pf-head 是 position:fixed，内容滚过其下方时必须用不透明背景遮住，
+   否则会从头部空白处「透出」内容，看起来像重叠/吞（图5/6 及多轮「吞模板顶部」根因之一；
+   .platform-buttons 早已配 background，此处补齐保持一致）。桌面端 pf-head 非 fixed（pf-body 内滚）无需。 */
 /* v1100：滚动吸附——吸顶头钉住后，在任意位置停稳时边界行可能被切成半行（她 8 图之
    图2/5/6/8，与图4「正常的边」对比）。文档滚动根容器启用 proximity 吸附：
    停稳时把最近的块边界自动吸到吸顶头下沿（scroll-padding-top 由 JS 按头部真实底边
@@ -1739,20 +1742,12 @@ html.apk .main-header,html.apk .platform-buttons,html.apk #mainBody.pf-lr .lr-2c
 
 /* ===== Platform Buttons (Home) ===== */
 .platform-buttons{
-  display:flex;flex-wrap:nowrap;gap:6px;
-  /* v1096：需求2——首页四个平台按钮固定（钉在首页顶部，随首页滚动始终可见；非模块吸顶头） */
-  /* v1097：去掉 border-bottom（反馈2：日历自带虚线边框，紧贴显出多余分割线） */
-  /* v1098（她图3「上下的间距都没有了」）：sticky 吸住后，随文档流滚走的 margin-bottom 让日历
-     贴死卡片底边、顶边贴死导航栏——吸住态要保留间距，间距必须画在 sticky 自身盒内
-     （padding，同色背景盖住）而不是 margin。rest 间距不变：
-     ① 顶部 padding-top:16px 用等量负 margin 抵消（.main-body padding-top 16，rest 卡片位置不变）；
-     ② 底部日历 margin-top=0，padding-bottom 直接取原 margin 值（桌面 10 / 手机 8，
-        L3896 同步改），rest 与吸住两态间距完全一致 */
-  margin-top:-16px;padding-top:16px;padding-bottom:10px;
-  position:sticky;top:0;z-index:15;background:var(--c-bg);
+  display:flex;flex-wrap:nowrap;gap:6px;margin-bottom:10px;
 }
-/* APK 走文档滚动，导航栏 sticky top:0，按钮需让出导航栏高度 */
-html.apk .platform-buttons{top:var(--hdr-h,69px)}
+/* v1096：首页四个平台按钮固定（钉在首页顶部，随滚动始终可见；非模块吸顶头）。
+   APK 走文档滚动、导航栏 sticky top:0，按钮需让出导航栏高度；JS(updateApkHdrH) 会再改为
+   fixed+占位，间距严格中性（见 app.js）。桌面端不固定，仅 margin-bottom:10px 撑开与下方间距（v1076 原样）。 */
+html.apk .platform-buttons{position:sticky;top:var(--hdr-h,69px);z-index:15;background:var(--c-bg)}
 .platform-btn{
   flex:1;min-width:0;padding:9px 10px;
   border-radius:var(--radius-sm);color:#fff;font-size:13px;font-weight:600;
@@ -3915,8 +3910,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
   .toolbar-actions{display:grid !important;grid-template-columns:repeat(auto-fit, minmax(0, 1fr)) !important;gap:8px !important;width:100% !important;}
   .toolbar-actions .btn-primary,.toolbar-actions .btn-outline,.toolbar-actions .filter-combobox,.toolbar-actions .toolbar-eq,.toolbar-actions .combobox-wrapper{width:auto !important;min-width:0 !important;max-width:none !important;}
   .relations-toolbar > .btn-primary{grid-column:1 / -1 !important;width:100% !important;}
-  /* ② 首页四按钮 → 下方模块 8px（桌面 10px 不动） */
-  .platform-buttons{margin-bottom:-4px !important;padding-bottom:8px !important;}
+  /* ② 首页四按钮 → 下方模块 8px（桌面 10px 不动，v1076 原样） */
+  .platform-buttons{margin-bottom:8px !important;}
   /* ③ 每日记录顶部卡 → 睡眠/饮食按钮 8px */
   .lr-top-card{margin-bottom:8px !important;}
   /* ⑧ 时间线：重要性按钮上方 14px(唯一例外) / 下方 8px */
@@ -4093,8 +4088,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1101"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1101 —— 若这里显示的不是 v1101 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1102"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1102 —— 若这里显示的不是 v1102 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
