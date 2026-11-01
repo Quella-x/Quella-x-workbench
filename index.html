@@ -369,6 +369,15 @@ html.apk .main-header{position:sticky;top:0;z-index:30}
    display:flow-root 让 pf-head 成为 BFC，子元素 margin 收进自身高度内，占位/吸住几何完全连续。
    仅 apk 生效；桌面端 .fade-in 是 flex、flex 项的子 margin 本就不塌陷，不受影响。 */
 html.apk .pf-head{display:flow-root;background:var(--c-bg)}
+/* v1108（她真机 v1.2.19「第一个展示模块上边框显示不完全，所有页面只有一两个好的」）：
+   pf-on 折叠几何=基线的必然结果——第一张卡顶边恰好与悬浮头底边贴线（headless 实测
+   home 251=251、接稿详情 355=355、接稿排期 197=197）。headless 中 outline（卡片顶边内画
+   1px）恰好不被盖，但真机 WebView 字体/行高与 headless 差 ±1px，头部不透明背景（z-25）
+   就压住卡片顶部虚线半格 → 上边框显示不完全。修：悬浮头背景绘制下缘上提 1px
+   （clip-path 只裁绘制、不动布局/占位/遮滚几何——露出的是 1px 同底色缝隙，滚动内容
+   穿过仅瞬时可辨，远轻于上边框缺损）。每日记录 lr-left 同款贴线（lr-card 顶=lr-left 底），
+   一并处理。桌面 pf-head 是 static flex 项不悬浮、无层叠覆盖，不需要。 */
+html.apk .pf-head,html.apk #mainBody.pf-lr .lr-2col > .lr-left{clip-path:inset(0 0 1px 0)}
 /* v1102：apk 端 pf-head 是 position:fixed，内容滚过其下方时必须用不透明背景遮住，
    否则会从头部空白处「透出」内容，看起来像重叠/吞（图5/6 及多轮「吞模板顶部」根因之一；
    .platform-buttons 早已配 background，此处补齐保持一致）。桌面端 pf-head 非 fixed（pf-body 内滚）无需。 */
