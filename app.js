@@ -4238,6 +4238,26 @@ window.addEventListener('resize', () => {
    （sticky 每帧随滚动重算，合成器滞后），v1087 的 will-change 压不住 → pf-head 彻底
    弃用 sticky，改 position:fixed + 占位元素（fixed 是合成层定位，不参与滚动重算，
    物理上不可能滞后/缩）。lr-left 是两栏 flex 的一栏，fixed 会塌布局，维持 sticky+内联。 */
+/* v1106：测「margin 折叠链」——文档流里父子间 margin 会沿无 padding/border/BFC 的层级
+   传播折叠取 max（如平台页头末的 DIV 包着月导航，月导航的 mb 沿链上传）。
+   side='Top' 沿 firstElementChild 向下、side='Bottom' 沿 lastElementChild 向上，
+   返回该侧最终参与折叠的 margin 值。guard 防深层死循环。 */
+function _collMargin(el, side) {
+  var m = 0, cur = el, guard = 0;
+  var kidKey = side === 'Top' ? 'firstElementChild' : 'lastElementChild';
+  var edge = side === 'Top' ? 'paddingTop' : 'paddingBottom';
+  var border = side === 'Top' ? 'borderTopWidth' : 'borderBottomWidth';
+  while (cur && guard++ < 8) {
+    var cs;
+    try { cs = getComputedStyle(cur); } catch (e) { break; }
+    var v = parseFloat(cs['margin' + side]) || 0;
+    if (v > m) m = v;
+    if ((parseFloat(cs[edge]) || 0) || (parseFloat(cs[border]) || 0) || cs.overflow !== 'visible') break;
+    cur = cur[kidKey];
+  }
+  return m;
+}
+
 function updateApkHdrH() {
   try {
     var h = document.querySelector('.main-header');
@@ -4261,6 +4281,23 @@ function updateApkHdrH() {
     body.style.setProperty('--pf-inset-b', (parseFloat(_cs.paddingBottom) || 0) + 'px');
     var total = 0;
     for (var i = 0; i < heads.length; i++) total += heads[i].getBoundingClientRect().height;
+    /* v1106：边界 margin 折叠还原。pf-head / pf-body 都是 BFC(overflow/absolute)，文档流的
+       「相邻 margin 折叠取 max」在边界失效 → 上侧末元素链的 mb 被算进头高、下侧首元素链的
+       mt 又在内容盒内独立生效，可见间隙 = 上链+下链(双倍计，她真机"首页12 vs 平台页8/开团记录间隙不对")。
+       基线 v1.1.93(v1076) 同尺实测：首页 buttons→日历=8、平台页 buttons→搜索=8、开团记录 yearnav→内容=6。
+       修法：--pf-head-h 改为「末元素底边 + max(上链mb, 下链mt) − 下链mt」使内容盒顶边精确落在
+       折叠点上，可见间隙 = max(上链, 下链)，与文档流逐像素一致。 */
+    var _head = heads[heads.length - 1];
+    var _pb = body.querySelector('.pf-body');
+    if (_head && _pb && _head.lastElementChild && _pb.firstElementChild) {
+      var _last = _head.lastElementChild, _first = _pb.firstElementChild;
+      var _pfOnTop = body.getBoundingClientRect().top;
+      var _mbUp = _collMargin(_last, 'Bottom');
+      var _mtDown = _collMargin(_first, 'Top');
+      var _lastBottom = _last.getBoundingClientRect().bottom;
+      var _hh = (_lastBottom - _pfOnTop - (parseFloat(_cs.paddingTop) || 0)) + Math.max(0, _mbUp - _mtDown);
+      if (isFinite(_hh) && _hh >= 0) total = _hh;
+    }
     body.style.setProperty('--pf-head-h', Math.round(total) + 'px');
     /* 头部自身高度变化(真机字体晚到等)→ 立即重算内容盒顶偏移，避免内容钻进头部底下 */
     if (window.ResizeObserver) {

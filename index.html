@@ -323,7 +323,11 @@ html.apk #mainBody.pf-on{position:absolute;top:var(--hdr-h,53px);bottom:0;left:0
    改为内缩 var(--pf-inset-*)（由 updateApkHdrH 从 .main-body 真实 computed padding 读入，
    不硬编码），四周间距与 v1.1.93 文档流完全一致。 */
 html.apk .pf-head{position:absolute;top:var(--pf-inset-t,16px);left:var(--pf-inset-x,16px);right:var(--pf-inset-x,16px);z-index:25;background:var(--c-bg)}
-html.apk .pf-body{position:absolute;top:calc(var(--pf-inset-t,16px) + var(--pf-head-h,0px));left:var(--pf-inset-x,16px);right:var(--pf-inset-x,16px);bottom:var(--pf-inset-b,16px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+html.apk .pf-body{position:absolute;top:calc(var(--pf-inset-t,16px) + var(--pf-head-h,0px));left:var(--pf-inset-x,16px);right:var(--pf-inset-x,16px);bottom:var(--pf-inset-b,16px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:none}
+/* v1106（她真机图2「这个滚动条是什么」）：全局 ::-webkit-scrollbar{width:6px} 会命中新的
+   .pf-body 滚动容器；旧 APK 文档滚动被 html.apk::-webkit-scrollbar{width:0} 隐藏，
+   pf-body 必须同样隐藏才与 v1.1.93 一致（手机端不显示滚动条）。 */
+html.apk .pf-body::-webkit-scrollbar{width:0;height:0;display:none}
 html.apk #mainBody.pf-lr .lr-2col > .lr-left{position:sticky;top:var(--hdr-h,69px);z-index:20;background:var(--c-bg)}
 html.apk #mainBody.pf-lr .lr-2col{display:block;height:auto}
 html.apk #mainBody.pf-lr .lr-2col > .lr-right{overflow:visible}
@@ -4091,8 +4095,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1105"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1105 —— 若这里显示的不是 v1105 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1106"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1106 —— 若这里显示的不是 v1106 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
