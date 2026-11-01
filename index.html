@@ -313,18 +313,21 @@ html.apk.modal-lock{overflow:hidden!important}
 #mainBody.pf-lr .lr-2col{display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:0;flex:1 1 0;height:auto}
 #mainBody.pf-lr .lr-2col > .lr-left{min-height:0;overflow:visible;height:auto}
 #mainBody.pf-lr .lr-2col > .lr-right{min-height:0;overflow-y:auto}
-html.apk #mainBody.pf-on,html.apk #mainBody.pf-lr{display:block;overflow:visible}
-html.apk #mainBody.pf-on > .fade-in,html.apk #mainBody.pf-lr > .fade-in{display:block}
-html.apk .pf-body{overflow:visible}
-html.apk .main-body.two-col-fixed.pf-on .pf-body{display:block;flex:none}
-html.apk .pf-head,html.apk #mainBody.pf-lr .lr-2col > .lr-left{position:sticky;top:var(--hdr-h,69px);z-index:20;background:var(--c-bg)}
+/* v1xxx B：APK「头部固定 + 下方独立滚动区」用绝对定位滚动盒实现——不依赖嵌套 flex 高度链，
+   规避 v798 部分 Android WebView「完全划不动」。#mainBody.pf-on 钉在导航栏下占满余下视口；
+   .pf-head 钉在 pf-on 顶部；.pf-body 从头部底边到视口底内部滚动 → 内容永不被头部盖住(无吞顶)；
+   首页/平台页/各列表模块机制统一。弃用 position:fixed + .pf-ph 手算占位(多轮"错位/吞顶/两页高度不一致"根因)。 */
+html.apk #mainBody.pf-on{position:absolute;top:var(--hdr-h,53px);bottom:0;left:0;right:0;overflow:hidden;padding:0!important}
+html.apk .pf-head{position:absolute;top:0;left:0;right:0;z-index:25;background:var(--c-bg)}
+html.apk .pf-body{position:absolute;left:0;right:0;bottom:0;top:var(--pf-head-h,0px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+html.apk #mainBody.pf-lr .lr-2col > .lr-left{position:sticky;top:var(--hdr-h,69px);z-index:20;background:var(--c-bg)}
 html.apk #mainBody.pf-lr .lr-2col{display:block;height:auto}
 html.apk #mainBody.pf-lr .lr-2col > .lr-right{overflow:visible}
 /* v1085: 手机端顶部导航栏也吸顶（此前从未固定，她 11-01 截图红框「最上面的导航栏不固定」）。
    导航栏钉住后，pf-head / 每日记录 lr-left 的吸顶起点要让出导航栏实际高度，
    用 --hdr-h（JS 按导航栏实测高度写入 html，回退 69px），避免两块吸顶元素重叠。 */
 html.apk .main-header{position:sticky;top:0;z-index:30}
-html.apk .pf-head,html.apk #mainBody.pf-lr .lr-2col > .lr-left{top:var(--hdr-h,69px)}
+html.apk #mainBody.pf-lr .lr-2col > .lr-left{top:var(--hdr-h,69px)}
 /* v1087: 她实测「滑动时吸顶头部会往上滑、钻进导航栏底下」——① WebView 对 sticky 滚动合成
    有滞后抖动，提升为独立合成层（will-change+translateZ(0)，只加在吸顶元素自身、不影响其
    sticky 行为）可显著减轻；② top 具体值由 updateApkHdrH 直接内联写入（见 app.js），不单靠变量。 */
@@ -4084,8 +4087,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1103"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1103 —— 若这里显示的不是 v1103 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1104"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1104 —— 若这里显示的不是 v1104 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

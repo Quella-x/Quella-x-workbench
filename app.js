@@ -4240,92 +4240,22 @@ window.addEventListener('resize', () => {
    物理上不可能滞后/缩）。lr-left 是两栏 flex 的一栏，fixed 会塌布局，维持 sticky+内联。 */
 function updateApkHdrH() {
   try {
-    if (!document.documentElement.classList.contains('apk')) return;
     var h = document.querySelector('.main-header');
     if (!h) return;
     var t = h.offsetHeight + 'px';
     document.documentElement.style.setProperty('--hdr-h', t);
-    /* v1093：每日记录 lr-left 并入 pf-head 同款处理——v1092 的 box-shadow 垫距画在元素上方，
-       吸顶 top=53 时垫出的 16px 落在 37~53 区间，被 z30 的不透明导航栏盖住（她实测「间距还没有」）。
-       手机端 .lr-2col 是 block、lr-left 全宽，与 pf-head 结构等价，直接用同一套
-       fixed + 自身 paddingTop 垫距 + pf-ph 占位（占位撑住文档流，内容位置不变）。 */
-    /* v1102 修复（她真机图1-6 复测「间距被吞/重叠」根因）：
-       首页平台视图里 .platform-buttons 是 .pf-head 的子元素，原选择器把它和 .pf-head 双双选中 →
-       被「重复固定 + 在 pf-head 内插入嵌套 .pf-ph」：两个头都钉在 top:53 互相重叠、占位算歪、
-       首卡被压 8px、工具栏上方还多出一块占位空白（她图2「下间距宽了」）。故仅当 platform-buttons
-       不在任何 .pf-head 内时才单独固定（在 pf-head 内则随 pf-head 一起固定即可，不重复处理）。 */
-    var rawHeads = document.querySelectorAll('.pf-head, .platform-buttons, #mainBody.pf-lr .lr-2col > .lr-left');
-    var heads = [];
-    for (var _h = 0; _h < rawHeads.length; _h++) {
-      var _el = rawHeads[_h];
-      if (_el.classList.contains('platform-buttons') && _el.closest('.pf-head')) continue;
-      heads.push(_el);
-    }
-    if (!heads.length) return;
-    for (var i = 0; i < heads.length; i++) {
-      var ph = heads[i];
-      /* v1090：她实测「整个格式都变了」——pf-head 在带左右边距的容器里，直接 left:0;width:100%
-         会铺满全屏丢边距。改 fixed 前先量它在文档流里的横向位置/宽度，照原样定位；
-         已 fixed 的先临时还原再量（同一帧 JS 内完成，无中间绘制、无闪烁），转屏/resize 也正确。 */
-      /* v1098 关键修复（她真机图1「出bug了」：吸顶头整个钉进列表中间、顶上大片空白；
-         图2「被吞」：第一张卡顶部被吸顶头压住）——旧版还原测量用 position=''，
-         但 index.html:320 给 html.apk .pf-head 配了 position:sticky 兜底，'' 会落回 sticky！
-         页面滚动时 sticky 元素的 rect 是「吸住位置」(≈导航栏底 53px) 而非文档流位置，
-         于是 top=r.top+滚动量 实际变成 53+滚动量：滚多少 top 就涨多少 → 吸顶头被钉到列表
-         中间、原占位处只剩空白（图1）；只滚一点时 top 略大于文档位、头部下沿压住第一张卡
-         （图2）。v1097 的「首次滚动复测」让它在滚动瞬间必现，headless 之前没复现是因为
-         探针只在 scroll=0 时量过 pf-head。改：测量期间强制 position:static（同时覆盖
-         CSS sticky），文档 y 改用 offsetTop 链（与滚动量完全无关，任何时机测量都是同一
-         真值），top 最后夹进 [导航栏高, 导航栏高+120] 做防御。 */
-      ph.style.position = 'static';
-      ph.style.top = ''; ph.style.left = ''; ph.style.width = ''; ph.style.right = ''; ph.style.paddingTop = '';
-      var r = ph.getBoundingClientRect();
-      var docY = 0, _cur = ph, _g = 0;
-      while (_cur && _g++ < 50) { docY += _cur.offsetTop; _cur = _cur.offsetParent; }
-      var _hdrH = h.offsetHeight;
-      var _mcs = getComputedStyle(ph);
-      var _mt = parseFloat(_mcs.marginTop) || 0;
-      var _mb = parseFloat(_mcs.marginBottom) || 0;
-      /* v1102：固定头部前将其 margin 清零——否则 fixed 元素实际顶边 = top + marginTop
-         （负边距→上移、正边距→下移），整条 fixed 链算歪：platform-buttons 的 margin-top:-16px
-         曾让卡片上移吃掉顶部间距、并把后续 pf-head 的 docY 少算 16px 级联错位。间距由下方占位符的
-         _mt/_mb 与 _pad 兜底还原，公式即严格中性（占位顶=docY-_mt、占位高=原 margin 盒高）。 */
-      ph.style.marginTop = '0'; ph.style.marginBottom = '0';
-      /* v1100（她装 v1.2.10 后 8 图再证，此前 headless 探针测不到的两处真机残症）：
-         ①「导航栏与吸顶头之间露缝」——v1096 起 top=docY（=导航栏底 + 主体paddingTop），
-            两者之间留了一条 padding 高的透明带，滚动时内容从带里穿过（图3「制品数13件」
-            卡片内容、图1「2026年11月」月标题都从缝里露出）。回退 v1091 已在她设备验证的
-            方案：top 恒=导航栏高（贴死、无缝），docY-hdrH 的间距用头部自身同色 paddingTop
-            垫出——透明带被不透明底盖住，内容起始位置与 rest 完全一致。
-            _pad=0 时不写内联（避免覆盖 platform-buttons 的 CSS padding-top:16）。 */
-      var _pad = Math.max(0, Math.min(docY - _hdrH, 120));
-      ph.style.position = 'fixed';
-      ph.style.top = Math.round(_hdrH) + 'px';
-      ph.style.left = Math.round(r.left) + 'px';
-      ph.style.width = Math.round(r.width) + 'px';
-      ph.style.right = 'auto';
-      if (_pad > 0) ph.style.paddingTop = Math.round(_pad) + 'px'; else ph.style.paddingTop = '';
-      ph.style.zIndex = '25';
-      /* ②占位高度改按「fixed 定型后的真实底边」反推：v1098 在 fixed 前量 offsetHeight，
-         若 fixed 宽度取整比自然宽度略窄导致头部某行换行变高，占位跟不上 → 内容整体上钻
-         进头部底下（图2/5/6/8 的「被吞」候选根因）。公式：占位底 = 头部真实底边（文档系），
-         占位顶 = 原 margin 盒顶（docY-mt），再叠加自身 margin-bottom——rest 几何零位移，
-         宽度差导致的换行增高自动被占位吸收。 */
-      var _phH = Math.max(0, (_hdrH + ph.offsetHeight) - (docY - _mt) + _mb);
-      var nxt = ph.nextElementSibling;
-      if (nxt && nxt.classList.contains('pf-ph')) nxt.style.height = _phH + 'px';
-      else {
-        var d = document.createElement('div');
-        d.className = 'pf-ph';
-        d.style.height = _phH + 'px';
-        ph.parentNode.insertBefore(d, ph.nextSibling);
-      }
-    }
-    /* v1103：移除 v1100 的 scroll-padding-top 写入——它只为已删除的滚动吸附服务，无吸附则无意义。 */
-    /* v1099：给每个 pf-head 挂专属 ResizeObserver——旧版只观察 .main-header，头部自身高度
-       变化（真机字体晚到导致按钮行变高等）不会触发复测，占位符滞留旧高度 → 内容永久
-       上钻进头部底下（她多轮「被吞」的候选根因之一）。头部高度变 → 立即重算占位/top。
-       rAF 去抖：多头部同时变化只跑一次；本函数不改变头部高度，无回环。 */
+    if (!document.documentElement.classList.contains('apk')) return;
+    /* v1104 B：APK 端改用「头部 absolute 钉住 + 内容盒 absolute 头下独立滚动」——原生 App 最稳布局，
+       不依赖嵌套 flex 高度链，规避 v798 部分 Android WebView「完全划不动」。头部钉在 #mainBody.pf-on
+       顶部，内容盒从头部底边到视口底内部滚动 → 内容永不被头部盖住(无吞顶)；首页/平台页/各列表模块机制统一。
+       弃用 position:fixed + .pf-ph 手算占位(多轮"错位/吞顶/两页高度不一致"根因)。 */
+    var body = document.getElementById('mainBody');
+    if (!body || !body.classList.contains('pf-on')) return;
+    var heads = body.querySelectorAll('.pf-head');
+    var total = 0;
+    for (var i = 0; i < heads.length; i++) total += heads[i].getBoundingClientRect().height;
+    body.style.setProperty('--pf-head-h', Math.round(total) + 'px');
+    /* 头部自身高度变化(真机字体晚到等)→ 立即重算内容盒顶偏移，避免内容钻进头部底下 */
     if (window.ResizeObserver) {
       if (!updateApkHdrH._ro) {
         updateApkHdrH._ro = new ResizeObserver(function(){
@@ -4338,6 +4268,7 @@ function updateApkHdrH() {
     }
   } catch (e) {}
 }
+
 window.addEventListener('resize', updateApkHdrH);
 /* v1096：真实 WebView 字体/布局时机晚于首帧，首测 nav 高度/头位置可能漂移 → 复测。 */
 window.addEventListener('load', updateApkHdrH);
@@ -6568,6 +6499,7 @@ function renderHome() {
 
   if (ps.view === 'main') {
     // Main view: 日历（v221：全局待发布按钮不再出现在日历视图，改到各平台模块内）
+    html += '<div class="pf-split"></div>';   /* v1xxx B：首页 main 视图也纳入 pf-on（平台按钮行作吸顶头、日历/灵感在下方独立滚动），与平台视图机制统一 */
     html += '<div class="home-cal-insp">';
     html += '<div class="calendar" style="margin-top:4px">';
     html += '<div class="calendar-header">';
@@ -6708,7 +6640,7 @@ function renderHome() {
   body.innerHTML = html;
   /* v1079：首页平台视图 = 顶部固定+底部滚动（日历视图不切分、整页照旧）；桌面端两列各自内滚对齐开团记录 */
   body.classList.toggle('two-col-fixed', ps.view === 'platform' && homeTwoCol);
-  if (ps.view === 'platform') applyPageFixed(body);
+  applyPageFixed(body);   /* v1xxx B：main/平台视图都走 pf-on（有 pf-split 才切分，无则 no-op），吸顶机制统一 */
 }
 
 function renderHomeRecordCard(r) {
