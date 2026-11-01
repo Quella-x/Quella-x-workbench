@@ -339,6 +339,14 @@ html.apk .pf-head,html.apk #mainBody.pf-lr .lr-2col > .lr-left{top:var(--hdr-h,6
    display:flow-root 让 pf-head 成为 BFC，子元素 margin 收进自身高度内，占位/吸住几何完全连续。
    仅 apk 生效；桌面端 .fade-in 是 flex、flex 项的子 margin 本就不塌陷，不受影响。 */
 html.apk .pf-head{display:flow-root}
+/* v1100：滚动吸附——吸顶头钉住后，在任意位置停稳时边界行可能被切成半行（她 8 图之
+   图2/5/6/8，与图4「正常的边」对比）。文档滚动根容器启用 proximity 吸附：
+   停稳时把最近的块边界自动吸到吸顶头下沿（scroll-padding-top 由 JS 按头部真实底边
+   实时写入），保证停稳永远是整齐边界。proximity 只在接近边界时吸附，不打扰自由滚动。 */
+html.apk{scroll-snap-type:y proximity}
+html.apk .pf-body > *{scroll-snap-align:start}
+html.apk .gb-lib-item{scroll-snap-align:start}
+html.apk .platform-buttons ~ *{scroll-snap-align:start}
 /* v1099：首页平台按钮也提升合成层——她真机图7「搜索框叠到平台卡片上」：v1089 已实证
    真机 WebView CSS sticky 滚动重算滞后（内容画到吸顶元素上面），导航栏/lr-left 当年靠
    translateZ(0) 提升压住（她从未再报），platform-buttons（v1096 引入 sticky）漏了这条规则。 */
@@ -4082,8 +4090,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1099"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1099 —— 若这里显示的不是 v1099 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1100"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1100 —— 若这里显示的不是 v1100 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

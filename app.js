@@ -4249,7 +4249,7 @@ function updateApkHdrH() {
        吸顶 top=53 时垫出的 16px 落在 37~53 区间，被 z30 的不透明导航栏盖住（她实测「间距还没有」）。
        手机端 .lr-2col 是 block、lr-left 全宽，与 pf-head 结构等价，直接用同一套
        fixed + 自身 paddingTop 垫距 + pf-ph 占位（占位撑住文档流，内容位置不变）。 */
-    var heads = document.querySelectorAll('.pf-head, #mainBody.pf-lr .lr-2col > .lr-left');
+    var heads = document.querySelectorAll('.pf-head, .platform-buttons, #mainBody.pf-lr .lr-2col > .lr-left');
     for (var i = 0; i < heads.length; i++) {
       var ph = heads[i];
       /* v1090：她实测「整个格式都变了」——pf-head 在带左右边距的容器里，直接 left:0;width:100%
@@ -4270,23 +4270,46 @@ function updateApkHdrH() {
       var r = ph.getBoundingClientRect();
       var docY = 0, _cur = ph, _g = 0;
       while (_cur && _g++ < 50) { docY += _cur.offsetTop; _cur = _cur.offsetParent; }
-      var hh = Math.max(0, ph.offsetHeight) + 'px';
-      ph.style.position = 'fixed';
       var _hdrH = h.offsetHeight;
-      var _top = Math.min(Math.max(docY, _hdrH), _hdrH + 120);
-      ph.style.top = Math.round(_top) + 'px';
+      var _mcs = getComputedStyle(ph);
+      var _mt = parseFloat(_mcs.marginTop) || 0;
+      var _mb = parseFloat(_mcs.marginBottom) || 0;
+      /* v1100（她装 v1.2.10 后 8 图再证，此前 headless 探针测不到的两处真机残症）：
+         ①「导航栏与吸顶头之间露缝」——v1096 起 top=docY（=导航栏底 + 主体paddingTop），
+            两者之间留了一条 padding 高的透明带，滚动时内容从带里穿过（图3「制品数13件」
+            卡片内容、图1「2026年11月」月标题都从缝里露出）。回退 v1091 已在她设备验证的
+            方案：top 恒=导航栏高（贴死、无缝），docY-hdrH 的间距用头部自身同色 paddingTop
+            垫出——透明带被不透明底盖住，内容起始位置与 rest 完全一致。
+            _pad=0 时不写内联（避免覆盖 platform-buttons 的 CSS padding-top:16）。 */
+      var _pad = Math.max(0, Math.min(docY - _hdrH, 120));
+      ph.style.position = 'fixed';
+      ph.style.top = Math.round(_hdrH) + 'px';
       ph.style.left = Math.round(r.left) + 'px';
       ph.style.width = Math.round(r.width) + 'px';
       ph.style.right = 'auto';
+      if (_pad > 0) ph.style.paddingTop = Math.round(_pad) + 'px'; else ph.style.paddingTop = '';
       ph.style.zIndex = '25';
+      /* ②占位高度改按「fixed 定型后的真实底边」反推：v1098 在 fixed 前量 offsetHeight，
+         若 fixed 宽度取整比自然宽度略窄导致头部某行换行变高，占位跟不上 → 内容整体上钻
+         进头部底下（图2/5/6/8 的「被吞」候选根因）。公式：占位底 = 头部真实底边（文档系），
+         占位顶 = 原 margin 盒顶（docY-mt），再叠加自身 margin-bottom——rest 几何零位移，
+         宽度差导致的换行增高自动被占位吸收。 */
+      var _phH = Math.max(0, (_hdrH + ph.offsetHeight) - (docY - _mt) + _mb);
       var nxt = ph.nextElementSibling;
-      if (nxt && nxt.classList.contains('pf-ph')) nxt.style.height = hh;
+      if (nxt && nxt.classList.contains('pf-ph')) nxt.style.height = _phH + 'px';
       else {
         var d = document.createElement('div');
         d.className = 'pf-ph';
-        d.style.height = hh;
+        d.style.height = _phH + 'px';
         ph.parentNode.insertBefore(d, ph.nextSibling);
       }
+    }
+    /* v1100：滚动吸附基准——scroll-padding-top=吸顶头真实底边，配合 CSS 的
+       scroll-snap-type:y proximity，停稳时最近的块边界自动吸到头部下沿，
+       消灭「停稳时边界行被切成半行」（她图2/5/6/8 vs 图4「正常的边」）。 */
+    if (heads.length) {
+      var _b0 = heads[0].getBoundingClientRect();
+      document.documentElement.style.scrollPaddingTop = Math.round(_b0.bottom) + 'px';
     }
     /* v1099：给每个 pf-head 挂专属 ResizeObserver——旧版只观察 .main-header，头部自身高度
        变化（真机字体晚到导致按钮行变高等）不会触发复测，占位符滞留旧高度 → 内容永久
