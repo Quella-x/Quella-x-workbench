@@ -4255,22 +4255,30 @@ function updateApkHdrH() {
       /* v1090：她实测「整个格式都变了」——pf-head 在带左右边距的容器里，直接 left:0;width:100%
          会铺满全屏丢边距。改 fixed 前先量它在文档流里的横向位置/宽度，照原样定位；
          已 fixed 的先临时还原再量（同一帧 JS 内完成，无中间绘制、无闪烁），转屏/resize 也正确。 */
-      var wasFixed = ph.style.position === 'fixed';
-      if (wasFixed) { ph.style.position = ''; ph.style.left = ''; ph.style.width = ''; ph.style.paddingTop = ''; }
+      /* v1098 关键修复（她真机图1「出bug了」：吸顶头整个钉进列表中间、顶上大片空白；
+         图2「被吞」：第一张卡顶部被吸顶头压住）——旧版还原测量用 position=''，
+         但 index.html:320 给 html.apk .pf-head 配了 position:sticky 兜底，'' 会落回 sticky！
+         页面滚动时 sticky 元素的 rect 是「吸住位置」(≈导航栏底 53px) 而非文档流位置，
+         于是 top=r.top+滚动量 实际变成 53+滚动量：滚多少 top 就涨多少 → 吸顶头被钉到列表
+         中间、原占位处只剩空白（图1）；只滚一点时 top 略大于文档位、头部下沿压住第一张卡
+         （图2）。v1097 的「首次滚动复测」让它在滚动瞬间必现，headless 之前没复现是因为
+         探针只在 scroll=0 时量过 pf-head。改：测量期间强制 position:static（同时覆盖
+         CSS sticky），文档 y 改用 offsetTop 链（与滚动量完全无关，任何时机测量都是同一
+         真值），top 最后夹进 [导航栏高, 导航栏高+120] 做防御。 */
+      ph.style.position = 'static';
+      ph.style.top = ''; ph.style.left = ''; ph.style.width = ''; ph.style.right = ''; ph.style.paddingTop = '';
       var r = ph.getBoundingClientRect();
-      /* v1096：吸顶头贴住位置改用「自身渲染后真实 y（r.top + 文档滚动量）」，不再用导航栏高度 t。
-         旧版 top=t 要求「导航栏高度 == 主体顶部偏移」恒成立；真实 WebView 因状态栏/字体时机
-         导致该等式破裂 → 固定头与下方内容错位（她实测「未滚动就被压住、吞一点」，headless 无法
-         复现因盒模型一致）。r.top 是渲染后真值，占位符改用头部自然盒高（不再内减 gap），
-         间距由 top=r.top 自然保留，几何对任意设备严格一致。 */
-      var sy = window.pageYOffset || document.documentElement.scrollTop || 0;
+      var docY = 0, _cur = ph, _g = 0;
+      while (_cur && _g++ < 50) { docY += _cur.offsetTop; _cur = _cur.offsetParent; }
+      var hh = Math.max(0, ph.offsetHeight) + 'px';
       ph.style.position = 'fixed';
-      ph.style.top = Math.round(r.top + sy) + 'px';
+      var _hdrH = h.offsetHeight;
+      var _top = Math.min(Math.max(docY, _hdrH), _hdrH + 120);
+      ph.style.top = Math.round(_top) + 'px';
       ph.style.left = Math.round(r.left) + 'px';
       ph.style.width = Math.round(r.width) + 'px';
       ph.style.right = 'auto';
       ph.style.zIndex = '25';
-      var hh = Math.max(0, ph.offsetHeight) + 'px';
       var nxt = ph.nextElementSibling;
       if (nxt && nxt.classList.contains('pf-ph')) nxt.style.height = hh;
       else {
