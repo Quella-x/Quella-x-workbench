@@ -4042,7 +4042,10 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 /* v1073：padding 左右改回 16px（与 .pricelist-menu-item 一致）——
    v1072 写成 6px 0 让 hover/选中高亮块左右贴边没有空余（她："选择后的底色左右两边没有空余"） */
 /* v1096：商品库一行改两行——名称/分类第一行，价位（阶梯价）+售价第二行（桌面/手机一致） */
-.gb-lib-item{display:flex;flex-direction:column;gap:2px;padding:6px 16px;border-bottom:1px solid var(--c-border);cursor:pointer}
+.gb-lib-item{display:flex;flex-direction:column;align-items:stretch;gap:2px;padding:6px 16px;border-bottom:1px solid var(--c-border);cursor:pointer}
+/* align-items:stretch（v1100）：priceList 通用类 .pricelist-menu-item 的 align-items:baseline 会渗入，
+   把 row1/row2 缩成内容宽 → lib-name 的 flex:1 拉不开、胶囊贴在名字后（她指认胶囊应在行的右边）。
+   stretch 让两行各占满行宽，胶囊被 flex:1 的名字顶到右端（v1095 原样），第二排照常左起 */
 .gb-lib-item:hover{background:var(--c-primary-bg);border-radius:4px}
 .gb-lib-item .lib-row1{display:flex;align-items:center;gap:8px;min-width:0}
 .gb-lib-item .lib-row2{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
@@ -4101,8 +4104,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 <input type="file" id="importFile" accept=".json" style="display:none">
 
 <script src="vendor/html2canvas.min.js"></script>
-  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=1100"><\/script>');</script>
-  <script>console.log('[小筱工作台] 当前版本 v1100 —— 若这里显示的不是 v1100 说明浏览器缓存了旧页面')</script>
+  <script>if (window.__OF_VALID) document.write('<script src="app.js?v=1101"><\/script>');</script>
+  <script>console.log('[小筱工作台] 当前版本 v1101 —— 若这里显示的不是 v1101 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;
