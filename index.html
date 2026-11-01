@@ -317,9 +317,13 @@ html.apk.modal-lock{overflow:hidden!important}
    规避 v798 部分 Android WebView「完全划不动」。#mainBody.pf-on 钉在导航栏下占满余下视口；
    .pf-head 钉在 pf-on 顶部；.pf-body 从头部底边到视口底内部滚动 → 内容永不被头部盖住(无吞顶)；
    首页/平台页/各列表模块机制统一。弃用 position:fixed + .pf-ph 手算占位(多轮"错位/吞顶/两页高度不一致"根因)。 */
-html.apk #mainBody.pf-on{position:absolute;top:var(--hdr-h,53px);bottom:0;left:0;right:0;overflow:hidden;padding:0!important}
-html.apk .pf-head{position:absolute;top:0;left:0;right:0;z-index:25;background:var(--c-bg)}
-html.apk .pf-body{position:absolute;left:0;right:0;bottom:0;top:var(--pf-head-h,0px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+html.apk #mainBody.pf-on{position:absolute;top:var(--hdr-h,53px);bottom:0;left:0;right:0;overflow:hidden}
+/* v1105 修复（她真机 v1.2.16「边距呢？整个版式全变了」）：absolute 子元素定位基准是容器的
+   padding box，left:0/right:0 会绕过 .main-body 的 16px padding 直接顶到屏幕边缘 → 通铺。
+   改为内缩 var(--pf-inset-*)（由 updateApkHdrH 从 .main-body 真实 computed padding 读入，
+   不硬编码），四周间距与 v1.1.93 文档流完全一致。 */
+html.apk .pf-head{position:absolute;top:var(--pf-inset-t,16px);left:var(--pf-inset-x,16px);right:var(--pf-inset-x,16px);z-index:25;background:var(--c-bg)}
+html.apk .pf-body{position:absolute;top:calc(var(--pf-inset-t,16px) + var(--pf-head-h,0px));left:var(--pf-inset-x,16px);right:var(--pf-inset-x,16px);bottom:var(--pf-inset-b,16px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 html.apk #mainBody.pf-lr .lr-2col > .lr-left{position:sticky;top:var(--hdr-h,69px);z-index:20;background:var(--c-bg)}
 html.apk #mainBody.pf-lr .lr-2col{display:block;height:auto}
 html.apk #mainBody.pf-lr .lr-2col > .lr-right{overflow:visible}
@@ -4087,8 +4091,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1104"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1104 —— 若这里显示的不是 v1104 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1105"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1105 —— 若这里显示的不是 v1105 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

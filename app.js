@@ -4252,6 +4252,13 @@ function updateApkHdrH() {
     var body = document.getElementById('mainBody');
     if (!body || !body.classList.contains('pf-on')) return;
     var heads = body.querySelectorAll('.pf-head');
+    /* v1105：把 .main-body 真实 padding 读进 --pf-inset-*，absolute 头部/内容盒按它内缩，
+       还原文档流的四周 16px 边距（她真机 v1.2.16「边距没了/版式全变」根因：
+       absolute 子元素以 padding box 定位，left:0 绕过了容器 padding）。 */
+    var _cs = getComputedStyle(body);
+    body.style.setProperty('--pf-inset-x', (parseFloat(_cs.paddingLeft) || 0) + 'px');
+    body.style.setProperty('--pf-inset-t', (parseFloat(_cs.paddingTop) || 0) + 'px');
+    body.style.setProperty('--pf-inset-b', (parseFloat(_cs.paddingBottom) || 0) + 'px');
     var total = 0;
     for (var i = 0; i < heads.length; i++) total += heads[i].getBoundingClientRect().height;
     body.style.setProperty('--pf-head-h', Math.round(total) + 'px');
