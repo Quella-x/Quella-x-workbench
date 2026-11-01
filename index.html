@@ -322,20 +322,33 @@ html.apk #mainBody.pf-on{position:absolute;top:var(--hdr-h,53px);bottom:0;left:0
    padding box，left:0/right:0 会绕过 .main-body 的 16px padding 直接顶到屏幕边缘 → 通铺。
    改为内缩 var(--pf-inset-*)（由 updateApkHdrH 从 .main-body 真实 computed padding 读入，
    不硬编码），四周间距与 v1.1.93 文档流完全一致。 */
-html.apk .pf-head{position:absolute;top:var(--pf-inset-t,16px);left:var(--pf-inset-x,16px);right:var(--pf-inset-x,16px);z-index:25;background:var(--c-bg)}
-html.apk .pf-body{position:absolute;top:calc(var(--pf-inset-t,16px) + var(--pf-head-h,0px));left:var(--pf-inset-x,16px);right:var(--pf-inset-x,16px);bottom:var(--pf-inset-b,16px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:none}
+/* v1107 修复（她真机图3「约稿单模块边框不一样」）：v1105 的 left/right 内缩会把
+   v1.1.93 里负 margin 通铺的设计（如 .gb-right margin:0 -6px、模板选中态 margin:0 -16px）
+   裁在内容盒边上——overflow-y:auto 会把 overflow-x 强制成 auto，负 margin 出血全被裁掉，
+   卡片从「通铺到屏幕两缘」变成「内缩浮卡」。改 left/right:0 + 内边距补偿：
+   裁剪区=padding box，负 margin 出血画进 padding 区不被裁 → 通铺/边距同时还原。
+   底部同理 bottom:0 + padding-bottom：滚到中途卡片被屏幕底边真实裁切（v1.1.93 行为），
+   滚到底仍有 16px 呼吸位。 */
+html.apk .pf-head{position:absolute;top:var(--pf-inset-t,16px);left:0;right:0;padding-left:var(--pf-inset-x,16px);padding-right:var(--pf-inset-x,16px);z-index:25;background:var(--c-bg)}
+html.apk .pf-body{position:absolute;top:calc(var(--pf-inset-t,16px) + var(--pf-head-h,0px));left:0;right:0;bottom:0;padding-left:var(--pf-inset-x,16px);padding-right:var(--pf-inset-x,16px);padding-bottom:var(--pf-inset-b,16px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:none}
 /* v1106（她真机图2「这个滚动条是什么」）：全局 ::-webkit-scrollbar{width:6px} 会命中新的
    .pf-body 滚动容器；旧 APK 文档滚动被 html.apk::-webkit-scrollbar{width:0} 隐藏，
    pf-body 必须同样隐藏才与 v1.1.93 一致（手机端不显示滚动条）。 */
 html.apk .pf-body::-webkit-scrollbar{width:0;height:0;display:none}
-html.apk #mainBody.pf-lr .lr-2col > .lr-left{position:sticky;top:var(--hdr-h,69px);z-index:20;background:var(--c-bg)}
+/* v1107（她真机图4「固定呢？」）：每日记录 pf-lr 弃用 sticky——#mainBody.pf-lr 的
+   overflow 链让 sticky 吸附范围错乱（headless 实测文档滚 220px 后 lr-left 跟着滚到 -151），
+   v1104 重写 updateApkHdrH 时又丢了 lr-left 的 JS 钉住 → 双重失效。
+   改与 pf-on 同款「absolute 钉头 + 内容盒头下独立滚动」：lr-left 钉顶，lr-right 从
+   lr-left 底边（--lr-head-h，JS 含边界折叠测量）到视口底内滚。 */
+html.apk #mainBody.pf-lr{position:absolute;top:var(--hdr-h,53px);bottom:0;left:0;right:0;overflow:hidden}
 html.apk #mainBody.pf-lr .lr-2col{display:block;height:auto}
-html.apk #mainBody.pf-lr .lr-2col > .lr-right{overflow:visible}
+html.apk #mainBody.pf-lr .lr-2col > .lr-left{position:absolute;top:var(--pf-inset-t,16px);left:0;right:0;padding-left:var(--pf-inset-x,16px);padding-right:var(--pf-inset-x,16px);z-index:25;background:var(--c-bg)}
+html.apk #mainBody.pf-lr .lr-2col > .lr-right{position:absolute;top:calc(var(--pf-inset-t,16px) + var(--lr-head-h,0px));left:0;right:0;bottom:0;padding-left:var(--pf-inset-x,16px);padding-right:var(--pf-inset-x,16px);padding-bottom:var(--pf-inset-b,16px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:none}
+html.apk #mainBody.pf-lr .lr-right::-webkit-scrollbar{width:0;height:0;display:none}
 /* v1085: 手机端顶部导航栏也吸顶（此前从未固定，她 11-01 截图红框「最上面的导航栏不固定」）。
    导航栏钉住后，pf-head / 每日记录 lr-left 的吸顶起点要让出导航栏实际高度，
    用 --hdr-h（JS 按导航栏实测高度写入 html，回退 69px），避免两块吸顶元素重叠。 */
 html.apk .main-header{position:sticky;top:0;z-index:30}
-html.apk #mainBody.pf-lr .lr-2col > .lr-left{top:var(--hdr-h,69px)}
 /* v1087: 她实测「滑动时吸顶头部会往上滑、钻进导航栏底下」——① WebView 对 sticky 滚动合成
    有滞后抖动，提升为独立合成层（will-change+translateZ(0)，只加在吸顶元素自身、不影响其
    sticky 行为）可显著减轻；② top 具体值由 updateApkHdrH 直接内联写入（见 app.js），不单靠变量。 */
@@ -4095,8 +4108,8 @@ button[onclick="saveCalcTemplate()"]{box-shadow:none!important}
 
 <script src="vendor/html2canvas.min.js"></script>
   <script src="assets/vault-cfg.js"></script>
-  <script src="app.js?v=1106"></script>
-  <script>console.log('[小筱工作台] 当前版本 v1106 —— 若这里显示的不是 v1106 说明浏览器缓存了旧页面')</script>
+  <script src="app.js?v=1107"></script>
+  <script>console.log('[小筱工作台] 当前版本 v1107 —— 若这里显示的不是 v1107 说明浏览器缓存了旧页面')</script>
 <script>
   (function () {
     var isPreview = location.search.indexOf('preview=1') !== -1;

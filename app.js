@@ -4025,7 +4025,11 @@ const CAL_VIEW_STYLE_MODULES = COMM_LIST_STYLE_MODULES.filter(k => k !== 'design
 var _navScrollMemo = {};
 function _navScrollAll(){
   var out=[], root=document.getElementById('mainBody');
-  out.push(document.scrollingElement||document.documentElement);
+  /* v1107：APK 钉头页（pf-on/pf-lr）文档永远不该滚——不把 document 纳入记忆，
+     防止旧 doc 滚动量经记忆回种把整页连头抬起来（她真机图1「还是被吞」根因之一）。 */
+  var _apkPinned = document.documentElement.classList.contains('apk') && root &&
+    (root.classList.contains('pf-on') || root.classList.contains('pf-lr'));
+  if (!_apkPinned) out.push(document.scrollingElement||document.documentElement);
   if(root){
     out.push(root);
     root.querySelectorAll('*').forEach(function(el){
@@ -4068,7 +4072,15 @@ function _navScrollCapture(pageKey){
 function _navScrollRestore(pageKey){
   var list=_navScrollMemo[pageKey];
   if(!list||!list.length) return;   /* 没记录（首次进入/刷新重进）→ 保持顶部 */
-  list.forEach(function(o){ var el=_navScrollByPath(o.p); if(el) el.scrollTop=o.t; });
+  /* v1107：APK 钉头页不还原 'doc' 项——pf-on/pf-lr 下文档不可滚，旧 doc 值种回去
+     轻则被钳制、重则整页连头上移（她真机「初始界面滚进去/还是被吞」）。 */
+  var _root=document.getElementById('mainBody');
+  var _apkPinned = document.documentElement.classList.contains('apk') && _root &&
+    (_root.classList.contains('pf-on') || _root.classList.contains('pf-lr'));
+  list.forEach(function(o){
+    if(_apkPinned && o.p==='doc') return;
+    var el=_navScrollByPath(o.p); if(el) el.scrollTop=o.t;
+  });
 }
 function navigate(page) {
   _navScrollCapture(currentPage);   /* v1065：切走前记住当前模块滚动位置 */
@@ -4270,8 +4282,16 @@ function updateApkHdrH() {
        顶部，内容盒从头部底边到视口底内部滚动 → 内容永不被头部盖住(无吞顶)；首页/平台页/各列表模块机制统一。
        弃用 position:fixed + .pf-ph 手算占位(多轮"错位/吞顶/两页高度不一致"根因)。 */
     var body = document.getElementById('mainBody');
-    if (!body || !body.classList.contains('pf-on')) return;
-    var heads = body.querySelectorAll('.pf-head');
+    if (!body) return;
+    var _isPfOn = body.classList.contains('pf-on');
+    var _isPfLr = body.classList.contains('pf-lr');
+    if (!_isPfOn && !_isPfLr) return;
+    /* v1107 文档滚动守卫（她真机图1「还是被吞」防御）：pf-on/pf-lr 页面内容在内部滚动盒里滚，
+       文档本身永远不该有滚动量。旧滚动记忆(_navScrollMemo 'doc' 项)/异常渲染窗口种下的
+       document scrollTop 会让整页连头部一起上移（她见到的「工具栏被裁、年份导航跑到中间」
+       就是整页被抬了几十 px）。这里在每次布局刷新时强制归零。 */
+    if (window.scrollY) window.scrollTo(0, 0);
+    var heads = _isPfOn ? body.querySelectorAll('.pf-head') : [];
     /* v1105：把 .main-body 真实 padding 读进 --pf-inset-*，absolute 头部/内容盒按它内缩，
        还原文档流的四周 16px 边距（她真机 v1.2.16「边距没了/版式全变」根因：
        absolute 子元素以 padding box 定位，left:0 绕过了容器 padding）。 */
@@ -4299,6 +4319,40 @@ function updateApkHdrH() {
       if (isFinite(_hh) && _hh >= 0) total = _hh;
     }
     body.style.setProperty('--pf-head-h', Math.round(total) + 'px');
+    /* v1107：每日记录 pf-lr——测量 lr-left 高度写 --lr-head-h（含边界折叠：
+       lr-left 末元素 mb 链 vs lr-right 首元素 mt 链取 max，与 v1.1.93 文档流一致）。 */
+    if (_isPfLr) {
+      var _ll = body.querySelector('.lr-2col > .lr-left');
+      var _lr = body.querySelector('.lr-2col > .lr-right');
+      if (_ll && _lr) {
+        var _mtR = _lr.firstElementChild ? _collMargin(_lr.firstElementChild, 'Top') : 0;
+        var _mbL = _collMargin(_ll, 'Bottom');
+        var _llB = _ll.getBoundingClientRect().bottom;
+        var _pfT = body.getBoundingClientRect().top;
+        var _hLr = (_llB - _pfT - (parseFloat(_cs.paddingTop) || 0)) + Math.max(0, _mbL - _mtR);
+        if (isFinite(_hLr) && _hLr >= 0) body.style.setProperty('--lr-head-h', Math.round(_hLr) + 'px');
+      }
+    }
+    /* v1107 自愈兜底（她真机图1「还是被吞」防御二）：任何渲染路径若漏调 applyPageFixed
+       （同步数据晚到/图表重渲染等未知路径重建了带 pf-split 的 DOM），这里自动补切分钉头。
+       判据只用「.pf-split 是否存在」——applyPageFixed 消费 split 后 DOM 里不会再有它，
+       已正常渲染的页面天然 no-op；不能附加 !pf-on 条件：非导航重渲染不清 mainBody 的
+       旧 class，pf-on 残留会让漏调路径永远无法自愈（headless 实测踩过）。 */
+    if (window.MutationObserver && !updateApkHdrH._mo) {
+      updateApkHdrH._moPend = false;
+      updateApkHdrH._mo = new MutationObserver(function(){
+        if (updateApkHdrH._moPend) return;
+        updateApkHdrH._moPend = true;
+        requestAnimationFrame(function(){
+          updateApkHdrH._moPend = false;
+          try {
+            var _b = document.getElementById('mainBody');
+            if (_b && _b.querySelector('.pf-split')) applyPageFixed(_b);
+          } catch (e) {}
+        });
+      });
+    }
+    if (updateApkHdrH._mo) { try { updateApkHdrH._mo.observe(document.body, { childList: true, subtree: true }); } catch (e) {} }
     /* 头部自身高度变化(真机字体晚到等)→ 立即重算内容盒顶偏移，避免内容钻进头部底下 */
     if (window.ResizeObserver) {
       if (!updateApkHdrH._ro) {
@@ -4309,6 +4363,9 @@ function updateApkHdrH() {
         });
       }
       for (var j = 0; j < heads.length; j++) { try { updateApkHdrH._ro.observe(heads[j]); } catch(e){} }
+      /* v1107：每日记录 lr-left 高度变化（图表晚到等）也要重算 --lr-head-h */
+      var _llRo = body.querySelector('.lr-2col > .lr-left');
+      if (_llRo) { try { updateApkHdrH._ro.observe(_llRo); } catch(e){} }
     }
   } catch (e) {}
 }
