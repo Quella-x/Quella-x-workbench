@@ -6011,8 +6011,9 @@ function setupFormInteractions(pageKey) {
 }
 
 /* v1109（她要求）：打样记录填了厂家，若「厂家记录」里还没有这个厂家，保存后自动补建一条厂家档案。
-   口径已与她确认：只补建档案（名称 + 首次联系时间=今天 + 合作状态=临时合作），不写合作记录、
-   不带入样品费用/品类等其他信息；新增和编辑打样记录都触发；同名（去空格、忽略大小写）不重复建。 */
+   口径已与她确认：只补建档案（名称 + 首次联系时间 + 合作状态=临时合作），不写合作记录、
+   不带入样品费用/品类等其他信息；新增和编辑打样记录都触发；同名（去空格、忽略大小写）不重复建。
+   v1110（她要求）：首次联系时间 = 该条打样记录的「打样时间」(sampleTime)，不再取今天；未填打样时间才回退今天。 */
 function autoFactoryFromSample(saved) {
   if (!saved) return;
   const fname = String(saved.factory || '').trim();
@@ -6022,7 +6023,7 @@ function autoFactoryFromSample(saved) {
   if (exists) return;
   DB.add('factories', {
     name: fname,
-    firstContactTime: todayStr(),
+    firstContactTime: saved.sampleTime || todayStr(),
     cooperationStatus: '临时合作',
     cooperationRecords: []
   });
