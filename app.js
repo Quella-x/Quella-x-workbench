@@ -4254,18 +4254,34 @@ window.addEventListener('resize', () => {
    传播折叠取 max（如平台页头末的 DIV 包着月导航，月导航的 mb 沿链上传）。
    side='Top' 沿 firstElementChild 向下、side='Bottom' 沿 lastElementChild 向上，
    返回该侧最终参与折叠的 margin 值。guard 防深层死循环。 */
+/* v1109 修复（她真机「手机端首页这边还是吞」）：折叠链必须沿「最后一个在文档流里的子元素」走。
+   月份导航等头部末尾常挂 position:absolute/display:none 的 .life-month-picker（隐藏弹层），
+   旧写法直接取 lastElementChild 会走进隐藏弹层 → 真实 mb(6px) 测成 0 → --pf-head-h 少 6px
+   → pf-body 顶边高于头部底边（首页平台视图实测 416 < 422），第一张卡的顶部虚线整条被头部
+   不透明背景压掉 = 她说的「吞」。凡脱离文档流的子元素一律跳过，取前一个在流兄弟。 */
+function _inFlowColl(el) {
+  if (!el) return false;
+  try {
+    var cs = getComputedStyle(el);
+    return cs.display !== 'none' && cs.position !== 'absolute' && cs.position !== 'fixed';
+  } catch (e) { return false; }
+}
 function _collMargin(el, side) {
   var m = 0, cur = el, guard = 0;
   var kidKey = side === 'Top' ? 'firstElementChild' : 'lastElementChild';
+  var sibKey = side === 'Top' ? 'nextElementSibling' : 'previousElementSibling';
   var edge = side === 'Top' ? 'paddingTop' : 'paddingBottom';
   var border = side === 'Top' ? 'borderTopWidth' : 'borderBottomWidth';
   while (cur && guard++ < 8) {
+    if (!_inFlowColl(cur)) break;
     var cs;
     try { cs = getComputedStyle(cur); } catch (e) { break; }
     var v = parseFloat(cs['margin' + side]) || 0;
     if (v > m) m = v;
     if ((parseFloat(cs[edge]) || 0) || (parseFloat(cs[border]) || 0) || cs.overflow !== 'visible') break;
-    cur = cur[kidKey];
+    var nxt = cur[kidKey];
+    while (nxt && !_inFlowColl(nxt)) nxt = nxt[sibKey];
+    cur = nxt;
   }
   return m;
 }
@@ -5994,6 +6010,24 @@ function setupFormInteractions(pageKey) {
   }
 }
 
+/* v1109（她要求）：打样记录填了厂家，若「厂家记录」里还没有这个厂家，保存后自动补建一条厂家档案。
+   口径已与她确认：只补建档案（名称 + 首次联系时间=今天 + 合作状态=临时合作），不写合作记录、
+   不带入样品费用/品类等其他信息；新增和编辑打样记录都触发；同名（去空格、忽略大小写）不重复建。 */
+function autoFactoryFromSample(saved) {
+  if (!saved) return;
+  const fname = String(saved.factory || '').trim();
+  if (!fname) return;
+  const key = fname.toLowerCase();
+  const exists = DB.list('factories').some(f => String(f && f.name || '').trim().toLowerCase() === key);
+  if (exists) return;
+  DB.add('factories', {
+    name: fname,
+    firstContactTime: todayStr(),
+    cooperationStatus: '临时合作',
+    cooperationRecords: []
+  });
+}
+
 function saveForm(pageKey, mod, id) {
   const data = readForm($('#modalBody'));
   /* v1086：date 字段保存时兜底归一（如手输 2026-1031 → 2026-10-31；防 onchange 漏网） */
@@ -6031,6 +6065,8 @@ function saveForm(pageKey, mod, id) {
   if (id && _prevImgs && _prevImgs.length) {
     _prevImgs.forEach(u => { if (imgs.indexOf(u) < 0) ImgCloud.remove(u); });
   }
+  // v1109：打样记录 → 厂家记录自动补建档案（只补建，不写合作记录）
+  if (pageKey === 'groupbuy-samples' && saved) autoFactoryFromSample(saved);
   // v815：开团记录 → 厂家合作记录回填（日期 = 截团时间 + 3 天）。放在落库之后，才能拿到带 id 的 saved
   if (pageKey === 'groupbuy-records' && saved) syncGroupbuyToFactories(saved, _prevGb);
   if (pageKey === 'oc-relations' && saved) syncOcRelationToChars(saved);
